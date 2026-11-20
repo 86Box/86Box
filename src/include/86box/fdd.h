@@ -188,6 +188,7 @@ typedef struct fdd_ctrl_t {
     fdd_sector_id_t (*get_read_track_sector)(void *priv);
     void        (*request_next_sector_id)(void *priv);
     void        (*stop_id_request)(void *priv);
+    void        (*index_pulse)(void *priv);
 } fdd_ctrl_t;
 
 /* One command's parameters, as the controller holds them. The controller

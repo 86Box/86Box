@@ -260,6 +260,7 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
     fdc->head             = 0;
     fdc->step             = 0;
     fdc->ras_b            = 0;
+    fdc->find_index       = 0;
     if (reset_power_down)
         fdc->power_down       = 0;
 
@@ -907,6 +908,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     fdc->gap             = fdc->params[6];
     fdc->dtl             = fdc->params[7];
     fdc->rw_track        = fdc->params[1];
+    fdc->find_index      = 1;
 
     int implied_seek = 0;
     /* Treat as an implied seek, unless it's a tape drive, which will treat it as a QIC-117 command. */
@@ -1227,6 +1229,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 5: /*Command register*/
                 if (fdc->flags & FDC_FLAG_5550)
                     fdc_irq(fdc, 0);
+                /*
+                   Abort with no ID address mark found when writing during the
+                   search for the index hole, like the real controller does,
+                   this is used to unhang the controller if it has stalled during
+                   the index pulse watch when there is no disk in the drive.
+                 */
+                if (fdc->find_index)
+                    fdc_noidam(fdc);
                 /* The uPD765 does not accept a command until every result byte
                    has been read out, so writes arriving before that is neither
                    a command byte nor one of its parameters. */
@@ -2628,6 +2638,13 @@ fdc_error(fdc_t *fdc, int st5, int st6)
 }
 
 void
+fdc_index_pulse(fdc_t *fdc)
+{
+    fdc_log("FDC: Index pulse\n");
+    fdc->find_index = 0;
+}
+
+void
 fdc_overrun(fdc_t *fdc)
 {
     fdd_stop(fdc->fdd[fdc->drive]);
@@ -3132,6 +3149,7 @@ fdc_reset(void *priv)
     fdc->pretrk = 0;
 
     fdc->lock          = 0;
+    fdc->find_index    = 0;
 
     fdc->swwp          = 0;
     fdc->disable_write = 0;

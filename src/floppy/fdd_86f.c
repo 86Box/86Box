@@ -1920,6 +1920,8 @@ d86f_spin_to_index(void *priv, const int side)
         /* This is to make sure both READ TRACK and FORMAT TRACK command don't end prematurely. */
         dev->index_count = 0;
         dev->state++;
+
+        drv->ctrl->index_pulse(drv->ctrl_priv);
     }
 }
 

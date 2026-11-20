@@ -242,6 +242,12 @@ fdc_ctrl_stop_id_request(void *priv)
     fdc_stop_id_request((fdc_t *) priv);
 }
 
+static void
+fdc_ctrl_index_pulse(void *priv)
+{
+    fdc_index_pulse((fdc_t *) priv);
+}
+
 /* ------------------------------------------------------------------------- */
 /* The table                                                                 */
 /* ------------------------------------------------------------------------- */
@@ -286,5 +292,6 @@ const fdd_ctrl_t fdc_ctrl = {
 
     .get_read_track_sector   = fdc_ctrl_get_read_track_sector,
     .request_next_sector_id  = fdc_ctrl_request_next_sector_id,
-    .stop_id_request         = fdc_ctrl_stop_id_request
+    .stop_id_request         = fdc_ctrl_stop_id_request,
+    .index_pulse             = fdc_ctrl_index_pulse
 };

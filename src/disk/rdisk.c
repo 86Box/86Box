@@ -2482,11 +2482,13 @@ rdisk_mode_sense(const rdisk_t *dev, uint8_t *buf, uint32_t pos,
 
     /* Only the pages the drive has: MODE SENSE of all pages returns those and nothing else (a real LS-120 COSM 05
        returns exactly its five pages).  A page without a length, like page 0, only returns the header. */
-    for (uint8_t i = 0; i < GPMODE_ALL_PAGES; i++) {
+    for (uint8_t pg = 1; pg < 0x41; pg++) {
+        /* Make sure page 0 is always transferred last. */
+        const uint8_t i = (pg == 0x40) ? 0 : pg;
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
             const uint8_t msplen = rdisk_mode_sense_read(dev, pgctl, i, 1);
 
-            if ((pf & (1ULL << i)) && msplen) {
+            if ((pf & (1LL << ((uint64_t) i))) && msplen) {
                 buf[pos++]           = rdisk_mode_sense_read(dev, pgctl, i, 0);
                 buf[pos++]           = msplen;
                 rdisk_log(dev->log, "MODE SENSE: Page [%02X] length %i\n", i, msplen);
@@ -4154,15 +4156,25 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 rdisk_buf_alloc(dev, 65536);
             }
 
-            if (rdisk_mode_sense_page_flags(dev) & (1ULL << (cdb[2] & 0x3f))) {
+            /*
+               If PC == 0 and page code == 0, return only the header and,
+               if applicable, the block descriptor.
+             */
+            if (!cdb[2] || (rdisk_mode_sense_page_flags(dev) &
+                            (1ULL << (cdb[2] & 0x3f)))) {
                 memset(dev->buffer, 0, len);
                 alloc_length = len;
 
                 if (cdb[0] == GPCMD_MODE_SENSE_6) {
                     len            = rdisk_mode_sense(dev, dev->buffer, 4, cdb[2],
                                                       block_desc);
-                    /* The Bernoulli 150 reports the length of all the data, whatever the host asked for. */
-                    dev->buffer[0] = (IS_BERNOULLI_150(dev->drv->type) ? len : MIN(len, alloc_length)) - 1;
+                    /*
+                       The Bernoulli 150 reports the length of all the data, whatever the host asked for.
+
+                       Note by OBattler: This is always true, I've recently run into the same problem with
+                                         CD drives as well.
+                    */
+                    dev->buffer[0] = len - 1;
                     len            = MIN(len, alloc_length);
                     dev->buffer[1] = rdisk_mode_sense_medium_type(dev);
                     /* Device-specific parameter: WP (bit 7) for a write-protected medium. */
@@ -4173,9 +4185,9 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 } else {
                     len            = rdisk_mode_sense(dev, dev->buffer, 8, cdb[2],
                                                       block_desc);
-                    len            = MIN(len, alloc_length);
                     dev->buffer[0] = (len - 2) >> 8;
                     dev->buffer[1] = (len - 2) & 255;
+                    len            = MIN(len, alloc_length);
                     dev->buffer[2] = rdisk_mode_sense_medium_type(dev);
                     if (rdisk_reports_write_protect(dev) && (dev->drv->fp != NULL) && rdisk_write_denied(dev))
                         dev->buffer[3] |= 0x80;
@@ -4189,7 +4201,7 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
 
                 rdisk_log(dev->log, "Reading mode page: %02X...\n", cdb[2]);
 
-                rdisk_data_command_finish(dev, len, len, alloc_length, 0);
+                rdisk_data_command_finish(dev, len, len, len, 0);
             } else {
                 rdisk_invalid_field(dev, cdb[2]);
                 rdisk_buf_free(dev);

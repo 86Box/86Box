@@ -106,19 +106,23 @@
 #define GPCMD_READ_DISC_INFORMATION                   0x51
 #define GPCMD_READ_TRACK_INFORMATION                  0x52
 #define GPCMD_MODE_SELECT_10                          0x55
+#define GPCMD_REPAIR_TRACK                            0x58
 #define GPCMD_MODE_SENSE_10                           0x5a
 #define GPCMD_CLOSE_TRACK_SESSION                     0x5b
 #define GPCMD_READ_BUFFER_CAPACITY                    0x5c
 #define GPCMD_SEND_CUE_SHEET                          0x5d
 #define GPCMD_PLAY_AUDIO_12                           0xa5
+#define GPCMD_SET_READ_AHEAD                          0xa7 /* For streaming */
 #define GPCMD_READ_12                                 0xa8
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12            0xa9
 #define GPCMD_WRITE_12                                0xaa
 #define GPCMD_ERASE_12                                0xac
+#define GPCMD_GET_PERFORMANCE                         0xac /* For streaming */
 #define GPCMD_READ_DVD_STRUCTURE                      0xad /* For reading. */
 #define GPCMD_WRITE_AND_VERIFY_12                     0xae
 #define GPCMD_VERIFY_12                               0xaf
 #define GPCMD_PLAY_CD_OLD                             0xb4
+#define GPCMD_SET_STREAMING                           0xb6 /* For streaming */
 #define GPCMD_READ_CD_OLD                             0xb8 /* Should be equivalent to 0xbe */
 #define GPCMD_READ_CD_MSF                             0xb9
 #define GPCMD_AUDIO_SCAN                              0xba

@@ -539,10 +539,13 @@ tape_mode_sense(const tape_t *dev, uint8_t *buf, uint32_t pos,
         buf[pos++] = dev->block_size & 0xff;
     }
 
-    for (uint8_t i = 0; i < 0x40; i++) {
+    for (uint8_t pg = 1; pg < 0x41; pg++) {
+        /* Make sure page 0 is always transferred last. */
+        const uint8_t i = (pg == 0x40) ? 0 : pg;
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
-            if (pf & (1LL << ((uint64_t) i))) {
-                const uint8_t msplen = tape_mode_sense_read(dev, pgctl, i, 1);
+            const uint8_t msplen = tape_mode_sense_read(dev, pgctl, i, 1);
+
+            if ((pf & (1LL << ((uint64_t) i))) && msplen) {
                 buf[pos++]           = tape_mode_sense_read(dev, pgctl, i, 0);
                 buf[pos++]           = msplen;
                 tape_log(dev->log, "MODE SENSE: Page [%02X] length %i\n", i, msplen);
@@ -2520,43 +2523,45 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 tape_buf_alloc(dev, 65536);
             }
 
-            if ((cdb[2] & 0x3f) != 0 &&
-                (cdb[2] & 0x3f) != GPMODE_ALL_PAGES &&
-                !(tape_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f)))) {
+            /*
+               If PC == 0 and page code == 0, return only the header and,
+               if applicable, the block descriptor.
+             */
+            if (!cdb[2] || (tape_mode_sense_page_flags &
+                            (1LL << (uint64_t) (cdb[2] & 0x3f)))) {
+                memset(dev->buffer, 0, len);
+                alloc_length = len;
+
+                if (cdb[0] == GPCMD_MODE_SENSE_6) {
+                    len            = tape_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
+                    dev->buffer[0] = len - 1;
+                    len            = MIN(len, alloc_length);
+                    dev->buffer[1] = tape_medium_type_code(dev);
+                    dev->buffer[2] = dev->drv->read_only ? 0x80 : 0x00; /* WP bit */
+                    if (block_desc)
+                        dev->buffer[3] = 8;
+                } else {
+                    len            = tape_mode_sense(dev, dev->buffer, 8, cdb[2], block_desc);
+                    dev->buffer[0] = (len - 2) >> 8;
+                    dev->buffer[1] = (len - 2) & 255;
+                    len            = MIN(len, alloc_length);
+                    dev->buffer[2] = tape_medium_type_code(dev);
+                    dev->buffer[3] = dev->drv->read_only ? 0x80 : 0x00; /* WP bit */
+                    if (block_desc) {
+                        dev->buffer[6] = 0;
+                        dev->buffer[7] = 8;
+                    }
+                }
+
+                tape_set_buf_len(dev, BufLen, &len);
+
+                tape_log(dev->log, "Reading mode page: %02X...\n", cdb[2]);
+
+                tape_data_command_finish(dev, len, len, len, 0);
+            } else {
                 tape_invalid_field(dev, cdb[2]);
                 tape_buf_free(dev);
-                return;
             }
-
-            memset(dev->buffer, 0, len);
-            alloc_length = len;
-
-            if (cdb[0] == GPCMD_MODE_SENSE_6) {
-                len            = tape_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
-                len            = MIN(len, alloc_length);
-                dev->buffer[0] = len - 1;
-                dev->buffer[1] = tape_medium_type_code(dev);
-                dev->buffer[2] = dev->drv->read_only ? 0x80 : 0x00; /* WP bit */
-                if (block_desc)
-                    dev->buffer[3] = 8;
-            } else {
-                len            = tape_mode_sense(dev, dev->buffer, 8, cdb[2], block_desc);
-                len            = MIN(len, alloc_length);
-                dev->buffer[0] = (len - 2) >> 8;
-                dev->buffer[1] = (len - 2) & 255;
-                dev->buffer[2] = tape_medium_type_code(dev);
-                dev->buffer[3] = dev->drv->read_only ? 0x80 : 0x00; /* WP bit */
-                if (block_desc) {
-                    dev->buffer[6] = 0;
-                    dev->buffer[7] = 8;
-                }
-            }
-
-            tape_set_buf_len(dev, BufLen, &len);
-
-            tape_log(dev->log, "Reading mode page: %02X...\n", cdb[2]);
-
-            tape_data_command_finish(dev, len, len, alloc_length, 0);
             return;
 
         case GPCMD_LOG_SENSE: {

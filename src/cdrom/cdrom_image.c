@@ -146,7 +146,7 @@ typedef struct blindwrite_block_t {
     track_file_t *file;
 } blindwrite_block_t;
 
-typedef struct cd_image_t {
+typedef struct cd_image_writable_t {
     cdrom_t      *dev;
     void         *log;
     int           is_dvd;
