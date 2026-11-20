@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 09:06+0000\n"
-"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -4091,7 +4091,7 @@ msgid "The linear address is not mapped to physical memory."
 msgstr "Adres liniowy nie jest mapowany na pamięć fizyczną."
 
 msgid "\"%1\" is not an address or a register."
-msgstr "\"%1\" nie jest adresem ani rejestrem."
+msgstr "„%1” nie jest adresem ani rejestrem."
 
 msgid "Usage: %1"
 msgstr "Użycie: %1"
