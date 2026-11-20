@@ -557,7 +557,7 @@ gus_gp_write(uint16_t addr, uint8_t val, void *priv)
                 if (gus->reg_ctrl & 0x08) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 gus->usrr |= 0x08;
@@ -567,7 +567,7 @@ gus_gp_write(uint16_t addr, uint8_t val, void *priv)
                 if (gus->reg_ctrl & 0x10) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 gus->usrr |= 0x20;
@@ -590,7 +590,7 @@ gus_gp_read(uint16_t addr, void *priv)
                 if (gus->reg_ctrl & 0x08) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 ret = gus->gp1_out;
@@ -600,7 +600,7 @@ gus_gp_read(uint16_t addr, void *priv)
                 if (gus->reg_ctrl & 0x10) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 ret = gus->gp2_out;
@@ -3356,6 +3356,8 @@ gus_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *p
             gus->cur_irq2 = 0;
             gus->cur_dma1 = 0;
             gus->cur_dma2 = 0;
+            gus->irq      = -1;
+            gus->irq_midi = -1;
             ad1848_setirq(&gus->ad1848, 0);
             ad1848_setdma(&gus->ad1848, 0);
             ad1848_setdma2(&gus->ad1848, 0);
@@ -3379,6 +3381,7 @@ gus_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *p
                 if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
                     gus->cur_irq1 = config->irq[0].irq;
                     gus->irq      = gus->cur_irq1;
+                    gus->irq_midi = gus->irq;
                     gus_log(gus->log, "Updating InterWave IRQ to %i\n", gus->cur_irq1);
                     ad1848_setirq(&gus->ad1848, gus->irq);
                 }
@@ -3660,6 +3663,10 @@ gus_init(UNUSED(const device_t *info))
 
     gus->log = log_open("GUS");
 
+    /* No IRQ until the IRQ latch selects one. */
+    gus->irq      = -1;
+    gus->irq_midi = -1;
+
     if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_34) || (info->local == GUS_CLASSIC_37))
         gus->gus_end_ram = gus_ram * 262144;
     else
@@ -3804,6 +3811,10 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     gus->log = log_open("GUS");
 
+    /* No IRQ until the IRQ latch selects one. */
+    gus->irq      = -1;
+    gus->irq_midi = -1;
+
     /* Init ES1688 section */
     gus->ess = calloc(1, sizeof(sb_t));
 
@@ -3919,6 +3930,10 @@ gus_pnp_init(const device_t *info)
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
     gus->log = log_open("GUS");
+
+    /* No IRQ until the PnP configuration assigns one. */
+    gus->irq      = -1;
+    gus->irq_midi = -1;
 
     FILE *rom_fp;
 
