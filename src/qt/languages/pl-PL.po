@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:07+0000\n"
+"PO-Revision-Date: 2026-11-20 09:08+0000\n"
 "Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -4391,6 +4391,8 @@ msgstr ""
 
 msgid "There are too many files in the top folder for the root directory of the medium."
 msgstr ""
+"W folderze nadrzędnym względem katalogu głównego nośnika znajduje się zbyt "
+"wiele plików."
 
 msgid "The temporary image could not be written."
 msgstr ""
