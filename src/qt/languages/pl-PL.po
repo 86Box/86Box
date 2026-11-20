@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:00+0000\n"
+"PO-Revision-Date: 2026-11-20 09:01+0000\n"
 "Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -3909,13 +3909,13 @@ msgid "Hex bytes"
 msgstr "Hex Bajty"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "Tekst ASCII"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Wartość, bajt"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Wartość, słowo"
 
 msgid "Value, dword"
 msgstr ""
