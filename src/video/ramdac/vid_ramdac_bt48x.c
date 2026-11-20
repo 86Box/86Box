@@ -64,7 +64,7 @@ bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
                 svga->bpp = 32;
                 break;
             case 0x20:
-                if (ramdac->cmd_r1 & 0x08)
+                if (bt48x_rgb565(ramdac))
                     svga->bpp = 16;
                 else
                     svga->bpp = 15;
@@ -387,6 +387,13 @@ bt48x_clut_contiguous(const void *priv)
 {
     const bt48x_ramdac_t *ramdac = priv;
     return !!(ramdac->cmd_r2 & 0x04);
+}
+
+int
+bt48x_rgb565(const void *priv)
+{
+    const bt48x_ramdac_t *ramdac = priv;
+    return !!(ramdac->cmd_r1 & 0x08);
 }
 
 void

@@ -486,6 +486,7 @@ extern int     bt48x_clock_doubled(const void *priv);
 extern int     bt48x_interlaced(const void *priv);
 extern int     bt48x_clut_bypass(const void *priv);
 extern int     bt48x_clut_contiguous(const void *priv);
+extern int     bt48x_rgb565(const void *priv);
 extern void    bt48x_hwcursor_draw(svga_t *svga, int displine);
 
 extern void    ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);

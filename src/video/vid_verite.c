@@ -124,7 +124,9 @@ verite_render(svga_t *svga)
         svga->firstline_draw = svga->displine;
     svga->lastline_draw = svga->displine;
 
-    const uint32_t *colors = v->native_bpp == 15 ? video_15to32 : video_16to32;
+    /* The CRTC fetches 16-bit words. The RAMDAC selects their RGB layout. */
+    int rgb565 = bt48x_rgb565(v->ramdac);
+    const uint32_t *colors = rgb565 ? video_16to32 : video_15to32;
     if ((v->native_bpp == 15 || v->native_bpp == 16) && !(addr & 3)
         && !(width & 1) && 2U * width <= VRAM_SIZE - addr) {
         /* VRAM stores the two 16-bit pixels in each dword in reverse order. */
@@ -165,7 +167,7 @@ verite_render(svga_t *svga)
         if (svga->lut_map && v->native_bpp < 32) {
             /* The Bt485 routes the 5/6-bit components to either end of
                the palette address, filling the unused bits with zero. */
-            unsigned green_shift = v->native_bpp == 16 ? 2 : 3;
+            unsigned green_shift = rgb565 ? 2 : 3;
             int contiguous = bt48x_clut_contiguous(v->ramdac);
             unsigned rb_address_shift = contiguous ? 0 : 3;
             unsigned g_address_shift  = contiguous ? 0 : green_shift;
