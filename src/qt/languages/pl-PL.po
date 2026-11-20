@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 09:05+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -4085,7 +4085,7 @@ msgid "Unknown segment \"%1\"."
 msgstr "Nieznany segment „%1”."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Nieznane przesunięcie \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
 msgstr ""
