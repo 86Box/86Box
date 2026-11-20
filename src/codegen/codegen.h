@@ -39,15 +39,47 @@ typedef struct codeblock_t {
     uint8_t  ins;
     uint8_t  TOP;
 #if defined(__aarch64__) || defined(_M_ARM64) || defined(__amd64__) || defined(_M_X64)
+    /*1 + index of the codegen_link_mcache record filled for this block, 0
+      if none. See codegen_link.h.*/
+    uint16_t link_mcache;
     /*Changes whenever the block is freed, recompiled or has a field a link
       slot relies on changed; never 0. See codegen_link.h.*/
     uint32_t link_gen;
 #endif
-    int      valid;
+    uint16_t valid;
+    /*A block with page_mask2 and without CODEBLOCK_BYTE_MASK: its second
+      page is this many pages on from the first (codeblock_pc_2). 1 unless a
+      JMP was compiled on through onto another page (codegen_trace_jump)*/
+    int16_t page2_delta;
 
     /*Pointers for codeblock tree, used to search for blocks when hash lookup
       fails.*/
     uint32_t parent, left, right;
+
+    /*Run since eviction's sweep last passed it: the sweep passes it over
+      once (codegen_delete_random_block).*/
+    uint8_t used;
+
+    /*Self-modifying-code thrash tracking: each time this block is compiled
+      and then rewritten before it paid for itself (fewer than
+      SMC_THRASH_MIN_RUNS runs, see runs_left), smc_strikes goes up and,
+      past a few, arms smc_cooldown_until (a tsc deadline). Until then the
+      dynarec does not compile the block again but interprets it, since
+      compiling code that is rewritten before it can be reused enough just
+      adds cost with no payback. A compile that *did* pay for itself resets
+      smc_strikes to 0. Kept per block, so code that is rewritten often does
+      not keep other code on its page from compiling.*/
+    uint8_t smc_strikes;
+
+    /*Chunk list of its first page the block is on (codegen_block.c,
+      page_blocks_t).*/
+    uint8_t page_chunk;
+
+    /*How often this block's code was recently rewritten after fewer than
+      SMC_FAMILY_MIN_RUNS runs (codegen_smc_policy.h). Only a block rewritten
+      that often goes on to CODEBLOCK_NO_OPCODES, whose code costs more per
+      run than a block compiled for the bytes it has.*/
+    uint8_t smc_family_score;
 
     uint8_t *data;
 
@@ -64,24 +96,12 @@ typedef struct codeblock_t {
       will be in the list starting at head_mem_block->next.*/
     struct mem_block_t *head_mem_block;
 
-    /*Run since eviction's sweep last passed it: the sweep passes it over
-      once (codegen_delete_random_block).*/
-    uint8_t used;
-
-    /*One bit per run from block->data still needed to pay for compiling.
-      Each dispatcher or linked entry shifts right, saturating at zero
-      without a branch. The compile pass itself does not count as a run.*/
-    uint8_t runs_left;
-
-    /*Self-modifying-code thrash tracking: each time this block is compiled
-      and then rewritten before it paid for itself (runs_left still not 0),
-      smc_strikes goes up and, past a few, arms smc_cooldown_until (a tsc
-      deadline). Until then the dynarec does not compile the block again but
-      interprets it, since compiling code that is rewritten before it can be
-      reused enough just adds cost with no payback. A compile that *did* pay
-      for itself resets smc_strikes to 0. Kept per block, so code that is
-      rewritten often does not keep other code on its page from compiling.*/
-    uint8_t  smc_strikes;
+    /*One bit per run from block->data: starts all ones when compiled and
+      each dispatcher or linked entry shifts it right, saturating at zero
+      without a branch, so it has run at least n times once it is at most
+      UINT64_MAX >> n (codeblock_ran()). The compile pass itself does not
+      count as a run.*/
+    uint64_t runs_left;
     uint64_t smc_cooldown_until;
 } codeblock_t;
 
@@ -89,11 +109,20 @@ typedef struct codeblock_t {
   workloads: a block that ran this often is cheaper to compile than to
   repeatedly interpret, even if shorter blocks could benefit for longer.*/
 #define SMC_THRASH_MIN_RUNS 8
-#define SMC_THRASH_RUN_MASK ((1u << SMC_THRASH_MIN_RUNS) - 1)
 
-#if SMC_THRASH_MIN_RUNS < 1 || SMC_THRASH_MIN_RUNS > 8
-#    error SMC reuse tracking must fit in one byte
-#endif
+/*runs_left of a block just compiled; of one whose compile is paid for by
+  its next run (an unrolled loop); and of one already paid for (a kept
+  version put back)*/
+#define CODEBLOCK_RUNS_NEW      UINT64_MAX
+#define CODEBLOCK_RUNS_UNROLLED (UINT64_MAX >> (SMC_THRASH_MIN_RUNS - 1))
+#define CODEBLOCK_RUNS_PAID     (UINT64_MAX >> SMC_THRASH_MIN_RUNS)
+
+/*Whether a block with this runs_left ran at least n (1 to 64) times*/
+static inline int
+codeblock_ran(uint64_t runs_left, unsigned n)
+{
+    return (n >= 64) ? (runs_left == 0) : (runs_left <= (UINT64_MAX >> n));
+}
 
 /*Most guest instructions a block is compiled from.*/
 #define MAX_INSTRUCTION_COUNT 50
@@ -126,13 +155,58 @@ extern uint8_t codegen_peekb(uint32_t addr);
 #define CODEBLOCK_NO_IMMEDIATES 0x80
 /*Code block is on the block list of its first page*/
 #define CODEBLOCK_IN_PAGE_LIST 0x100
+/*Code block (also CODEBLOCK_BYTE_MASK and CODEBLOCK_NO_IMMEDIATES) reads the
+  opcode of each unprefixed ALU EAX,imm32 instruction (ADD, OR, ADC, SBB, AND,
+  SUB, XOR, CMP) from memory as it runs, and does the one found there: code
+  that rewrites which of them it does need not be compiled again. An opcode
+  out of the family leaves the block to be compiled again*/
+#define CODEBLOCK_NO_OPCODES 0x200
+/*The code compiled for the block reads an opcode as it runs
+  (CODEBLOCK_NO_OPCODES), so it can leave the block on a miss*/
+#define CODEBLOCK_OPCODE_FAMILY 0x400
+/*Code block is on the dirty list of blocks with kept versions
+  (with CODEBLOCK_IN_DIRTY_LIST)*/
+#define CODEBLOCK_DIRTY_KEPT 0x800
+/*Code block off the dirty list has been held in the SMC cooldown once since
+  it was put there, and already moved up a compile mode (with
+  CODEBLOCK_IN_DIRTY_LIST)*/
+#define CODEBLOCK_REVIVE_HELD 0x1000
+/*Code block is off its page's block list and holds a kept version
+  (codegen_block_restore_version()): its code bytes are checked against that
+  version each time it is entered, instead of writes to them marking it dirty
+  (codegen_block_self_check())*/
+#define CODEBLOCK_SELF_CHECK 0x2000
 
 #define BLOCK_PC_INVALID        0xffffffff
 
 #define BLOCK_INVALID           0
 
+/*A linear address on the second page of a block with page_mask2*/
+static inline uint32_t
+codeblock_pc_2(const codeblock_t *block)
+{
+    if (block->flags & CODEBLOCK_BYTE_MASK)
+        return block->pc + 0x40;
+    return (block->pc & ~0xfffu) + ((uint32_t) (int32_t) block->page2_delta << 12);
+}
+
+/*page_t::code_rewritten: bits 16-31 of the TSC. A page counts as rewritten
+  for 2^24 TSC ticks after (some ms; one that looks recent again after the
+  16 bits wrap only loses a JMP trace)*/
+static inline uint16_t
+codegen_page_stamp(uint64_t now)
+{
+    return (uint16_t) (now >> 16);
+}
+
 static inline int
-get_block_nr(codeblock_t *block)
+codegen_page_rewritten(const page_t *page, uint64_t now)
+{
+    return (uint16_t) (codegen_page_stamp(now) - page->code_rewritten) < 256;
+}
+
+static inline int
+get_block_nr(const codeblock_t *block)
 {
     return ((uintptr_t) block - (uintptr_t) codeblock) / sizeof(codeblock_t);
 }
@@ -381,6 +455,8 @@ extern void codegen_block_remove(void);
 extern void codegen_block_start_recompile(codeblock_t *block);
 extern void codegen_block_end_recompile(codeblock_t *block);
 extern int  codegen_block_restore_version(codeblock_t *block);
+extern int  codegen_block_dirty_patched(const codeblock_t *block);
+extern int  codegen_block_self_check(codeblock_t *block);
 extern void codegen_block_version_check_ins(uint32_t addr);
 extern void codegen_block_end(void);
 extern void codegen_delete_block(codeblock_t *block);
@@ -396,12 +472,80 @@ extern void codegen_check_seg_write(codeblock_t *block, struct ir_data_t *ir, x8
 extern void codegen_check_regs(void);
 
 extern int codegen_purge_purgable_list(void);
+/*Check up to max pages of the evict list for blocks written over*/
+extern void codegen_flush_evict_list(int max);
+/*Pages exec386_dynarec() checks after each run of the CPU (about 1 ms)*/
+#define CODEGEN_EVICT_FLUSH_MAX 64
 /*Delete a random code block to free memory. This is obviously quite expensive, and
   will only be called when the allocator is out of memory*/
 extern void codegen_delete_random_block(int required_mem_block);
 
+/*Code that runs through more blocks than the cache holds before it comes
+  back round (8 MiB of functions, each run once a pass) keeps the eviction
+  sweep throwing out blocks that were only marked: each visit pays for a new
+  block, its page list and tree entries and its deletion, and compiles
+  nothing. codegen_evict_ghost holds addresses whose block went that way, or
+  that codegen_admit() turned away; codegen_evict_thrash counts addresses
+  wanted again while still in it, less blocks compiled (code that paid for
+  its block). Past CODEGEN_ADMIT_THRASH a first visit to an address is
+  interpreted with no block, and only one back while codegen_admit_filter
+  (smaller than the cache) still holds it gets a block. The next code wears
+  the count down as it gets compiled, so a cache left full of such blocks
+  does not hold it back.*/
+#define CODEGEN_ADMIT_THRASH     64
+#define CODEGEN_ADMIT_THRASH_MAX 256
+#define CODEGEN_ADMIT_SHIFT      16
+#define CODEGEN_GHOST_SHIFT      13
+extern int      codegen_evict_thrash;
+extern int      codegen_reset_pending;
+extern uint32_t codegen_admit_filter[1 << (32 - CODEGEN_ADMIT_SHIFT)];
+extern uint32_t codegen_evict_ghost[1 << (32 - CODEGEN_GHOST_SHIFT)];
+
+static inline uint32_t *
+codegen_ghost_slot(uint32_t phys_addr)
+{
+    return &codegen_evict_ghost[(phys_addr * 0x9e3779b1u) >> CODEGEN_GHOST_SHIFT];
+}
+
+/*Whether a block may be made for phys_addr, which has none, now*/
+static inline int
+codegen_admit(uint32_t phys_addr)
+{
+    uint32_t *const ghost = codegen_ghost_slot(phys_addr);
+    const uint32_t  key   = phys_addr + 1;
+
+    if (codegen_evict_thrash < CODEGEN_ADMIT_THRASH) {
+        if (*ghost == key) {
+            *ghost = 0;
+            codegen_evict_thrash += 2;
+        }
+        return 1;
+    }
+
+    uint32_t *const slot = &codegen_admit_filter[(phys_addr * 0x9e3779b1u) >> CODEGEN_ADMIT_SHIFT];
+
+    if (*slot == key) {
+        if (*ghost == key)
+            *ghost = 0;
+        return 1;
+    }
+    *slot = key;
+    if ((*ghost == key) && (codegen_evict_thrash < CODEGEN_ADMIT_THRASH_MAX))
+        codegen_evict_thrash += 2;
+    *ghost = key;
+    return 0;
+}
+
 extern int      cpu_block_end;
 extern uint32_t codegen_endpc;
+/*Opcode bytes of the block being compiled that its code reads as it runs
+  (CODEBLOCK_OPCODE_FAMILY): bit n of word c is byte 64 * c + n from the
+  start of the block's first 64-byte chunk*/
+extern uint64_t codegen_family_ops[2];
+/*Runs counted by the code of a block compiled for its bytes with
+  CODEBLOCK_NO_IMMEDIATES that has opcodes it would read as it runs with
+  CODEBLOCK_NO_OPCODES, since it was last compiled or rewritten*/
+extern uint32_t block_family_runs[];
 
 extern int cpu_reps;
 extern int cpu_notreps;
@@ -425,6 +569,31 @@ typedef struct codegen_timing_state_t {
 extern void (*codegen_timing_save)(codegen_timing_state_t *state);
 extern void (*codegen_timing_load)(const codegen_timing_state_t *state);
 
+/*Room for the whole state of any model*/
+#define CODEGEN_TIMING_SNAPSHOT_SIZE 512
+
+typedef struct codegen_timing_snapshot_t {
+    union {
+        uint64_t align;
+        uint8_t  data[CODEGEN_TIMING_SNAPSHOT_SIZE];
+    };
+} codegen_timing_snapshot_t;
+
+/*Copies var into the snapshot at pos, or out of it if load, and moves pos
+  past it*/
+#define CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, var)                \
+    do {                                                                 \
+        if ((pos) + sizeof(var) > CODEGEN_TIMING_SNAPSHOT_SIZE)          \
+            fatal("Timing snapshot too small\n");                        \
+        if (load)                                                        \
+            memcpy(&(var), &(snap)->data[pos], sizeof(var));             \
+        else                                                             \
+            memcpy(&(snap)->data[pos], &(var), sizeof(var));             \
+        (pos) += sizeof(var);                                            \
+    } while (0)
+
+extern void (*codegen_timing_snapshot)(codegen_timing_snapshot_t *snap, int load);
+
 typedef struct codegen_timing_t {
     void (*start)(void);
     void (*prefix)(uint8_t prefix, uint32_t fetchdat);
@@ -436,6 +605,8 @@ typedef struct codegen_timing_t {
       NULL. NULL where block start clears it all*/
     void (*save)(codegen_timing_state_t *state);
     void (*load)(const codegen_timing_state_t *state);
+    /*Copies all of the model's state into snap, or back out of it if load*/
+    void (*snapshot)(codegen_timing_snapshot_t *snap, int load);
 } codegen_timing_t;
 
 extern codegen_timing_t codegen_timing_pentium;
@@ -456,6 +627,7 @@ extern int block_pos;
 
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
 extern uint32_t recomp_page;
+extern uint32_t recomp_page2;
 
 extern x86seg  *op_ea_seg;
 extern int      op_ssegs;
@@ -488,6 +660,11 @@ typedef struct codegen_flags_read_t {
     int      pair;
 } codegen_flags_read_t;
 extern int codegen_flags_read_sites(const codegen_flags_read_t **sites);
+/*Called by a CODEBLOCK_NO_OPCODES block that found an opcode out of the
+  family it reads at run time: the block is compiled again when next run. 1*/
+extern int codegen_opcode_family_miss(uint32_t block_nr);
+extern int  family_review_count;
+extern void codegen_family_review(void);
 
 /*Set while the block being recompiled is a V86 block entered with every
   segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep
@@ -545,5 +722,25 @@ extern int  dynarec_mov_drx(uint32_t op);
 extern int      codegen_mov_ss_pair_valid;
 extern uint32_t codegen_mov_ss_pair_pc;
 extern int      codegen_instruction_room(void);
+extern int      codegen_trace_count;
+extern int      codegen_trace_taken;
+extern uint32_t codegen_trace_bytes;
+extern void     codegen_trace_reset(const codeblock_t *block);
+extern int      codegen_trace_ends(uint32_t addr);
+extern int      codegen_trace_jcc_can(const codeblock_t *block, uint32_t end, uint32_t target);
+extern void     codegen_trace_jcc_take(codeblock_t *block, struct ir_data_t *ir, uint32_t end, uint32_t target);
+extern int      codegen_jcc_hot_can(const codeblock_t *block);
+
+/*A short forward Jcc's taken exit as a jump inside the block (codegen.c)*/
+#define CODEGEN_FWD_MAX 16
+extern int  codegen_fwd_jump;
+extern int  codegen_fwd_used;
+extern void codegen_fwd_reset(void);
+extern void codegen_fwd_arm(const codeblock_t *block, uint32_t jcc, uint32_t next, uint32_t dest);
+extern void codegen_fwd_disarm(void);
+extern int  codegen_fwd_exit(struct ir_data_t *ir, uint32_t dest);
+extern void codegen_fwd_check(uint32_t addr);
+extern void codegen_fwd_end(uint32_t addr, uint32_t last);
+extern int      codegen_jcc_hot_exit(uint32_t block_nr);
 
 #endif

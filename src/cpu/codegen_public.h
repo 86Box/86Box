@@ -46,6 +46,7 @@ extern void codegen_flush(void);
 
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
 extern uint32_t recomp_page;
+extern uint32_t recomp_page2;
 extern int      codegen_in_recompile;
 
 #endif

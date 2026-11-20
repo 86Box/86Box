@@ -482,6 +482,7 @@ flags_site_is_dead(ir_data_t *ir, int s)
             case UOP_LOAD_FUNC_ARG_2_IMM & UOP_MASK:
             case UOP_LOAD_FUNC_ARG_3_IMM & UOP_MASK:
             case UOP_NOP_BARRIER & UOP_MASK:
+            case UOP_NOP_JOIN & UOP_MASK:
                 r = 0;
                 break;
             case UOP_CALL_INSTRUCTION_FUNC & UOP_MASK:
@@ -953,6 +954,15 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 codegen_set_jump_dest(block, uop_dest->p);
             }
         }
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+        if ((uop->type & UOP_MASK) == (UOP_NOP_JOIN & UOP_MASK)) {
+#    ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+            if (at_cold || (cold_dest != -1))
+                codegen_reg_join_snapshot(0);
+#    endif
+            codegen_reg_join(ir, block);
+        }
+#endif
 
         if ((uop->type & UOP_MASK) == UOP_INVALID)
             continue;
@@ -1031,6 +1041,19 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 fatal("!uop_handlers[uop->type & UOP_MASK] %08x\n", uop->type);
 #endif
             uop_handlers[uop->type & UOP_MASK](block, uop);
+            switch (uop->type & UOP_MASK) {
+                case (UOP_MOV_REG_PTR & UOP_MASK):
+                    codegen_reg_loaded_from_home(uop->dest_reg_a, uop->p, 4);
+                    break;
+                case (UOP_MOVZX_REG_PTR_16 & UOP_MASK):
+                    codegen_reg_loaded_from_home(uop->dest_reg_a, uop->p, 2);
+                    break;
+                case (UOP_MOVZX_REG_PTR_8 & UOP_MASK):
+                    codegen_reg_loaded_from_home(uop->dest_reg_a, uop->p, 1);
+                    break;
+                default:
+                    break;
+            }
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
             codegen_lazy_site = NULL;
 #endif
@@ -1075,6 +1098,16 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
                 uop_dest->jump_list_next = c;
                 ir->uops[uop->jump_dest_uop].type |= UOP_TYPE_JUMP_DEST;
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+                /*Its order barrier has written everything back*/
+                if ((ir->uops[uop->jump_dest_uop].type & UOP_MASK) == (UOP_NOP_JOIN & UOP_MASK))
+#    ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+                    codegen_reg_join_snapshot((uop->type & UOP_TYPE_ORDER_BARRIER) && !(uop->type & UOP_TYPE_COLD) && (cold_dest == -1) &&
+                                              ((uop->type & UOP_MASK) != UOP_INVALID));
+#    else
+                    codegen_reg_join_snapshot((uop->type & UOP_TYPE_ORDER_BARRIER) && ((uop->type & UOP_MASK) != UOP_INVALID));
+#    endif
+#endif
             }
         }
     }

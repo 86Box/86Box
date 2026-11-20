@@ -229,10 +229,21 @@ typedef struct page_t {
 
     uint8_t *mem;
 
+    /*block: entry of the page's chunk lists of codeblocks in codegen_block.c,
+      0 if none. block_2: head of the list of codeblocks whose second chunk
+      or page is in this page.*/
     uint32_t block, block_2;
 
     /*Head of codeblock tree associated with this page*/
     uint32_t head;
+
+    /*SMC thrash strikes of the page's blocks (codeblock_t::smc_strikes),
+      so a block first recorded here can start in cooldown. Goes down by
+      one for each of them that paid for compiling it.*/
+    uint8_t smc_strikes;
+    /*When a write last replaced compiled code of the page: bits 16-31 of
+      the TSC (codegen_page_rewritten)*/
+    uint16_t code_rewritten;
 
     uint64_t code_present_mask;
     uint64_t dirty_mask;
@@ -550,6 +561,7 @@ extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
 extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page);
 extern void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page);
 extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
+extern void mem_write_page_uncoded(uint32_t addr);
 
 extern void mem_reset_page_blocks(void);
 

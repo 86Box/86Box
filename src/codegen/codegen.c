@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
@@ -20,6 +21,7 @@
 #include "codegen_backend.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
+#include "codegen_ops_arith.h"
 #include "codegen_ops_helpers.h"
 
 static struct {
@@ -84,6 +86,404 @@ codegen_instruction_room(void)
     return (codeblock[block_current].ins + 1) < MAX_INSTRUCTION_COUNT;
 }
 
+/*A block compiled on through a JMP rel to its target (codegen_trace_jump)
+  instead of ending there and leaving the target to a block of its own: each
+  ended block costs the next one's lookup. Every byte it compiles stays on
+  two pages: its first and, on x86-64, a second one anywhere, which a JMP
+  onto it picks (codeblock_t.page2_delta; the other backends' link routines
+  take the next page for it). At most CODEGEN_TRACE_MAX times. The ranges
+  compiled before each one, so the block ends rather than compile an
+  instruction a second time*/
+#define CODEGEN_TRACE_MAX 4
+int             codegen_trace_count;
+int             codegen_trace_taken;
+uint32_t        codegen_trace_bytes;
+static uint32_t codegen_trace_start;
+static uint32_t codegen_trace_range[CODEGEN_TRACE_MAX][2];
+/*A JMP has picked the block's second page*/
+static int      codegen_trace_page2;
+
+void
+codegen_trace_reset(const codeblock_t *block)
+{
+    codegen_trace_count = 0;
+    codegen_trace_taken = 0;
+    codegen_trace_bytes = 0;
+    codegen_trace_start = block->pc;
+    codegen_trace_page2 = 0;
+}
+
+/*Whether a traced block ends before the instruction at addr: one starting
+  in the page's last 16 bytes can run on into the next page, and one compiled
+  already would be compiled again*/
+int
+codegen_trace_ends(uint32_t addr)
+{
+    if ((addr & 0xfff) >= 0xff0)
+        return 1;
+    for (int c = 0; c < codegen_trace_count; c++) {
+        if ((addr - codegen_trace_range[c][0]) < (codegen_trace_range[c][1] - codegen_trace_range[c][0]))
+            return 1;
+    }
+    return 0;
+}
+
+/*A JMP rel ending at end (linear) that jumps to target. The block goes on
+  at the target if it can; for the timing models the block ends at the jump
+  and the target starts a new one, so the cycles charged are those of the two
+  blocks. Unrolling a loop is left out of a traced block: its timing replays
+  the block's from the loop's head and takes the block for one range. Not
+  with the 486 debug registers, whose blocks the dispatcher ends at a jump.
+  Answers the second page's delta to pick (0 for none) through *delta*/
+static int
+codegen_trace_can(const codeblock_t *block, uint32_t end, uint32_t target, int32_t *delta)
+{
+    if ((block->flags & CODEBLOCK_NO_OPCODES) || codegen_ir_unrolling() ||
+        (codegen_trace_count >= CODEGEN_TRACE_MAX) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT) || cpu_debug_regs_486 ||
+        (codegen_fwd_jump >= 0))
+        return 0;
+    /*A byte-mask block covers its first 64-byte chunk and the next: only
+      forward on the same page, the bytes skipped counted in its size
+      (codegen_trace_commit), so it spans no more than without the JMP*/
+    if (block->flags & CODEBLOCK_BYTE_MASK) {
+        if ((target < end) || ((target ^ block->pc) & ~0xfffu) || ((end - 1) ^ block->pc) & ~0xfffu)
+            return 0;
+        *delta = 0;
+        return 1;
+    }
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES)
+        return 0;
+    /*Pages: the first, and the second once it has bytes or a JMP picked it*/
+    const uint32_t page_1     = block->pc & ~0xfffu;
+    const int      has_page_2 = block->page_mask2 || codegen_trace_page2;
+    const uint32_t page_2     = page_1 + ((uint32_t) (int32_t) block->page2_delta << 12);
+    const uint32_t end_page   = (end - 1) & ~0xfffu;
+    const uint32_t tgt_page   = target & ~0xfffu;
+    int32_t        new_delta  = 0;
+
+    if ((end_page != page_1) && !(has_page_2 && (end_page == page_2)))
+        return 0;
+    if ((tgt_page != page_1) && !(has_page_2 && (tgt_page == page_2))) {
+#if defined __amd64__ || defined _M_X64
+        /*Not from a page that is being written to: code there is compiled
+          again often, and each time would compile the target's code with it*/
+        if (has_page_2 || codegen_page_rewritten(&pages[block->phys >> 12], tsc))
+            return 0;
+        new_delta = (int32_t) (tgt_page - page_1) >> 12;
+        if ((new_delta < INT16_MIN) || (new_delta > INT16_MAX))
+            return 0;
+#else
+        return 0;
+#endif
+    }
+    if ((target - codegen_trace_start) < (end - codegen_trace_start))
+        return 0;
+    if (codegen_trace_ends(target))
+        return 0;
+
+    *delta = new_delta;
+    return 1;
+}
+
+static void
+codegen_trace_commit(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target, int32_t new_delta)
+{
+    if (new_delta) {
+        block->page2_delta  = (int16_t) new_delta;
+        codegen_trace_page2 = 1;
+    }
+
+    codegen_trace_range[codegen_trace_count][0] = codegen_trace_start;
+    codegen_trace_range[codegen_trace_count][1] = end;
+    codegen_trace_count++;
+    codegen_trace_bytes += ((block->flags & CODEBLOCK_BYTE_MASK) ? target : end) - codegen_trace_start;
+    codegen_trace_start = target;
+    codegen_trace_taken = 1;
+
+    codegen_accumulate_block_end();
+    codegen_accumulate_timing(ir);
+    codegen_accumulate_block_start();
+}
+
+static void
+codegen_trace_jump(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target)
+{
+    int32_t delta;
+
+    if (codegen_trace_can(block, end, target, &delta))
+        codegen_trace_commit(block, ir, end, target, delta);
+}
+
+/*A Jcc whose taken direction goes back, ending at end (linear), to target:
+  a loop's branch to a head outside the block. While the compile pass takes
+  it, the block can go on at the target as after a JMP (codegen_trace_jump),
+  leaving by a side exit when it is not taken. Only backward: a forward
+  branch taken once in the compile pass is no sign of the common direction.
+  codegen_trace_jcc_can is asked before the Jcc's uops are made, and
+  codegen_trace_jcc_take after them, with the same arguments*/
+static int32_t codegen_trace_jcc_delta;
+
+int
+codegen_trace_jcc_can(const codeblock_t *block, uint32_t end, uint32_t target)
+{
+    if (target >= end)
+        return 0;
+    return codegen_trace_can(block, end, target, &codegen_trace_jcc_delta);
+}
+
+void
+codegen_trace_jcc_take(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target)
+{
+    /*The fall-back models charge timing_bt for a taken Jcc in its exit, and
+      take it back for the path that goes on (codegen_generate_call): this
+      path is the taken one. The others' jump cycles stand for the decode
+      flush the block's end charges here*/
+    if (!codegen_timing_jump_cycles)
+        codegen_accumulate_jump(ir, -1, timing_bt);
+    codegen_trace_commit(block, ir, end, target, codegen_trace_jcc_delta);
+}
+
+/*A short forward Jcc the compile pass did not take (codegen_fwd_arm): its
+  taken exit jumps over the instructions it skips to a join made where the
+  compile pass reaches its target, instead of leaving the block. Code where
+  a test skips one or two instructions (jz +1; inc ebx) otherwise leaves the
+  block half the time, and compiles its target again as a block of its own.
+  The join writes every register back, keeps loaded the host registers both
+  paths hold the same value in, charges the cycles of the path that went
+  through the skipped instructions, and forgets what the IR knew of the
+  flags. Given up, with the exit left in, when anything the compiler assumes
+  for the code after the target differs between the two paths*/
+int codegen_fwd_jump = -1;
+int codegen_fwd_used;
+
+static uint32_t codegen_fwd_armed;
+static uint32_t codegen_fwd_dest;
+static uint32_t codegen_fwd_next;
+static uint32_t codegen_fwd_jcc;
+
+static struct {
+    uint32_t cs_base;
+    uint32_t flags_other;
+    uint32_t eflags;
+    uint16_t status;
+    uint16_t cs_sel;
+    int      TOP;
+    int      fpu_entered;
+    int      fpu_es_check;
+    int      mmx_entered;
+    int      fpu_class_dirty;
+    int      fpu_loaded_iq[8];
+    uint8_t  tag_valid;
+    uint8_t  tag_empty;
+    int      page2_walked;
+    int      flat_ds;
+    int      flat_ss;
+    int      flat_es;
+    int      wide_ds;
+    int      wide_ss;
+    int      v86_64k;
+    int      checked[4];
+} codegen_fwd_state;
+
+void
+codegen_fwd_reset(void)
+{
+    codegen_fwd_armed = 0;
+    codegen_fwd_jump  = -1;
+    codegen_fwd_used  = 0;
+}
+
+void
+codegen_fwd_arm(const codeblock_t *block, uint32_t jcc, uint32_t next, uint32_t dest)
+{
+    if ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) || codegen_ir_unrolling() ||
+        cpu_debug_regs_486 || (codegen_fwd_jump >= 0) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT))
+        return;
+    if ((dest <= next) || ((dest - next) > CODEGEN_FWD_MAX))
+        return;
+    /*On the block's first page, short of where an instruction can cross
+      onto the next one*/
+    if (((dest ^ block->pc) & ~0xfffu) || ((dest & 0xfff) >= 0xff0))
+        return;
+    codegen_fwd_armed = dest;
+    codegen_fwd_next  = next;
+    codegen_fwd_jcc   = jcc;
+}
+
+void
+codegen_fwd_disarm(void)
+{
+    codegen_fwd_armed = 0;
+}
+
+static void
+codegen_fwd_snapshot(void)
+{
+    codegen_fwd_state.cs_base         = cs;
+    codegen_fwd_state.cs_sel          = CS;
+    codegen_fwd_state.flags_other     = cpu_state.flags & ~0x8d5;
+    codegen_fwd_state.eflags          = cpu_state.eflags;
+    codegen_fwd_state.status          = cpu_cur_status;
+    codegen_fwd_state.TOP             = cpu_state.TOP & 7;
+    codegen_fwd_state.fpu_entered     = codegen_fpu_entered;
+    codegen_fwd_state.fpu_es_check    = codegen_fpu_es_check;
+    codegen_fwd_state.mmx_entered     = codegen_mmx_entered;
+    codegen_fwd_state.fpu_class_dirty = codegen_fpu_class_dirty;
+    memcpy(codegen_fwd_state.fpu_loaded_iq, codegen_fpu_loaded_iq, sizeof(codegen_fwd_state.fpu_loaded_iq));
+    codegen_fwd_state.tag_valid    = codegen_fpu_tag_valid;
+    codegen_fwd_state.tag_empty    = codegen_fpu_tag_empty;
+    codegen_fwd_state.page2_walked = codegen_page2_walked;
+    codegen_fwd_state.flat_ds      = codegen_flat_ds;
+    codegen_fwd_state.flat_ss      = codegen_flat_ss;
+    codegen_fwd_state.flat_es      = codegen_flat_es;
+    codegen_fwd_state.wide_ds      = codegen_wide_ds;
+    codegen_fwd_state.wide_ss      = codegen_wide_ss;
+    codegen_fwd_state.v86_64k      = codegen_v86_64k;
+    codegen_fwd_state.checked[0]   = cpu_state.seg_ds.checked;
+    codegen_fwd_state.checked[1]   = cpu_state.seg_es.checked;
+    codegen_fwd_state.checked[2]   = cpu_state.seg_fs.checked;
+    codegen_fwd_state.checked[3]   = cpu_state.seg_gs.checked;
+}
+
+/*From jcc_exit: the taken exit of the armed Jcc to dest (cs relative).
+  1 when it is made as the jump to the join*/
+int
+codegen_fwd_exit(ir_data_t *ir, uint32_t dest)
+{
+    if (!codegen_fwd_armed || ((cs + dest) != codegen_fwd_armed))
+        return 0;
+    uop_MOV_IMM(ir, IREG_pc, dest);
+    codegen_fwd_jump  = uop_JMP_DEST(ir);
+    codegen_fwd_dest  = codegen_fwd_armed;
+    codegen_fwd_armed = 0;
+    codegen_fwd_snapshot();
+    return 1;
+}
+
+/*Whether the code the jump skips over left everything the compiler assumes
+  past the join as it was at the Jcc*/
+static int
+codegen_fwd_can_join(const ir_data_t *ir)
+{
+    if ((cs != codegen_fwd_state.cs_base) || (CS != codegen_fwd_state.cs_sel) ||
+        ((cpu_state.flags & ~0x8d5) != codegen_fwd_state.flags_other) || (cpu_state.eflags != codegen_fwd_state.eflags) ||
+        (cpu_cur_status != codegen_fwd_state.status) || ((cpu_state.TOP & 7) != codegen_fwd_state.TOP) ||
+        (codegen_fpu_entered != codegen_fwd_state.fpu_entered) || (codegen_fpu_es_check != codegen_fwd_state.fpu_es_check) ||
+        (codegen_mmx_entered != codegen_fwd_state.mmx_entered) || (codegen_fpu_class_dirty != codegen_fwd_state.fpu_class_dirty) ||
+        memcmp(codegen_fpu_loaded_iq, codegen_fwd_state.fpu_loaded_iq, sizeof(codegen_fwd_state.fpu_loaded_iq)) ||
+        (codegen_fpu_tag_valid != codegen_fwd_state.tag_valid) || (codegen_fpu_tag_empty != codegen_fwd_state.tag_empty) ||
+        (codegen_page2_walked != codegen_fwd_state.page2_walked) || codegen_mov_ss_pair_valid)
+        return 0;
+
+    /*Nothing that changes the processor's state behind the compiler: an
+      instruction left to the interpreter, a segment load, the x87 control
+      word, a control or debug register*/
+    for (int c = codegen_fwd_jump + 1; c < ir->wr_pos; c++) {
+        const uop_t   *uop  = &ir->uops[c];
+        const uint32_t type = uop->type & UOP_MASK;
+
+        if ((type == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) || (type == (UOP_LOAD_SEG & UOP_MASK)) ||
+            (type == (UOP_FP_CONTROL_SET & UOP_MASK)))
+            return 0;
+        if ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) ||
+            (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK))) {
+            if ((uop->p == (void *) dynarec_lmsw) || (uop->p == (void *) dynarec_mov_cr0) || (uop->p == (void *) dynarec_mov_cr2) ||
+                (uop->p == (void *) dynarec_mov_cr3) || (uop->p == (void *) dynarec_mov_cr4) || (uop->p == (void *) dynarec_mov_drx) ||
+                (uop->p == (void *) dynarec_mov_drx_gd) || (uop->p == (void *) dynarec_dtr) || (uop->p == (void *) dynarec_iret_pm) ||
+                (uop->p == (void *) dynarec_iret_cs) || (uop->p == (void *) dynarec_call_far_w) || (uop->p == (void *) dynarec_call_far_l))
+                return 0;
+        }
+    }
+    return 1;
+}
+
+static void
+codegen_fwd_join(ir_data_t *ir)
+{
+    int join = 0;
+
+    codegen_accumulate_flush(ir);
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    /*The registers kept are those the jump's path holds: no other jump may
+      land here*/
+    join = 1;
+    for (int c = 0; c < ir->wr_pos; c++) {
+        if ((ir->uops[c].type & UOP_TYPE_JUMP) && (ir->uops[c].jump_dest_uop == ir->wr_pos)) {
+            join = 0;
+            break;
+        }
+    }
+#endif
+    if (join) {
+        uop_set_jump_dest(ir, codegen_fwd_jump);
+        uop_NOP_JOIN(ir);
+    } else {
+        uop_NOP_BARRIER(ir);
+        uop_set_jump_dest(ir, codegen_fwd_jump);
+    }
+    codegen_fwd_jump = -1;
+    codegen_fwd_used = 1;
+
+    /*What one of the paths has not checked is not checked*/
+    codegen_flat_ds &= codegen_fwd_state.flat_ds;
+    codegen_flat_ss &= codegen_fwd_state.flat_ss;
+    codegen_flat_es &= codegen_fwd_state.flat_es;
+    codegen_wide_ds &= codegen_fwd_state.wide_ds;
+    codegen_wide_ss &= codegen_fwd_state.wide_ss;
+    codegen_v86_64k &= codegen_fwd_state.v86_64k;
+    cpu_state.seg_ds.checked = cpu_state.seg_ds.checked && codegen_fwd_state.checked[0];
+    cpu_state.seg_es.checked = cpu_state.seg_es.checked && codegen_fwd_state.checked[1];
+    cpu_state.seg_fs.checked = cpu_state.seg_fs.checked && codegen_fwd_state.checked[2];
+    cpu_state.seg_gs.checked = cpu_state.seg_gs.checked && codegen_fwd_state.checked[3];
+
+    codegen_flags_changed     = 0;
+    codegen_mov_ss_pair_valid = 0;
+    codegen_generate_reset();
+}
+
+/*The taken path leaves the block after all, from here: the code before
+  goes on past it*/
+static void
+codegen_fwd_give_up(ir_data_t *ir)
+{
+    int jump_uop = uop_JMP_DEST(ir);
+
+    uop_set_jump_dest(ir, codegen_fwd_jump);
+    /*The taken path skipped whatever changed CS since the Jcc*/
+    uop_MOV_IMM(ir, IREG_pc, codegen_fwd_dest - codegen_fwd_state.cs_base);
+    uop_JMP(ir, codegen_exit_rout);
+    uop_NOP_BARRIER(ir);
+    uop_set_jump_dest(ir, jump_uop);
+    codegen_fwd_jump = -1;
+}
+
+/*Before the instruction at addr (linear) is compiled, with a jump pending*/
+void
+codegen_fwd_check(uint32_t addr)
+{
+    ir_data_t *ir = codegen_get_ir_data();
+
+    if ((addr == codegen_fwd_dest) && codegen_fwd_can_join(ir))
+        codegen_fwd_join(ir);
+    else if ((addr < codegen_fwd_next) || (addr >= codegen_fwd_dest) || (cs != codegen_fwd_state.cs_base))
+        codegen_fwd_give_up(ir);
+}
+
+/*At the block's end, at addr (linear) after the instruction at last*/
+void
+codegen_fwd_end(uint32_t addr, uint32_t last)
+{
+    ir_data_t *ir = codegen_get_ir_data();
+
+    if (codegen_fwd_jump < 0)
+        return;
+    /*Not when the compile pass took the Jcc: the code after it is its
+      not-taken exit, which goes to the instruction after it*/
+    if ((addr == codegen_fwd_dest) && (last != codegen_fwd_jcc) && codegen_fwd_can_join(ir))
+        codegen_fwd_join(ir);
+    else
+        codegen_fwd_give_up(ir);
+}
 
 void
 codegen_set_loop_start(ir_data_t *ir, int first_instruction)
@@ -113,6 +513,7 @@ void (*codegen_timing_block_end)(void);
 int (*codegen_timing_jump_cycles)(void);
 void (*codegen_timing_save)(codegen_timing_state_t *state);
 void (*codegen_timing_load)(const codegen_timing_state_t *state);
+void (*codegen_timing_snapshot)(codegen_timing_snapshot_t *snap, int load);
 
 void
 codegen_timing_set(codegen_timing_t *timing)
@@ -125,6 +526,7 @@ codegen_timing_set(codegen_timing_t *timing)
     codegen_timing_jump_cycles = timing->jump_cycles;
     codegen_timing_save        = timing->save;
     codegen_timing_load        = timing->load;
+    codegen_timing_snapshot    = timing->snapshot;
 }
 
 int codegen_in_recompile;
@@ -347,10 +749,11 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     extra_bytes = 1;
                 } else {
                     new_eaaddr = (uint32_t) (int8_t) fastreadb(cs + (*op_pc) + 1);
-                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    uop_ADD_IMM(ir, IREG_eaaddr, sib & 7, new_eaaddr);
                     extra_bytes = 2;
                 }
-                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES)
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 (*op_pc)++;
                 break;
             case 2:
@@ -359,11 +762,12 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     extra_bytes = 1;
                 } else {
                     new_eaaddr = fastreadl(cs + (*op_pc) + 1);
-                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    uop_ADD_IMM(ir, IREG_eaaddr, sib & 7, new_eaaddr);
                     extra_bytes = 5;
                 }
                 (*op_pc) += 4;
-                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES)
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 break;
 
             default:
@@ -413,7 +817,9 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
 
             (*op_pc) += 4;
         } else {
-            uop_MOV(ir, IREG_eaaddr, cpu_rm);
+            /*Base plus an immediate displacement in one ADD_IMM (an LEA)*/
+            if (!cpu_mod || (block->flags & CODEBLOCK_NO_IMMEDIATES))
+                uop_MOV(ir, IREG_eaaddr, cpu_rm);
             if (cpu_mod) {
                 if (cpu_rm == 5 && !op_ssegs)
                     op_ea_seg = &cpu_state.seg_ss;
@@ -423,7 +829,7 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                         uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
                         uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                     } else {
-                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
+                        uop_ADD_IMM(ir, IREG_eaaddr, cpu_rm, (uint32_t) (int8_t) (fetchdat >> 8));
                         extra_bytes = 1;
                     }
                     (*op_pc)++;
@@ -433,7 +839,7 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                         uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                     } else {
                         new_eaaddr = fastreadl(cs + (*op_pc) + 1);
-                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, new_eaaddr);
+                        uop_ADD_IMM(ir, IREG_eaaddr, cpu_rm, new_eaaddr);
                         extra_bytes = 4;
                     }
                     (*op_pc) += 4;
@@ -1305,6 +1711,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (mov_ss_pair || (opcode_length[opcode] > 2)) ? 4 : opcode_length[opcode], &fetch_walk);
     const int    first_fetch_walk   = fetch_walk_valid;
     int          walk_cycles        = 0;
+    int          instr_cycles       = 0;
     uint32_t     lock_pc            = 0;
     int          lock_cycles        = 0;
     uint32_t     lock_walk          = 0;
@@ -1676,11 +2083,14 @@ generate_call:
 
     /*An instruction behind a LOCK it can't take is a hand-over, which no
       unrolled copy repeats, so its event is not replayed*/
+    if ((block->flags & CODEBLOCK_NO_OPCODES) && block->ins && (op_table == x86_dynarec_opcodes) && ((opcode & 0xc7) == 0x05))
+        codegen_accumulate_probe_mark();
     codegen_timing_peek = lock_illegal;
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
     codegen_timing_peek = 0;
     codegen_accumulate_record(ACC_OPCODE, 0, opcode, fetchdat, op_32, op_pc);
 
+    instr_cycles = codegen_block_cycles;
     codegen_accumulate_timing(ir);
 
     if ((op_table == x86_dynarec_opcodes && ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 || (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 || (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) || (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80))) {
@@ -1755,6 +2165,53 @@ generate_call:
             recomp_opcode_mask = 0xff;
             opcode_mask        = 0xff;
         }
+    }
+    /*An ALU EAX,imm32 in a block that reads those opcodes as it runs: neither
+      the opcode nor the immediate is marked. Not the block's first
+      instruction, whose opcode keeps a byte of the first chunk marked*/
+    if (((block->flags & (CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) == CODEBLOCK_NO_IMMEDIATES) && block->ins && (op_table == x86_dynarec_opcodes) &&
+        ((opcode & 0xc7) == 0x05) && (op_32 & 0x100) && (op_pc == old_pc + 1) && !in_lock && !(((cs + old_pc + 4) ^ block->pc) & ~0xfff)) {
+        /*One such a block would read as it runs: kept with the version
+          (block_family_cand_changed()). The first has the code count its
+          runs from here on.*/
+        uint32_t off = (cs + old_pc) - (block->pc & ~0x3f);
+
+        if (off < 128) {
+            if (!(codegen_family_ops[0] | codegen_family_ops[1])) {
+                block_family_runs[block_current] = 0;
+                uop_ADD_PTR_IMM(ir, &block_family_runs[block_current], 1);
+            }
+            codegen_family_ops[off >> 6] |= (uint64_t) 1 << (off & 63);
+        }
+    }
+    if ((block->flags & CODEBLOCK_NO_OPCODES) && block->ins && (op_table == x86_dynarec_opcodes) && ((opcode & 0xc7) == 0x05) && (op_32 & 0x100) &&
+        (op_pc == old_pc + 1) && !in_lock && !(((cs + old_pc + 4) ^ block->pc) & ~0xfff)) {
+        if (!(codegen_family_ops[0] | codegen_family_ops[1])) {
+            /*Its code counts its runs from the first (codegen_family_review())*/
+            block_family_runs[block_current] = 0;
+            uop_ADD_PTR_IMM(ir, &block_family_runs[block_current], 1);
+        }
+        codegen_ea_target_seg   = NULL;
+        codegen_instr_pc        = old_pc;
+        codegen_instr_first_uop = ir->wr_pos;
+        codegen_alu_eax_imm_family(block, ir, old_pc, opcode, instr_cycles);
+        block->flags |= CODEBLOCK_OPCODE_FAMILY;
+        {
+            uint32_t off = (cs + old_pc) - (block->pc & ~0x3f);
+
+            if (off < 128)
+                codegen_family_ops[off >> 6] |= (uint64_t) 1 << (off & 63);
+        }
+        uop_MOV_IMM(ir, IREG_pc, op_pc + 4);
+
+        codegen_endpc = (cs + cpu_state.pc) + 8;
+
+        block->ins++;
+
+        if (block->ins >= MAX_INSTRUCTION_COUNT)
+            CPU_BLOCK_END();
+
+        return;
     }
     /*The prefixes and the opcode; an x87 escape's ModR/M too, as op_pc is
       already past it (pc_off is -1 for those only while op_pc is moved back
@@ -1886,6 +2343,8 @@ generate_call:
             }
             if (new_pc != -1)
                 uop_MOV_IMM(ir, IREG_pc, new_pc);
+            if ((new_pc != -1) && !mov_ss_pair && (op_table == x86_dynarec_opcodes) && ((opcode == 0xeb) || (opcode == 0xe9)))
+                codegen_trace_jump(block, ir, cs + op_pc + ((opcode == 0xeb) ? 1 : ((op_32 & 0x100) ? 4 : 2)), cs + new_pc);
 
             codegen_endpc = (cs + cpu_state.pc) + 8;
 

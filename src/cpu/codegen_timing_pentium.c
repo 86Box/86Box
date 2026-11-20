@@ -1336,6 +1336,28 @@ codegen_timing_pentium_load(const codegen_timing_state_t *state)
     }
 }
 
+static void
+codegen_timing_pentium_snapshot(codegen_timing_snapshot_t *snap, int load)
+{
+    size_t pos = 0;
+
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_full);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_opcode);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_timings);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_op_32);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_regmask);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_fetchdat);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_decode_delay_offset);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, u_pipe_deps);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, regmask_modified);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, fpu_latency);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, fpu_st_latency);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, decode_delay);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, decode_delay_offset);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_prefix);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prefixes);
+}
+
 codegen_timing_t codegen_timing_pentium = {
     codegen_timing_pentium_start,
     codegen_timing_pentium_prefix,
@@ -1344,5 +1366,6 @@ codegen_timing_t codegen_timing_pentium = {
     codegen_timing_pentium_block_end,
     NULL,
     codegen_timing_pentium_save,
-    codegen_timing_pentium_load
+    codegen_timing_pentium_load,
+    codegen_timing_pentium_snapshot
 };

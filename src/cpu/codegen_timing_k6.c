@@ -2233,11 +2233,38 @@ codegen_timing_k6_jump_cycles(void)
     return 0;
 }
 
+static void
+codegen_timing_k6_snapshot(codegen_timing_snapshot_t *snap, int load)
+{
+    size_t pos = 0;
+
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_prefix);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prefixes);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, decode_timestamp);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_complete_timestamp);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, nr_units);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, units);
+    for (int c = 0; c < nr_units; c++)
+        CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, units[c].first_available_cycle);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, mul_first_available_cycle);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, shift_first_available_cycle);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, m3dnow_first_available_cycle);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, decode_buffer);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, opquad_completion_timestamp);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, next_opquad);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, reg_available_timestamp);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, fpu_st_timestamp);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_uop_timestamp);
+}
+
 codegen_timing_t codegen_timing_k6 = {
     codegen_timing_k6_start,
     codegen_timing_k6_prefix,
     codegen_timing_k6_opcode,
     codegen_timing_k6_block_start,
     codegen_timing_k6_block_end,
-    codegen_timing_k6_jump_cycles
+    codegen_timing_k6_jump_cycles,
+    NULL,
+    NULL,
+    codegen_timing_k6_snapshot
 };

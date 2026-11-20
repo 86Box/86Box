@@ -333,8 +333,9 @@ opPOPFD(UNUSED(uint32_t fetchdat))
        (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
        answer leaves it, the PC past POPF), and the loop, which steps
        single instructions while TF is set, runs that one; the interpreter
-       ignores the answer. */
-    if ((cpu_state.flags & ~popf_old) & T_FLAG)
+       ignores the answer. Alignment checking turned on ends the block the
+       same way: the loop interprets while it is on. */
+    if (((cpu_state.flags & ~popf_old) & T_FLAG) || CPU_AC_ARMED())
         return 1;
     return 0;
 }
