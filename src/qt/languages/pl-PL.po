@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-11 10:11+0000\n"
-"Last-Translator: JanuSzaj <testowe07@gmail.com>\n"
+"PO-Revision-Date: 2026-11-20 08:58+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -248,40 +248,40 @@ msgid "Sound &gain…"
 msgstr "Wzmocnienie &dźwięku…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "U&rządzenie wyjściowe MIDI"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Zrestartuj u&rządzenie"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "Wyślij p&olecenie MIDI"
 
 msgid "&GM System On"
-msgstr ""
+msgstr "&Wł. System GM"
 
 msgid "G&S Reset"
-msgstr ""
+msgstr "Zresetuj G&S"
 
 msgid "&XG System On"
-msgstr ""
+msgstr "&Wł. System XG"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "&Zresetuj MT-32"
 
 msgid "All &notes off"
 msgstr ""
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Pokaż MIDI &LCD"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "Panel MIDI LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Zawsze na &wierzchu"
 
 msgid "&Close"
-msgstr ""
+msgstr "&Zamknij"
 
 msgid "Begin trace"
 msgstr "Rozpocznij śledzenie"
@@ -440,7 +440,7 @@ msgid "%1 MHz"
 msgstr "%1 MHz"
 
 msgid "FPU:"
-msgstr "Jednostka FPU:"
+msgstr "Koprocesor FPU:"
 
 msgid "Internal"
 msgstr "Zintegrowany"
@@ -1372,7 +1372,7 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Usuń maszyny wirtualne do Kosza"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
 msgstr "Pokazuj uruchomione maszyny w moim statusie na Discord"
@@ -1639,10 +1639,10 @@ msgid "Hard disk (%1)"
 msgstr "Dysk twardy (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "Płytka LED"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "Płytka LED %1"
 
 msgid "Custom…"
 msgstr "Niestandardowy…"
@@ -2136,7 +2136,7 @@ msgid "PS/2 Mouse"
 msgstr "Mysz PS/2"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr "PS/2 QuickPort Mouse"
+msgstr "Mysz PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (szeregowy)"
@@ -2160,7 +2160,7 @@ msgid "Roland CM-32LN Emulation"
 msgstr "Emulacja Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Płyta-córka OPL4-ML"
+msgstr "Karta rozszerzająca OPL4-ML"
 
 msgid "System MIDI"
 msgstr "System MIDI"
@@ -2601,7 +2601,7 @@ msgid "Start Address"
 msgstr "Adres początkowy"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "Zezwól pamięci RAM na alokację przestrzeni w pamięci ROM"
 
 msgid "Contiguous Size"
 msgstr "Przyległy rozmiar"
@@ -3114,7 +3114,7 @@ msgid "Generic MM58167 RTC"
 msgstr "Standardowy RTC MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr "OPL2Board (zewnętrzne urządzenie)"
+msgstr "OPL2Board (urządzenie zewnętrzne)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Nie można znaleźć fontów igłowych. Fonty TrueType w katalogu „roms/printer/fonts” są wymagane do emulacji generycznej drukarki igłowej ESC/P 2."
@@ -3468,22 +3468,24 @@ msgid "&Allow recompilation"
 msgstr "&Zezwól na rekompilację"
 
 msgid "&Fast forward"
-msgstr "&Przewiń do przodu"
+msgstr "&Przyspiesz emulację"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "Przyspiesz emulację podczas uruchamiania"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "Uruchamiaj nowe maszyny z przyspieszeniem"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
 msgstr ""
+"Funkcja dotyczy wyłącznie konfiguracji powstałych od teraz. Można to zmienić "
+"w opcjach, w sekcji Maszyna > Wydajność."
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "Przyspiesz emulację podczas &uruchamiania"
 
 msgid "Fast forward"
-msgstr "Przewiń do przodu"
+msgstr "Przyspiesz emulację"
 
 msgid "&Non-maskable interrupt"
 msgstr "&Przerwanie niemaskowalne"
@@ -3706,7 +3708,7 @@ msgid "VFIO %s: Invalid device location."
 msgstr ""
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Nie znaleziono urządzenia."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
@@ -3725,9 +3727,12 @@ msgstr ""
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Nie udało się odczytać pliku ROM „%s”; korzystanie z wbudowanej "
+"pamięci ROM urządzenia."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
+"VFIO %s: Nie udało się odczytać pliku ROM „%s”; pamięć ROM jest wyłączona."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
@@ -3760,61 +3765,65 @@ msgid "Disabled"
 msgstr ""
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "Nieograniczona pojemność"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "Prędkość CD:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "Prędkość DVD:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "Prędkość HD/BD:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Sterowane programowo urządzenie do wyłączania zasilania (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "Monitor pamięci"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "Emulator jest zajęty. Monitor pamięci nie został zaktualizowany."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
+"Element nie znajduje się w pamięci mapowanej; zaznaczenie i widok nie uległy "
+"zmianie."
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "Zapisywane mogą być wyłącznie dane z pamięci RAM i pamięci wideo."
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
+"nie zapisano (pamięć RAM lub pamięć wideo nie pozwala na zapis lub emulator "
+"jest zajęty)."
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "Emulator jest zajęty. Spróbuj ponownie."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "Skopiowano %1 bajtów z %2 do schowka"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (Nie udało się odczytać %1)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " z zaznaczenia o wielkości %1 bajtów"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "Nie ma żadnej pamięci mapowanej do przeszukiwania."
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "W żądanym zakresie nie ma pamięci mapowanej."
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "Wyszukiwanie jest ograniczone do %1 bajtów."
 
 msgid "Searching memory…"
-msgstr ""
+msgstr "Przeszukiwanie pamięci…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "Przeszukiwanie anulowano. Zaznaczenie nie zostało przesunięte."
 
 msgid "Found at %1."
 msgstr ""
