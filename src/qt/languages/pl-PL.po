@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 09:00+0000\n"
-"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3823,7 +3823,7 @@ msgid "Searching memory…"
 msgstr "Przeszukiwanie pamięci…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr "Przeszukiwanie anulowano. Zaznaczenie nie zostało przesunięte."
+msgstr "Szukanie anulowano. Zaznaczenie nie zostało przesunięte."
 
 msgid "Found at %1."
 msgstr "Znaleziono w %1."
