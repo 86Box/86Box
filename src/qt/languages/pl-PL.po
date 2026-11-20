@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:06+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-20 09:07+0000\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -4259,10 +4259,10 @@ msgid "Connection Type"
 msgstr "Typ łącza"
 
 msgid "Username"
-msgstr ""
+msgstr "Nazwa użytkownika"
 
 msgid "Password"
-msgstr ""
+msgstr "Hasło"
 
 msgid "PPP Compression and Encryption"
 msgstr ""
@@ -4355,37 +4355,39 @@ msgid "Its drives are hard disks, CD-ROM drives and other removable devices set 
 msgstr ""
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Dyski twarde…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Napędy CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Inne urządzenia wymienne…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "4-portowy hub USB 1.1"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "Pamięć masowa USB"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "Zamontuj folder jako tymczasową dyskietkę"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "Wybrany napęd nie obsługuje montowania folderów."
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "Zawartość przekracza pojemność skonfigurowanego napędu dyskietek."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Zamontuj folder jako tymczasowy dysk wymienny"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Nie można zamontować folderu lub pliku archiwum"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
+"Zawartość nie mieści się na żadnym nośniku obsługiwanym przez ten dysk lub "
+"rozmiar pliku wynosi 4 GB lub więcej."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
 msgstr ""
