@@ -398,8 +398,9 @@ io_string_get(uint16_t port, int write, void **priv)
 
     /* As inw()/outw() would go: one handler, with the word access, and no
        other answer for either byte (claims, byte-only handlers), no PCI
-       configuration window, no latch or delay of a machine's own */
-    if ((p == NULL) || (p->next != NULL) || (write ? (p->outw == NULL) : (p->inw == NULL)))
+       configuration window, no latch or delay of a machine's own, no I/O
+       breakpoint (checked by inw()/outw() for each word) */
+    if (cpu_dr_io_armed || (p == NULL) || (p->next != NULL) || (write ? (p->outw == NULL) : (p->inw == NULL)))
         return NULL;
     if (((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) ||
         ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)))
@@ -632,6 +633,7 @@ inb(uint16_t port)
     if (!(cpu_dr_io_armed | (pci_flags & (FLAG_CONFIG_IO_ON | FLAG_CONFIG_DEV0_IO_ON)) | (amstrad_latch & 0x80000000) | (machine ^ io_fast_machine) | (io_claimed[port >> 3] & (1 << (port & 7))))) {
         p = io[port];
         if (p && p->fast_in && !p->next) {
+            mem_idle_dirty = 1; /* an idle loop does no port access */
             ret      = p->inb(port, p->priv);
             io_cycle = 0;
             return ret;

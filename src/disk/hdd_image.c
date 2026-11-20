@@ -1269,6 +1269,8 @@ hdd_image_sync(uint8_t id)
 int
 hdd_image_flush(uint8_t id)
 {
+    if (id >= HDD_SLOTS)
+        return 0;
 #ifndef IS_TEST
     if (HDD_IS_RDISK_SLOT(id))
         return 0;

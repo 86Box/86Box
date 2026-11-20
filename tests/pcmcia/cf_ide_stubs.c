@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -89,6 +90,7 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
     return 0;
 }
 
+int hdd_image_flush(UNUSED(uint8_t id)) { return 0; }
 int hdd_image_zero(UNUSED(uint8_t id), UNUSED(uint32_t sector), UNUSED(uint32_t count)) { abort(); }
 void hdd_preset_apply(UNUSED(int id)) { }
 double hdd_timing_read(UNUSED(hard_disk_t *disk), UNUSED(uint32_t addr), UNUSED(uint32_t len)) { return 0; }
@@ -126,6 +128,7 @@ io_handler(UNUSED(uint8_t set), UNUSED(uint16_t base), UNUSED(uint16_t size),
 }
 
 void io_set_turbo(UNUSED(uint16_t port), UNUSED(int turbo)) { abort(); }
+void io_set_string(UNUSED(uint16_t port), UNUSED(io_insw_t insw), UNUSED(io_outsw_t outsw), UNUSED(void *priv)) { }
 void *device_add_params(UNUSED(const device_t *dev), UNUSED(void *params)) { abort(); }
 int device_get_config_int(UNUSED(const char *name)) { abort(); }
 void device_context_inst(UNUSED(const device_t *dev), UNUSED(int inst)) { abort(); }

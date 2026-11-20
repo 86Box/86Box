@@ -5,6 +5,13 @@
 #include <stddef.h>
 #include "x86_ops.h"
 
+/*The header is read by C++ tests as well*/
+#ifdef __cplusplus
+#    define CODEGEN_ALIGNAS(n) alignas(n)
+#else
+#    define CODEGEN_ALIGNAS(n) _Alignas(n)
+#endif
+
 /*Handling self-modifying code (of which there is a lot on x86) :
 
   PCem tracks a 'dirty mask' for each physical page, in which each bit
@@ -51,9 +58,9 @@ typedef struct codeblock_t {
 #if defined(__aarch64__) || defined(_M_ARM64)
     /*256 bytes a block on arm64, so the link routines find one from its
       number with a shift*/
-    _Alignas(256) uint32_t link_gen;
+    CODEGEN_ALIGNAS(256) uint32_t link_gen;
 #else
-    _Alignas(32) uint32_t link_gen;
+    CODEGEN_ALIGNAS(32) uint32_t link_gen;
 #endif
     /*Run since eviction's sweep last passed it: the sweep passes it over
       once (codegen_delete_random_block).*/

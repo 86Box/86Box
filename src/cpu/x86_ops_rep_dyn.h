@@ -10,7 +10,7 @@
 static __inline int
 rep_io_event_due(void)
 {
-    return smi_line || cpu_state.abrt || cpu_init || new_ne || cpu_dr_armed || NMI_TAKEABLE() ||
+    return smi_line || cpu_state.abrt || cpu_init || new_ne || cpu_dr_armed || (trap & 4) || NMI_TAKEABLE() ||
            (cpu_events.irq && (cpu_state.flags & I_FLAG) && x86_external_interrupt_pending());
 }
 
