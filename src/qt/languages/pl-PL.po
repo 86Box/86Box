@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 08:55+0000\n"
-"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
+"PO-Revision-Date: 2026-11-20 08:56+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3768,7 +3768,7 @@ msgid "Unlimited capacity"
 msgstr "Nieograniczona pojemność"
 
 msgid "CD speed:"
-msgstr "Prędkość napędu:"
+msgstr "Prędkość CD:"
 
 msgid "DVD speed:"
 msgstr ""
