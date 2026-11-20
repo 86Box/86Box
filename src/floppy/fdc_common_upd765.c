@@ -2113,13 +2113,14 @@ fdc_read(uint16_t addr, void *priv)
                         ret = 0xf9;
                 } else {
                     /*
-                       The change line is gated by drive select, not by the
-                       motor: a disk swapped in while the motor is off must
-                       still read as changed, or the guest keeps its cached
-                       media state and never sees the swap.
-
-                       Per the IBM 5160 XT: Motor must be on for drive to
-                       be selected.
+                       The drive only drives DSKCHG while it is selected,
+                       and on IBM-compatible adapters the select line sent
+                       to the drive is the DOR drive select ANDed with that
+                       drive's motor enable bit (IBM 5160 Technical
+                       Reference: the motor must be on for the drive to be
+                       selected). With the motor off no drive is selected,
+                       so the line reads inactive regardless of the media
+                       state. OS/2 2.11 and later depend on this.
                     */
                     if (fdc->dor & (0x10 << drive)) {
                         if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
