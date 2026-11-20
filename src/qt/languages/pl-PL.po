@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 09:00+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3906,7 +3906,7 @@ msgid "Show or hide debugger commands (Ctrl+D)"
 msgstr "Pokaż lub ukryj komendy debugowania (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Hex Bajty"
 
 msgid "ASCII text"
 msgstr ""
