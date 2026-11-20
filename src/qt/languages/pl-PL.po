@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:01+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-20 09:02+0000\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3918,40 +3918,44 @@ msgid "Value, word"
 msgstr "Wartość, słowo"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Wartość, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Na co zwrócić uwagę: surowe bajty hex, tekst lub wartość hex zapisana w "
+"formacie little-endian, tak jak w edytorze hex."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Wyszukiwanie pamięci"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
 
 msgid "Find previous"
-msgstr ""
+msgstr "Znajdź poprzednie"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Wyszukaj w górę od zaznaczenia (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Znajdź następny"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Wyszukaj w dół od zaznaczenia (F3)"
 
 msgid "Range…"
-msgstr ""
+msgstr "Zakres…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Wyszukaj w zakresie adresów zamiast w całej pamięci"
 
 msgid "From"
-msgstr ""
+msgstr "Od"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Miejsca rozpoczęcia wyszukiwania (hex, rejestr lub segment:przesunięcie; "
+"pustka oznacza pierwszy zmapowany bajt; . oznacza początek zaznaczenia)."
 
 msgid "To (inclusive)"
 msgstr ""
