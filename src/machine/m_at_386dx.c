@@ -47,15 +47,16 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/hwm.h>
 #include <86box/machine.h>
+#include <86box/weitek.h>
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
 /* ISA */
-/* Bit 3 clear means a Weitek coprocessor is installed, which we do not emulate. */
+/* Bit 3 clear means a Weitek coprocessor is installed, bit 2 clear an 80387. */
 uint8_t
 machine_compaq_p1_handler(void)
 {
-    return machine_generic_p1_handler() | 0x08 | (hasfpu ? 0x00 : 0x04);
+    return machine_generic_p1_handler() | (weitek_fitted() ? 0x00 : 0x08) | (hasfpu ? 0x00 : 0x04);
 }
 
 static const device_config_t deskpro386_config[] = {
