@@ -3903,7 +3903,7 @@ msgid "Commands"
 msgstr "Komendy"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr "Pokaż lub ukryj komendy debugowania (CTRL+D)"
+msgstr "Pokaż lub ukryj komendy debugowania (Ctrl+D)"
 
 msgid "Hex bytes"
 msgstr ""
