@@ -4094,7 +4094,7 @@ msgid "\"%1\" is not an address or a register."
 msgstr "\"%1\" nie jest adresem ani rejestrem."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Użycie: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
@@ -4238,16 +4238,16 @@ msgid "Telephone Tone Region"
 msgstr ""
 
 msgid "North America"
-msgstr ""
+msgstr "Ameryka Północna"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Wielka Brytania"
 
 msgid "Continental Europe"
 msgstr ""
 
 msgid "Japan"
-msgstr ""
+msgstr "Japonia"
 
 msgid "Handshake Modem Standard"
 msgstr ""
@@ -4256,7 +4256,7 @@ msgid "Automatic (from DTE speed)"
 msgstr ""
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Typ łącza"
 
 msgid "Username"
 msgstr ""
