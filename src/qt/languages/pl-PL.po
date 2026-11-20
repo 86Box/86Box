@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 08:58+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-20 09:00+0000\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3826,82 +3826,84 @@ msgid "The search was cancelled. The selection did not move."
 msgstr "Przeszukiwanie anulowano. Zaznaczenie nie zostało przesunięte."
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Znaleziono w %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Nie znaleziono. Zaznaczenie nie zostało przesunięte."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Wypełnij zaznaczenie"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Wypełnij %1 bajtów z %2 wartością (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Wprowadź hex w zakresie od 00 do FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Wypełniono %1 z %2 bajtów danymi %3 (%4 stanowiły niezapisywalne dane do "
+"pamięci RAM lub pamięci wideo)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Wybrano: %1 bajtów (%2 pominięto)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Edytuj bajt"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Kopiuj zaznaczenie (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Kopiuj zaznaczenie (ASCII)"
 
 msgid "Fill selection…"
-msgstr ""
+msgstr "Wypełnij zaznaczenie…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopiuj adres"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Dezasembluj tutaj"
 
 msgid "Dump memory from here…"
-msgstr ""
+msgstr "Zrzuć pamięć stąd…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Monitor pamięci"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pauza / Wznów"
 
 msgid "Step"
-msgstr ""
+msgstr "Krok"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Wykonaj podaną liczbę instrukcji (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Instrukcje krok po kroku"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fizyczny"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Adres, rejestr lub segment:przesunięcie"
 
 msgid "Go"
-msgstr ""
+msgstr "Start"
 
 msgid "Live update"
-msgstr ""
+msgstr "Aktualizacja na żywo"
 
 msgid "Dump…"
-msgstr ""
+msgstr "Zrzut…"
 
 msgid "Commands"
-msgstr ""
+msgstr "Komendy"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Pokaż lub ukryj komendy debugowania (CTRL+D)"
 
 msgid "Hex bytes"
 msgstr ""
