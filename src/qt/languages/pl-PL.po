@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 08:55+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3732,6 +3732,7 @@ msgstr ""
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
+"VFIO %s: Nie udało się odczytać pliku ROM \"%s\"; pamięć ROM jest wyłączona."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
