@@ -133,6 +133,7 @@ private slots:
     void on_actionHide_status_bar_triggered();
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
+    void on_actionShow_USB_activity_triggered();
     void on_actionTake_screenshot_triggered();
     void on_actionTake_raw_screenshot_triggered();
     void on_actionCopy_screenshot_triggered();

@@ -137,6 +137,7 @@
     </widget>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
+    <addaction name="actionShow_USB_activity"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
     <addaction name="actionTake_raw_screenshot"/>
@@ -704,6 +705,14 @@
    </property>
    <property name="text">
     <string>&amp;Update status bar icons</string>
+   </property>
+  </action>
+  <action name="actionShow_USB_activity">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show US&amp;B activity</string>
    </property>
   </action>
   <action name="actionTake_screenshot">

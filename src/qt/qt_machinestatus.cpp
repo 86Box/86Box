@@ -137,6 +137,7 @@ struct Pixmaps {
     PixmapSetEmpty       usb[USB_SLOTS];
     PixmapSetEmpty       usb_flash;
     PixmapSetEmpty       usb_port;
+    PixmapSetActive      usb_active;
     PixmapSetDisabled    sound;
     PixmapSetDisabled    dynarec;
     PixmapSetDisabled    pccard;
@@ -407,6 +408,7 @@ struct MachineStatus::States {
             pixmaps.usb[i].load(QIcon(QString(":/settings/qt/icons/%1.ico").arg(usb_slot_internal_name(i))));
         pixmaps.usb_flash.load(QIcon(":/settings/qt/icons/usb_flash.ico"));
         pixmaps.usb_port.load(QIcon(":/settings/qt/icons/usb_port.ico"));
+        pixmaps.usb_active.load(QIcon(":/settings/qt/icons/usb_port.ico"));
         pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
         pixmaps.dynarec.normal                          = QIcon(":/menuicons/qt/icons/recompiler.ico").pixmap(pixmap_size);
         pixmaps.dynarec.disabled                        = QIcon(":/menuicons/qt/icons/interpreter.ico").pixmap(pixmap_size);
@@ -516,6 +518,24 @@ struct MachineStatus::States {
             for (auto *menu : MediaMenu::ptr->usbPortMenus)
                 menu->setProperty("usbIconKey", QVariant());
         }
+    }
+
+    /* The USB icon lights like a disk icon: green for data from a device,
+       red for data to one, both when both happened since the last tick. */
+    void setUsbActivity(int bits)
+    {
+        const PixmapSetActive &set = pixmaps.usb_active;
+
+        if (!usb)
+            return;
+        if ((bits & USB_ACTIVITY_IN) && (bits & USB_ACTIVITY_OUT))
+            usb->setPixmapIfChanged(set.read_write_active);
+        else if (bits & USB_ACTIVITY_OUT)
+            usb->setPixmapIfChanged(set.write_active);
+        else if (bits & USB_ACTIVITY_IN)
+            usb->setPixmapIfChanged(set.active);
+        else
+            usb->setPixmapIfChanged(set.normal);
     }
 
     std::array<StateEmpty, 2>                  cartridge;
@@ -873,6 +893,13 @@ MachineStatus::refreshIcons()
                                                      tr("Dynamic recompiler is inactive"));
     }
 
+    /* The USB activity bits are taken on every tick, also while the light is
+       off, so switching it back on does not show stale activity. */
+    if (d->usb) {
+        const int bits = usb_activity_take();
+        d->setUsbActivity((update_icons && usb_activity) ? bits : 0);
+    }
+
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
@@ -981,6 +1008,7 @@ MachineStatus::clearActivity()
         net.setActive(false);
         net.setWriteActive(false);
     }
+    d->setUsbActivity(0);
 }
 
 void
@@ -1266,7 +1294,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             QTimer::singleShot(0, d->usbMenu.get(), [this] { d->releaseUsbMenu(); });
         });
         d->usb = std::make_unique<ClickableLabel>();
-        d->usb->setPixmap(d->pixmaps.usb_port.normal);
+        d->usb->setPixmapIfChanged(d->pixmaps.usb_active.normal);
         d->usb->setToolTip(tr("USB"));
         connect(d->usb.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
             d->popupUsbMenu(pos);

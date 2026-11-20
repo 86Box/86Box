@@ -87,6 +87,13 @@ extern int usb_ports_get(usb_port_info_t *ports, int max);
    returns 0 when there is none. */
 extern int usb_port_flash_image(const char *label, char *fn, int n);
 
+/* Data moved on any USB bus since the status bar last looked, for its
+   activity light: USB_ACTIVITY_IN for data from a device, USB_ACTIVITY_OUT
+   for data to one. usb_activity_take() returns the bits and clears them. */
+#define USB_ACTIVITY_IN  1
+#define USB_ACTIVITY_OUT 2
+extern int usb_activity_take(void);
+
 /* USB flash drives: a stick with a raw image, plugged into a port. The
    user plugs, swaps and unplugs them from the GUI by port; the config
    keeps which image is in which port, and the sticks go back there on the

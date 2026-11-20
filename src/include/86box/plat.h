@@ -175,6 +175,7 @@ extern int      infocus;
 extern char     emu_version[200]; /* version ID string */
 extern int      rctrl_is_lalt;
 extern int      update_icons;
+extern int      usb_activity;
 
 extern int kbd_req_capture;
 extern int hide_status_bar;

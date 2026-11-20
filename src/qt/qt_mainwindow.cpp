@@ -584,6 +584,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->actionShow_non_primary_monitors->setChecked(show_second_monitors);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+    ui->actionShow_USB_activity->setChecked(usb_activity);
     ui->actionFast_forward_on_start->setChecked(fast_forward_on_start);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
 
@@ -2566,6 +2567,18 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
 
     /* Prevent icons staying when disabled during activity. */
+    status->clearActivity();
+
+    config_save();
+}
+
+void
+MainWindow::on_actionShow_USB_activity_triggered()
+{
+    usb_activity ^= 1;
+    ui->actionShow_USB_activity->setChecked(usb_activity);
+
+    /* Prevent the USB icon staying lit when disabled during activity. */
     status->clearActivity();
 
     config_save();
