@@ -276,6 +276,39 @@ rep_run_room(x86seg *seg, int is_stos, int shift, uint32_t mask, uint32_t cnt, u
     return n;
 }
 
+/*REP MOVSD elements of a page-run, from the one at offsets src and dst, that
+  go to a device whose mapping takes runs of dword writes (write_l_run): the
+  device takes up to n of them in one call, and the number it took is
+  returned (0 when the destination is not such a device). The element before
+  translated the destination page, and nothing the device does writes guest
+  memory, so the translation, and the Accessed and Dirty bits it set, hold
+  for the rest of the page.*/
+static __inline uint32_t
+rep_movsl_block(x86seg *seg, uint32_t src, uint32_t dst, uint32_t n)
+{
+    const uint32_t dst_lin = es + dst;
+    const uint32_t src_lin = seg->base + src;
+    mem_mapping_t *map;
+    uintptr_t      e;
+    uint32_t       phys;
+
+    if ((mmut_hit_w != (uintptr_t) LOOKUP_INV) || cpu_state.abrt || high_page || mem_held_num
+        || ((dst_lin | src_lin) & 3) || mem_page_lookup(dst_lin >> 12))
+        return 0;
+    if (cr0 >> 31)
+        phys = ((addr64a_2[0] & ~0xfff) | (dst_lin & 0xfff)) & rammask;
+    else
+        phys = dst_lin & rammask;
+    map = write_mapping[phys >> MEM_GRANULARITY_BITS];
+    if (!map || !map->write_l || !map->write_l_run)
+        return 0;
+    e = *(volatile uintptr_t *) &readlookup2[src_lin >> 12];
+    if (e == (uintptr_t) LOOKUP_INV)
+        return 0;
+
+    return map->write_l_run(phys, (const uint32_t *) (e + (uintptr_t) src_lin), n, map->priv);
+}
+
 /*Elements the compiled routine does not copy itself, each one as a pass of
   the interpreter's loop in x86_ops_rep_dyn.h: the element, then the steps of
   the registers, the count and the cycles. Carries on while the count is not
@@ -283,8 +316,13 @@ rep_run_room(x86seg *seg, int is_stos, int shift, uint32_t mask, uint32_t cnt, u
   next element is also one the routine would not copy, so that a string to a
   page without a direct lookup (video memory, MMIO) does not go back to the
   routine for each element. The elements go in runs (rep_run_room()) whose
-  checks are made once; an element no run takes makes its own. Returns
-  non-zero if an element faulted, with the registers left at that element.*/
+  checks are made once; an element no run takes makes its own. Inside a run
+  going up, REP MOVSD hands the elements that would follow with no stop
+  between them to a device that takes them in one call (rep_movsl_block()),
+  all but the last of them, which runs as the others did: the elements on
+  each side make the translate steps, so the state after the last one is the
+  same. Returns non-zero if an element faulted, with the registers left at
+  that element.*/
 #define REP_RUN_OP(name, size, CNT_REG, SRC_REG, DEST_REG, is_stos, shift, mask)                   \
     static int rep_run_##name##_##size(x86seg *seg, int32_t cycles_end)                            \
     {                                                                                              \
@@ -307,6 +345,23 @@ rep_run_room(x86seg *seg, int is_stos, int shift, uint32_t mask, uint32_t cnt, u
                 if (!CNT_REG || (cycles < cycles_end) || smi_line                                  \
                     || rep_direct(seg, is_stos, shift, SRC_REG, DEST_REG))                         \
                     return 0;                                                                      \
+                if (!(is_stos) && ((shift) == 2) && run && (step > 0) && (left > 3)) {             \
+                    uint32_t more = (uint32_t) (cycles - cycles_end) / elem_cycles + 1;            \
+                                                                                                   \
+                    if (more > (left - 1))                                                         \
+                        more = left - 1;                                                           \
+                    if (more > CNT_REG)                                                            \
+                        more = CNT_REG;                                                            \
+                    if (more > 2) {                                                                \
+                        const uint32_t k = rep_movsl_block(seg, SRC_REG, DEST_REG, more - 1);      \
+                                                                                                   \
+                        SRC_REG += k << 2;                                                         \
+                        DEST_REG += k << 2;                                                        \
+                        CNT_REG -= k;                                                              \
+                        cycles -= (int) k * elem_cycles;                                           \
+                        left -= k;                                                                 \
+                    }                                                                              \
+                }                                                                                  \
             } while (--left);                                                                      \
         }                                                                                          \
     }
