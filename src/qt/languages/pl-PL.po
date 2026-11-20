@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:02+0000\n"
+"PO-Revision-Date: 2026-11-20 09:03+0000\n"
 "Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -3966,76 +3966,82 @@ msgstr ""
 "oznacza ostatni zmapowany bajt; . oznacza koniec zaznaczenia)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Zakres od"
 
 msgid "to"
-msgstr ""
+msgstr "do"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Zmapowane, poza RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Niezmapowane"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Niedostępne"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Niedostępne: odpowiadają tam wyłącznie moduły obsługi urządzeń (odczyt "
+"spowodowałby skutki uboczne) lub strona liniowa nie istnieje."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Adres liniowy, rejestr lub segment:przesunięcie"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Śledź CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Bajty"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Instrukcja"
 
 msgid "Note"
-msgstr ""
+msgstr "Notatka"
 
 msgid "Double-click a line to set or clear a breakpoint there"
 msgstr ""
+"Kliknij dwukrotnie wiersz, aby ustawić lub usunąć w tym miejscu punkt "
+"przerwania"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Dezasemblacja"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Dezasemblacja (niedostępna w tej kompilacji)"
 
 msgid "Viewer message"
 msgstr ""
 
 msgid "Selected range"
-msgstr ""
+msgstr "Zaznaczony zakres"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Komendy debugowania"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Wyjście komend debugowania"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Komenda debugowania"
 
 msgid "help — commands; Up/Down — history; . — selected address"
 msgstr ""
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Polecenia korzystają z tej samej przestrzeni adresowej i zaznaczenia, co "
+"monitor pamięci. Wpisz help, aby wyświetlić listę komend."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Uruchom procesor (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Zatrzymaj procesor przy następnej instrukcji (F5)"
 
 msgid "Too many breakpoints."
 msgstr ""
