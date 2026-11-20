@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:03+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-20 09:04+0000\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -4044,31 +4044,33 @@ msgid "Stop the processor at the next instruction (F5)"
 msgstr "Zatrzymaj procesor przy następnej instrukcji (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Zbyt wiele punktów przerwania."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Zatrzymano: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "Emulator jest zajęty; widok nie został zaktualizowany."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Zatrzymano w punkcie przerwania."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Zatrzymano po zrobieniu kroku."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Zatrzymano."
 
 msgid "Stepping…"
-msgstr ""
+msgstr "Krok do przodu…"
 
 msgid "Running."
-msgstr ""
+msgstr "Działa."
 
 msgid "The emulator is paused; resume it to run or step."
 msgstr ""
+"Emulator jest zapauzowany; wznów go aby działał normalnie lub w trybie "
+"krokowym."
 
 msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
