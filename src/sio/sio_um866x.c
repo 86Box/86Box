@@ -105,7 +105,9 @@ um866x_uart_handler(um866x_t *dev, int port)
 static void
 um866x_lpt_handler(um866x_t *dev)
 {
-    int enabled = (dev->regs[0] & 0x08);
+    int     enabled = (dev->regs[0] & 0x08);
+    int     ecp     = 0;
+    uint8_t irq;
 
     lpt_port_remove(dev->lpt);
     if (dev->max_reg != 0x00) {
@@ -127,23 +129,22 @@ um866x_lpt_handler(um866x_t *dev)
                 lpt_set_epp(dev->lpt, 0);
                 lpt_set_ecp(dev->lpt, 1);
                 lpt_set_ext(dev->lpt, 0);
+                ecp = 1;
                 break;
         }
     }
+    if (dev->max_reg >= 0xc3) {
+        /* The IRQ and the ECP DMA channel are selected independently of the address. */
+        irq = (dev->regs[3] & 0x20) ? 5 : 7;
+        lpt_port_dma(dev->lpt, ecp ? ((dev->regs[3] & 0x40) ? 1 : 3) : 0xff);
+    } else
+        irq = (dev->regs[1] & 0x08) ? LPT1_IRQ : LPT2_IRQ;
     if (enabled) {
-        switch ((dev->regs[1] >> 3) & 0x01) {
-            case 0x01:
-                lpt_port_setup(dev->lpt, LPT1_ADDR);
-                lpt_port_irq(dev->lpt, LPT1_IRQ);
-                break;
-            case 0x00:
-                lpt_port_setup(dev->lpt, LPT2_ADDR);
-                lpt_port_irq(dev->lpt, LPT2_IRQ);
-                break;
-
-            default:
-                break;
-        }
+        if ((dev->max_reg >= 0xc3) && (dev->regs[3] & 0x10))
+            lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
+        else
+            lpt_port_setup(dev->lpt, (dev->regs[1] & 0x08) ? LPT1_ADDR : LPT2_ADDR);
+        lpt_port_irq(dev->lpt, irq);
     }
 }
 
@@ -219,6 +220,16 @@ um866x_write(uint16_t port, uint8_t val, void *priv)
                         um866x_uart_handler(dev, 0);
                     if (valxor & 0x01)
                         um866x_fdc_handler(dev);
+                    break;
+                /*
+                   Register C3 (UM8663AF/BF):
+                   - Bit 6 = 0 = LPT 1 ECP DMA is 3, 1 = DMA 1;
+                   - Bit 5 = 0 = LPT 1 IRQ is 7, 1 = IRQ 5;
+                   - Bit 4 = 1 = LPT 1 is 3BCh.
+                 */
+                case 0x03:
+                    if (valxor & 0x70)
+                        um866x_lpt_handler(dev);
                     break;
             }
         }
