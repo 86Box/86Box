@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:08+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-20 09:10+0000\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -4395,16 +4395,16 @@ msgstr ""
 "wiele plików."
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "Nie udało się zapisać obrazu tymczasowego."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Nie ma wystarczającej ilości pamięci, aby utworzyć obraz."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Nie udało się odczytać folderu lub archiwum."
 
 msgid "Archives"
-msgstr ""
+msgstr "Pliki archiwum"
 
 msgid "New USB flash drive"
 msgstr ""
