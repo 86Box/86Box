@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 08:54+0000\n"
+"PO-Revision-Date: 2026-11-20 08:55+0000\n"
 "Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -3482,10 +3482,10 @@ msgstr ""
 "opcjach, w sekcji Maszyna > Wydajność."
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "Przyspiesz emulację podczas &uruchamiania"
 
 msgid "Fast forward"
-msgstr "Przewiń do przodu"
+msgstr "Przyspiesz emulację"
 
 msgid "&Non-maskable interrupt"
 msgstr "&Przerwanie niemaskowalne"
@@ -3708,7 +3708,7 @@ msgid "VFIO %s: Invalid device location."
 msgstr ""
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Nie znaleziono urządzenia."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
@@ -3727,6 +3727,8 @@ msgstr ""
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Nie udało się odczytać pliku ROM \"%s\"; korzystanie z wbudowanej "
+"pamięci ROM urządzenia."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
