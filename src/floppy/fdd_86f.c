@@ -2523,6 +2523,7 @@ d86f_turbo_poll(void *priv, const int side)
             fallthrough;
 
         case STATE_02_SPIN_TO_INDEX:
+            drv->ctrl->index_pulse(drv->ctrl_priv);
             dev->state++;
             return;
 
@@ -2576,18 +2577,18 @@ d86f_turbo_poll(void *priv, const int side)
                     drv->ctrl->nosector(drv->ctrl_priv);
                 dev->state = STATE_IDLE;
                 return;
-                                        } else if (d86f_sector_flags(drv, side,
-                                                                     dev->req_sector.id.c,
-                                                                     dev->req_sector.id.h,
-                                                                     dev->req_sector.id.r,
-                                                                     dev->req_sector.id.n) & SECTOR_NO_ID) {
-                                            dev->id_find.sync_marks = dev->id_find.bits_obtained  =
-                                                                      dev->id_find.bytes_obtained =
-                                                                      dev->error_condition        = 0;
-                                            drv->ctrl->noidam(drv->ctrl_priv);
-                                            dev->state = STATE_IDLE;
-                                            return;
-                                                                     }
+            } else if (d86f_sector_flags(drv, side,
+                                         dev->req_sector.id.c,
+                                         dev->req_sector.id.h,
+                                         dev->req_sector.id.r,
+                                         dev->req_sector.id.n) & SECTOR_NO_ID) {
+                dev->id_find.sync_marks = dev->id_find.bits_obtained  =
+                dev->id_find.bytes_obtained =
+                dev->error_condition        = 0;
+                drv->ctrl->noidam(drv->ctrl_priv);
+                dev->state = STATE_IDLE;
+                return;
+            }
             dev->last_sector.id.c = dev->req_sector.id.c;
             dev->last_sector.id.h = dev->req_sector.id.h;
             dev->last_sector.id.r = dev->req_sector.id.r;
@@ -2600,6 +2601,7 @@ d86f_turbo_poll(void *priv, const int side)
             fallthrough;
         }
         case STATE_0A_FIND_ID:
+            drv->ctrl->index_pulse(drv->ctrl_priv);
             dev->turbo_pos = 0;
             dev->state++;
             return;

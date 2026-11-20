@@ -2141,6 +2141,9 @@ fdc_read(uint16_t addr, void *priv)
 static void
 fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
 {
+    if (fdc->find_index)
+        fdc->find_index = 0;
+
     fdc_int(fdc, 1);
     if (!(fdc->flags & FDC_FLAG_FINTR))
         fdc->fintr = 0;
@@ -2593,6 +2596,9 @@ fdc_error(fdc_t *fdc, int st5, int st6)
         fdc_dma_drq(fdc, 0);
     timer_disable(&fdc->timer);
 
+    if (fdc->find_index)
+        fdc->find_index = 0;
+
     fdc_int(fdc, 1);
     if (!(fdc->flags & FDC_FLAG_FINTR))
         fdc->fintr = 0;
@@ -2663,6 +2669,9 @@ int
 fdc_data(fdc_t *fdc, uint8_t data, int last)
 {
     int result = 0;
+
+    if (fdc->find_index)
+        fdc->find_index = 0;
 
     if ((fdc->deleted & 2) && (fdc->processed_cmd == 0x16)) {
         /* A native FDC VERIFY command has no host data transfer. */
@@ -2839,6 +2848,9 @@ int
 fdc_getdata(fdc_t *fdc, int last)
 {
     int data = 0;
+
+    if (fdc->find_index)
+        fdc->find_index = 0;
 
     if ((fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) || !fdc->dma) {
         if ((fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) || !fdc->fifo || (fdc->tfifo < 1)) {
