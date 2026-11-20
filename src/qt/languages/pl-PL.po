@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 09:10+0000\n"
-"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -452,13 +452,13 @@ msgid "MB"
 msgstr "MB"
 
 msgid "GB"
-msgstr ""
+msgstr "GB"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Pamięć:"
@@ -904,7 +904,7 @@ msgid "(empty)"
 msgstr "(pusty)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(niedostępne)"
 
 msgid "All files"
 msgstr "Wszystkie pliki"
@@ -4390,9 +4390,7 @@ msgstr ""
 "rozmiar pliku wynosi co najmniej 4 GB."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
-msgstr ""
-"W folderze nadrzędnym względem katalogu głównego nośnika znajduje się zbyt "
-"wiele plików."
+msgstr "W głównym katalogu nośnika znajduje się zbyt wiele plików."
 
 msgid "The temporary image could not be written."
 msgstr "Nie udało się zapisać obrazu tymczasowego."
