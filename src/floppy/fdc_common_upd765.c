@@ -1235,8 +1235,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                    this is used to unhang the controller if it has stalled during
                    the index pulse watch when there is no disk in the drive.
                  */
-                if (fdc->find_index)
+                if (fdc->find_index) {
+                    fdc_log("Write to command register during index find, command %02X\n",
+                            fdc->command);
                     fdc_noidam(fdc);
+                }
                 /* The uPD765 does not accept a command until every result byte
                    has been read out, so writes arriving before that is neither
                    a command byte nor one of its parameters. */
@@ -2109,14 +2112,23 @@ fdc_read(uint16_t addr, void *priv)
                     } else
                         ret = 0xf9;
                 } else {
-                    /* The change line is gated by drive select, not by the
+                    /*
+                       The change line is gated by drive select, not by the
                        motor: a disk swapped in while the motor is off must
                        still read as changed, or the guest keeps its cached
-                       media state and never sees the swap. */
-                    if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
+                       media state and never sees the swap.
+
+                       Per the IBM 5160 XT: Motor must be on for drive to
+                       be selected.
+                    */
+                    if (fdc->dor & (0x10 << drive)) {
+                        if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
+                            ret = 0x00;
+                        else
+                            ret = (drv->changed || drv->empty) ? 0x80 : 0x00;
+                    } else
                         ret = 0x00;
-                    else
-                        ret = (drv->changed || drv->empty) ? 0x80 : 0x00;
+
                     if (fdc->flags & FDC_FLAG_DISKCHG_ACTLOW) /*PC2086/3086 seem to reverse this bit*/
                         ret ^= 0x80;
 
