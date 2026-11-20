@@ -4331,8 +4331,15 @@ command_channel:
                that stuck would empty the FIFO it is about to read. */
             dev->dfcntrl = val & ~(FIFORESET | FIFOFLUSH);
             /* Enabling a channel puts its acknowledge up; clearing it
-               takes it down. DIRECTIONACK only moves with both enabled
-               channels idle, as above. */
+               takes it down. Latch DIRECTION while the channels are idle,
+               before enabling them in the same write, or when stopping
+               both channels. */
+            if (!(dev->dfcntrl_ack & (SCSIEN | HDMAEN)) || !(val & (SCSIEN | HDMAEN))) {
+                if (val & DIRECTION)
+                    dev->dfcntrl_ack |= DIRECTION;
+                else
+                    dev->dfcntrl_ack &= ~DIRECTION;
+            }
             if (val & SCSIEN)
                 dev->dfcntrl_ack |= SCSIEN;
             else
@@ -4341,12 +4348,6 @@ command_channel:
                 dev->dfcntrl_ack |= HDMAEN;
             else
                 dev->dfcntrl_ack &= ~HDMAEN;
-            if (!(dev->dfcntrl_ack & (SCSIEN | HDMAEN))) {
-                if (val & DIRECTION)
-                    dev->dfcntrl_ack |= DIRECTION;
-                else
-                    dev->dfcntrl_ack &= ~DIRECTION;
-            }
             /* "SCSIEN or SDMAEN override this bit": with a transfer
                engine on, a REQ is the engine's to answer, not automatic
                PIO's, and a SPIORDY standing from before must not read as
