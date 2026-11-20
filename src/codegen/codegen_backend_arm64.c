@@ -1376,13 +1376,30 @@ link_addr(codeblock_t *block, int reg, const void *ptr)
     return 0;
 }
 
-/*The pool, after the routine's code and in its allocator block: one 8-byte
-  entry per address, and every load pointed at its entry*/
+/*The pool, after the routine's code: one 8-byte entry per address, and
+  every load pointed at its entry. Where the code leaves too little room
+  in its allocator block, in the next one (codegen_alloc() puts a B to it
+  after the code, which never runs, as the code ends with a branch): a
+  load reaches 1 MB either way, and host_arm64_short_branch_set_offset()
+  stops if one does not*/
 static void
-link_pool_emit(void)
+link_pool_emit(codeblock_t *block)
 {
     uint8_t *entry[LINK_MAX_POOL];
+    int      distinct = 0;
 
+    for (int c = 0; c < link_pool_nr; c++) {
+        int d;
+
+        for (d = 0; d < c; d++) {
+            if (link_pool_ptr[d] == link_pool_ptr[c])
+                break;
+        }
+        if (d == c)
+            distinct++;
+    }
+    if ((((block_pos + 7) & ~7) + (distinct * 8)) > BLOCK_MAX)
+        codegen_alloc(block, BLOCK_MAX - 4);
     block_pos = (block_pos + 7) & ~7;
     for (int c = 0; c < link_pool_nr; c++) {
         const uint64_t addr = (uintptr_t) link_pool_ptr[c];
@@ -1396,8 +1413,6 @@ link_pool_emit(void)
             entry[c] = entry[d];
             continue;
         }
-        if (block_pos + 8 > BLOCK_MAX)
-            fatal("build_link_routine - address pool does not fit in the allocator block\n");
         entry[c] = &block_write_data[block_pos];
         memcpy(entry[c], &addr, 8);
         block_pos += 8;
@@ -1989,11 +2004,16 @@ build_link_routine(codeblock_t *block)
     host_arm64_AND_REG(block, REG_W13, REG_W10, REG_W16, 0);
     host_arm64_B(block, xlat_2_done);
 
-    if (link_pool_nr)
-        link_pool_emit();
-
+    if (block_write_data != start_data)
+        fatal("build_link_routine - routine does not fit in one allocator block\n");
     if (nr_miss > LINK_MAX_MISS)
         fatal("build_link_routine - too many miss branches\n");
+    for (int c = 0; c < nr_miss; c++)
+        host_arm64_short_branch_set_offset(miss[c], miss_dest);
+
+    if (link_pool_nr)
+        link_pool_emit(block);
+
     /*The link routine's entry for an exit from a block whose CS is the one
       it is keyed on, as every slot of the block was filled with: only the
       pc is compared, and on a mismatch the routine's start takes it. W2 =
@@ -2015,11 +2035,6 @@ build_link_routine(codeblock_t *block)
         host_arm64_short_branch_set_offset(other, &block_write_data[block_pos]);
         host_arm64_B(block, codegen_link_rout);
     }
-
-    if (block_write_data != start_data)
-        fatal("build_link_routine - routine does not fit in one allocator block\n");
-    for (int c = 0; c < nr_miss; c++)
-        host_arm64_short_branch_set_offset(miss[c], miss_dest);
 }
 
 _Static_assert((sizeof(codegen_link_slot_t) == 64) && (sizeof(codegen_link_set_t) == 256) && !(offsetof(codegen_link_set_t, e) & 63),
@@ -2396,15 +2411,15 @@ build_link_set_routine(codeblock_t *block)
         host_arm64_B(block, link_xlat_done);
     }
 
-    if (link_pool_nr)
-        link_pool_emit();
-
     if (block_write_data != start_data)
         fatal("build_link_set_routine - routine does not fit in one allocator block\n");
     host_arm64_short_branch_set_offset(no_set, table_dest);
     host_arm64_short_branch_set_offset(no_entry, table_dest);
     host_arm64_short_branch_set_offset(table_miss, miss_dest);
     host_arm64_branch_set_offset(link_set_branch, rout);
+
+    if (link_pool_nr)
+        link_pool_emit(block);
 }
 #    endif
 

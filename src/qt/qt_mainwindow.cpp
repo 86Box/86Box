@@ -525,7 +525,10 @@ MainWindow::MainWindow(QWidget *parent)
     resize_timer->setSingleShot(true);
     resize_timer->setInterval(resize_settle_ms);
     connect(resize_timer, &QTimer::timeout, this, [this] {
-        applyResizeContents(resize_pending_w, resize_pending_h);
+        /* Full screen came in the meantime; leaving it resizes the window
+           to the guest's size of then */
+        if (!video_fullscreen)
+            applyResizeContents(resize_pending_w, resize_pending_h);
     });
     connect(this, &MainWindow::resizeContentsGuest, this, [this](int w, int h) {
         resize_pending_w = w;
@@ -536,6 +539,9 @@ MainWindow::MainWindow(QWidget *parent)
     /* The UI's own resizes (status bar, tool bar, full screen, scaling) take
        effect at once, as their callers expect */
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
+        /* made from the guest's current size, which a waiting guest resize
+           would only set again later */
+        resize_timer->stop();
         applyResizeContents(w, h);
     });
 
@@ -1736,6 +1742,7 @@ MainWindow::on_actionFullscreen_triggered()
         if ((mouse_type != MOUSE_TYPE_NONE) || machine_has_mouse())
             emit setMouseCapture(true);
         video_fullscreen = 1;
+        resize_timer->stop();
         pclog("Full screen: %ix%i\n", QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();

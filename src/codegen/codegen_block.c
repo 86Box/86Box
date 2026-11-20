@@ -733,13 +733,15 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
 
     slot->entry = NULL;
     link_record_fill(slot, block, phys, virt, xlat, xlat_val);
-#    if defined(__aarch64__) || defined(_M_ARM64)
-    /*One of a block's own slots, the block calling no C: CS and the CPL are
-      as at the loop top when it exits (codegen_link_slot_t::two_page)*/
+    /*One of a block's own slots: link_slots_clear() empties them, and gives
+      back the sets of their sites, when the block goes*/
     if ((slot >= &codegen_link_slots[0][0]) && (slot < (&codegen_link_slots[0][0] + (size_t) BLOCK_SIZE * CODEGEN_LINK_SLOTS))) {
         codeblock_t *src = &codeblock[(slot - &codegen_link_slots[0][0]) / CODEGEN_LINK_SLOTS];
 
         src->slots_used = 1;
+#    if defined(__aarch64__) || defined(_M_ARM64)
+        /*the block calling no C: CS and the CPL are as at the loop top when
+          it exits (codegen_link_slot_t::two_page)*/
         if (!(src->flags & CODEBLOCK_CALLS_C))
             slot->two_page |= 2;
         if (!(src->flags & (CODEBLOCK_CALLS_C | CODEBLOCK_LINK_STATE))) {
@@ -749,8 +751,8 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
             if (!(block->flags & CODEBLOCK_STATIC_TOP))
                 slot->two_page |= 32;
         }
-    }
 #    endif
+    }
 #    ifdef CODEGEN_BACKEND_HAS_LINK_TABLE
     /*Filled the same way rather than copied from the slot, whose fields
       were just stored one by one*/
@@ -2326,6 +2328,31 @@ codegen_block_version_check_ins(uint32_t addr)
 
 uint32_t codegen_link_epoch = 1;
 
+/*The epoch came round past 0: a record that passed at an epoch now to come
+  again would pass then without its checks, so every record starts over
+  at 0, which none passes*/
+void
+codegen_link_epoch_wrap(void)
+{
+    codegen_link_epoch = 1;
+#if defined(CODEGEN_BACKEND_HAS_BLOCK_LINK) && (defined(__aarch64__) || defined(_M_ARM64))
+    for (int b = 0; b < BLOCK_SIZE; b++) {
+        for (int n = 0; n < CODEGEN_LINK_SLOTS; n++)
+            codegen_link_slots[b][n].epoch = 0;
+    }
+#    ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+    for (int c = 0; c < CODEGEN_LINK_SETS; c++) {
+        for (int n = 0; n < 3; n++)
+            codegen_link_sets[c].e[n].epoch = 0;
+    }
+#    endif
+#    ifdef CODEGEN_BACKEND_HAS_LINK_TABLE
+    for (int c = 0; c < CODEGEN_LINK_TABLE_SIZE; c++)
+        codegen_link_table[c].epoch = 0;
+#    endif
+#endif
+}
+
 #if defined(CODEGEN_BACKEND_HAS_BLOCK_LINK) && (defined(__aarch64__) || defined(_M_ARM64))
 /*The state the arm64 link routine's full way last compared a record with:
   cpu_cur_status | npxc & 0x0f00 << 16, and cr0 & 0xc0000000 | CPL. With no
@@ -2416,7 +2443,13 @@ codegen_mark_code_present_multibyte(codeblock_t *block, uint32_t start_pc, int l
             start_pc_shifted &= PAGE_MASK_MASK;
             end_pc_shifted &= PAGE_MASK_MASK;
 
-            if ((start_pc ^ block->pc) & ~0xfff) /*Starts in second page*/
+            if (((start_pc ^ block->pc) & ~0xfff) && !((end_pc ^ block->pc) & ~0xfff)) /*Crosses from a second page just below the first*/
+            {
+                for (; start_pc_shifted <= 63; start_pc_shifted++)
+                    block->page_mask2 |= ((uint64_t) 1 << start_pc_shifted);
+                for (start_pc_shifted = 0; start_pc_shifted <= end_pc_shifted; start_pc_shifted++)
+                    block->page_mask |= ((uint64_t) 1 << start_pc_shifted);
+            } else if ((start_pc ^ block->pc) & ~0xfff) /*Starts in second page*/
             {
                 for (; start_pc_shifted <= end_pc_shifted; start_pc_shifted++)
                     block->page_mask2 |= ((uint64_t) 1 << start_pc_shifted);

@@ -3154,7 +3154,8 @@ ide_callback(void *priv)
         case WIN_FLUSH_CACHE:
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
-            else if (hdd_image_flush(ide->hdd_num) < 0)
+            /* A CF card writes through (ide_cf_write()) and has no image slot */
+            else if (!ide->cf && (hdd_image_flush(ide->hdd_num) < 0))
                 /* A write made before it failed on the host */
                 err = UNC_ERR;
             else {

@@ -97,6 +97,10 @@ int        writelookup[256];
    and page_lookup[] for every slot: the bus page, and where that page is
    stored for a direct entry (0 for a page_lookup one). */
 static uint32_t   writelookup_phys[256];
+/* Per page, the write slot last filled for it, good while that slot still
+   names the page: a slot that went on naming a page after a newer one was
+   filled for it holds an old physical page */
+static uint8_t    writelookup_slot[1 << 20];
 static uintptr_t  writelookup_base[256];
 /* Slots filled since the last flush; the rings restart at 0 after a flush. */
 static int readl_used[2];
@@ -289,6 +293,9 @@ resetreadlookup(void)
 
     /* Initialize the page lookup table. */
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
+    /* With no write slot left to reach them, flushes would never clear
+       these: the arm64 tracked store would skip a store through one */
+    memset(page_lookup_mem, 0x00, (1 << 20) * sizeof(uintptr_t));
 
     /* Initialize the tables for lower (<= 1024K) RAM. */
     for (uint16_t c = 0; c < 512; c++) {
@@ -901,6 +908,26 @@ flushmmucache_invlpg(uint32_t addr)
         }
         large_region[addr >> 22] = 0;
     } else {
+        /* An entry held for the page (mem_held_*) is in no table, and ends
+           only with its slot. The page's write slot goes as well: matched
+           by its old physical page (writelookup_phys), it would have
+           mem_flush_write_page() aim the page's writes at that page */
+        const int wslot = writelookup_slot[page];
+
+        if (mem_held_num) {
+            int held = readlookup_held_at(page);
+
+            if (held >= 0)
+                readlookup[held] = 0xffffffff;
+            held = readlookup_held_at(page | 1048576);
+            if (held >= 0)
+                readlookup[held] = 0xffffffff;
+            held = writelookup_held_at(page);
+            if (held >= 0)
+                writelookup[held] = 0xffffffff;
+        }
+        if (writelookup[wslot] == (int) page)
+            writelookup[wslot] = 0xffffffff;
         readlookup2[page]           = LOOKUP_INV;
         readlookup2[page | 1048576] = LOOKUP_INV;
         page_lookup[page]           = NULL;
@@ -1008,7 +1035,7 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
                tracked path instead, the form an entry made for a page
                holding code has. */
             if ((w2 == target) || ((mem != NULL) && (w2 == ((uintptr_t) mem - virt_page))) || (pl == page_target) ||
-                (writelookup_phys[c] == (addr >> 12))) {
+                ((writelookup_phys[c] == (addr >> 12)) && (writelookup_slot[writelookup[c]] == c))) {
                 if ((writelookup2[writelookup[c]] != (uintptr_t) LOOKUP_INV) || (page_lookup[writelookup[c]] != NULL)) {
                     writelookup2[writelookup[c]] = LOOKUP_INV;
                     page_lookup[writelookup[c]]  = (page_t *) page_target;
@@ -1034,7 +1061,8 @@ void
 mem_unflush_write_page(uint32_t addr)
 {
     for (uint16_t c = 0; c < 256; c++) {
-        if ((writelookup[c] != (int) 0xffffffff) && (writelookup_phys[c] == (addr >> 12)) && page_lookup[writelookup[c]] &&
+        if ((writelookup[c] != (int) 0xffffffff) && (writelookup_phys[c] == (addr >> 12)) &&
+            (writelookup_slot[writelookup[c]] == c) && page_lookup[writelookup[c]] &&
             (!mem_held_num || (writelookup_held_at(writelookup[c]) < 0))) {
             writelookup2[writelookup[c]]    = LOOKUP_INV;
             page_lookup[writelookup[c]]     = NULL;
@@ -1623,7 +1651,8 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
         if ((ram_addr >> 12) < pages_sz)
             pages[ram_addr >> 12].write_direct = 1;
     }
-    writelookup_phys[writelnext] = phys >> 12;
+    writelookup_phys[writelnext]  = phys >> 12;
+    writelookup_slot[virt >> 12] = writelnext;
 
     /* Held when the page's own walk says ring 3 may not write it. */
     if (cpl_override && (CPL == 3) && mmu_walk_denies(virt, 6)) {
@@ -4995,6 +5024,7 @@ mem_reset(void)
     pages    = (page_t *) calloc(m, sizeof(page_t));
 
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
+    memset(page_lookup_mem, 0x00, (1 << 20) * sizeof(uintptr_t));
 
     byte_dirty_mask = calloc(1, ((size_t) mem_size * 1024) / 8);
 
