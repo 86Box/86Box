@@ -1260,11 +1260,12 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
 static void
 nvr_update_io_mapping(pipc_t *dev)
 {
-    if (dev->nvr_enabled)
-        nvr_at_handler(0, 0x0074, dev->nvr);
+    const int enabled = !!((dev->pci_isa_regs[0x5b] & 0x02) || (dev->pci_isa_regs[0x48] & 0x08));
 
-    if ((dev->pci_isa_regs[0x5b] & 0x02) || (dev->pci_isa_regs[0x48] & 0x08))
-        nvr_at_handler(1, 0x0074, dev->nvr);
+    if (enabled != dev->nvr_enabled) {
+        nvr_at_handler(enabled, 0x0074, dev->nvr);
+        dev->nvr_enabled = enabled;
+    }
 }
 
 static void
