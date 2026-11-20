@@ -1550,6 +1550,21 @@ emu8k_outb(uint16_t addr, uint8_t val, void *priv)
         emu8k_outw(addr, val, priv);
 }
 
+uint32_t
+emu8k_inl(uint16_t addr, void *priv)
+{
+    uint32_t lo = emu8k_inw(addr, priv);
+    uint32_t hi = emu8k_inw(addr + 2, priv);
+    return lo | (hi << 16);
+}
+
+void
+emu8k_outl(uint16_t addr, uint32_t val, void *priv)
+{
+    emu8k_outw(addr, (uint16_t) (val & 0xffffu), priv);
+    emu8k_outw(addr + 2, (uint16_t) (val >> 16), priv);
+}
+
 /* TODO: This is not a correct emulation, just a workalike implementation. */
 void
 emu8k_work_chorus(int32_t *inbuf, int32_t *outbuf, emu8k_chorus_eng_t *engine, int count)
@@ -2142,16 +2157,16 @@ void
 emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr)
 {
     if (emu8k->addr) {
-        io_removehandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_removehandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_removehandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_removehandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_removehandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_removehandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
         emu8k->addr = 0;
     }
     if (emu_addr) {
         emu8k->addr = emu_addr;
-        io_sethandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_sethandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_sethandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_sethandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
     }
 }
 
@@ -2165,13 +2180,15 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     double         out;
 
     fp = rom_fopen(EMU8K_ROM_PATH, "rb");
-    if (!fp)
+    if (!fp && emu_addr != 0)
         fatal("AWE32.RAW not found\n");
 
     emu8k->rom = calloc(1024, 1024);
-    if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
-        fatal("emu8k_init(): Error reading data\n");
-    fclose(fp);
+    if (fp) {
+        if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
+            fatal("emu8k_init(): Error reading data\n");
+        fclose(fp);
+    }
     /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
       then correct it*/
     if (emu8k->rom[3] == 0x314d && emu8k->rom[4] == 0x474d) {

@@ -273,6 +273,7 @@ extern void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
 
 extern void sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent);
 extern void sb_dsp_close(sb_dsp_t *dsp);
+extern void sb_doreset(sb_dsp_t *dsp);
 
 extern void sb_dsp_setirq(sb_dsp_t *dsp, int irq);
 extern void sb_dsp_setdma8(sb_dsp_t *dsp, int dma);
