@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 09:10+0000\n"
+"PO-Revision-Date: 2026-11-20 09:11+0000\n"
 "Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -1400,7 +1400,9 @@ msgstr[2] "%n aktywnych maszyn"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+%n więcej)"
+msgstr[1] " (+%n więcej)"
+msgstr[2] " (+%n więcej)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
