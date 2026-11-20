@@ -664,6 +664,7 @@ pipc_reset_hard(void *priv)
 
         dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_586) ? 0x00 : 0x50;
         acpi_set_irq_line(dev->acpi, 0x00);
+        acpi_set_via_pri_irq(dev->acpi, 0x0000);
 
         dev->power_regs[0x48] = 0x01;
 
@@ -1819,6 +1820,15 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->power_regs[addr] = (dev->power_regs[addr] & 0xf0) | (val & 0x0f);
                 acpi_set_irq_line(dev->acpi, dev->power_regs[addr] & 0x0f);
                 pipc_apic_irq_update(dev);
+                break;
+
+            case 0x44:
+            case 0x45:
+                /* Primary Interrupt Channel: the IRQs that set PIRSM_STS
+                   (acpi_irq_resume()); IRQ 2 is reserved (VT82C596B p. 60 /
+                   PDF 66). */
+                dev->power_regs[addr] = (addr == 0x44) ? (val & 0xfb) : val;
+                acpi_set_via_pri_irq(dev->acpi, dev->power_regs[0x44] | (dev->power_regs[0x45] << 8));
                 break;
 
             case 0x50:

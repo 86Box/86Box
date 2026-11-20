@@ -1247,6 +1247,18 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
            irq_callback(num, set, irq_callback_priv);
 
        if (set) {
+            /* An IRQ can resume the machine from a sleeping state
+               (acpi_irq_resume()), on some chips only one the 8259s let
+               through; a slave IRQ needs the master's cascade input
+               unmasked as well. */
+            if (UNLIKELY(acpi_sleeping)) {
+                uint16_t unmasked = num & ~pic.imr & 0x00ff;
+
+                if (!(pic.imr & (1 << pic2.master_irq)))
+                    unmasked |= num & ~(pic2.imr << 8) & 0xff00;
+                acpi_irq_resume(num, unmasked);
+            }
+
             if (smi_irq_mask & num) {
                 smi_raise();
                 smi_irq_status |= num;

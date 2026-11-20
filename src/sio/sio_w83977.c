@@ -25,6 +25,7 @@
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/plat_unused.h>
 #include <86box/sio.h>
 
@@ -63,6 +64,13 @@ typedef struct w83977_t {
     void         *kbc;
     serial_t     *uart[2];
     lpt_t        *lpt;
+    uint32_t      panswout; /* W83977_PANSWOUT_*: what the board wires PANSWOUT# to. */
+    uint8_t       kbwk_key[15];
+    uint8_t       kbwk_shift[15];
+    uint8_t       mswk_byte;
+    uint64_t      mswk_tsc;
+    uint8_t       mswk_button;
+    uint8_t       mswk_clicks;
 } w83977_t;
 
 static int next_id = 0;
@@ -559,6 +567,143 @@ w83977_state_change(w83977_t *dev, const uint8_t locked)
         fdc_3f1_enable(dev->fdc, !locked);
 }
 
+/* While CR E4 bit 2 arms the S1/S2 wake-up, the wake-up logic takes over
+   the clock and data lines of each device whose wake-up is enabled in CR E0,
+   as it does in soft-off with the keyboard controller unpowered: a byte the
+   keyboard controller holds the device off from sending (output buffer full
+   or interface disabled) reaches the wake-up logic instead. Otherwise a
+   sleeping system that has not read the first byte of a key or a mouse
+   packet would leave the rest of it, and the wake-up, stuck behind the
+   keyboard controller's inhibit, and the BIOS key and double click settings
+   could never wake it. Nothing documents this, but the ASUS P3V4X arms the
+   bit in _PTS with only those settings available. */
+static void
+w83977_wake_takeover(w83977_t *dev)
+{
+    const uint8_t *ld       = dev->ld_regs[0x0a];
+    uint8_t        channels = 0x00;
+
+    if ((dev->kbc == NULL) || (dev->type != W83977EF))
+        return;
+
+    if (ld[0xe4] & 0x04) {
+        if (ld[0xe0] & 0x40)
+            channels |= 0x01;
+        if (ld[0xe0] & 0x20)
+            channels |= 0x02;
+    }
+
+    kbc_at_set_wire_takeover(dev->kbc, channels);
+}
+
+/* The keyboard and mouse wake-up logic pulses PANSWOUT# (W83977EF-AW 8.6,
+   p. 74). How a board wires that pin is up to the board.
+
+   The pulse is for waking the system with VCC off, from soft-off or suspend
+   to RAM, where the logic runs on standby power. With VCC up, it only comes
+   when CR E4 bit 2 lets the CR E0 events wake the system from S1/S2, and
+   the event clears that bit. The W83977EF-AW datasheet marks the bit
+   reserved, but the later W83627HF documents it (CRE4, p. 164), and the
+   ASUS CUBX sets it in _PTS for S1 and clears it in _WAK. The CUBX BIOS
+   turns S1 into suspend to RAM if Setup asks for it, and does not set the
+   bit then. */
+static void
+w83977_panswout(w83977_t *dev, uint8_t sts)
+{
+    if (!(dev->ld_regs[0x0a][0xe4] & 0x04) && !(acpi_sleeping & SUS_NVR))
+        return;
+
+    dev->ld_regs[0x0a][0xe4] &= ~0x04;
+    dev->ld_regs[0x0a][0xe3] |= sts;
+    w83977_wake_takeover(dev);
+
+    /* The pulse lasts 0.5 to 1 second (tWKUPW, p. 127), a power button
+       press well short of the four second override. */
+    if (dev->panswout & W83977_PANSWOUT_LID)
+        acpi_gpe_event(ACPI_GPE_LID);
+    else if (dev->panswout & W83977_PANSWOUT_PWRBTN)
+        acpi_pwrbut_press();
+}
+
+#define W83977_MSWK_GAP_US 2000ULL
+
+/* The wake-up logic watches the keyboard and mouse lines (W83977EF-AW 8.6,
+   p. 74, and LD A CR E0-E3, p. 109-110):
+   - The keyboard wakes the system on any byte with KBXKEY (CR E0 bit 0) set,
+     otherwise when the bytes it has sent match the predetermined ones in the
+     Keyboard Wake-Up Data registers; a zero there is not compared. Index 0
+     is the newest byte: for its Space Bar setting the ASUS CUBX BIOS writes
+     29h to index 0 and F0h to index 1, the key's set 2 break code.
+   - The mouse wakes the system on any byte with MSXKEY (CR E0 bit 1) set,
+     otherwise on two clicks of the button that MSRKEY (CR E0 bit 4)
+     selects, without the mouse moving in between.
+
+   The datasheet does not say how the mouse logic finds the packets in what
+   the mouse sends, which includes its replies to commands (FAh, AAh 00h,
+   the ID) as well. The bytes of a packet follow each other at once, about
+   1 ms apart at 10 to 16.7 kHz, while packets and replies come at least a
+   sample interval (5 ms at the fastest rate) apart, so a byte after a gap
+   starts a new packet. */
+static void
+w83977_wire(void *priv, int channel, uint8_t val)
+{
+    w83977_t      *dev = (w83977_t *) priv;
+    const uint8_t *ld  = dev->ld_regs[0x0a];
+    uint8_t        button;
+    int            keys = 0;
+
+    if (channel == 1) {
+        memmove(&dev->kbwk_shift[1], &dev->kbwk_shift[0], sizeof(dev->kbwk_shift) - 1);
+        dev->kbwk_shift[0] = val;
+
+        if (!(ld[0xe0] & 0x40))
+            return;
+
+        if (!(ld[0xe0] & 0x01)) {
+            for (uint8_t i = 0; i < sizeof(dev->kbwk_key); i++) {
+                if (dev->kbwk_key[i] == 0x00)
+                    continue;
+                if (dev->kbwk_key[i] != dev->kbwk_shift[i])
+                    return;
+                keys++;
+            }
+            if (keys == 0)
+                return;
+        }
+
+        w83977_panswout(dev, 0x01);
+    } else {
+        if ((tsc - dev->mswk_tsc) > ((W83977_MSWK_GAP_US * TIMER_USEC) >> 32))
+            dev->mswk_byte = 0;
+        dev->mswk_tsc = tsc;
+
+        /* Follow the standard three-byte packets: the first byte has bit 3
+           set. */
+        if ((dev->mswk_byte == 0) && !(val & 0x08))
+            return;
+
+        if (dev->mswk_byte == 0) {
+            button = val & ((ld[0xe0] & 0x10) ? 0x02 : 0x01);
+            if (button && !dev->mswk_button)
+                dev->mswk_clicks++;
+            dev->mswk_button = button;
+        } else if (val != 0x00)
+            dev->mswk_clicks = 0;
+
+        dev->mswk_byte = (dev->mswk_byte + 1) % 3;
+
+        if (!(ld[0xe0] & 0x20))
+            return;
+
+        if (ld[0xe0] & 0x02) {
+            w83977_panswout(dev, 0x02);
+        } else if ((dev->mswk_byte == 0) && (dev->mswk_clicks >= 2)) {
+            dev->mswk_clicks = 0;
+            w83977_panswout(dev, 0x02);
+        }
+    }
+}
+
 static void
 w83977_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -986,19 +1131,27 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             break;
                         case 0xe0:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf7;
+                            w83977_wake_takeover(dev);
                             break;
-                        case 0xe1: case 0xe2:
+                        case 0xe1:
                         case 0xfe: case 0xff:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            break;
+                        case 0xe2:
+                            /* Keyboard Wake-Up Data, at the index in CR E1. */
+                            if (dev->ld_regs[0x0a][0xe1] < sizeof(dev->kbwk_key))
+                                dev->kbwk_key[dev->ld_regs[0x0a][0xe1]] = val;
                             break;
                         case 0xe4:
                             /* Bit 2 is documented as reserved, but the ASUS CUBX SMM
                                handler writes 04h and spins until it reads back as 04h
-                               before it will enter S1, so it must be read/write. */
+                               before it will enter S1, so it must be read/write. It is
+                               the S1/S2 wake-up enable (see w83977_panswout()). */
                             if (dev->type == W83977EF)
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf4;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            w83977_wake_takeover(dev);
                             break;
                         case 0xe5:
                             if (dev->type == W83977EF)
@@ -1081,6 +1234,11 @@ w83977_read(const uint16_t port, void *priv)
                     ret = (dev->type >> W83977_TYPE_SHIFT) & 0xff;
                 else
                     ret = dev->regs[dev->cur_reg];
+            } else if ((dev->regs[7] == 0x0a) && (dev->cur_reg == 0xe2)) {
+                if (dev->ld_regs[0x0a][0xe1] < sizeof(dev->kbwk_key))
+                    ret = dev->kbwk_key[dev->ld_regs[0x0a][0xe1]];
+                else
+                    ret = 0x00;
             } else if ((dev->regs[7] == 0x0a) && (dev->cur_reg == 0xe3)) {
                 ret = dev->ld_regs[dev->regs[7]][dev->cur_reg];
                 if (dev->type == W83977EF)
@@ -1227,6 +1385,13 @@ w83977_reset(void *priv)
     /* Logical device A: ACPI - not on W83977F */
     if (dev->type == W83977EF)
         dev->ld_regs[0x0a][0xe3] = 0x10;
+    memset(dev->kbwk_key, 0x00, sizeof(dev->kbwk_key));
+    memset(dev->kbwk_shift, 0x00, sizeof(dev->kbwk_shift));
+    dev->mswk_byte   = 0;
+    dev->mswk_button = 0;
+    dev->mswk_clicks = 0;
+    dev->mswk_tsc    = 0;
+    w83977_wake_takeover(dev);
 
     w83977_lpt_handler(dev);
     w83977_serial_handler(dev, 0);
@@ -1327,6 +1492,11 @@ w83977_init(const device_t *info)
         case W83977_PHOENIX:
             dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00041900));
             break;
+    }
+
+    if ((dev->kbc != NULL) && (dev->type == W83977EF)) {
+        dev->panswout = info->local & (W83977_PANSWOUT_LID | W83977_PANSWOUT_PWRBTN);
+        kbc_at_set_wire_hook(dev->kbc, w83977_wire, dev);
     }
 
     for (int i = 0; i < 3; i++) {

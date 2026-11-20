@@ -235,6 +235,8 @@ extern void w83877_in530_master_reset(void);
 #define W83977_UART_FORCE_SEC 0x01000000
 #define W83977_LPT_FORCE_SEC  0x02000000
 #define W83977_SECONDARY      0x04000000    /* Second Super I/O after another vendor's chip: no FDC, NVR or KBC. */
+#define W83977_PANSWOUT_LID   0x08000000    /* PANSWOUT# (keyboard/mouse wake-up) drives the south bridge's LID input. */
+#define W83977_PANSWOUT_PWRBTN 0x10000000   /* PANSWOUT# drives the south bridge's power button input (PWRBTN#). */
 
 extern const device_t w83977_device;
 

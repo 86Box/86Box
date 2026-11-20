@@ -39,6 +39,8 @@
 #include <86box/pci.h>
 #include <86box/sio.h>
 #include <86box/keyboard.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/kbc_test.h>
 
 #define STAT_PARITY        0x80
@@ -159,6 +161,10 @@ typedef struct atkbc_t {
 
     void (*p2_write_hook)(void *priv, uint8_t old_p2, uint8_t new_p2);
     void *p2_priv;
+
+    void (*wire_hook)(void *priv, int channel, uint8_t val);
+    void *wire_priv;
+    uint8_t wire_takeover;
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -499,6 +505,15 @@ kbc_param_take(atkbc_t *dev)
     kbc_at_process_cmd(dev);
 }
 
+/* A byte from a device has crossed the clock and data lines: let whatever
+   watches the lines see it. */
+static void
+kbc_at_wire(atkbc_t *dev, int channel, uint8_t val)
+{
+    if (dev->wire_hook != NULL)
+        dev->wire_hook(dev->wire_priv, channel, val);
+}
+
 static void
 kbc_scan_kbd_at(atkbc_t *dev)
 {
@@ -507,6 +522,7 @@ kbc_scan_kbd_at(atkbc_t *dev)
         /* XT mode. */
         if (dev->mem[0x20] & 0x20) {
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
+                kbc_at_wire(dev, 1, dev->ports[0]->out_new);
                 kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
                 dev->ports[0]->out_new = -1;
                 dev->state             = STATE_MAIN_IBF;
@@ -520,6 +536,7 @@ kbc_scan_kbd_at(atkbc_t *dev)
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
                 /* In our case, we never have noise on the line, so we can simplify this. */
                 /* Read data from the keyboard. */
+                kbc_at_wire(dev, 1, dev->ports[0]->out_new);
                 if (dev->mem[0x20] & 0x40) {
                     if ((dev->mem[0x20] & 0x08) || (dev->p1 & 0x80))
                         kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
@@ -623,6 +640,7 @@ kbc_scan_kbd_ps2(atkbc_t *dev)
 {
     if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 1\n", dev->ports[0]->out_new & 0xff);
+        kbc_at_wire(dev, 1, dev->ports[0]->out_new);
         kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
         dev->ports[0]->out_new = -1;
         dev->state             = STATE_MAIN_IBF;
@@ -641,6 +659,7 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 
     if ((dev->ports[1] != NULL) && (dev->ports[1]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 2\n", dev->ports[1]->out_new & 0xff);
+        kbc_at_wire(dev, 2, dev->ports[1]->out_new);
         kbc_send_to_ob(dev, dev->ports[1]->out_new, 2, 0x00);
         dev->ports[1]->out_new = -1;
         dev->state             = STATE_MAIN_IBF;
@@ -648,6 +667,42 @@ kbc_scan_aux_ps2(atkbc_t *dev)
     }
 
     return 0;
+}
+
+/* While whatever watches the lines has taken a channel over, the controller
+   no longer inhibits that device: a byte the controller is not ready for
+   (output buffer full or interface disabled) reaches the watcher and is lost
+   to the controller.
+
+   In suspend to RAM the controller, which runs on the main power, has no
+   power at all, while the devices may run on standby power: whatever they
+   send reaches the watcher alone. */
+static void
+kbc_at_wire_takeover(atkbc_t *dev)
+{
+    const int unpowered = !!(acpi_sleeping & SUS_NVR);
+
+    switch (dev->state) {
+        default:
+            /* The controller is talking to a device or outputting bytes of its own. */
+            return;
+        case STATE_MAIN_IBF:
+        case STATE_MAIN_KBD:
+        case STATE_MAIN_AUX:
+        case STATE_MAIN_BOTH:
+            break;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        if ((!unpowered && !(dev->wire_takeover & (1 << i))) || (dev->ports[i] == NULL) || (dev->ports[i]->out_new == -1))
+            continue;
+        if (!unpowered && !(dev->status & STAT_OFULL) && !(dev->mem[0x20] & (0x10 << i)))
+            continue;
+
+        kbc_at_log("ATkbc: %02X from channel %i taken over\n", dev->ports[i]->out_new & 0xff, i + 1);
+        kbc_at_wire(dev, i + 1, dev->ports[i]->out_new);
+        dev->ports[i]->out_new = -1;
+    }
 }
 
 static void
@@ -659,6 +714,9 @@ kbc_at_poll_ps2(atkbc_t *dev)
         dev->aux_delay = AUX_ENABLE_DELAY;
     else if (dev->aux_delay > 0)
         dev->aux_delay--;
+
+    if (UNLIKELY(dev->wire_takeover || (acpi_sleeping & SUS_NVR)))
+        kbc_at_wire_takeover(dev);
 
     switch (dev->state) {
         case STATE_RESET:
@@ -3028,6 +3086,30 @@ kbc_at_set_p2_write_hook(void *priv,
 
     dev->p2_write_hook = p2_write_hook;
     dev->p2_priv       = p2_priv;
+}
+
+/* Watch the bytes the keyboard (channel 1) and the auxiliary device
+   (channel 2) send over their lines, as a Super I/O chip's wake-up logic
+   does. */
+void
+kbc_at_set_wire_hook(void *priv, void (*wire_hook)(void *priv, int channel, uint8_t val), void *wire_priv)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    dev->wire_hook = wire_hook;
+    dev->wire_priv = wire_priv;
+}
+
+/* Let whatever watches the lines take the keyboard (bit 0) and auxiliary
+   device (bit 1) channels over, clocking in the bytes the controller holds
+   the device off from sending, as a Super I/O chip's armed wake-up logic
+   does. */
+void
+kbc_at_set_wire_takeover(void *priv, uint8_t channels)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    dev->wire_takeover = channels;
 }
 
 static void *

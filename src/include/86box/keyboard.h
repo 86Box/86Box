@@ -280,6 +280,10 @@ extern void         kbc_at_set_p2_write_hook(void *priv,
                                                                    uint8_t old_p2,
                                                                    uint8_t new_p2),
                                              void *p2_priv);
+extern void         kbc_at_set_wire_hook(void *priv,
+                                         void (*wire_hook)(void *priv, int channel, uint8_t val),
+                                         void *wire_priv);
+extern void         kbc_at_set_wire_takeover(void *priv, uint8_t channels);
 
 extern void         kbc_at_dev_queue_reset(atkbc_dev_t *dev, uint8_t reset_main);
 extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);

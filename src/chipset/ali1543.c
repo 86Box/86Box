@@ -1805,6 +1805,7 @@ ali1543_init(const device_t *info)
     if (info->local & 0x8000)
         dev->offset = -dev->offset;
     ali1543_log("Offset = %i\n", dev->offset);
+    acpi_set_ali_1543c(dev->acpi, dev->type == 1);
 
     pci_enable_mirq(0);
     pci_enable_mirq(1);

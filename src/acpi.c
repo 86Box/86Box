@@ -1384,7 +1384,7 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                     dev->sleep_typ    = (val >> 2) & 7;
                     dev->sleep_flags  = sus_typ;
                     dev->wake_pending = 0;
-                    acpi_sleeping     = 1;
+                    acpi_sleeping     = sus_typ;
                     acpi_log("ACPI: sleeping (SLP_TYP %i)\n", dev->sleep_typ);
                 }
             }
@@ -1445,13 +1445,15 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x1d:
         case 0x1c:
-            /* GPE1_STS - General Purpose Event1 Status Register */
-            dev->regs.gpsts1 &= ~((val << shift16) & 0x0c01);
+            /* GPE1_STS - General Purpose Event1 Status Register: the IRQ
+               resume status bits and BIOS_STS (acpi_irq_resume()). */
+            dev->regs.gpsts1 &= ~((val << shift16) & (dev->ali_1543c ? 0xff01 : 0x0c01));
             break;
         case 0x1f:
         case 0x1e:
             /* GPE1_EN - General Purpose Event1 Enable Register */
-            dev->regs.gpen1 = ((dev->regs.gpen1 & ~(0xff << shift16)) | (val << shift16)) & 0x0c01;
+            dev->regs.gpen1 = ((dev->regs.gpen1 & ~(0xff << shift16)) | (val << shift16)) &
+                              (dev->ali_1543c ? 0xff01 : 0x0c01);
             break;
         case 0x20 ... 0x27:
             /* GPE1_CTL / BIOS Release Control: a 1 written to BIOS_RLS (20h
@@ -1758,15 +1760,17 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x28:
         case 0x29:
-            /* GLBSTS - Global Status Register (IO) */
-            dev->regs.glbsts &= ~((val << shift16) & 0x007f);
+            /* GLBSTS - Global Status Register (IO); bit 7 is PIRSM_STS, as
+               on the VT82C596B (acpi_irq_resume()). */
+            dev->regs.glbsts &= ~((val << shift16) & 0x00ff);
             acpi_via_bios_sts_cleared(dev);
             break;
         case 0x2a:
         case 0x2b:
             /* GLBEN - Global Enable Register (IO) */
             level           = acpi_via_smi_level(dev);
-            dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
+            /* Bit 7 is PIRSM_EN, as on the VT82C596B (acpi_irq_resume()). */
+            dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x00ff;
             if (!level && acpi_via_smi_level(dev))
                 acpi_raise_smi(dev, 1);
             break;
@@ -2789,6 +2793,21 @@ acpi_set_piix4_ab(acpi_t *dev, int ab)
     dev->piix4_ab = ab;
 }
 
+/* The M1543C, whose GPE1 registers differ from the M1543's. */
+void
+acpi_set_ali_1543c(acpi_t *dev, int is_1543c)
+{
+    dev->ali_1543c = is_1543c;
+}
+
+/* The VIA Primary Interrupt Channel register (PCI Rx45-44), the IRQs that
+   set PIRSM_STS (acpi_irq_resume()). */
+void
+acpi_set_via_pri_irq(acpi_t *dev, uint16_t irqs)
+{
+    dev->via_pri_irq = irqs;
+}
+
 void
 acpi_set_slot(acpi_t *dev, int slot)
 {
@@ -3046,6 +3065,83 @@ acpi_sleep_run(int32_t cycs)
 
     if ((dev == NULL) || !dev->sleeping)
         acpi_sleeping = 0;
+}
+
+/* The M1543C's GPE1_STS IRQ resume status bit for each IRQ: bit 8 IRQ 0,
+   9 IRQ 1/12, 10 IRQ 3/4, 11 IRQ 5/6, 12 IRQ 7/9, 13 IRQ 10/11, 14 IRQ 13,
+   15 IRQ 14/15 (M1543C p. 201-202 / PDF 202-203). */
+static uint16_t
+acpi_ali_1543c_irq_rsm(uint16_t irqs)
+{
+    static const uint16_t bits[16] = { 0x0100, 0x0200, 0x0000, 0x0400, 0x0400, 0x0800, 0x0800, 0x1000,
+                                       0x0000, 0x1000, 0x2000, 0x2000, 0x0200, 0x4000, 0x8000, 0x8000 };
+    uint16_t              ret      = 0x0000;
+
+    for (int i = 0; i < 16; i++) {
+        if (irqs & (1 << i))
+            ret |= bits[i];
+    }
+
+    return ret;
+}
+
+/* An interrupt request while the machine sleeps; lines is the set of IRQ
+   inputs being raised and unmasked those of them the 8259s let through to
+   the processor. In Power On Suspend (not Suspend to RAM, where the IRQ
+   logic has no power):
+   - PIIX4: with IRQ_RSM_EN (GLBEN bit 11) set, an unmasked IRQ 1, 3-7 or
+     9-15 resumes the system and sets IRQ_RSM_STS (GLBSTS bit 11) (PIIX4
+     7.2.10 and 7.2.12, pp. 143-144, and Table 36, p. 230).
+   - VIA: an IRQ enabled in the Primary Interrupt Channel register (PCI
+     Rx45-44) sets PIRSM_STS (GLBSTS bit 7); PIRSM_EN (GLBEN bit 7) resumes
+     the system on it, then raises SMI# (VT82C596B p. 74 / PDF 80; VT82C686A
+     p. 95 / PDF 101). The VT82C586B datasheet has GLBEN bit 7 reserved, but
+     the AOpen AX59Pro ACPI _PTS sets it for S1 (after clearing the Primary
+     Activity Detect Status); GPIO_DIR (I/O 40h) bit 5 turns interrupt
+     resume from Power On Suspend off (VT82C586B p. 53 / PDF 59).
+   - M7101: the IRQ resume status bits in GPE1_STS are set from the IRQ
+     inputs (here only while the machine sleeps) and resume the system with
+     their GPE1_EN bits; the M1543 has one
+     bit for IRQ 0 (bit 10) and one for IRQ 1, 3-7 and 9-15 (bit 11) (M1543
+     p. 121), the M1543C eight bits for groups of IRQs
+     (acpi_ali_1543c_irq_rsm()). */
+void
+acpi_irq_resume(uint16_t lines, uint16_t unmasked)
+{
+    acpi_t  *dev = acpi_active;
+    uint16_t sts;
+
+    if ((dev == NULL) || !dev->sleeping || (dev->sleep_flags & SUS_NVR))
+        return;
+
+    switch (dev->vendor) {
+        case VEN_INTEL:
+            if (!(dev->regs.glben & 0x0800) || !(unmasked & 0xfefa))
+                return;
+            dev->regs.glbsts |= 0x0800;
+            break;
+        case VEN_VIA:
+        case VEN_VIA_596B:
+            if (((dev->vendor == VEN_VIA) && (dev->regs.gpio_dir & 0x20)) || !(lines & dev->via_pri_irq))
+                return;
+            dev->regs.glbsts |= 0x0080;
+            if (!(dev->regs.glben & 0x0080))
+                return;
+            break;
+        case VEN_ALI:
+            if (dev->ali_1543c)
+                sts = acpi_ali_1543c_irq_rsm(lines);
+            else
+                sts = ((lines & 0xfefa) ? 0x0800 : 0x0000) | ((lines & 0x0001) ? 0x0400 : 0x0000);
+            dev->regs.gpsts1 |= sts;
+            if (!(sts & dev->regs.gpen1))
+                return;
+            break;
+        default:
+            return;
+    }
+
+    dev->wake_pending = 1;
 }
 
 /* An event on one of the chip's general-purpose inputs: its status
