@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 08:56+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-20 08:58+0000\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3777,49 +3777,53 @@ msgid "HD/BD speed:"
 msgstr "Prędkość napędu:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Sterowane programowo urządzenie do wyłączania zasilania (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "Monitor pamięci"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "Emulator jest zajęty. Monitor pamięci nie został zaktualizowany."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
+"Element nie znajduje się w pamięci mapowanej; zaznaczenie i widok nie uległy "
+"zmianie."
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "Zapisywane mogą być wyłącznie dane z pamięci RAM i pamięci wideo."
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
+"nie zapisano (pamięć RAM lub pamięć wideo nie pozwala na zapis lub emulator "
+"jest zajęty)."
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "Emulator jest zajęty. Spróbuj ponownie."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "Skopiowano %1 bajtów z %2 do schowka"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (Nie udało się odczytać %1)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " z zaznaczenia o wielkości %1 bajtów"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "Nie ma żadnej pamięci mapowanej do przeszukiwania."
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "W żądanym zakresie nie ma pamięci mapowanej."
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "Wyszukiwanie jest ograniczone do %1 bajtów."
 
 msgid "Searching memory…"
-msgstr ""
+msgstr "Przeszukiwanie pamięci…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "Przeszukiwanie anulowano. Zaznaczenie nie zostało przesunięte."
 
 msgid "Found at %1."
 msgstr ""
