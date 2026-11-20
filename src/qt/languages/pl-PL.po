@@ -3774,7 +3774,7 @@ msgid "DVD speed:"
 msgstr "Prędkość napędu:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "Prędkość napędu:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""
