@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 08:58+0000\n"
+"PO-Revision-Date: 2026-11-20 09:11+0000\n"
 "Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -452,13 +452,13 @@ msgid "MB"
 msgstr "MB"
 
 msgid "GB"
-msgstr ""
+msgstr "GB"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Pamięć:"
@@ -904,7 +904,7 @@ msgid "(empty)"
 msgstr "(pusty)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(niedostępne)"
 
 msgid "All files"
 msgstr "Wszystkie pliki"
@@ -1400,7 +1400,9 @@ msgstr[2] "%n aktywnych maszyn"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+%n więcej)"
+msgstr[1] " (+%n więcej)"
+msgstr[2] " (+%n więcej)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3823,262 +3825,278 @@ msgid "Searching memory…"
 msgstr "Przeszukiwanie pamięci…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr "Przeszukiwanie anulowano. Zaznaczenie nie zostało przesunięte."
+msgstr "Szukanie anulowano. Zaznaczenie nie zostało przesunięte."
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Znaleziono w %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Nie znaleziono. Zaznaczenie nie zostało przesunięte."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Wypełnij zaznaczenie"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Wypełnij %1 bajtów z %2 wartością (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Wprowadź hex w zakresie od 00 do FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Wypełniono %1 z %2 bajtów danymi %3 (%4 stanowiły niezapisywalne dane do "
+"pamięci RAM lub pamięci wideo)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Wybrano: %1 bajtów (%2 pominięto)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Edytuj bajt"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Kopiuj zaznaczenie (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Kopiuj zaznaczenie (ASCII)"
 
 msgid "Fill selection…"
-msgstr ""
+msgstr "Wypełnij zaznaczenie…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopiuj adres"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Dezasembluj tutaj"
 
 msgid "Dump memory from here…"
-msgstr ""
+msgstr "Zrzuć pamięć stąd…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Monitor pamięci"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pauza / Wznów"
 
 msgid "Step"
-msgstr ""
+msgstr "Krok"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Wykonaj podaną liczbę instrukcji (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Instrukcje krok po kroku"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fizyczny"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Adres, rejestr lub segment:przesunięcie"
 
 msgid "Go"
-msgstr ""
+msgstr "Start"
 
 msgid "Live update"
-msgstr ""
+msgstr "Aktualizacja na żywo"
 
 msgid "Dump…"
-msgstr ""
+msgstr "Zrzut…"
 
 msgid "Commands"
-msgstr ""
+msgstr "Komendy"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Pokaż lub ukryj komendy debugowania (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Hex bajty"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "Tekst ASCII"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Wartość, bajt"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Wartość, słowo"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Wartość, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Na co zwrócić uwagę: surowe bajty hex, tekst lub wartość hex zapisana w "
+"formacie little-endian, tak jak w edytorze hex."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Wyszukiwanie pamięci"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
 
 msgid "Find previous"
-msgstr ""
+msgstr "Znajdź poprzednie"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Wyszukaj w górę od zaznaczenia (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Znajdź następny"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Wyszukaj w dół od zaznaczenia (F3)"
 
 msgid "Range…"
-msgstr ""
+msgstr "Zakres…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Wyszukaj w zakresie adresów zamiast w całej pamięci"
 
 msgid "From"
-msgstr ""
+msgstr "Od"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Miejsca rozpoczęcia wyszukiwania (hex, rejestr lub segment:przesunięcie; "
+"puste oznacza pierwszy zmapowany bajt; . oznacza początek zaznaczenia)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Do (włącznie)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Miejsca końca wyszukiwania (hex, rejestr lub segment:przesunięcie; puste "
+"oznacza ostatni zmapowany bajt; . oznacza koniec zaznaczenia)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Zakres od"
 
 msgid "to"
-msgstr ""
+msgstr "do"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Zmapowane, poza RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Niezmapowane"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Niedostępne"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Niedostępne: odpowiadają tam wyłącznie moduły obsługi urządzeń (odczyt "
+"spowodowałby skutki uboczne) lub strona liniowa nie istnieje."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Adres liniowy, rejestr lub segment:przesunięcie"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Śledź CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Bajty"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Instrukcja"
 
 msgid "Note"
-msgstr ""
+msgstr "Notatka"
 
 msgid "Double-click a line to set or clear a breakpoint there"
 msgstr ""
+"Kliknij dwukrotnie wiersz, aby ustawić lub usunąć w tym miejscu punkt "
+"przerwania"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Dezasemblacja"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Dezasemblacja (niedostępna w tej kompilacji)"
 
 msgid "Viewer message"
 msgstr ""
 
 msgid "Selected range"
-msgstr ""
+msgstr "Zaznaczony zakres"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Komendy debugowania"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Wyjście komend debugowania"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Komenda debugowania"
 
 msgid "help — commands; Up/Down — history; . — selected address"
 msgstr ""
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Polecenia korzystają z tej samej przestrzeni adresowej i zaznaczenia, co "
+"monitor pamięci. Wpisz help, aby wyświetlić listę komend."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Uruchom procesor (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Zatrzymaj procesor przy następnej instrukcji (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Zbyt wiele punktów przerwania."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Zatrzymano: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "Emulator jest zajęty; widok nie został zaktualizowany."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Zatrzymano w punkcie przerwania."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Zatrzymano po zrobieniu kroku."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Zatrzymano."
 
 msgid "Stepping…"
-msgstr ""
+msgstr "Krok do przodu…"
 
 msgid "Running."
-msgstr ""
+msgstr "Działa."
 
 msgid "The emulator is paused; resume it to run or step."
 msgstr ""
+"Emulator jest zapauzowany; wznów go, aby działał normalnie lub w trybie "
+"krokowym."
 
 msgid "The dynamic recompiler is off while this window is open."
-msgstr ""
+msgstr "Dynamiczny rekompilator jest wyłączony, póki to okno jest otwarte."
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Wprowadź adres."
 
 msgid "The selector cannot be looked up."
 msgstr ""
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Nieznany segment „%1”."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Nieznane przesunięcie „%1”."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Adres liniowy nie jest mapowany na pamięć fizyczną."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "„%1” nie jest adresem ani rejestrem."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Użycie: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
@@ -4222,16 +4240,16 @@ msgid "Telephone Tone Region"
 msgstr ""
 
 msgid "North America"
-msgstr ""
+msgstr "Ameryka Północna"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Wielka Brytania"
 
 msgid "Continental Europe"
 msgstr ""
 
 msgid "Japan"
-msgstr ""
+msgstr "Japonia"
 
 msgid "Handshake Modem Standard"
 msgstr ""
@@ -4240,13 +4258,13 @@ msgid "Automatic (from DTE speed)"
 msgstr ""
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Typ łącza"
 
 msgid "Username"
-msgstr ""
+msgstr "Nazwa użytkownika"
 
 msgid "Password"
-msgstr ""
+msgstr "Hasło"
 
 msgid "PPP Compression and Encryption"
 msgstr ""
@@ -4339,52 +4357,54 @@ msgid "Its drives are hard disks, CD-ROM drives and other removable devices set 
 msgstr ""
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Dyski twarde…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Napędy CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Inne urządzenia wymienne…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "4-portowy hub USB 1.1"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "Pamięć masowa USB"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "Zamontuj folder jako tymczasową dyskietkę"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "Wybrany napęd nie obsługuje montowania folderów."
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "Zawartość przekracza pojemność skonfigurowanego napędu dyskietek."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Zamontuj folder jako tymczasowy dysk wymienny"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Nie można zamontować folderu lub pliku archiwum"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
+"Zawartość nie mieści się na żadnym nośniku obsługiwanym przez ten dysk lub "
+"rozmiar pliku wynosi co najmniej 4 GB."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
-msgstr ""
+msgstr "W głównym katalogu nośnika znajduje się zbyt wiele plików."
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "Nie udało się zapisać obrazu tymczasowego."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Nie ma wystarczającej ilości pamięci, aby utworzyć obraz."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Nie udało się odczytać folderu lub archiwum."
 
 msgid "Archives"
-msgstr ""
+msgstr "Pliki archiwum"
 
 msgid "New USB flash drive"
 msgstr ""
