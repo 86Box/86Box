@@ -4073,7 +4073,7 @@ msgstr ""
 "krokowym."
 
 msgid "The dynamic recompiler is off while this window is open."
-msgstr "Dynamiczny rekompilator jest wyłączony, póki okno to jest otwarte."
+msgstr "Dynamiczny rekompilator jest wyłączony, póki to okno jest otwarte."
 
 msgid "Enter an address."
 msgstr ""
