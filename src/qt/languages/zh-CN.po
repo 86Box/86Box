@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 09:33+0000\n"
+"PO-Revision-Date: 2026-11-20 01:53+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -902,7 +902,7 @@ msgid "(empty)"
 msgstr "(空)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "（不可用）"
 
 msgid "All files"
 msgstr "所有文件"
@@ -1548,7 +1548,7 @@ msgid "An error has occurred while checking for updates: %1"
 msgstr "检查更新时发生错误：%1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b>86Box 有可用更新！</b>"
+msgstr "<b>86Box有更新可用！</b>"
 
 msgid "Warning"
 msgstr "警告"
@@ -4186,13 +4186,13 @@ msgid "The value is too large for %1 bytes."
 msgstr ""
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "输入待搜索内容。"
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "区间结束点在起始点前。"
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "串行即插即用"
 
 msgid "Standard 9600 bps modem (PNPC100)"
 msgstr ""
@@ -4366,10 +4366,10 @@ msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr "内容超出当前配置的软驱容量上限。"
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "将文件夹挂载为临时可移动磁盘"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "无法挂载文件夹或存档"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
@@ -4378,31 +4378,31 @@ msgid "There are too many files in the top folder for the root directory of the 
 msgstr ""
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "临时镜像无法被写入。"
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "内存不足，无法创建镜像。"
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "文件夹或存档不可读。"
 
 msgid "Archives"
-msgstr ""
+msgstr "存档"
 
 msgid "New USB flash drive"
-msgstr ""
+msgstr "新建USB闪存盘"
 
 msgid "&New USB flash drive…"
-msgstr ""
+msgstr "新建USB闪存盘(&N)…"
 
 msgid "unplugged"
-msgstr ""
+msgstr "已弹出"
 
 msgid "&Unplug"
-msgstr ""
+msgstr "弹出(&U)"
 
 msgid "&Unplug %1"
-msgstr ""
+msgstr "弹出%1(&U)"
 
 msgid "Plug in %1 (%2)"
 msgstr ""
@@ -4411,43 +4411,43 @@ msgid "&Move %1 to"
 msgstr ""
 
 msgid "Size:"
-msgstr ""
+msgstr "容量："
 
 msgid "Custom size:"
-msgstr ""
+msgstr "自定义容量："
 
 msgid "None (blank)"
-msgstr ""
+msgstr "无（空白）"
 
 msgid "FAT16"
-msgstr ""
+msgstr "FAT16"
 
 msgid "FAT32"
-msgstr ""
+msgstr "FAT32"
 
 msgid "Format:"
-msgstr ""
+msgstr "格式："
 
 msgid "Could not create %1."
-msgstr ""
+msgstr "无法创建%1。"
 
 msgid "%1 already exists. Replace it?"
-msgstr ""
+msgstr "%1已存在，要替换吗？"
 
 msgid "USB port %1 (%2)"
-msgstr ""
+msgstr "USB端口%1（%2）"
 
 msgid "USB port"
-msgstr ""
+msgstr "USB端口"
 
 msgid "PCI card"
-msgstr ""
+msgstr "PCI扩展卡"
 
 msgid "hub"
-msgstr ""
+msgstr "集线器"
 
 msgid "board"
-msgstr ""
+msgstr "板卡"
 
 msgid "now in port %1"
-msgstr ""
+msgstr "现在位于端口%1"
