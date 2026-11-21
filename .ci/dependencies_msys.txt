@@ -11,6 +11,8 @@ rtmidi
 libslirp
 fluidsynth
 libwebp
+zstd
+libarchive
 qt6-static
 qt6-translations
 vulkan-headers
@@ -21,5 +23,4 @@ rust
 rust-src
 cargo-c
 corrosion
-zstd
-libarchive
+
