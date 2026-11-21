@@ -85,11 +85,13 @@ jobs:
 #          - name: SDL GUI
 #            id: sdl
 #            qt: off
+#            qt6: off
 #            slug: -SDL
 #            static: on
           - name: Qt 5 GUI
             id: qt5
             qt: on
+            qt6: off
             slug: -Qt5
             packages: >-
               qt@5
@@ -138,6 +140,7 @@ jobs:
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)

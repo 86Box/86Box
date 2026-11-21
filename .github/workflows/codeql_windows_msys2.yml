@@ -91,6 +91,7 @@ jobs:
           - name: Qt 5 GUI
             id: qt5
             qt: on
+            qt6: off
             slug: -Qt5
             static: off
         environment:
@@ -139,6 +140,7 @@ jobs:
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
 
       # - name: Build
