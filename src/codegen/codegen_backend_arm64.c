@@ -3130,15 +3130,17 @@ build_fld80_routine(codeblock_t *block)
     uint32_t *no_carry;
     int       nr_slow = 0;
 
-    codegen_alloc(block, 256);
+    codegen_alloc(block, 320);
     codegen_fld80_rout = &block_write_data[block_pos];
     /*cpu_state.ea_seg, as the C sets it first*/
     host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) fld80_segs);
     host_arm64_LDRX_REG_LSL3(block, REG_X2, REG_X1, REG_X0);
     host_arm64_STR_IMM_Q(block, REG_X2, REG_CPUSTATE, rep_state_offset(&cpu_state.ea_seg));
-    /*W5 = easeg + eaaddr*/
+    /*W5 = the segment's base + eaaddr, the base also in easeg, which holds
+      only what the interpreter's last fetch_ea() left*/
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X2, offsetof(x86seg, base));
     host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) &easeg);
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X1, 0);
+    host_arm64_STR_IMM_W(block, REG_W3, REG_X1, 0);
     host_arm64_CMN_IMM(block, REG_W3, 1);
     slow[nr_slow++] = host_arm64_BEQ_SHORT_(block);
     host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) &cpu_dr_armed);
@@ -3217,13 +3219,14 @@ build_fst80_routine(codeblock_t *block)
     uint32_t *slow[8];
     int       nr_slow = 0;
 
-    codegen_alloc(block, 256);
+    codegen_alloc(block, 320);
     codegen_fst80_rout = &block_write_data[block_pos];
     host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) fld80_segs);
     host_arm64_LDRX_REG_LSL3(block, REG_X2, REG_X1, REG_X0);
     host_arm64_STR_IMM_Q(block, REG_X2, REG_CPUSTATE, rep_state_offset(&cpu_state.ea_seg));
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X2, offsetof(x86seg, base));
     host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) &easeg);
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X1, 0);
+    host_arm64_STR_IMM_W(block, REG_W3, REG_X1, 0);
     host_arm64_CMN_IMM(block, REG_W3, 1);
     slow[nr_slow++] = host_arm64_BEQ_SHORT_(block);
     host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) &cpu_dr_armed);

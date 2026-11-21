@@ -481,6 +481,8 @@ x87_dyn_ld80(uint32_t seg_nr)
     int       pushed;
 
     cpu_state.ea_seg = x87_dyn_segs[seg_nr];
+    /* easeg is only what the interpreter's last fetch_ea() left */
+    easeg = cpu_state.ea_seg->base;
     {
         /* The ten bytes in one go when they are on one page the lookup maps:
            what x87_ld80()'s three reads give, without a lookup each */
@@ -515,6 +517,7 @@ uint32_t
 x87_dyn_st80(uint32_t seg_nr)
 {
     cpu_state.ea_seg = x87_dyn_segs[seg_nr];
+    easeg            = cpu_state.ea_seg->base;
     {
         /* In one go to a page the write lookup maps (never one with code,
            whose writes are tracked), as x87_st80()'s three writes */
