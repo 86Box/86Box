@@ -96,7 +96,10 @@ static const struct {
         .extid_flags = AC97_SDAC,
         .pcsr_mask   = 0xff,
         .eascr_mask  = 0x02,
-        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x74, 0x0000, 0x0003}, {0}}
+        /* 0x72 reads 0x8000 on a real SQ2500's STAC9708. The Aureal driver checks it: with
+           bit 15 clear it applies its "LA4 rear inversion" workaround (writes 0x0007 here and
+           negates the Vortex EQ, so front and rear leave the chip in opposite polarity). */
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x6e, 0x0000, 0x000f}, {0, 0x72, 0x8000, 0x0007}, {0, 0x74, 0x0000, 0x0003}, {0}}
     },
     {
         .device      = &stac9721_device,
