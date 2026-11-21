@@ -205,6 +205,14 @@ typedef struct _mem_mapping_ {
     /* There is never a needed to pass a pointer to the mapping itself, it is much preferable to
        prepare a structure with the requires data (usually, the base address and mask) instead. */
     void *priv; /* backpointer to device */
+
+    /* Optional: n dword writes at addr, addr + 4, ... of the values at src, in that order, in one
+       call. It must do exactly what n calls of write_l would do, and return how many of them it
+       did (a prefix, 0 to n); the caller does the rest one by one. It takes only addresses whose
+       write_l leaves the CPU state, the cycle count, the lookup tables and the mappings alone and
+       raises no SMI, interrupt or abort; for any other it returns 0. Set with
+       mem_mapping_set_write_l_run(); setting the mapping or its handlers clears it. */
+    uint32_t (*write_l_run)(uint32_t addr, const uint32_t *src, uint32_t n, void *priv);
 } mem_mapping_t;
 
 /* For the memory viewer, on a video card's memory: where the byte the
@@ -477,6 +485,9 @@ extern void mem_mapping_set_write_handler(mem_mapping_t *,
                                           void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
+
+extern void mem_mapping_set_write_l_run(mem_mapping_t *,
+                                        uint32_t (*write_l_run)(uint32_t addr, const uint32_t *src, uint32_t n, void *priv));
 /* Let the memory viewer at the video memory behind any mapping whose byte
    read handler is read_b, through debug_ptr; and write it where the write
    handler is write_b. Cards register their handlers once, at init. */

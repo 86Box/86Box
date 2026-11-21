@@ -402,11 +402,11 @@ typedef struct virge_t {
     } clock;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    /* The FIFO thread writes fifo_read_idx and the emulation thread writes
-       fifo_write_idx once per entry. On arm64 hosts the two are kept 128
-       bytes apart, so they do not share a cache line of up to 128 bytes
-       (the size on Apple silicon). Other hosts keep them adjacent: the
-       padding made the queue slower on x86-64. */
+    /* The FIFO thread writes fifo_read_idx once per entry and the emulation
+       thread writes fifo_write_idx once per entry or run of entries. On
+       arm64 hosts the two are kept 128 bytes apart, so they do not share a
+       cache line of up to 128 bytes (the size on Apple silicon). Other hosts
+       keep them adjacent: the padding made the queue slower on x86-64. */
 #if defined(__aarch64__) || defined(_M_ARM64)
     ATOMIC_INT   fifo_read_idx;
     uint8_t      fifo_read_idx_pad[124];
@@ -2164,6 +2164,53 @@ s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
         wake_fifo_thread(virge);
     if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
         wake_fifo_thread(virge);
+}
+
+/* A run of dwords to the image transfer port, queued as the single writes
+   would queue them: the same entries in the same order, published in chunks
+   of what the queue has room for. */
+static uint32_t
+s3_virge_mmio_write_l_run(uint32_t addr, const uint32_t *src, uint32_t n, void *priv)
+{
+    virge_t *virge = (virge_t *) priv;
+    uint32_t done  = 0;
+
+    if (((addr & 0xffff) >= 0x8000) || (((addr & 0xffff) + (n << 2)) > 0x8000))
+        return 0;
+
+    while (done < n) {
+        uint32_t widx;
+        uint32_t k;
+
+        while (FIFO_FULL) {
+            thread_reset_event(virge->fifo_not_full_event);
+            if (FIFO_FULL)
+                thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+        }
+
+        widx = virge->fifo_write_idx;
+        k    = FIFO_SIZE - FIFO_ENTRIES;
+        if (k > (n - done))
+            k = n - done;
+        for (uint32_t i = 0; i < k; i++) {
+            fifo_entry_t *fifo = &virge->fifo[(widx + i) & FIFO_MASK];
+
+            fifo->val       = src[done + i];
+            fifo->addr_type = ((addr + ((done + i) << 2)) & FIFO_ADDR) | FIFO_WRITE_DWORD;
+        }
+        atomic_thread_fence(memory_order_release);
+        virge->fifo_write_idx += k;
+        done += k;
+
+        /* Always wake after publishing: while the chunk was being filled
+           the FIFO thread may have emptied the queue and gone to sleep, so
+           the count seen before the chunk says nothing about whether it is
+           awake now, and the counts the single writes test may never be
+           seen. This covers every wake the single writes would make. */
+        wake_fifo_thread(virge);
+    }
+
+    return n;
 }
 
 static void
@@ -6401,6 +6448,8 @@ s3_virge_init(const device_t *info)
                     NULL,
                     MEM_MAPPING_EXTERNAL,
                     virge);
+    mem_mapping_set_write_l_run(&virge->mmio_mapping, s3_virge_mmio_write_l_run);
+    mem_mapping_set_write_l_run(&virge->new_mmio_mapping, s3_virge_mmio_write_l_run);
 
     io_sethandler(0x03a0, 0x0040, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 

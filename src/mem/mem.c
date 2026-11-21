@@ -4228,6 +4228,8 @@ mem_mapping_set(mem_mapping_t *map,
     map->priv    = priv;
     map->next    = NULL;
 
+    map->write_l_run = NULL;
+
     /*
        The ALi M6117 puts the RAM directly onto the internal 32-bit
        address bus but the external address bus is still 24-bit.
@@ -4310,6 +4312,8 @@ mem_mapping_set_handler(mem_mapping_t *map,
     map->write_w = write_w;
     map->write_l = write_l;
 
+    map->write_l_run = NULL;
+
     mem_mapping_recalc(map->base, map->size, map->base_ignore);
 }
 
@@ -4366,7 +4370,16 @@ mem_mapping_set_write_handler(mem_mapping_t *map,
     map->write_w = write_w;
     map->write_l = write_l;
 
+    map->write_l_run = NULL;
+
     mem_mapping_recalc(map->base, map->size, map->base_ignore);
+}
+
+void
+mem_mapping_set_write_l_run(mem_mapping_t *map,
+                            uint32_t (*write_l_run)(uint32_t addr, const uint32_t *src, uint32_t n, void *priv))
+{
+    map->write_l_run = write_l_run;
 }
 
 void
