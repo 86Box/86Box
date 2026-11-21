@@ -2469,6 +2469,46 @@ v2_run_block(v2_chip_t *c, float *out)
     }
 }
 
+/* Whether the codec's ADC (ADB sources 0x70/0x71) reaches sink k through
+   converters and mixers. */
+static int
+reaches_codecin(v2_chip_t *c, int k, int depth)
+{
+    if (depth > 8)
+        return 0;
+    for (int i = 0; i < c->sink_n[k]; i++) {
+        int a = c->route[c->sink_r[k][i]].src;
+        if (a == AS_CODECIN || a == AS_CODECIN + 1)
+            return 1;
+        if (a >= AS_SRCOUT && a < AS_SRCOUT + NR_SRC && reaches_codecin(c, AK_SRCIN + a - AS_SRCOUT, depth + 1))
+            return 1;
+        if (a >= AS_MIXOUT && a < AS_MIXOUT + NR_MIXOUT) {
+            int m = a - AS_MIXOUT;
+            for (int j = 0; j < NR_MIXIN; j++)
+                if ((R(MIX_ENIN + ((m << 3) + (j >> 2)) * 4) & (1u << (j & 3)))
+                    && reaches_codecin(c, AK_MIXIN + j, depth + 1))
+                    return 1;
+        }
+    }
+    return 0;
+}
+
+/* Whether a capture (record) DMA channel is running and records the codec's
+   ADC. Aureal's Sound Blaster emulation also runs a capture channel, from
+   the mixers alone, which needs no input from the host. */
+int
+v2_capture_active(v2_chip_t *c)
+{
+    for (int ch = 0; ch < NR_ADBDMA; ch++) {
+        v2_dma_t *d = &c->adb[ch];
+        if (!c->sink_n[ch] || d->state == DMA_IDLE || d->state == DMA_END || (R(dma_ctrl(d)) & 0x2000))
+            continue;
+        if (reaches_codecin(c, ch, 0) || reaches_codecin(c, AK_DMAB + ch, 0))
+            return 1;
+    }
+    return 0;
+}
+
 uint32_t
 v2_debug_flags(v2_chip_t *c)
 {

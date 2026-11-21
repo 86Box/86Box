@@ -110,6 +110,15 @@ typedef struct vortex2_t {
     uint32_t          cd_log_n, cd_log_wr; /* diagnostic log: samples since the last line, cd_wr then */
     float             cd_log_peak;
     float             cd_level;  /* drive's analog output against codec full scale */
+    /* The host's audio input, as the codec's microphone and line inputs:
+       interleaved stereo at the capture rate, written by 86Box's sound
+       thread, read by the emulation thread. Opened only while a record
+       channel runs with the record select on Mic or Line In. */
+#define IN_RING 32768
+    int16_t           in_ring[IN_RING * 2];
+    volatile uint32_t in_wr, in_rd;
+    double            in_frac;
+    int               in_rate, in_primed, in_started, in_idle;
     FILE *logf;
     FILE *tracef; /* register trace, same format as the real-card sessions */
     FILE *dmaf;   /* sample data the chip fetched: u32 addr, u32 len, bytes */
@@ -648,6 +657,95 @@ vortex2_filter_cd_audio(int channel, double *buffer, void *priv)
     *buffer *= channel ? ((double) cr * mr / (32768.0 * 32768.0)) : ((double) cl * ml / (32768.0 * 32768.0));
 }
 
+/* The host's input, as sound.c hands it over. Kept within a quarter
+   second of the ADC. */
+static void
+vortex2_in_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    vortex2_t *dev      = (vortex2_t *) priv;
+    const int  cap_rate = al_capture_get_rate();
+
+    if (!dev->in_started)
+        return;
+
+    dev->in_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    for (int c = 0; c < len; c++) {
+        const uint32_t i = dev->in_wr % IN_RING;
+
+        dev->in_ring[i * 2]     = buffer[c * 2];
+        dev->in_ring[i * 2 + 1] = buffer[c * 2 + 1];
+        dev->in_wr++;
+    }
+
+    uint32_t keep = (uint32_t) (dev->in_rate / 4);
+    if (keep > IN_RING / 2)
+        keep = IN_RING / 2;
+    if (dev->in_wr - dev->in_rd > keep) {
+        dev->in_rd   = dev->in_wr - keep / 2;
+        dev->in_frac = 0.0;
+    }
+}
+
+/* One frame of the host's input at 48 kHz (linear interpolation; silence
+   until 40 ms is in hand, as the host's input arrives in 20 ms blocks). */
+static void
+vortex2_in_frame(vortex2_t *dev, float *l, float *r)
+{
+    const uint32_t avail = dev->in_wr - dev->in_rd;
+
+    if (!dev->in_started) {
+        *l = *r = 0.0f;
+        return;
+    }
+    if (!dev->in_primed && dev->in_rate && avail >= (uint32_t) (dev->in_rate / 25))
+        dev->in_primed = 1;
+    if (!dev->in_primed || avail < 2) {
+        dev->in_primed = 0;
+        *l = *r = 0.0f;
+        return;
+    }
+
+    const uint32_t i0 = dev->in_rd % IN_RING, i1 = (dev->in_rd + 1) % IN_RING;
+    const float    f  = (float) dev->in_frac;
+
+    *l = (dev->in_ring[i0 * 2] + (dev->in_ring[i1 * 2] - dev->in_ring[i0 * 2]) * f) / 32768.0f;
+    *r = (dev->in_ring[i0 * 2 + 1] + (dev->in_ring[i1 * 2 + 1] - dev->in_ring[i0 * 2 + 1]) * f) / 32768.0f;
+
+    dev->in_frac += (double) dev->in_rate / 48000.0;
+    while (dev->in_frac >= 1.0 && dev->in_wr - dev->in_rd > 1) {
+        dev->in_frac -= 1.0;
+        dev->in_rd++;
+    }
+    if (dev->in_frac >= 1.0)
+        dev->in_frac = 0.0;
+}
+
+/* Open the host's input while a record channel runs with the record select
+   on Mic (0) or Line In (4), and close it half a second after that stops,
+   so a driver that restarts its record channel does not reopen the device
+   each time. */
+static void
+vortex2_in_update(vortex2_t *dev)
+{
+    uint16_t sel  = dev->codec ? ac97_codec_readw(dev->codec, 0x1a) : 0x0101;
+    int      want = v2_capture_active(dev->chip)
+               && (((sel >> 8) & 7) == 0 || ((sel >> 8) & 7) == 4 || (sel & 7) == 0 || (sel & 7) == 4);
+
+    if (want) {
+        dev->in_idle = 0;
+        if (!dev->in_started) {
+            dev->in_wr = dev->in_rd = 0;
+            dev->in_frac            = 0.0;
+            dev->in_primed          = 0;
+            sound_in_start_input();
+            dev->in_started = 1;
+        }
+    } else if (dev->in_started && ++dev->in_idle >= 48000 / V2_BLOCK / 2) {
+        sound_in_stop_input();
+        dev->in_started = 0;
+    }
+}
+
 static void
 host_codec_write(void *priv, uint8_t reg, uint16_t val)
 {
@@ -669,10 +767,12 @@ host_codec_write(void *priv, uint8_t reg, uint16_t val)
     }
 }
 
-/* The codec's ADC input for one block: CD audio, resampled from 44.1 to
-   48 kHz, when the record select (0x1a) picks CD (source 1), after the
-   record gain (0x1c: 1.5 dB steps from 0 dB, bit 15 mutes). Other record
-   sources are not emulated.
+/* The codec's ADC input for one block, after the record gain (0x1c: 1.5 dB
+   steps from 0 dB, bit 15 mutes), from what the record select (0x1a) picks
+   on each channel: CD audio (source 1), resampled from 44.1 to 48 kHz; the
+   host's audio input as the microphone (source 0: mono, with the 20 dB
+   boost of 0x0e bit 6) and as Line In (source 4). The other sources (video,
+   aux, the stereo and mono mixes, phone) record silence.
 
    The CD reaches the card as an analog signal, and the driver sets the
    record gain to +12 dB on the real card too, so the level depends on the
@@ -693,8 +793,13 @@ host_codec_adc(void *priv, float *l, float *r, int n)
     uint16_t   sel = dev->codec ? ac97_codec_readw(dev->codec, 0x1a) : 0;
     uint16_t   rg  = dev->codec ? ac97_codec_readw(dev->codec, 0x1c) : 0x8000;
     float      k   = dev->cd_level / 32768.0f;
-    float      gl  = (rg & 0x8000) || ((sel >> 8) & 7) != 1 ? 0.0f : powf(10.0f, ((rg >> 8) & 15) * 1.5f / 20.0f) * k;
-    float      gr  = (rg & 0x8000) || (sel & 7) != 1 ? 0.0f : powf(10.0f, (rg & 15) * 1.5f / 20.0f) * k;
+    int        sl  = (sel >> 8) & 7, sr = sel & 7;
+    float      rgl = (rg & 0x8000) ? 0.0f : powf(10.0f, ((rg >> 8) & 15) * 1.5f / 20.0f);
+    float      rgr = (rg & 0x8000) ? 0.0f : powf(10.0f, (rg & 15) * 1.5f / 20.0f);
+    float      gl  = sl == 1 ? rgl * k : 0.0f;
+    float      gr  = sr == 1 ? rgr * k : 0.0f;
+    float      mb  = (dev->codec && (ac97_codec_readw(dev->codec, 0x0e) & 0x0040)) ? 10.0f : 1.0f;
+    int        host_in = sl == 0 || sl == 4 || sr == 0 || sr == 4;
     uint32_t   avail = dev->cd_wr - dev->cd_rd;
 
     /* CD audio arrives from 86Box's CD thread in chunks of 100 ms
@@ -726,6 +831,19 @@ host_codec_adc(void *priv, float *l, float *r, int n)
         float f = (float) dev->cd_phase;
         l[i] = (dev->cd_prev[0] + (dev->cd_cur[0] - dev->cd_prev[0]) * f) * gl;
         r[i] = (dev->cd_prev[1] + (dev->cd_cur[1] - dev->cd_prev[1]) * f) * gr;
+        if (host_in) {
+            float hl, hr;
+            vortex2_in_frame(dev, &hl, &hr);
+            float mic = (hl + hr) * 0.5f * mb;
+            if (sl == 0)
+                l[i] += mic * rgl;
+            else if (sl == 4)
+                l[i] += hl * rgl;
+            if (sr == 0)
+                r[i] += mic * rgr;
+            else if (sr == 4)
+                r[i] += hr * rgr;
+        }
     }
     if (dev->log_routes && dev->logf) {
         /* Every 10 s: whether CD audio is arriving from the drive and how loud it is at the ADC. */
@@ -793,6 +911,7 @@ vortex2_block(void *priv)
     vortex2_update(dev);
     dev->block_tsc = tsc;
     v2_run_block(dev->chip, dev->out);
+    vortex2_in_update(dev);
     dev->frames += V2_BLOCK;
 
     if (dev->codec) {
@@ -1243,6 +1362,8 @@ vortex2_init(UNUSED(const device_t *info))
     host.log         = host_log;
     host.codec_adc   = host_codec_adc;
 
+    sound_in_add_handler(vortex2_in_put_buffer, dev);
+
     timer_add(&dev->irq_timer, vortex2_irq_timer, dev, 0);
 
     dev->chip = v2_create(&host);
@@ -1297,6 +1418,9 @@ vortex2_close(void *priv)
 {
     vortex2_t *dev = (vortex2_t *) priv;
 
+    sound_in_remove_handler(vortex2_in_put_buffer, dev);
+    if (dev->in_started)
+        sound_in_stop_input();
     v2_destroy(dev->chip);
     free(dev->mpu);
     if (dev->logf)

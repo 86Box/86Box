@@ -68,6 +68,9 @@ extern void v2_timer_expired(v2_chip_t *c);
 /* Run one block of V2_BLOCK frames. out receives interleaved
    front L, front R, rear L, rear R as floats (1.0 = full scale). */
 extern void v2_run_block(v2_chip_t *c, float *out);
+/* Whether a capture (record) DMA channel is running and records the
+   codec's ADC. */
+extern int v2_capture_active(v2_chip_t *c);
 
 /* Diagnostics: 1 if A3D, wavetable or ADB work happened in the last block. */
 extern uint32_t v2_debug_flags(v2_chip_t *c);
