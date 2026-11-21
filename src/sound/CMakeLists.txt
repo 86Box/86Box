@@ -55,6 +55,7 @@ add_library(snd OBJECT
     snd_sb.c
     snd_sb_dsp.c
     snd_emu8k.c
+    snd_emu8008.c
     snd_mmb.c
     snd_mozart.c
     snd_mpu401.c

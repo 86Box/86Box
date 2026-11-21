@@ -320,4 +320,8 @@ extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val
 extern void    ess_solo1_legacy_native_gameport(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_close(void *priv);
 
+#ifdef EMU_DEVICE_H
+extern const device_t sb_emu8008_legacy_device;
+#endif
+
 #endif /*SOUND_SND_SB_H*/

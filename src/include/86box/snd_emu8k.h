@@ -409,6 +409,13 @@ void emu8k_reset_buffer(emu8k_t *emu8k);
 
 void emu8k_update(emu8k_t *emu8k);
 
+uint8_t  emu8k_inb(uint16_t addr, void *priv);
+uint16_t emu8k_inw(uint16_t addr, void *priv);
+uint32_t emu8k_inl(uint16_t addr, void *priv);
+void     emu8k_outb(uint16_t addr, uint8_t val, void *priv);
+void     emu8k_outw(uint16_t addr, uint16_t val, void *priv);
+void     emu8k_outl(uint16_t addr, uint32_t val, void *priv);
+
 #define EMU8K_ROM_PATH "roms/sound/creative/awe32.raw"
 
 /*
