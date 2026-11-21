@@ -396,7 +396,7 @@ then
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
  	# Enable Qt 6.
-	cmake_flags_extra="$cmake_flags_extra  -D QT_STATIC=ON -D USE_QT6=ON -D STATIC_BUILD=ON"
+	cmake_flags_extra="$cmake_flags_extra  -D QT_STATIC=ON -D USE_QT6=ON"
 
 	# Install dependencies only if we're in a new build and/or architecture.
 	if check_buildtag "$MSYSTEM"
