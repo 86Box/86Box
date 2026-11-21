@@ -556,6 +556,9 @@ typedef struct cdrom_ops_t {
     int      (*format)(const void *local, const uint32_t blocks, const uint32_t packet_size,
                        const int grow);
     int      (*reserve_track)(const void *local, const uint32_t size);
+    /* DPM angle in turns and density in turns per sector; -1 without DPM, 0 outside the table. */
+    int      (*get_dpm)(const void *local, const uint32_t sector,
+                        double *angle, double *density);
 } cdrom_ops_t;
 
 typedef struct cdrom {
@@ -659,6 +662,9 @@ typedef struct cdrom {
     int               formed_mode2;
     /* The cached sector is a Mode 1 sector built by us, EDC/ECC not filled in yet. */
     int               edc_missing;
+
+    double            dpm_angle;     /* DPM angle in turns under the head at dpm_time, < 0 = unknown. */
+    double            dpm_time;      /* Emulated time in us of the last DPM seek. */
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
@@ -715,6 +721,8 @@ extern int             cdrom_get_type(const int model);
 extern int             cdrom_lba_to_msf_accurate(const int lba);
 extern void            cdrom_interleave_subch(uint8_t *d, const uint8_t *s);
 extern void            cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s);
+extern int             cdrom_has_dpm(const cdrom_t *dev);
+extern double          cdrom_dpm_period(cdrom_t *dev, const int num);
 extern double          cdrom_seek_time(const cdrom_t *dev);
 extern void            cdrom_stop(cdrom_t *dev);
 extern void            cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type);

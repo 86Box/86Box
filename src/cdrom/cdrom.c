@@ -16,6 +16,7 @@
  */
 
 #include <inttypes.h>
+#include <math.h>
 #ifdef ENABLE_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -66,6 +67,8 @@
 #define MIN_SEEK                       2000
 #define MAX_SEEK                       333333
 
+#define DPM_LONG_SEEK       200
+#define DPM_LONG_SEEK_TURNS 4.0
 
 #define SUBCH_RAW_P_TO_W_PRESENT       0x03
 
@@ -1186,6 +1189,8 @@ cdrom_drive_reset(cdrom_t *dev)
     dev->cached_sector = -1;
     dev->subc_sector = -1;
 
+    dev->dpm_angle = -1.0;
+
     if (cdrom_drive_types[dev->type].speed == -1)
         dev->real_speed  = dev->speed;
     else
@@ -1205,6 +1210,8 @@ cdrom_unload(cdrom_t *dev)
 
     dev->cached_sector = -1;
     dev->subc_sector = -1;
+
+    dev->dpm_angle = -1.0;
 
     if (dev->local != NULL) {
         dev->ops->close(dev->local);
@@ -1698,6 +1705,82 @@ cdrom_interleave_subch(uint8_t *d, const uint8_t *s)
 
         s++;
     }
+}
+
+static int
+cdrom_dpm_get(const cdrom_t *dev, const uint32_t sector, double *angle, double *density)
+{
+    int ret = -1;
+
+    if ((dev->ops != NULL) && (dev->ops->get_dpm != NULL) && (dev->local != NULL))
+        ret = dev->ops->get_dpm(dev->local, sector, angle, density);
+
+    return ret;
+}
+
+/* Emulated time in us. */
+static double
+cdrom_dpm_now_us(void)
+{
+    return ((double) tsc * 4294967296.0) / (double) TIMER_USEC;
+}
+
+int
+cdrom_has_dpm(const cdrom_t *dev)
+{
+    return cdrom_dpm_get(dev, 0, NULL, NULL) >= 0;
+}
+
+double
+cdrom_dpm_period(cdrom_t *dev, const int num)
+{
+    double to, density;
+
+    int seek_lba = dev->seek_pos - num;
+
+    if (seek_lba < 0)
+        return -1.0;
+    if (cdrom_dpm_get(dev, (uint32_t) seek_lba, &to, &density) <= 0)
+        return -1.0;
+
+    const double now  = cdrom_dpm_now_us();
+    double       turn_us_1x;
+
+    if ((dev->cd_status == CD_STATUS_HDDVD) || (dev->cd_status == CD_STATUS_BLURAY))
+        turn_us_1x = 74700.0;
+    else if (dev->cd_status == CD_STATUS_DVD)
+        turn_us_1x = 104000.0;
+    else
+        turn_us_1x = 260000.0;
+
+    const double turn_us = turn_us_1x / (double) dev->cur_speed;
+
+    /* Rotational latency (in us) to reach seek_lba from current head angle, plus extra turns for long seeks. */
+    double seek = 0.0;
+    if (dev->seek_diff != 0 && dev->dpm_angle >= 0.0) {
+        const double turned = (now > dev->dpm_time)
+                            ? ((now - dev->dpm_time) / turn_us) : 0.0;
+        const double wait   = to - dev->dpm_angle - turned;
+
+        seek = (wait - floor(wait)) * turn_us;
+        if ((seek == 0.0) && (to == dev->dpm_angle))
+            seek = turn_us;
+        if (dev->seek_diff > DPM_LONG_SEEK)
+            seek += DPM_LONG_SEEK_TURNS * turn_us;
+    }
+
+    /* Transfer time (in us) for num sectors from seek_lba, scaled by DPM density and drive speed. */
+    double transfer = density * turn_us;
+    for (int i = 1; i < num; i++) {
+        if (cdrom_dpm_get(dev, (uint32_t) (seek_lba + i), NULL, &density) <= 0)
+            return -1.0;
+        transfer += density * turn_us;
+    }
+
+    dev->dpm_angle = fmod(to + transfer / turn_us, 1.0);
+    dev->dpm_time  = now + seek + transfer;
+
+    return seek + transfer;
 }
 
 double
@@ -3778,6 +3861,8 @@ cdrom_update_status(cdrom_t *dev)
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
 
+    dev->dpm_angle = -1.0;
+
     if ((dev->cd_status != CD_STATUS_EMPTY) &&
         (dev->cd_status != CD_STATUS_DVD_REJECTED) &&
         (dev->cd_status != CD_STATUS_HDDVD_REJECTED) &&
@@ -3893,8 +3978,14 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 #endif
     }
 
+    if ((dev->local != NULL) && (strlen(dev->image_path) != 0))
+        cdrom_log(dev->log, "Image \"%s\" %s\n", dev->image_path,
+                  cdrom_has_dpm(dev) ? "has DPM" : "has no DPM");
+
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
+
+    dev->dpm_angle = -1.0;
 
     if (dev->local == NULL) {
         dev->ops           = NULL;
