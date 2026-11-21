@@ -653,7 +653,10 @@ then
 	macports="/opt/local"
 	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
-	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
+	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt6/bin:$PATH"
+
+	# Enable Qt 6.
+	cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 
 	# Enable MoltenVK.
 	cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
@@ -668,10 +671,13 @@ then
 		echo [-] Installing dependencies through MacPorts
 		sudo "$macports/bin/port" selfupdate
 
-		# Patch Qt to enable Vulkan support.
-		qt5_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/aqua/qt5/Portfile"
-		sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
-		sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
+		# Patch Qt to enable Vulkan support. The Qt 6 Portfiles are split by Qt version
+		# (qt6, qt611, qt610...) with MacPorts choosing one based on the macOS version.
+		for qt6_portfile in "$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/aqua/qt6"*/Portfile
+		do
+			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt6_portfile"
+			sudo sed -i -e 's/configure.env-append\( *\)PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1/configure.env-append\1VULKAN_SDK=${prefix} PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1/g' "$qt6_portfile"
+		done
 
 		# Patch wget to remove libproxy support, as it depends on shared-mime-info which
 		# fails to build for older targets, which we have to do despite wget only being
@@ -690,6 +696,15 @@ then
 			if [ -n "$stuck_dep" ]
 			then
 				# Deactivate the stuck dependency and try again.
+				sudo "$macports/bin/port" -f deactivate "$stuck_dep"
+				continue
+			fi
+
+			# Check for build conflicts, such as Qt 6 with zstdConfig.cmake.
+			stuck_dep=$(grep " cannot be built while " macports.log | grep -v " another version of " | sed -e 's/.* cannot be built while \([^ ]*\) is active.*/\1/' | head -n 1)
+			if [ -n "$stuck_dep" ]
+			then
+				# Deactivate the conflicting port and try again.
 				sudo "$macports/bin/port" -f deactivate "$stuck_dep"
 				continue
 			fi

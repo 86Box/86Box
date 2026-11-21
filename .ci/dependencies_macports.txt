@@ -8,7 +8,10 @@ openal-soft
 rtmidi
 vulkan-headers
 MoltenVK
-qt5
+qt6-qtbase
+qt6-qtimageformats
+qt6-qttools
+qt6-qttranslations
 wget
 fluidsynth
 ghostscript
