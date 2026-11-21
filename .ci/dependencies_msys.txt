@@ -10,6 +10,7 @@ libpng
 rtmidi
 libslirp
 fluidsynth
+libwebp
 qt6-static
 qt6-translations
 vulkan-headers
