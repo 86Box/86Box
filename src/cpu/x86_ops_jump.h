@@ -1,3 +1,19 @@
+/* A direct near jump or call: the recompiler may record on into its target
+   (codegen_follow_near()) rather than end the block here */
+#ifndef CPU_BLOCK_END_NEAR
+#    define CPU_BLOCK_END_NEAR() CPU_BLOCK_END()
+#endif
+/* A taken Jcc: the recompiler may have compiled it to go on at its target
+   (codegen_follow_jcc()) */
+#ifndef CPU_BLOCK_END_JCC
+#    define CPU_BLOCK_END_JCC() CPU_BLOCK_END()
+#endif
+/* A near RET: the recompiler may record on at the address it returned to,
+   behind a check of it (codegen_follow_ret()) */
+#ifndef CPU_BLOCK_END_RET
+#    define CPU_BLOCK_END_RET() CPU_BLOCK_END()
+#endif
+
 #define cond_O   (VF_SET())
 #define cond_NO  (!VF_SET())
 #define cond_B   (CF_SET())
@@ -25,7 +41,7 @@
             if (!(cpu_state.op32 & 0x100))                              \
                 cpu_state.pc &= 0xffff;                                 \
             CLOCK_CYCLES_ALWAYS(timing_bt);                             \
-            CPU_BLOCK_END();                                            \
+            CPU_BLOCK_END_JCC();                                            \
             PREFETCH_RUN(timing_bt + timing_bnt, 2, -1, 0, 0, 0, 0, 0); \
             PREFETCH_FLUSH();                                           \
             return 1;                                                   \
@@ -42,7 +58,7 @@
             cpu_state.pc += offset;                                     \
             cpu_state.pc &= 0xffff;                                     \
             CLOCK_CYCLES_ALWAYS(timing_bt);                             \
-            CPU_BLOCK_END();                                            \
+            CPU_BLOCK_END_JCC();                                            \
             PREFETCH_RUN(timing_bt + timing_bnt, 3, -1, 0, 0, 0, 0, 0); \
             PREFETCH_FLUSH();                                           \
             return 1;                                                   \
@@ -60,7 +76,7 @@
         if (cond_##condition) {                                         \
             cpu_state.pc += offset;                                     \
             CLOCK_CYCLES_ALWAYS(timing_bt);                             \
-            CPU_BLOCK_END();                                            \
+            CPU_BLOCK_END_JCC();                                            \
             PREFETCH_RUN(timing_bt + timing_bnt, 5, -1, 0, 0, 0, 0, 0); \
             PREFETCH_FLUSH();                                           \
             return 1;                                                   \
@@ -237,7 +253,7 @@ opJMP_r8(uint32_t fetchdat)
     cpu_state.pc += offset;
     if (!(cpu_state.op32 & 0x100))
         cpu_state.pc &= 0xffff;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_NEAR();
     CLOCK_CYCLES((is486) ? 3 : 7);
     PREFETCH_RUN(7, 2, -1, 0, 0, 0, 0, 0);
     PREFETCH_FLUSH();
@@ -249,7 +265,7 @@ opJMP_r16(uint32_t fetchdat)
     int16_t offset = (int16_t) getwordf();
     cpu_state.pc += offset;
     cpu_state.pc &= 0xffff;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_NEAR();
     CLOCK_CYCLES((is486) ? 3 : 7);
     PREFETCH_RUN(7, 3, -1, 0, 0, 0, 0, 0);
     PREFETCH_FLUSH();
@@ -262,7 +278,7 @@ opJMP_r32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
     cpu_state.pc += offset;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_NEAR();
     CLOCK_CYCLES((is486) ? 3 : 7);
     PREFETCH_RUN(7, 5, -1, 0, 0, 0, 0, 0);
     PREFETCH_FLUSH();
@@ -316,7 +332,7 @@ opCALL_r16(uint32_t fetchdat)
     PUSH_W(cpu_state.pc);
     cpu_state.pc += addr;
     cpu_state.pc &= 0xffff;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_NEAR();
     CLOCK_CYCLES((is486) ? 3 : 7);
     PREFETCH_RUN(7, 3, -1, 0, 0, 1, 0, 0);
     PREFETCH_FLUSH();
@@ -331,7 +347,7 @@ opCALL_r32(UNUSED(uint32_t fetchdat))
         return 1;
     PUSH_L(cpu_state.pc);
     cpu_state.pc += addr;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_NEAR();
     CLOCK_CYCLES((is486) ? 3 : 7);
     PREFETCH_RUN(7, 5, -1, 0, 0, 0, 1, 0);
     PREFETCH_FLUSH();
@@ -347,7 +363,7 @@ opRET_w(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
     cpu_state.pc = ret;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_RET();
 
     CLOCK_CYCLES((is486) ? 5 : 10);
     PREFETCH_RUN(10, 1, -1, 1, 0, 0, 0, 0);
@@ -363,7 +379,7 @@ opRET_l(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
     cpu_state.pc = ret;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_RET();
 
     CLOCK_CYCLES((is486) ? 5 : 10);
     PREFETCH_RUN(10, 1, -1, 0, 1, 0, 0, 0);
@@ -385,7 +401,7 @@ opRET_w_imm(uint32_t fetchdat)
     else
         SP += offset;
     cpu_state.pc = ret;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_RET();
 
     CLOCK_CYCLES((is486) ? 5 : 10);
     PREFETCH_RUN(10, 5, -1, 1, 0, 0, 0, 0);
@@ -406,7 +422,7 @@ opRET_l_imm(uint32_t fetchdat)
     else
         SP += offset;
     cpu_state.pc = ret;
-    CPU_BLOCK_END();
+    CPU_BLOCK_END_RET();
 
     CLOCK_CYCLES((is486) ? 5 : 10);
     PREFETCH_RUN(10, 5, -1, 0, 1, 0, 0, 0);

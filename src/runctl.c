@@ -401,7 +401,7 @@ runctl_quantum_done(uint32_t us)
 /* Pacing: the CPU thread owes the guest the host time that has passed, and
    pays it back one quantum (1 ms, or 10 ms with force_10ms) per pass. */
 #define QUANTUM_NS  (force_10ms ? 10000000LL : 1000000LL)
-#define MAX_DEBT_NS 50000000LL
+#define MAX_DEBT_NS 250000000LL
 
 static void
 idle_hard_reset(void)

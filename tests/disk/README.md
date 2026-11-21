@@ -41,3 +41,23 @@ and loading an existing image whose geometry already matches.
 The Unix branch now passes the absolute length, `full_size + base`, to
 `ftruncate()`, and all three tests pass. Note that the regression only
 exercises the fixed code on Unix builds; on Windows it runs the append path.
+
+## Write-behind of file images (Linux)
+
+Guest writes to raw, HDI and HDX images are queued and written by a thread
+of their own (`hdd_image.c`, POSIX hosts): it wakes for the first write of a
+batch, lets more gather for up to 10 ms, and a write carrying on from the
+newest queued one is added to it. The `HddImageWriteBehind` tests replace the
+host's `pwrite()` with one that can hold every write, as a filesystem commit
+would, or fail one:
+
+| Test | Checks |
+| --- | --- |
+| `ReadsSeeWritesStillQueuedBehindAStalledHostWrite` | reads return the newest queued data (write being made, writes and a zero behind it, overlapping), the file is untouched until the host lets the writes through, and a flush leaves file and reads equal |
+| `ARunOfSectorsWrittenOneAtATimeIsOneHostWrite` | 100 single-sector writes in a row (as ATA WRITE MULTIPLE hands them over) reach the host as at most two writes, and read back right before that |
+| `AFailedHostWriteIsReportedByTheNextWriteOrFlush` | a failed host write returns -1 from the next flush or write, once |
+| `ClosingWritesEverythingQueued` | closing the image waits for every queued write |
+| `RandomWritesAndReadsMatchTheDisk` | 4000 random writes, zeroes and reads with the host holding writes at random agree with a model, and so does the file after closing |
+
+Breaking the copy from the queue (left out, or oldest last) fails the first
+and the last test. The tests are compiled on Linux only.
