@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-20 01:53+0000\n"
+"PO-Revision-Date: 2026-11-21 10:28+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -731,7 +731,7 @@ msgid "Bus:"
 msgstr "总线:"
 
 msgid "Channel:"
-msgstr "声道:"
+msgstr "通道："
 
 msgid "ID:"
 msgstr "ID:"
@@ -2492,7 +2492,7 @@ msgid "SB low DMA"
 msgstr "Sound Blaster 低 DMA"
 
 msgid "6CH variant (6-channel)"
-msgstr "6声道变体"
+msgstr "6通道变体"
 
 msgid "Enable CMS"
 msgstr "启用 CMS"
@@ -3550,7 +3550,7 @@ msgid "Auto-detect"
 msgstr "自动检测"
 
 msgid "Channel"
-msgstr "声道"
+msgstr "通道"
 
 msgid "Both Channels"
 msgstr "双声道"
