@@ -88,13 +88,13 @@ jobs:
 #            qt6: off
 #            slug: -SDL
 #            static: on
-          - name: Qt 5 GUI
-            id: qt5
+          - name: Qt 6 GUI
+            id: qt6
             qt: on
-            qt6: off
-            slug: -Qt5
+            qt6: on
+            slug: -Qt6
             packages: >-
-              qt@5
+              qt
         environment:
           - arch: x86_64
             slug: -x86_64
@@ -141,8 +141,8 @@ jobs:
           cmake -S . -B build --preset ${{ matrix.build.preset }}
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
-          -D Qt5_ROOT=$(brew --prefix qt@5)
-          -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D Qt6_ROOT=$(brew --prefix qt)
+          -D Qt6LinguistTools_ROOT=$(brew --prefix qt)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
           -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
           -D LibArchive_ROOT=$(brew --prefix libarchive)

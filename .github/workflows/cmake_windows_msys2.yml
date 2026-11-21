@@ -4,8 +4,8 @@ name: CMake (Windows)
 # .ci/build.sh) don't cover.
 #
 # The build types and user interfaces marked manual are only built on manual
-# runs with the full matrix option. Among them is the UCRT64 Qt 5 Dev Debug
-# build, which the CodeQL workflow already makes (though with a shared Qt).
+# runs with the full matrix option. Among them is the UCRT64 Qt 6 Dev Debug
+# build, which the CodeQL workflow already makes.
 
 on:
 

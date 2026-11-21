@@ -5,7 +5,7 @@ name: CMake (macos)
 #
 # The build types, user interfaces and architectures marked manual are only
 # built on manual runs with the full matrix option, as macOS runners are
-# scarce. Among them is the x86_64 Qt 5 Dev Debug build, which the CodeQL
+# scarce. Among them is the x86_64 Qt 6 Dev Debug build, which the CodeQL
 # workflow already makes.
 
 on:
