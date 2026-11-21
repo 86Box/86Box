@@ -109,6 +109,19 @@ if(NOT NO_STATIC_OPTION)
     endif()
 endif()
 
+# zlib 1.4+ ships a CMake config package in which ZLIB::ZLIB is the shared
+# library and ZLIB::ZLIBSTATIC the static one. With config mode preferred,
+# every find_package(ZLIB) (ours and the ones inside FindPNG etc.) would
+# then link libz-1.dll. Define ZLIB::ZLIB up front as the static library;
+# the zlib config and FindZLIB both leave an existing ZLIB::ZLIB alone.
+if(STATIC_BUILD AND MINGW)
+    find_package(ZLIB COMPONENTS static QUIET)
+    if(TARGET ZLIB::ZLIBSTATIC AND NOT TARGET ZLIB::ZLIB)
+        add_library(ZLIB::ZLIB INTERFACE IMPORTED)
+        target_link_libraries(ZLIB::ZLIB INTERFACE ZLIB::ZLIBSTATIC)
+    endif()
+endif()
+
 if(HAIKU)
     set(OPENAL ON)
 endif()
