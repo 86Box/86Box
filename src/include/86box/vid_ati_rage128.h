@@ -2179,6 +2179,7 @@ extern void rage128_flush_lock(rage128_t *dev);
 extern void rage128_flush_unlock(rage128_t *dev);
 #ifdef REG_HARNESS
 extern _Atomic(void (*)(rage128_t *dev, struct rage128_span_stage *st)) rage128_harness_wb_hook;
+extern atomic_int rage128_harness_take_nomem;
 #endif
 
 /* ---- Depth plane, fixed point ----

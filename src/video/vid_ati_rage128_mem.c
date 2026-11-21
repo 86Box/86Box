@@ -451,9 +451,7 @@ r128_stage_lost(uint32_t vm, uint32_t len)
 }
 
 /* The write-back itself, made in place from the arena. Runs on the
-   thread that owns the staging, or on the CPU thread for a staging
-   handed over while its owner waits and no memory was left for
-   r128_span_stage_take. */
+   thread that owns the staging. */
 void
 r128_span_stage_push(rage128_t *dev, struct rage128_span_stage *st)
 {
@@ -474,8 +472,19 @@ r128_span_stage_push(rage128_t *dev, struct rage128_span_stage *st)
 
 /* Copy the runs a write-back of st stores into job and release st, so
    its owner may reuse the staging while the CPU thread is still storing
-   the copy (rage128_pm4_wb_service). Returns 0, with st left as it was,
-   when there is no memory for the copy. */
+   the copy (rage128_pm4_wb_service). Without memory for the copy the
+   write-back is dropped: st is released, the loss is announced and 0 is
+   returned. The staging is not written in place instead, because its
+   owner waits for the write-back, and a write that reaches a handler
+   which waits for the owner, such as a table entry pointing at this
+   card's registers, would then wait forever; the copy is what lets the
+   owner go early (rage128_pm4_wb_release_early). */
+#ifdef REG_HARNESS
+/* Register-harness probe point: nonzero makes the copy's allocation
+   fail. Zero outside the vectors that use it. */
+atomic_int rage128_harness_take_nomem;
+#endif
+
 int
 r128_span_stage_take(struct rage128_span_stage *st, r128_stage_job_t *job)
 {
@@ -483,6 +492,7 @@ r128_span_stage_take(struct rage128_span_stage *st, r128_stage_job_t *job)
     uint32_t s;
     uint32_t nruns = 0;
     uint32_t bytes = 0;
+    int      nomem = 0;
 
     memset(job, 0, sizeof(*job));
     while (r128_stage_next_run(st, &pos, &s)) {
@@ -491,10 +501,17 @@ r128_span_stage_take(struct rage128_span_stage *st, r128_stage_job_t *job)
     }
     job->run  = (uint32_t *) malloc(((size_t) nruns + 1) * 2 * sizeof(uint32_t));
     job->data = (uint8_t *) malloc((size_t) bytes + 1);
-    if (!job->run || !job->data) {
+#ifdef REG_HARNESS
+    nomem = atomic_load(&rage128_harness_take_nomem);
+#endif
+    if (!job->run || !job->data || nomem) {
         free(job->run);
         free(job->data);
         memset(job, 0, sizeof(*job));
+        pclog("[r128 mem] staged write-back lost: vm=%08x len=%u (no memory for the copy)\n",
+              st->vm, st->len);
+        st->active = 0;
+        st->tiled  = 0;
         return 0;
     }
     job->vm     = st->vm;

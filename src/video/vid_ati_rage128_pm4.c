@@ -766,10 +766,10 @@ rage128_pm4_wb_release_early(rage128_t *dev)
    posted, if any, and let it go on. The changed bytes are copied out of
    the staging first and the staging released, so the packet thread may
    reuse it as soon as it is let go, which rage128_pm4_wb_release_early
-   can do partway through. Without memory for the copy the staging is
-   written in place and the packet thread waits throughout. Does nothing
-   on the packet thread, so a caller shared by both threads can call it
-   unconditionally. A write-back served from inside another one, through
+   can do partway through. Without memory for the copy the write-back is
+   dropped (r128_span_stage_take says why) and the packet thread let go.
+   Does nothing on the packet thread, so a caller shared by both threads
+   can call it unconditionally. A write-back served from inside another one, through
    a wait in a handler, keeps the outer one's state on the stack. */
 void
 rage128_pm4_wb_service(rage128_t *dev)
@@ -785,7 +785,6 @@ rage128_pm4_wb_service(rage128_t *dev)
     if (!st)
         return;
     if (!r128_span_stage_take(st, &job)) {
-        r128_span_stage_push(dev, st);
         rage128_pm4_wb_release(dev);
         return;
     }

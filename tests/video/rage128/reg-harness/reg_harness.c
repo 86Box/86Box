@@ -7387,6 +7387,55 @@ run_gart_wb_handoff(void)
         drain_sync(dev);
     }
 
+    /* The same two write-backs with no memory for the copy the CPU
+       thread makes of the changed bytes. The staging cannot be written
+       in place while the executor waits, since a write into the device's
+       registers would then wait for the executor, so the write-back is
+       dropped, as the device reports, and the executor goes on. First
+       the page that resolves to the device: the run has to come back
+       with the device never written. Then an ordinary page: dropped
+       too, nothing reaches guest memory. */
+    {
+        void    (*hook_save)(uint32_t addr, uint32_t len) = harness_bm_write_hook;
+        uint32_t *tbl  = (uint32_t *) (ram + GW_TABLE);
+        uint64_t  stray = harness_sysmem_stray;
+        int       n;
+
+        wr(dev, RAGE128_DP_SRC_FRGD_CLR, 0);
+        tbl[(GW_DST & 0x01ffffffu) >> 12] = GW_NOMEM;
+        n                                 = gw_ring((uint32_t *) (ram + RING_PHYS));
+        gw_dev                            = dev;
+        atomic_store(&gw_reg_writes, 0);
+        harness_bm_write_hook = gw_nomem_hook;
+        atomic_store(&rage128_harness_take_nomem, 1);
+        harness_log_tail_reset();
+        gw_kick(dev, n);
+        drain_sync(dev);
+        harness_bm_write_hook = hook_save;
+        harness_sysmem_stray  = stray;
+        check_true("gart wb nomem: a write-back toward the device's registers returns, device not written",
+                   atomic_load(&gw_reg_writes) == 0 && rd(dev, RAGE128_DP_SRC_FRGD_CLR) == 0);
+        check_log("gart wb nomem: the dropped write-back is reported",
+                  "write-back lost: vm=02070000 len=64 (no memory for the copy)", 1);
+        wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+        drain_sync(dev);
+
+        tbl[(GW_DST & 0x01ffffffu) >> 12] = GW_PHYS;
+        memset(ram + GW_PHYS, 0, 0x1000);
+        n = gw_ring((uint32_t *) (ram + RING_PHYS));
+        harness_log_tail_reset();
+        gw_kick(dev, n);
+        drain_sync(dev);
+        check_true("gart wb nomem: a write-back to guest memory is dropped, nothing posted or staged",
+                   *(uint32_t *) (ram + GW_PHYS + 15 * 4) == 0
+                       && atomic_load(&dev->cce_wb_req) == NULL && !dev->s2d_dst.active);
+        check_log("gart wb nomem: the dropped guest-memory write-back is reported",
+                  "write-back lost: vm=02070000 len=64 (no memory for the copy)", 1);
+        atomic_store(&rage128_harness_take_nomem, 0);
+        wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+        drain_sync(dev);
+    }
+
     /* Close while the executor waits: the post is taken back. */
     posted = gh_post(dev);
     check_true("gart wb handoff: control: executor posted before the close", posted);
