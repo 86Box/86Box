@@ -502,7 +502,7 @@ static void
 summa_report_bitpad(mouse_wacom_t *wacom, int x, int y, int b, int prox)
 {
     int  flag = summa_bitpad_flag(wacom, b);
-    char buf[64];
+    char buf[32];
 
     if (wacom->summa.binary) {
         uint8_t data[5];
@@ -524,20 +524,25 @@ summa_report_bitpad(mouse_wacom_t *wacom, int x, int y, int b, int prox)
     }
 
     if (wacom->summa.relative) {
-        char xs[16];
-        char ys[16];
+        char xs[8];
+        char ys[8];
 
         if (x < 0)
-            snprintf(xs, sizeof(xs), "-%03d", -summa_clamp(x, -999, 0));
+            snprintf(xs, sizeof(xs), "-%03d",
+                     summa_clamp(-x, 0, 999) % 1000);
         else
-            snprintf(xs, sizeof(xs), "%04d", summa_clamp(x, 0, 9999));
+            snprintf(xs, sizeof(xs), "%04d",
+                     summa_clamp(x, 0, 9999) % 10000);
         if (y < 0)
-            snprintf(ys, sizeof(ys), "-%03d", -summa_clamp(y, -999, 0));
+            snprintf(ys, sizeof(ys), "-%03d",
+                     summa_clamp(-y, 0, 999) % 1000);
         else
-            snprintf(ys, sizeof(ys), "%04d", summa_clamp(y, 0, 9999));
+            snprintf(ys, sizeof(ys), "%04d",
+                     summa_clamp(y, 0, 9999) % 10000);
         snprintf(buf, sizeof(buf), "%s,%s,", xs, ys);
     } else
-        snprintf(buf, sizeof(buf), "%04d,%04d,", summa_clamp(x, 0, 9999), summa_clamp(y, 0, 9999));
+        snprintf(buf, sizeof(buf), "%04d,%04d,", summa_clamp(x, 0, 9999) % 10000,
+                                                         summa_clamp(y, 0, 9999) % 10000);
     summa_push_str(wacom, buf);
 
     snprintf(buf, sizeof(buf), "%c\r%s", prox ? ('0' + flag) : '9', wacom->summa.crlf ? "\n" : "");
