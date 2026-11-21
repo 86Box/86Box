@@ -755,3 +755,9 @@ fpu_postamble(void)
 
     cpu_state.fpu_ea = cpu_state.eaaddr;
 }
+
+void
+x86_sub_cycles(int cycs)
+{
+    cycles -= cycs;
+}

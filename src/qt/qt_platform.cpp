@@ -157,8 +157,11 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/runctl.h>
 
-#include "../cpu/cpu.h"
 #include <86box/plat.h>
+
+extern "C" {
+extern void x86_sub_cycles(int cycs);
+}
 
 volatile int cpu_thread_run  = 1;
 int          mouse_capture   = 0;
@@ -867,7 +870,7 @@ plat_power_off(void)
 
     /* Deduct a sufficiently large number of cycles that no instructions will
        run before the main thread is terminated */
-    cycles -= 99999999;
+    x86_sub_cycles(99999999);
 
     runctl_request_stop();
     QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);

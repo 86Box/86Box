@@ -28,8 +28,6 @@
 #endif
 
 extern "C" {
-#include "../cpu/cpu.h"
-
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>

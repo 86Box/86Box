@@ -103,7 +103,6 @@ extern MainWindow   *main_window;
 
 extern "C" {
 #include <86box/keyboard.h>
-#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #ifndef Q_OS_MACOS
@@ -118,6 +117,8 @@ extern void exit_pause(void);
 #endif
 
 #include <locale.h>
+
+extern int cpu_override;
 
 void qt_set_sequence_auto_mnemonic(bool b);
 

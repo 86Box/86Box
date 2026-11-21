@@ -32,7 +32,7 @@
 #include <algorithm>
 
 extern "C" {
-#include "../cpu/cpu.h"
+#include "cpu_table.h"
 
 #include <86box/86box.h>
 #include <86box/config.h>

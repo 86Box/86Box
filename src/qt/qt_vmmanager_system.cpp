@@ -41,7 +41,7 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/plat.h>
 #include <86box/sound.h>
-#include <cpu.h>
+#include <cpu_table.h>
 #include <86box/thread.h> // required for network.h
 #include <86box/timer.h>  // required for network.h and fdd.h
 #include <86box/cdrom.h>
