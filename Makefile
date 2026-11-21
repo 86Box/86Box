@@ -1,10 +1,10 @@
-qt?=5
+qt?=6
 dynarec?=
 CMAKE_FLAGS?=
 CMAKE_EXTRA:=
 
-ifeq ($(qt),6)
-	CMAKE_EXTRA += -DUSE_QT6=ON
+ifeq ($(qt),5)
+	CMAKE_EXTRA += -DUSE_QT6=OFF
 endif
 
 ifeq ($(dynarec),off)

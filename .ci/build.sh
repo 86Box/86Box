@@ -395,9 +395,6 @@ then
 	fi
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
-	# Enable Qt 6.
-	cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
-
 	# Install dependencies only if we're in a new build and/or architecture.
 	if check_buildtag "$MSYSTEM"
 	then
@@ -655,9 +652,6 @@ then
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
 	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt6/bin:$PATH"
 
-	# Enable Qt 6.
-	cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
-
 	# Enable MoltenVK.
 	cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
 
@@ -827,9 +821,6 @@ EOF
 	else
 		echo [-] Not installing dependencies again
 	fi
-
-	# Enable Qt 6.
-	cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 
 	# Set up the Rust environment.
 	[ ! -x "$HOME/.cargo/bin/cargo" ] && curl -sSf https://sh.rustup.rs | sh -s -- -y
