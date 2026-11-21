@@ -1146,6 +1146,15 @@ typedef struct rage128_t {
        executor is on its way to the same flush. Created before the
        executor thread exists. */
     mutex_t *raster_flush_mtx;
+    /* Taken ahead of raster_flush_mtx by rage128_flush_lock, so the CPU
+       thread can answer a write-back hand-off while it waits for a flush
+       on the packet thread to end instead of sleeping on the mutex.
+       0 = free, 1 = taken; raster_flush_waiters counts the threads
+       waiting for it, and raster_flush_free is set when it drops while
+       one waits. */
+    atomic_int raster_flush_claim;
+    atomic_int raster_flush_waiters;
+    event_t   *raster_flush_free;
     int      jit_enabled;      /* "recompiler" config option (per-VM cfg)    */
     void    *jit;              /* opaque span-JIT context (vid_ati_rage128_jit.c) */
     void    *synctel;          /* GPU-offload flush-point telemetry, NULL = off
@@ -1417,6 +1426,14 @@ typedef struct rage128_t {
     struct rage128_span_stage c_stage; /* 3D color/render target  */
     struct rage128_span_stage s2d_dst; /* 2D dst window scratch   */
     struct rage128_span_stage s2d_src; /* 2D src window scratch   */
+    /* Write-back hand-off (rage128_pm4_wb_handoff): the packet thread
+       posts a stage in cce_wb_req and sleeps on cce_wb_event until the
+       CPU thread has written it to guest memory and set cce_wb_done, or
+       until the device's close sets cce_wb_closing. */
+    _Atomic(struct rage128_span_stage *) cce_wb_req;
+    atomic_int                           cce_wb_done;
+    atomic_int                           cce_wb_closing;
+    event_t                             *cce_wb_event;
 
     /* R128_GPU_2D=verify comparison for queued 2D operations whose
        result the CPU works out (keyed blit, stretch, line, gradient):
@@ -1707,6 +1724,20 @@ extern int  r128_span_stage_acquire_tiled(rage128_t                 *dev,
                                           uint32_t tbase, uint32_t tpitch,
                                           uint32_t extent);
 extern void r128_span_stage_writeback(rage128_t *dev, struct rage128_span_stage *st);
+extern void r128_span_stage_push(rage128_t *dev, struct rage128_span_stage *st);
+/* A write-back's changed runs, copied out of a staging so the CPU thread
+   can store them after the staging's owner has gone on
+   (vid_ati_rage128_mem.c r128_span_stage_take). run holds nruns pairs of
+   arena offset and length; data holds their bytes back to back. */
+typedef struct r128_stage_job_t {
+    uint32_t  vm, len, tbase, tpitch;
+    uint32_t  tiled;
+    uint32_t  nruns;
+    uint32_t *run;
+    uint8_t  *data;
+} r128_stage_job_t;
+extern int  r128_span_stage_take(struct rage128_span_stage *st, r128_stage_job_t *job);
+extern void r128_stage_job_write(rage128_t *dev, r128_stage_job_t *job);
 extern int  r128_surf_map(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *st,
                           uint32_t lo, uint32_t len);
 extern int  r128_surf_map_tiled(rage128_t *dev, r128_surf_t *s,
@@ -2134,9 +2165,21 @@ extern int rage128_raster_nthreads(rage128_t *dev);
 extern int  rage128_pm4_scratch_hold(rage128_t *dev, uint32_t n, uint32_t val, uint32_t mask);
 extern void rage128_pm4_scratch_apply(rage128_t *dev);
 extern void rage128_pm4_scratch_drop(rage128_t *dev);
-/* Device->guest GART writes -- write-back twin of the staging reads
-   (vid_ati_rage128_pm4.c). SUBMIT-THREAD ONLY. */
-extern int rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
+/* Device writes to guest memory, the write-back counterpart of the
+   staging reads, and the hand-off that brings a packet-thread write-back
+   to the CPU thread (vid_ati_rage128_pm4.c). rage128_pm4_bus_write_block
+   runs on the CPU thread only. rage128_pm4_wb_service is called by the
+   CPU thread wherever it can answer a pending hand-off. The flush lock
+   pair brackets every rage128_raster_flush and every other user of
+   raster_flush_mtx. */
+extern int  rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
+extern int  rage128_pm4_wb_handoff(rage128_t *dev, struct rage128_span_stage *st);
+extern void rage128_pm4_wb_service(rage128_t *dev);
+extern void rage128_flush_lock(rage128_t *dev);
+extern void rage128_flush_unlock(rage128_t *dev);
+#ifdef REG_HARNESS
+extern _Atomic(void (*)(rage128_t *dev, struct rage128_span_stage *st)) rage128_harness_wb_hook;
+#endif
 
 /* ---- Depth plane, fixed point ----
    Interpolated depth is modeled as an exact fixed-point plane: normalized

@@ -177,9 +177,9 @@ rage128_harness_raster_cmd_count(rage128_t *dev)
 
     if (!rb)
         return 0;
-    thread_wait_mutex(dev->raster_flush_mtx);
+    rage128_flush_lock(dev);
     n = rb->cmd_count;
-    thread_release_mutex(dev->raster_flush_mtx);
+    rage128_flush_unlock(dev);
     return n;
 }
 #endif
@@ -358,7 +358,7 @@ rb_flush(rage128_t *dev, int recycle_tex)
 {
     rage128_raster_t *rb = (rage128_raster_t *) dev->raster;
 
-    thread_wait_mutex(dev->raster_flush_mtx);
+    rage128_flush_lock(dev);
 
     if (rb && rb->nthreads > 1 && rb->cmd_count != 0) {
         /* This flush takes the pending batch. cce_batch_flushing is set
@@ -448,7 +448,7 @@ rb_flush(rage128_t *dev, int recycle_tex)
     if (atomic_load(&dev->cce_batch_flushing))
         atomic_store(&dev->cce_batch_flushing, 0);
 
-    thread_release_mutex(dev->raster_flush_mtx);
+    rage128_flush_unlock(dev);
 }
 
 void

@@ -790,10 +790,13 @@ rage128_gen_int_update(rage128_t *dev)
    no extra test. A bus-master list that a packet started is run here
    too, before the line is brought up to date, because it can only run
    on the CPU thread and its end raises BUSMASTER_EOL_INT
-   (vid_ati_rage128_bm.c). */
+   (vid_ati_rage128_bm.c). So is a staged surface the packet thread has
+   handed over for its write to guest memory (rage128_pm4_wb_handoff):
+   the packet thread waits for it, so it goes first. */
 void
 rage128_gen_int_sync(rage128_t *dev)
 {
+    rage128_pm4_wb_service(dev);
     if (atomic_load_explicit(&dev->bm_pend_mask, memory_order_relaxed))
         rage128_bm_sync(dev);
     if (atomic_load_explicit(&dev->gen_int_stale, memory_order_relaxed))
@@ -823,10 +826,18 @@ rage128_gen_int_fold_gui_idle(rage128_t *dev)
    vertical blank starts a front porch before vertical sync, so the two
    events are latched separately. The bit stays set until the driver
    writes 1 to CRTC_VBLANK_INT_AK (RRG: GEN_INT_STATUS, p. 3-193 /
-   PDF 211). */
+   PDF 211). This callback and the vsync one also answer a write-back
+   hand-off from the packet thread (rage128_pm4_wb_handoff), which
+   bounds its wait to a frame when the guest makes no register read and
+   no ring pump is pending. The is_cpu_thread test keeps that to the
+   emulator's CPU thread, the only thread that may write guest memory;
+   an offline harness that drives these callbacks from another thread
+   answers the hand-off from its own main loop. */
 void
 rage128_gen_int_vblank(rage128_t *dev)
 {
+    if (is_cpu_thread)
+        rage128_pm4_wb_service(dev);
     rage128_gen_int_fold_gui_idle(dev);
     atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VBLANK);
     rage128_gen_int_update(dev);
@@ -838,6 +849,8 @@ rage128_gen_int_vblank(rage128_t *dev)
 void
 rage128_gen_int_vsync(rage128_t *dev)
 {
+    if (is_cpu_thread)
+        rage128_pm4_wb_service(dev);
     rage128_gen_int_fold_gui_idle(dev);
     atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VSYNC);
     rage128_gen_int_update(dev);
@@ -2767,7 +2780,8 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
        finds an empty FIFO and flushes, which takes this mutex and reads
        dev->raster, tex_stage and ftl_en; the GPU init above stores the
        last two when it starts at once (R128_GPU_DEFER=0). */
-    dev->raster_flush_mtx = thread_create_mutex();
+    dev->raster_flush_mtx  = thread_create_mutex();
+    dev->raster_flush_free = thread_create_event();
 
     rage128_pm4_thread_init(dev);
 
@@ -2835,6 +2849,8 @@ rage128_chip_close(rage128_t *dev)
     rage128_gpu_close(dev);                    /* executors stopped -> no GPU work in flight */
     thread_close_mutex(dev->raster_flush_mtx); /* no flusher left */
     dev->raster_flush_mtx = NULL;
+    thread_destroy_event(dev->raster_flush_free);
+    dev->raster_flush_free = NULL;
     free(dev->tex_stage.arena); /* workers joined -> arenas safe to free */
     free(dev->z_stage.arena);
     free(dev->z_stage.shadow);

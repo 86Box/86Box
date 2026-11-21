@@ -7126,6 +7126,276 @@ vectors_agp_straddle(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* A write-back to guest memory is a bus-master write, made where the */
+/* host's bus-master write path can see it and on the emulator's CPU  */
+/* thread, the only thread that may change guest memory. A PCI bus    */
+/* master's write to DRAM is snooped by the chipset (82443BX          */
+/* datasheet, WSC# signal description, p. 2-6), so it reaches every   */
+/* cached copy of the bytes, and it cannot land inside the            */
+/* processor's locked update of a page-table entry (HLOCK#, p. 2-2).  */
+/* A solid PAINT_MULTI from the ring, run by the executor, fills 16   */
+/* pixels of a surface in the AGP half of card space; its staged      */
+/* window is written back when the operation ends. The hook counts    */
+/* every bus-master write into the destination page and the ones made */
+/* on the executor's thread. Leg 1 reaches the page through the on-   */
+/* chip table with AGP_BASE 0, the PCI GART setup of the Linux DRM on */
+/* a PCI board; leg 2 through the chipset aperture, with the table    */
+/* off and AGP_BASE set.                                              */
+/* ------------------------------------------------------------------ */
+#define GW_TABLE 0x00180000u /* guest page of the on-chip table */
+#define GW_DST   0x02070000u /* card address of the destination, AGP half */
+#define GW_PHYS  0x0011a000u /* guest page the table maps it to */
+#define GW_APER  0x00400000u /* AGP_BASE for the aperture leg */
+#define GW_FILL  0x00c0ffeeu
+
+static atomic_int gw_lo, gw_calls, gw_cce_calls;
+
+static void
+gw_write_hook(uint32_t addr, uint32_t len)
+{
+    uint32_t lo = (uint32_t) atomic_load(&gw_lo);
+
+    (void) len;
+    if (addr < lo || addr >= lo + 0x1000u)
+        return;
+    atomic_fetch_add(&gw_calls, 1);
+    if (rage128_on_cce_thread)
+        atomic_fetch_add(&gw_cce_calls, 1);
+}
+
+/* The ring for one leg: PAINT_MULTI, solid brush GW_FILL, ROP PATCOPY,
+   32 bpp, destination GW_DST at a 64-pixel pitch, pixels (0,0) to
+   (15,0). Returns the dword count. */
+static int
+gw_ring(uint32_t *ring)
+{
+    int n = 0;
+
+    ring[n++] = 0xc0049100u;
+    ring[n++] = 0x00000002u | (13u << 4) | (6u << 8) | (0xf0u << 16) | (1u << 28) | (1u << 29)
+        | (1u << 30);
+    ring[n++] = (8u << 21) | (GW_DST >> 5);
+    ring[n++] = GW_FILL;
+    ring[n++] = 0x00000000u; /* top left (0,0) */
+    ring[n++] = 0x00010010u; /* bottom right (16,1), exclusive */
+    return n;
+}
+
+static void
+gw_kick(rage128_t *dev, int n)
+{
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+}
+
+static void
+vectors_gart_writeback_thread(rage128_t *dev)
+{
+    void    (*hook_save)(uint32_t addr, uint32_t len) = harness_bm_write_hook;
+    uint8_t   pci_cmd_save = pci_rd8(0x04);
+    uint32_t *tbl;
+    uint32_t  px[2];
+    int       calls[2], cce[2], n;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, 0x16e8, 0x1fff1fff); /* DEFAULT_SC_BOTTOM_RIGHT */
+    wr(dev, 0x1660, 0x00000000); /* AUX_SC_CNTL off */
+    harness_bm_write_hook = gw_write_hook;
+
+    /* Leg 1: the on-chip table, AGP_BASE 0. */
+    tbl = (uint32_t *) (ram + GW_TABLE);
+    memset(ram + GW_TABLE, 0, 0x8000);
+    tbl[RING_CARD_ADDR >> 12]         = RING_PHYS;
+    tbl[(GW_DST & 0x01ffffffu) >> 12] = GW_PHYS;
+    memset(ram + GW_PHYS, 0, 0x1000);
+    n = gw_ring((uint32_t *) (ram + RING_PHYS));
+    gart_table_on(dev, GW_TABLE);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    atomic_store(&gw_lo, (int) GW_PHYS);
+    atomic_store(&gw_calls, 0);
+    atomic_store(&gw_cce_calls, 0);
+    gw_kick(dev, n);
+    drain_sync(dev);
+    calls[0] = atomic_load(&gw_calls);
+    cce[0]   = atomic_load(&gw_cce_calls);
+    px[0]    = *(uint32_t *) (ram + GW_PHYS + 15 * 4);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+
+    /* Leg 2: the chipset aperture. The harness's bus-master path maps
+       bus addresses to guest memory one to one, so the ring and the
+       destination sit at AGP_BASE plus their low 25 bits. */
+    memset(ram + GW_APER + (GW_DST & 0x01ffffffu), 0, 0x1000);
+    n = gw_ring((uint32_t *) (ram + GW_APER + RING_CARD_ADDR));
+    wr(dev, RAGE128_AGP_BASE, GW_APER);
+    atomic_store(&gw_lo, (int) (GW_APER + (GW_DST & 0x01ffffffu)));
+    atomic_store(&gw_calls, 0);
+    atomic_store(&gw_cce_calls, 0);
+    gw_kick(dev, n);
+    drain_sync(dev);
+    calls[1] = atomic_load(&gw_calls);
+    cce[1]   = atomic_load(&gw_cce_calls);
+    px[1]    = *(uint32_t *) (ram + GW_APER + (GW_DST & 0x01ffffffu) + 15 * 4);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_AGP_BASE, 0);
+
+    harness_bm_write_hook = hook_save;
+    pci_wr8(0x04, pci_cmd_save);
+    printf("gart wb: data: table leg calls=%d on-executor=%d pixel=%08x; aperture leg calls=%d "
+           "on-executor=%d pixel=%08x\n", calls[0], cce[0], px[0], calls[1], cce[1], px[1]);
+    check_true("gart wb: table-direct write-back reaches the bus write path",
+               calls[0] >= 1 && px[0] == GW_FILL);
+    check_true("gart wb: no guest-RAM write from the packet thread",
+               calls[0] >= 1 && cce[0] == 0);
+    check_true("gart wb: aperture write-back made off the packet thread",
+               calls[1] >= 1 && cce[1] == 0 && px[1] == GW_FILL);
+    check_true("gart wb: no stray bus-master access", harness_sysmem_stray == 0);
+}
+
+/* ------------------------------------------------------------------ */
+/* The executor waits for the CPU thread to make a write-back it has  */
+/* handed over. A reset pulse and the device's close must both end    */
+/* that wait without a hang. Each leg holds the executor in the hand- */
+/* off hook until this thread has written PM4_BUFFER_DL_WPTR, then    */
+/* lets it post and watches the post appear in the device state,      */
+/* reading no register meanwhile: a register read answers the post.   */
+/* The reset pulse answers it before it parks the executor, so the    */
+/* fill is in guest memory when the pulse returns. The close takes    */
+/* the post back unanswered: the fill is dropped, as the device       */
+/* reports. The legs run on the PCI board, which selects the on-chip  */
+/* table by PCI_GART_PAGE alone. Every wait gives up after 2 s and    */
+/* fails the row that names it.                                       */
+/* ------------------------------------------------------------------ */
+static atomic_int gh_state; /* 0 off, 1 armed, 2 holding, 3 let go */
+
+static void
+gh_hook(rage128_t *dev, struct rage128_span_stage *st)
+{
+    int expect = 1;
+
+    (void) dev;
+    (void) st;
+    if (!atomic_compare_exchange_strong(&gh_state, &expect, 2))
+        return;
+    for (int ms = 0; ms < 2000 && atomic_load(&gh_state) == 2; ms++)
+        lap_msleep(1);
+}
+
+/* Submit the fill and bring the executor to a posted, unanswered
+   hand-off. Returns 1 once the post is visible. */
+static int
+gh_post(rage128_t *dev)
+{
+    uint32_t *tbl = (uint32_t *) (ram + GW_TABLE);
+    int       n, ms;
+
+    memset(ram + GW_TABLE, 0, 0x8000);
+    tbl[RING_CARD_ADDR >> 12]         = RING_PHYS;
+    tbl[(GW_DST & 0x01ffffffu) >> 12] = GW_PHYS;
+    memset(ram + GW_PHYS, 0, 0x1000);
+    n = gw_ring((uint32_t *) (ram + RING_PHYS));
+    wr(dev, RAGE128_PCI_GART_PAGE, GW_TABLE);
+    atomic_store(&gh_state, 1);
+    atomic_store(&rage128_harness_wb_hook, gh_hook);
+    gw_kick(dev, n);
+    for (ms = 0; ms < 2000 && atomic_load(&gh_state) != 2; ms++)
+        lap_msleep(1);
+    atomic_store(&gh_state, 3);
+    for (ms = 0; ms < 2000 && !atomic_load(&dev->cce_wb_req); ms++)
+        lap_msleep(1);
+    atomic_store(&rage128_harness_wb_hook, NULL);
+    return atomic_load(&dev->cce_wb_req) != NULL;
+}
+
+/* A table entry that points at no memory: past the end of guest RAM in
+   this harness, standing for a page that resolves to a device, such as
+   this card's own register window. The hook plays the device: the first
+   write it sees there, on the thread that serves the hand-off, writes a
+   register that drains the engine, as a write landing in the register
+   window would. */
+#define GW_NOMEM 0x00f00000u
+static rage128_t *gw_dev;
+static atomic_int gw_reg_writes;
+
+static void
+gw_nomem_hook(uint32_t addr, uint32_t len)
+{
+    (void) len;
+    if (addr < GW_NOMEM || addr >= GW_NOMEM + 0x1000u || rage128_on_cce_thread
+        || atomic_fetch_add(&gw_reg_writes, 1))
+        return;
+    wr(gw_dev, RAGE128_DP_SRC_FRGD_CLR, 0x00abcdefu);
+}
+
+static void
+run_gart_wb_handoff(void)
+{
+    rage128_t *dev;
+    uint32_t   pix;
+    int        posted;
+
+    harness_cfg_memory_mb = 32;
+    harness_ram_alloc();
+    dev = rage128_init(&ati_xpert128_pci_device);
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, 0x16e8, 0x1fff1fff); /* DEFAULT_SC_BOTTOM_RIGHT */
+    wr(dev, 0x1660, 0x00000000); /* AUX_SC_CNTL off */
+
+    /* Reset pulse while the executor waits. */
+    posted = gh_post(dev);
+    pix    = *(uint32_t *) (ram + GW_PHYS + 15 * 4);
+    check_true("gart wb handoff: control: executor posted, fill not in guest memory",
+               posted && pix == 0);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    check32("gart wb handoff: reset pulse answers the post, fill in guest memory",
+            *(uint32_t *) (ram + GW_PHYS + 15 * 4), GW_FILL);
+    check_true("gart wb handoff: nothing posted or staged after the pulse",
+               atomic_load(&dev->cce_wb_req) == NULL && !dev->s2d_dst.active);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    drain_sync(dev);
+
+    /* A write-back whose page resolves to a device rather than memory:
+       the device's handler waits for the engine, which waits for the
+       write-back. The run has to come back, with the register written. */
+    {
+        void    (*hook_save)(uint32_t addr, uint32_t len) = harness_bm_write_hook;
+        uint32_t *tbl  = (uint32_t *) (ram + GW_TABLE);
+        uint64_t  stray = harness_sysmem_stray;
+        int       n;
+
+        tbl[(GW_DST & 0x01ffffffu) >> 12] = GW_NOMEM;
+        n                                 = gw_ring((uint32_t *) (ram + RING_PHYS));
+        gw_dev                            = dev;
+        atomic_store(&gw_reg_writes, 0);
+        harness_bm_write_hook = gw_nomem_hook;
+        gw_kick(dev, n);
+        drain_sync(dev);
+        harness_bm_write_hook = hook_save;
+        harness_sysmem_stray  = stray;
+        check_true("gart wb handoff: a write-back into the device's registers returns, register written",
+                   atomic_load(&gw_reg_writes) >= 1
+                       && rd(dev, RAGE128_DP_SRC_FRGD_CLR) == 0x00abcdefu);
+        wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+        drain_sync(dev);
+    }
+
+    /* Close while the executor waits: the post is taken back. */
+    posted = gh_post(dev);
+    check_true("gart wb handoff: control: executor posted before the close", posted);
+    close_dev(dev);
+    check32("gart wb handoff: close drops the unanswered write-back",
+            *(uint32_t *) (ram + GW_PHYS + 15 * 4), 0);
+}
+
+/* ------------------------------------------------------------------ */
 /* A deferred batch's render-target identity must carry   */
 /* the ROW GEOMETRY, not just the bases. Two draws at one base whose    */
 /* rows map to different bytes -- destination datatype (color stride   */
@@ -14755,6 +15025,7 @@ run_agp_32mb(void)
     vectors_dp_mix_datatype(dev);
     vectors_standalone_2d(dev);
     vectors_agp_straddle(dev);
+    vectors_gart_writeback_thread(dev);
     vectors_dst_traj_tile(dev);
     vectors_dst_coord_wrap(dev);
     vectors_gui_reset_hostdata(dev);
@@ -16435,9 +16706,10 @@ vectors_fence_order(rage128_t *dev)
 /* driver that reads the engine idle goes on to read or reuse the      */
 /* surface, so GUI_STAT, PM4_STAT and PC_GUI_CTLSTAT have to read busy */
 /* through that write-back (RRG: GUI_STAT, p. 3-244 / PDF 262). The    */
-/* bus-master write hook holds the executor at its first write into    */
-/* the two surfaces, before the bytes land, until the CPU thread has   */
-/* read the registers and lets it go. Only a device with render        */
+/* write-back hand-off hook holds the executor at its first hand-off   */
+/* of either surface, before it posts the staging to the CPU thread    */
+/* and so before the bytes land, until the CPU thread has read the     */
+/* registers and lets it go. Only a device with render                 */
 /* workers defers a draw; with one render thread the leg does not run. */
 /* The vector puts back every register, hook and guest memory byte it  */
 /* changes. The reset pulse it starts with is not undone: it drops     */
@@ -16459,22 +16731,19 @@ enum {
 };
 static atomic_int wb_state;
 
-/* Holds one write: the executor's first into color buffer A or depth
-   buffer A after the vector arms the hook. The hold lasts until the
+/* Holds one hand-off: the executor's first of the color or depth
+   staging after the vector arms the hook. The hold lasts until the
    vector releases it, however long the CPU thread takes, so host load
    cannot end it early. WB_LIMIT_MS only keeps a broken device from
    hanging the run; reaching it is recorded in wb_state and reported by
    the vector as a failure of its own. Whatever ends the hold, no later
-   write is held. */
+   hand-off is held. */
 static void
-wb_write_hook(uint32_t addr, uint32_t len)
+wb_handoff_hook(rage128_t *dev, struct rage128_span_stage *st)
 {
-    int in_col = addr >= WB_COL_PHYS && addr < WB_COL_PHYS + 0x2000u;
-    int in_z   = addr >= WB_Z_PHYS && addr < WB_Z_PHYS + 0x2000u;
     int expect = WB_ARMED;
 
-    (void) len;
-    if (!rage128_on_cce_thread || (!in_col && !in_z)
+    if (!rage128_on_cce_thread || (st != &dev->c_stage && st != &dev->z_stage)
         || !atomic_compare_exchange_strong(&wb_state, &expect, WB_HOLDING))
         return;
     for (int ms = 0; ms < WB_LIMIT_MS && atomic_load(&wb_state) == WB_HOLDING; ms++)
@@ -16503,7 +16772,6 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
     };
     enum { NREGS = sizeof(regs) / sizeof(regs[0]) };
     static uint8_t ram_ib[128], ram_col[0x2000], ram_z[0x2000];
-    void         (*hook_save)(uint32_t addr, uint32_t len);
     uint32_t       reg_save[NREGS];
     uint32_t       indoff_save, indsize_save;
     uint64_t       stray_save;
@@ -16529,7 +16797,6 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
     indsize_save = dev->pm4_iw_indsize;
     pci_cmd_save = pci_rd8(0x04);
     stray_save   = harness_sysmem_stray;
-    hook_save    = harness_bm_write_hook;
     memcpy(ram_ib, ib, sizeof(ram_ib));
     memcpy(ram_col, ram + WB_COL_PHYS, sizeof(ram_col));
     memcpy(ram_z, ram + WB_Z_PHYS, sizeof(ram_z));
@@ -16548,8 +16815,7 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
     n       = ring_add_tri(ib, n, 0xff00ff00);
 
     /* AGP addressing through the chipset aperture, not the on-chip
-       table: the device then writes the staged surfaces back through
-       the host's bus-master write, where the hook can hold it. */
+       table. */
     pci_wr8(0x04, 0x07);
     wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
@@ -16588,11 +16854,11 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
 
     if (queued) {
         /* A wake that brings no work; the executor's pass draws the
-           batch and is held at its first write-back write. The wait
+           batch and is held at its first write-back hand-off. The wait
            for it sleeps: the hold does not end until this thread ends
            it, so there is no window to miss. */
         atomic_store(&wb_state, WB_ARMED);
-        harness_bm_write_hook = wb_write_hook;
+        atomic_store(&rage128_harness_wb_hook, wb_handoff_hook);
         thread_set_event(dev->cce_wake_event);
         for (int ms = 0; ms < WB_LIMIT_MS && atomic_load(&wb_state) == WB_ARMED; ms++)
             lap_msleep(1);
@@ -16620,7 +16886,7 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
     }
     rr_quiesce(dev);
     atomic_store(&wb_state, WB_OFF);
-    harness_bm_write_hook = hook_save;
+    atomic_store(&rage128_harness_wb_hook, NULL);
     stat_after            = rd(dev, RAGE128_GUI_STAT);
     pix_after             = *pix;
     stray_ok              = harness_sysmem_stray == 0;
@@ -33979,6 +34245,8 @@ main(int argc, char **argv)
         run_agp_16mb();
     if (unit_selected("pci-xpert128"))
         run_pci_xpert128();
+    if (unit_selected("pci-xpert128"))
+        run_gart_wb_handoff();
     if (unit_selected("agp-oracle"))
         run_cpu_walk_hold();
     if (unit_selected("agp-oracle"))
