@@ -15028,6 +15028,8 @@ vectors_load_palette(rage128_t *dev)
     check32("3d: 256-entry load, entry 16", dev->scl_palette[16], 0x00112233u);
 }
 
+static void vectors_bar0_bus_time(rage128_t *dev, const char *board, int is_agp, double scale);
+
 static void
 run_agp_32mb(void)
 {
@@ -15041,6 +15043,7 @@ run_agp_32mb(void)
     vectors_apertures(dev);
     vectors_aper_endian(dev);
     vectors_agp_image(dev);
+    vectors_bar0_bus_time(dev, "AGP board", 1, 8.0);
     vectors_zfx_helpers();
     vectors_dac_mask(dev);
     vectors_dpms(dev);
@@ -15144,6 +15147,118 @@ run_agp_16mb(void)
 }
 
 /* The PCI board (ATI Xpert 128): GART selection without an aperture. */
+/* ------------------------------------------------------------------ */
+/* Bus time of a CPU access through BAR0. The board's timing table is  */
+/* scaled as the core's video_update_timing does it, at the bus factor */
+/* of a Celeron 533 on a 66 MHz host bus (AGP 8, PCI 16 CPU cycles per */
+/* bus clock), and one access through each handler must take exactly   */
+/* the scaled count from cycles: writes and reads, every width, a      */
+/* split write byte by byte, the swapped views and the AGP image half. */
+/* ------------------------------------------------------------------ */
+static int
+bt_delta_w(void (*fn)(uint32_t, uint32_t, void *), uint32_t addr, uint32_t val,
+           rage128_t *dev)
+{
+    int before = cycles;
+
+    fn(addr, val, dev);
+    return before - cycles;
+}
+
+static void bt_wb(uint32_t a, uint32_t v, void *p) { rage128_lfb_writeb(a, (uint8_t) v, p); }
+static void bt_ww(uint32_t a, uint32_t v, void *p) { rage128_lfb_writew(a, (uint16_t) v, p); }
+static void bt_wl(uint32_t a, uint32_t v, void *p) { rage128_lfb_writel(a, v, p); }
+static void bt_wl_sw16(uint32_t a, uint32_t v, void *p) { rage128_lfb_writel_sw16(a, v, p); }
+static void bt_wl_sw32(uint32_t a, uint32_t v, void *p) { rage128_lfb_writel_sw32(a, v, p); }
+static void bt_agp_wl(uint32_t a, uint32_t v, void *p) { rage128_agp_writel(a, v, p); }
+static void bt_agp_only(rage128_t *dev, const char *board, uint32_t ap, int wb, int ww, int wl, int rl);
+
+static void
+vectors_bar0_bus_time(rage128_t *dev, const char *board, int is_agp, double scale)
+{
+    monitor_t             *mon = dev->svga.monitor;
+    const video_timings_t *t   = mon->mon_vid_timings;
+    uint32_t               ap  = dev->lfb_base + 0x00300000u;
+    int                    wb, ww, wl, rb, rw, rl, before;
+    char                   name[160];
+
+    snprintf(name, sizeof(name), "bus time: %s declares its own bus's timing table", board);
+    check_true(name, t == (is_agp ? &timing_rage128_agp : &timing_rage128));
+    if (!t)
+        return;
+    mon->mon_video_timing_write_b = wb = (int) (scale * t->write_b);
+    mon->mon_video_timing_write_w = ww = (int) (scale * t->write_w);
+    mon->mon_video_timing_write_l = wl = (int) (scale * t->write_l);
+    mon->mon_video_timing_read_b  = rb = (int) (scale * t->read_b);
+    mon->mon_video_timing_read_w  = rw = (int) (scale * t->read_w);
+    mon->mon_video_timing_read_l  = rl = (int) (scale * t->read_l);
+    wr(dev, 0x0b0c, 0); /* SURFACE0_INFO: no window */
+
+    snprintf(name, sizeof(name), "bus time: %s byte write charges write_b", board);
+    check32(name, (uint32_t) bt_delta_w(bt_wb, ap, 0x11, dev), (uint32_t) wb);
+    snprintf(name, sizeof(name), "bus time: %s word write charges write_w", board);
+    check32(name, (uint32_t) bt_delta_w(bt_ww, ap, 0x2211, dev), (uint32_t) ww);
+    snprintf(name, sizeof(name), "bus time: %s dword write charges write_l", board);
+    check32(name, (uint32_t) bt_delta_w(bt_wl, ap, 0x44332211u, dev), (uint32_t) wl);
+
+    /* controls: the read side, unchanged */
+    before = cycles;
+    (void) rage128_lfb_readb(ap, dev);
+    snprintf(name, sizeof(name), "bus time: %s byte read charges read_b", board);
+    check32(name, (uint32_t) (before - cycles), (uint32_t) rb);
+    before = cycles;
+    (void) rage128_lfb_readw(ap, dev);
+    snprintf(name, sizeof(name), "bus time: %s word read charges read_w", board);
+    check32(name, (uint32_t) (before - cycles), (uint32_t) rw);
+    before = cycles;
+    (void) rage128_lfb_readl(ap, dev);
+    snprintf(name, sizeof(name), "bus time: %s dword read charges read_l", board);
+    check32(name, (uint32_t) (before - cycles), (uint32_t) rl);
+
+    if (is_agp) {
+        bt_agp_only(dev, board, ap, wb, ww, wl, rl);
+    }
+    mon->mon_video_timing_write_b = mon->mon_video_timing_write_w = 0;
+    mon->mon_video_timing_write_l = 0;
+    mon->mon_video_timing_read_b = mon->mon_video_timing_read_w = 0;
+    mon->mon_video_timing_read_l = 0;
+}
+
+/* The AGP board's extra legs: split, swapped views, AGP image half. */
+static void
+bt_agp_only(rage128_t *dev, const char *board, uint32_t ap, int wb, int ww, int wl, int rl)
+{
+    int  before;
+    char name[160];
+
+    /* A dword at x62,y1 of a 1024-byte SURFACE window straddles a tile
+       column and goes out as four byte writes, each charged. */
+    wr(dev, 0x0b04, 0x00300000); /* SURFACE0_LOWER_BOUND */
+    wr(dev, 0x0b08, 0x00400000); /* SURFACE0_UPPER_BOUND */
+    wr(dev, 0x0b0c, 5);          /* SURFACE0_INFO, PITCHSEL 5 = 1024 B */
+    snprintf(name, sizeof(name), "bus time: %s split dword write charges 4 x write_b", board);
+    check32(name, (uint32_t) bt_delta_w(bt_wl, ap + 1086, 0x44332211u, dev), (uint32_t) (4 * wb));
+    snprintf(name, sizeof(name), "bus time: %s aligned dword in the window charges write_l", board);
+    check32(name, (uint32_t) bt_delta_w(bt_wl, ap + 1084, 0x44332211u, dev), (uint32_t) wl);
+    wr(dev, 0x0b0c, 0);
+
+    /* Swapped views: a 32 bpp swap of an aligned dword is one dword, a
+       16 bpp swap of a dword is two words. */
+    snprintf(name, sizeof(name), "bus time: %s 32 bpp swapped dword write charges write_l", board);
+    check32(name, (uint32_t) bt_delta_w(bt_wl_sw32, ap, 0x44332211u, dev), (uint32_t) wl);
+    snprintf(name, sizeof(name), "bus time: %s 16 bpp swapped dword write charges 2 x write_w", board);
+    check32(name, (uint32_t) bt_delta_w(bt_wl_sw16, ap, 0x44332211u, dev), (uint32_t) (2 * ww));
+
+    /* The AGP image half is reached across the same bus. */
+    snprintf(name, sizeof(name), "bus time: %s AGP image dword write charges write_l", board);
+    check32(name, (uint32_t) bt_delta_w(bt_agp_wl, dev->lfb_base + 0x02000000u + 0x00123450u,
+                                        0x01020304u, dev), (uint32_t) wl);
+    before = cycles;
+    (void) rage128_agp_readl(dev->lfb_base + 0x02000000u + 0x00123450u, dev);
+    snprintf(name, sizeof(name), "bus time: %s AGP image dword read charges read_l", board);
+    check32(name, (uint32_t) (before - cycles), (uint32_t) rl);
+}
+
 static void
 run_pci_xpert128(void)
 {
@@ -15153,6 +15268,7 @@ run_pci_xpert128(void)
     dev = rage128_init(&ati_xpert128_pci_device);
     vectors_gart_force_pci(dev);
     vectors_test_clock_pciclk(dev, "PCI", (double) cpu_pci_speed);
+    vectors_bar0_bus_time(dev, "PCI board", 0, 16.0);
     close_dev(dev);
 }
 

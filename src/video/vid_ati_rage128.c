@@ -77,13 +77,20 @@ rage128_log(const char *fmt, ...)
 }
 
 /* Bus clocks per CPU access, which video_inform turns into CPU cycles.
-   The framebuffer and register read handlers charge them: a read stalls
-   the CPU for the whole bus transaction, and that cost is what limits
-   how fast a driver can poll a status register. The counts are the same
-   on both boards; what differs is the clock they are counted in. The
-   PCI board runs at the PCI clock, while the AGP board's CPU accesses
-   cross the AGP bus at its own, faster clock, so the core scales its
-   counts by the AGP clock instead. */
+   The framebuffer handlers charge them in both directions and the
+   register read handlers charge the read counts. A read stalls the CPU
+   for the whole bus transaction, and that cost is what limits how fast
+   a driver can poll a status register. A write is posted, but each one
+   still takes a data phase on the bus, so a program that redraws the
+   screen with no other wait is held to what the bus can carry. The
+   guides give no clock count for a CPU write; the chip has a 6 x 64-bit
+   write-through FIFO and takes burst writes with zero wait states
+   (GCS: Host Bus Interface, p. 4-11 / PDF 59), so one clock per dword in
+   a burst and two for a partial word or byte are modeled. The counts are
+   the same on both boards; what differs is the clock they are counted in.
+   The PCI board runs at the PCI clock, while the AGP board's CPU
+   accesses cross the AGP bus at its own, faster clock, so the core
+   scales its counts by the AGP clock instead. */
 static video_timings_t timing_rage128     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 static video_timings_t timing_rage128_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
@@ -280,6 +287,18 @@ rage128_lfb_read_timing(const rage128_t *dev, uint32_t len)
                       : mon->mon_video_timing_read_b;
 }
 
+/* Bus cost of a len-byte aperture write, the write-side twin of the
+   read helper above. */
+static inline __attribute__((always_inline)) int
+rage128_lfb_write_timing(const rage128_t *dev, uint32_t len)
+{
+    const monitor_t *mon = dev->svga.monitor;
+
+    return (len == 4) ? mon->mon_video_timing_write_l
+        : (len == 2)  ? mon->mon_video_timing_write_w
+                      : mon->mon_video_timing_write_b;
+}
+
 /* Word and dword aperture access, one body per direction. The
    width-named handlers below call it with a constant len, so each
    compiles to the same code as a hand-written handler. An access whose
@@ -368,6 +387,7 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
         rage128_gpu_cpu_access(dev, addr, 1, 1);
     if (t0)
         t2 = rage128_now_ns();
+    cycles -= svga->monitor->mon_video_timing_write_b;
     svga->vram[addr]              = val;
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
     r128_vram_hnew(dev, addr, 1);
@@ -409,6 +429,7 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
         rage128_gpu_cpu_access(dev, addr, len, 1);
     if (t0)
         t2 = rage128_now_ns();
+    cycles -= rage128_lfb_write_timing(dev, len);
     if (len == 2)
         *(uint16_t *) &svga->vram[addr] = (uint16_t) val;
     else
@@ -589,6 +610,7 @@ rage128_agp_write_n(uint32_t addr, void *priv, const void *src, uint32_t len)
     rage128_t *dev = (rage128_t *) priv;
 
     rage128_agp_image_write(dev, addr - dev->lfb_base, (const uint8_t *) src, len);
+    cycles -= rage128_lfb_write_timing(dev, len);
 }
 
 static uint8_t

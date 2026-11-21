@@ -768,7 +768,11 @@ ui_msgbox_header(int flags, char *header, char *message)
 void
 video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
 {
-    (void) type; (void) ptr; (void) monitor_index;
+    /* Records the board's timing table as the core does, so a row can
+       derive the per-access cycle counts from it. The counts stay zero
+       until a row sets them. */
+    monitors[monitor_index].mon_vid_type    = type;
+    monitors[monitor_index].mon_vid_timings = ptr;
 }
 
 /* ---- SVGA core shell. Allocates what the device owns and wires the
