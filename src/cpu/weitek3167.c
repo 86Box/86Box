@@ -73,7 +73,7 @@ enum {
     W_SUBD   = 0x35
 };
 
-/* The PCR (figure 23): MOSEL 31-28 (written only), MD 27-24, the exception
+/* The PCR (figure 23): MOSEL 31-28, MD 27-24, the exception
    mask EM 23-16, the condition code CC 15-8, the accumulated exceptions AE
    7-0. AE (figure 25) and EM (figure 26, the same bits at 16 up). */
 #define AE_IE  0x01 /* invalid operation */
@@ -98,7 +98,9 @@ enum {
 #define NAN_D 0x7fffffffffffffffULL
 
 typedef struct weitek_t {
+    int           is_4167;
     uint32_t      r[32];
+    uint8_t       mosel;
     uint8_t       md;
     uint8_t       em;
     uint8_t       cc;
@@ -147,9 +149,21 @@ weitek_4167_supported(const cpu_family_t *family, int machine_id)
     /* The option supplies the 4167 socket on a native 486 bus. A 486
        upgrade in a 386 socket still uses the 386 bus. */
     const uint32_t packages = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330;
+    uint32_t       board;
 
-    return (family != NULL) && (family->package & machines[machine_id].cpu.package & packages)
-           && !machine_has_flags(machine_id, MACHINE_NO_FPU_SOCKET);
+    if ((family == NULL) || machine_has_flags(machine_id, MACHINE_NO_FPU_SOCKET))
+        return 0;
+
+    /* A Socket 3 board also takes the Socket 1 parts (as cpu_is_eligible()). */
+    board = machines[machine_id].cpu.package;
+    if (board & CPU_PKG_SOCKET3)
+        board |= CPU_PKG_SOCKET1;
+
+    /* The Pentium OverDrive has no 4167 interface. */
+    if (family->cpus[0].cpu_type == CPU_P24T)
+        return 0;
+
+    return !!(family->package & board & packages);
 }
 
 int
@@ -186,25 +200,29 @@ weitek_raise(weitek_t *dev, uint8_t flags)
 static uint32_t
 weitek_pcr(weitek_t *dev)
 {
-    return ((uint32_t) dev->md << 24) | ((uint32_t) dev->em << 16) | ((uint32_t) dev->cc << 8) |
+    return ((uint32_t) dev->mosel << 28) | ((uint32_t) dev->md << 24) | ((uint32_t) dev->em << 16) | ((uint32_t) dev->cc << 8) |
            (dev->ae & ~AE_EE) | (dev->intr ? AE_EE : 0);
 }
 
-/* LDCTX: MOSEL 0000 loads MD, EM, CC and AE; 1100 all but MD. The other
-   MOSEL values set up the WTL 1167's chips (figure 58's flowthrough timers),
-   which the 3167 has no use for. */
+/* STCTX with T = ws31 tells the chips apart by PCR bit 9, outside the
+   condition code: Weitek's 67TEST takes it clear for a 3167-HC and, with
+   the undefined opcode trapping, reads bits 15-8 = 2 as a 4167-H1A. With
+   any other T (67DIAG's) the PCR reads plain. */
+#define PCR_ID_4167 0x00000200
+
+/* LDCTX loads all 32 bits, and MOSEL (bits 31-28) reads back as written.
+   The data sheet's MOSEL values (0000 loads MD too, 1100 all but MD, the
+   rest set up the WTL 1167's chips) do not hold for the 3167 and 4167:
+   Weitek's 67DIAG loads C0000000h, C1FF0001h, 80000000h and D0000000h
+   and expects each back unchanged, MD included. */
 static void
 weitek_load_pcr(weitek_t *dev, uint32_t val)
 {
-    uint8_t mosel = val >> 28;
-
-    if ((mosel != 0x0) && (mosel != 0xc))
-        return;
-    if (mosel == 0x0)
-        dev->md = (val >> 24) & 0x0f;
-    dev->em = val >> 16;
-    dev->cc = val >> 8;
-    dev->ae = val & ~AE_EE;
+    dev->mosel = val >> 28;
+    dev->md    = (val >> 24) & 0x0f;
+    dev->em    = val >> 16;
+    dev->cc    = val >> 8;
+    dev->ae    = val & ~AE_EE;
     weitek_update_intr(dev);
 }
 
@@ -342,7 +360,8 @@ put_d(weitek_t *dev, int t, uint64_t res, int nan_in, struct softfloat_status_t 
 
 /* FIX: to a 32-bit integer by RND, or toward zero with IRND (MD bit 1). A
    result that does not fit is an overflow (OE), as is the partial loss of
-   significance a precision exception (PE). */
+   significance a precision exception (PE). An overflow loses significance
+   too: 67DIAG's FIX of -infinity expects OE and PE together. */
 static void
 put_fix(weitek_t *dev, int t, int32_t res, int nan_in, struct softfloat_status_t *st)
 {
@@ -352,7 +371,7 @@ put_fix(weitek_t *dev, int t, int32_t res, int nan_in, struct softfloat_status_t
     if (nan_in)
         ae = AE_IE;
     else if (f & softfloat_flag_invalid)
-        ae = AE_OE;
+        ae = AE_OE | AE_PE;
     dev->r[t] = (uint32_t) res;
     weitek_raise(dev, ae);
 }
@@ -451,8 +470,10 @@ weitek_execute(weitek_t *dev, uint16_t addr, uint32_t data)
             a = src_s(dev, f, data);
             if (is_nan_s(a))
                 put_s(dev, t, 0, 1, &st);
+            else if (op == W_NEG) /* 0 - S1: zero negates to +0 (67DIAG) */
+                dev->r[t] = f32_sub(0, daz_s(a), &st);
             else
-                dev->r[t] = (op == W_NEG) ? (daz_s(a) ^ 0x80000000) : (daz_s(a) & 0x7fffffff);
+                dev->r[t] = daz_s(a) & 0x7fffffff;
             break;
 
         case W_FIX:
@@ -552,7 +573,19 @@ weitek_execute(weitek_t *dev, uint16_t addr, uint32_t data)
 
         case W_LOAD | 0x20:
         case W_LOADDD:
-            set_d(dev, t, src_d(dev, f, data));
+            /* A double from the bus writes T itself, odd or even, and an
+               even T takes ws1 into its low half: 67TEST loads ws1-ws6 one
+               word at a time with LOADD.D and T = 1-6, and 67DIAG reads
+               back a LOAD.D to ws15 as written. */
+            if (f)
+                set_d(dev, t, get_d(dev, f));
+            else {
+                uint32_t lo = dev->r[1];
+
+                dev->r[t] = data;
+                if (!(t & 1))
+                    dev->r[t | 1] = lo;
+            }
             break;
 
         case W_FLOAT | 0x20:
@@ -584,8 +617,10 @@ weitek_execute(weitek_t *dev, uint16_t addr, uint32_t data)
             ad = src_d(dev, f, data);
             if (is_nan_d(ad))
                 put_d(dev, t, 0, 1, &st);
+            else if (op == (W_NEG | 0x20))
+                set_d(dev, t, f64_sub(0, daz_d(ad), &st));
             else
-                set_d(dev, t, (op == (W_NEG | 0x20)) ? (daz_d(ad) ^ 0x8000000000000000ULL) : (daz_d(ad) & 0x7fffffffffffffffULL));
+                set_d(dev, t, daz_d(ad) & 0x7fffffffffffffffULL);
             break;
 
         case W_FIX | 0x20:
@@ -603,7 +638,11 @@ weitek_execute(weitek_t *dev, uint16_t addr, uint32_t data)
             break;
 
         default:
-            /* The stores on a write, and the unassigned opcodes */
+            /* The stores on a write, and the unassigned opcodes. Only the
+               4167 traps opcode 3Fh: Weitek's 67TEST and 67DIAG tell a 3167
+               from a 4167 by UOE after a write to FC00h. */
+            if ((op == 0x3f) && !dev->is_4167)
+                break;
             weitek_log("Weitek: undefined opcode %02X on a write\n", op);
             weitek_raise(dev, AE_UOE);
             break;
@@ -623,7 +662,7 @@ weitek_store(weitek_t *dev, uint16_t addr)
         case W_LOADDD: /* STORD.D */
             return dev->r[t];
         case W_STCTX:
-            return weitek_pcr(dev);
+            return weitek_pcr(dev) | ((dev->is_4167 && (t == 31)) ? PCR_ID_4167 : 0);
         default:
             weitek_log("Weitek: undefined opcode %02X on a read\n", op);
             weitek_raise(dev, AE_UOE);
@@ -705,20 +744,23 @@ weitek_reset(void *priv)
     weitek_t *dev = (weitek_t *) priv;
 
     memset(dev->r, 0, sizeof(dev->r));
-    dev->md = 0x01;
-    dev->em = 0xff;
-    dev->cc = 0x00;
-    dev->ae = 0x00;
+    dev->mosel = 0x0;
+    dev->md    = 0x01;
+    dev->em    = 0xff;
+    dev->cc    = 0x00;
+    dev->ae    = 0x00;
     weitek_update_intr(dev);
 }
 
 static void *
-weitek_init(UNUSED(const device_t *info))
+weitek_init(const device_t *info)
 {
     weitek_t *dev = (weitek_t *) calloc(1, sizeof(weitek_t));
 
     if (dev == NULL)
         return NULL;
+
+    dev->is_4167 = (info->local == 4167);
 
     weitek_reset(dev);
 
@@ -758,6 +800,7 @@ const device_t weitek_3167_device = {
 const device_t weitek_4167_device = {
     .name          = "Weitek WTL 4167",
     .internal_name = "weitek_4167",
+    .local         = 4167,
     .init          = weitek_init,
     .close         = weitek_close,
     .reset         = weitek_reset
