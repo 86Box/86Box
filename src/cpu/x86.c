@@ -524,11 +524,12 @@ reset_common(int hard, int src)
     if (is_gxm)
         cpu_gxm_reset();
 
-    if (reset_init)
-        /* INIT leaves CD and NW, and sets ET (Pentium Vol. 3, Table 16-1,
-           note 2). */
-        cr0 = (cr0 & 0x60000000) | 0x10;
-    else if (hascache)
+    /* INIT is specified to leave CD and NW (Pentium Vol. 3, Table
+       16-1 note 2.  In 86Box this breaks IDE soft-reset/warmboot (the
+       internal cache model is only a timing switch and the IDE path
+       is sensitive to the preserved state).  Force the RESET values
+       instead; other INIT preserves (MSRs, FPU) remain. */
+    if (hascache)
         /* CD, NW and ET: "The state of control register CR0 is 60000010H"
            after reset on the Intel486 and later (SDM 1999 vol. 3, 8.1.1) */
         cr0 = 0x60000010;
