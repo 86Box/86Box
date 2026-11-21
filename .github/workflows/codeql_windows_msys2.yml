@@ -88,13 +88,12 @@ jobs:
 #            preset: development
 #            slug: -Dev
         ui:
-          # MSYS2 only has a static Qt 6
           - name: Qt 6 GUI
             id: qt6
             qt: on
             qt6: on
             slug: -Qt6
-            static: on
+            static: off
         environment:
 #          - msystem: MSYS
 #            slug: "-MSYS64"
@@ -124,7 +123,6 @@ jobs:
         uses: ./.github/actions/setup-msys2
         with:
           msystem: ${{ matrix.environment.msystem }}
-          qt6: ${{ matrix.ui.qt6 == 'on' }}
 
 #      - name: Install Build Wrapper
 #        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
