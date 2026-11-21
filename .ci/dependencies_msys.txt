@@ -10,8 +10,8 @@ libpng
 rtmidi
 libslirp
 fluidsynth
-qt5-static
-qt5-translations
+qt6-static
+qt6-translations
 vulkan-headers
 libsndfile
 libserialport
