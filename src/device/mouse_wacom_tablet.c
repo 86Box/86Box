@@ -502,7 +502,7 @@ static void
 summa_report_bitpad(mouse_wacom_t *wacom, int x, int y, int b, int prox)
 {
     int  flag = summa_bitpad_flag(wacom, b);
-    char buf[32];
+    char buf[64];
 
     if (wacom->summa.binary) {
         uint8_t data[5];
@@ -524,8 +524,8 @@ summa_report_bitpad(mouse_wacom_t *wacom, int x, int y, int b, int prox)
     }
 
     if (wacom->summa.relative) {
-        char xs[8];
-        char ys[8];
+        char xs[16];
+        char ys[16];
 
         if (x < 0)
             snprintf(xs, sizeof(xs), "-%03d", -summa_clamp(x, -999, 0));
