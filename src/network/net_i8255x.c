@@ -1336,6 +1336,11 @@ eepro100_write_mdi(eepro100_t *s)
                 break;
             case 1:            /* Status Register */
                 s->mdimem[reg] |= 0x0020;
+                /* Link state follows emulator setting */
+                if (!s->link_state)
+                    s->mdimem[reg] &= ~0x0004;
+                else
+                    s->mdimem[reg] |= 0x0004;
                 break;
             case 2:            /* PHY Identification Register (Word 1) */
             case 3:            /* PHY Identification Register (Word 2) */
@@ -1468,8 +1473,8 @@ eepro100_read1(eepro100_t *s, uint32_t addr)
         i8255x_log("addr=0x%02x val=0x%02x\n", addr, val);
         break;
     case SCBgstat:      /* General Status Register */
-        /* 100 Mbps full duplex, valid link */
-        val = 0x07;
+        /* 100 Mbps full duplex, link state follows emulator setting */
+        val = 0x06 | s->link_state;
         i8255x_log("addr=General Status val=0x%02x\n", val);
         break;
     default:
@@ -1984,9 +1989,9 @@ eepro100_set_link_status(void *priv, uint32_t link_state)
 {
     eepro100_t *s = priv;
 
-    s->link_state = link_state;
+    s->link_state = !(link_state & (NET_LINK_DOWN | NET_LINK_TEMP_DOWN));
 
-    return 1;
+    return 0;
 }
 
 static void
