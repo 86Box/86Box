@@ -739,6 +739,12 @@ if (EMBED_QTBASE_TRANSLATIONS)
     # Get the Qt translations directory
     get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_MAJOR}::qmake IMPORTED_LOCATION)
     execute_process(COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_TRANSLATIONS OUTPUT_VARIABLE QT_TRANSLATIONS_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(QT_STATIC AND MINGW AND USE_QT6)
+        # Workaround for incorrect translations path of MSYS2's static Qt 6
+        string(REGEX REPLACE "-static/translations$" "-static/share/qt${QT_MAJOR}/translations" QT_TRANSLATIONS_DIR_REAL ${QT_TRANSLATIONS_DIR})
+        set(QT_TRANSLATIONS_DIR "${QT_TRANSLATIONS_DIR_REAL}")
+        unset(QT_TRANSLATIONS_DIR_REAL)
+    endif()
 endif()
 
 set(QM_FILES)
