@@ -51,6 +51,21 @@
 #define GPCMD_FORMAT_UNIT                             0x04
 #define GPCMD_RESERVE_TRACK                           0x53
 #define GPCMD_SEND_OPC                                0x54
+#define GPCMD_READ_OPC_INFO_PHILIPS                   0xd2 /* Philips Vendor Unique commands */
+#define GPCMD_WRITE_OPC_INFO_PHILIPS                  0xd3
+#define GPCMD_FIRST_WRITABLE_ADDRESS_PHILIPS          0xe2
+#define GPCMD_FORMAT_TRACK_PHILIPS                    0xe3
+#define GPCMD_RESERVE_TRACK_PHILIPS                   0xe4
+#define GPCMD_READ_TRACK_INFO_PHILIPS                 0xe5
+#define GPCMD_WRITE_TRACK_PHILIPS                     0xe6
+#define GPCMD_MEDIUM_LOAD_UNLOAD_PHILIPS              0xe7
+#define GPCMD_FINISH_TRACK_PHILIPS                    0xe8
+#define GPCMD_FIXATION_PHILIPS                        0xe9
+#define GPCMD_UPDATE_PMA_PHILIPS                      0xea
+#define GPCMD_SEND_ABSORPTION_ERRORS_PHILIPS          0xeb
+#define GPCMD_RECOVER_PHILIPS                         0xec
+#define GPCMD_WRITE_SESSION_PHILIPS                   0xed
+#define GPCMD_READ_SESSION_INFO_PHILIPS               0xee
 #define GPCMD_BLANK                                   0xa1
 #define GPCMD_READ_BLOCK_LIMITS                       0x05
 #define GPCMD_IOMEGA_SENSE                            0x06
@@ -205,6 +220,12 @@
 #define GPMODE_DATA_COMPRESS_PAGE          0x0f
 #define GPMODE_DEVICE_CONFIG_PAGE          0x10
 #define GPMODE_MEDIUM_PARTITION_PAGE       0x11
+#define GPMODE_SUBHEADER_PAGE_PHILIPS      0x20
+#define GPMODE_WRITE_TRACK_PAGE_PHILIPS    0x21
+#define GPMODE_CATALOGUE_PAGE_PHILIPS      0x22
+#define GPMODE_SPEED_PAGE_PHILIPS          0x23
+#define GPMODE_INCREMENT_PAGE_PHILIPS      0x24
+#define GPMODE_INCREMENT_EXT_PAGE_PHILIPS  0x25
 #define GPMODE_CAPABILITIES_PAGE           0x2a
 #define GPMODE_IOMEGA_PAGE                 0x2f
 #define GPMODE_UNK_VENDOR_PAGE             0x30
@@ -399,7 +420,7 @@
 #define MODE_SELECT_PHASE_PAGE        4
 
 typedef struct mode_sense_pages_t {
-    uint8_t            pages[0x40][0x40];
+    uint8_t            pages[0x40][0xc8];
 } mode_sense_pages_t;
 
 /* This is so we can access the common elements to all SCSI device structs
