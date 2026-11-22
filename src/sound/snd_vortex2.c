@@ -959,7 +959,7 @@ vortex2_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     vortex2_t *dev = (vortex2_t *) priv;
 
     vortex2_update(dev);
-    for (uint16_t c = 0; c < len * 2; c++)
+    for (int c = 0; c < (int) len * 2; c++)
         buffer[c] += dev->buffer[c];
     dev->pos = 0;
 }
@@ -974,7 +974,7 @@ vortex2_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
     vortex2_t     *dev = (vortex2_t *) priv;
     const int32_t *opl_buf = dev->opl.update(dev->opl.priv);
 
-    for (uint16_t c = 0; c < len * 2; c++)
+    for (int c = 0; c < (int) len * 2; c++)
         buffer[c] += (int32_t) (opl_buf[c] * 0.7171630859375);
     dev->opl.reset_buffer(dev->opl.priv);
 }

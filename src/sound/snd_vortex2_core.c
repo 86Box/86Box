@@ -326,6 +326,24 @@ struct v2_chip_t {
 #define LO16(w) ((int16_t) ((w) & 0xffff))
 #define HI16(w) ((int16_t) ((w) >> 16))
 
+/* Append to a log line, stopping at the end of the buffer (snprintf
+   returns the length it wanted, which may be more than fitted). */
+static int
+v2_cat(char *buf, size_t size, int n, const char *fmt, ...)
+{
+    va_list ap;
+    int     w;
+
+    if (n < 0 || (size_t) n >= size)
+        return (size > 0) ? (int) size - 1 : 0;
+    va_start(ap, fmt);
+    w = vsnprintf(buf + n, size - (size_t) n, fmt, ap);
+    va_end(ap);
+    if (w < 0)
+        return n;
+    return ((size_t) n + (size_t) w < size) ? n + w : (int) size - 1;
+}
+
 static void
 v2_log(v2_chip_t *c, const char *fmt, ...)
 {
@@ -443,7 +461,7 @@ src_interp(const int32_t *hist, double phase)
     /* Four independent lanes, so the compiler can vectorise. */
     for (int k = 0; k < SRC_PAD; k += 4)
         for (int j = 0; j < 4; j++)
-            a[j] += (int32_t) h0[k + j] * hist[k + j];
+            a[j] += (int64_t) h0[k + j] * hist[k + j];
     int64_t y = ((a[0] + a[1]) + (a[2] + a[3]) + 0x2200) >> 14;
     y = ((y + 65536) & 131071) - 65536; /* the 31-bit accumulator wraps */
     if (y > 32767)
@@ -992,29 +1010,29 @@ graph_dump(v2_chip_t *c)
     int      n = 0;
     uint32_t h = 2166136261u;
 
-    n += snprintf(line + n, sizeof(line) - n, "Vortex2: routes:");
+    n = v2_cat(line, sizeof(line), n, "Vortex2: routes:");
     for (int r = 0; r < c->nroutes && n < (int) sizeof(line) - 16; r++) {
-        n += snprintf(line + n, sizeof(line) - n, " %02x>%02x", c->route[r].src, c->route[r].sink);
+        n = v2_cat(line, sizeof(line), n, " %02x>%02x", c->route[r].src, c->route[r].sink);
         h = (h ^ (uint32_t) (c->route[r].src << 8 | c->route[r].sink)) * 16777619u;
     }
-    n += snprintf(line + n, sizeof(line) - n, " | mixers:");
+    n = v2_cat(line, sizeof(line), n, " | mixers:");
     for (int m = 0; m < NR_MIXOUT && n < (int) sizeof(line) - 64; m++) {
         int any = 0;
         for (int i = 0; i < NR_MIXIN && n < (int) sizeof(line) - 24; i++) {
             if (!(R(MIX_ENIN + ((m << 3) + (i >> 2)) * 4) & (1u << (i & 3))))
                 continue;
             uint32_t g = R(MIX_INVOL_A + ((m << 5) + i) * 4) & 0xff;
-            n += snprintf(line + n, sizeof(line) - n, "%s%d<%d:%02x", any ? "," : " m", m, i, g);
+            n = v2_cat(line, sizeof(line), n, "%s%d<%d:%02x", any ? "," : " m", m, i, g);
             h = (h ^ (uint32_t) (m << 16 | i << 8 | g)) * 16777619u;
             any = 1;
         }
         if (any)
-            n += snprintf(line + n, sizeof(line) - n, " out:%02x", R(MIX_VOL_A + m * 4) & 0xff);
+            n = v2_cat(line, sizeof(line), n, " out:%02x", R(MIX_VOL_A + m * 4) & 0xff);
     }
     if (h == c->graph_hash)
         return;
     c->graph_hash = h;
-    snprintf(line + n, sizeof(line) - n, "\n");
+    v2_cat(line, sizeof(line), n, "\n");
     if (c->host.log)
         c->host.log(c->host.priv, line);
 }
@@ -2174,12 +2192,12 @@ eq_load(v2_chip_t *c)
     if (c->host.log) {
         /* the band gain may live at +0x28 (target) as well as +0x2c */
         char line[512];
-        int  n = snprintf(line, sizeof(line), "Vortex2: [%9.3f] EQ bypass %04x/%04x gains(+28/+2c) L",
-                          v2_now(c), R(EQ_BYPASS_L) & 0xffff, R(EQ_BYPASS_R) & 0xffff);
+        int  n = v2_cat(line, sizeof(line), 0, "Vortex2: [%9.3f] EQ bypass %04x/%04x gains(+28/+2c) L",
+                        v2_now(c), R(EQ_BYPASS_L) & 0xffff, R(EQ_BYPASS_R) & 0xffff);
         for (int b = 0; b < 10; b++)
-            n += snprintf(line + n, sizeof(line) - n, " %04x/%04x", R(EQ_BASE + b * 0x30 + 0x28) & 0xffff,
-                          R(EQ_BASE + b * 0x30 + 0x2c) & 0xffff);
-        snprintf(line + n, sizeof(line) - n, "\n");
+            n = v2_cat(line, sizeof(line), n, " %04x/%04x", R(EQ_BASE + b * 0x30 + 0x28) & 0xffff,
+                       R(EQ_BASE + b * 0x30 + 0x2c) & 0xffff);
+        v2_cat(line, sizeof(line), n, "\n");
         if (strcmp(line + 20, c->eq_logged) != 0) {
             snprintf(c->eq_logged, sizeof(c->eq_logged), "%s", line + 20);
             c->host.log(c->host.priv, line);
@@ -2394,7 +2412,7 @@ v2_run_block(v2_chip_t *c, float *out)
     c->status_frames += B;
     if (c->host.log && c->status_frames >= 2 * V2_RATE) {
         char line[1024];
-        int  n = snprintf(line, sizeof(line), "Vortex2: [%9.3f] status: timer %u fired %u acked %u irq-raises %u level %d src %04x mask %08x ctrl %08x |",
+        int  n = v2_cat(line, sizeof(line), 0, "Vortex2: [%9.3f] status: timer %u fired %u acked %u irq-raises %u level %d src %04x mask %08x ctrl %08x |",
                           v2_now(c), c->timer_last & 0xffff, c->n_fired, c->n_acked, c->n_irq_raise, c->irq_level,
                           c->irq_src, R(IRQ_CTRL), R(CHIP_CTRL));
         for (int ch = 0; ch < NR_ADBDMA && n < (int) sizeof(line) - 64; ch++) {
@@ -2403,7 +2421,7 @@ v2_run_block(v2_chip_t *c, float *out)
                it out; one still draining shows as D */
             if (d->state == DMA_IDLE || (d->state == DMA_END && d->fn == 0))
                 continue;
-            n += snprintf(line + n, sizeof(line) - n, " A%d:%c%d/%03x %02x%02x",
+            n = v2_cat(line, sizeof(line), n, " A%d:%c%d/%03x %02x%02x",
                           ch, d->state == DMA_END ? 'D' : "IRSE"[d->state], d->page, d->pos & 0xfff,
                           R(dma_cfg(d)) >> 24, R(dma_cfg(d) + 4) >> 24);
         }
@@ -2413,14 +2431,14 @@ v2_run_block(v2_chip_t *c, float *out)
             wt_stall += c->wt[v].state == DMA_STALL;
             wt_end += c->wt[v].state == DMA_END;
         }
-        n += snprintf(line + n, sizeof(line) - n, " | WT run %d stall %d end %d | L/R", wt_run, wt_stall, wt_end);
+        n = v2_cat(line, sizeof(line), n, " | WT run %d stall %d end %d | L/R", wt_run, wt_stall, wt_end);
         static const char *const stage[4] = { "a3d", "xtalk", "eq", "out" };
         for (int st = 0; st < 4 && n < (int) sizeof(line) - 48; st++) {
             double ll = c->lr[st][0], rr = c->lr[st][1], lr = c->lr[st][2];
             if (ll + rr < 1e-9)
-                n += snprintf(line + n, sizeof(line) - n, " %s -", stage[st]);
+                n = v2_cat(line, sizeof(line), n, " %s -", stage[st]);
             else
-                n += snprintf(line + n, sizeof(line) - n, " %s %.0fdB corr %.2f bal %+.1f", stage[st],
+                n = v2_cat(line, sizeof(line), n, " %s %.0fdB corr %.2f bal %+.1f", stage[st],
                               10.0 * log10((ll + rr) / (2.0 * 2 * V2_RATE)), lr / sqrt(ll * rr + 1e-30),
                               10.0 * log10((rr + 1e-12) / (ll + 1e-12)));
         }
@@ -2439,13 +2457,13 @@ v2_run_block(v2_chip_t *c, float *out)
                 cl += (double) a->h[0][k] * a->h[0][k];
                 cr += (double) a->h[1][k] * a->h[1][k];
             }
-            n += snprintf(line + n, sizeof(line) - n, " | S%d tc %x/%x/%x/%x ild tgt %+.1f cur %+.1f gain %.2f",
+            n = v2_cat(line, sizeof(line), n, " | S%d tc %x/%x/%x/%x ild tgt %+.1f cur %+.1f gain %.2f",
                           sl, R(ba + 0x37c) & 0xffff, R(ba + 0x380) & 0xffff, R(ba + 0x384) & 0xffff,
                           R(ba + 0x388) & 0xffff, 10.0 * log10((tr + 1e-9) / (tl + 1e-9)),
                           10.0 * log10((cr + 1e-12) / (cl + 1e-12)), a->gain);
         }
         memset(c->a3d_used, 0, sizeof(c->a3d_used));
-        snprintf(line + n, sizeof(line) - n, "\n");
+        v2_cat(line, sizeof(line), n, "\n");
         memset(c->lr, 0, sizeof(c->lr));
         c->host.log(c->host.priv, line);
         graph_dump(c);
