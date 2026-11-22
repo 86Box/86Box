@@ -1155,7 +1155,8 @@ cpu_cr0_invalid(uint32_t value)
         (cpu_s->cpu_type == CPU_STPC))
         return 0;
 
-    return (cpu_s->cpu_type >= CPU_i486SX) &&
+    /* The Epox GXA486SG hangs if CD=0 and NW=1 is invalid. */
+    return (cpu_s->cpu_type >= CPU_WINCHIP) &&
            ((value & 0x60000000) == 0x20000000);
 }
 
