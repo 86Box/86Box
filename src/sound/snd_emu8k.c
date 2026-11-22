@@ -1535,7 +1535,7 @@ emu8k_inb(uint16_t addr, void *priv)
     /* Reading a single byte is a feature that at least Impulse tracker uses,
      * but only on detection code and not for odd addresses.*/
     if (addr & 1)
-        return emu8k_inw(addr & ~1, priv) >> 1;
+        return emu8k_inw(addr & ~1, priv) >> 8;
     return emu8k_inw(addr, priv) & 0xff;
 }
 
@@ -1548,6 +1548,21 @@ emu8k_outb(uint16_t addr, uint8_t val, void *priv)
         emu8k_outw(addr & ~1, val << 8, priv);
     else
         emu8k_outw(addr, val, priv);
+}
+
+uint32_t
+emu8k_inl(uint16_t addr, void *priv)
+{
+    uint32_t lo = emu8k_inw(addr, priv);
+    uint32_t hi = emu8k_inw(addr + 2, priv);
+    return lo | (hi << 16);
+}
+
+void
+emu8k_outl(uint16_t addr, uint32_t val, void *priv)
+{
+    emu8k_outw(addr, (uint16_t) (val & 0xffffu), priv);
+    emu8k_outw(addr + 2, (uint16_t) (val >> 16), priv);
 }
 
 /* TODO: This is not a correct emulation, just a workalike implementation. */
@@ -1761,20 +1776,19 @@ emu8k_update(emu8k_t *emu8k)
     if (emu8k->pos >= wavetable_pos_global)
         return;
 
+    const int      num_samples = wavetable_pos_global - emu8k->pos;
     int32_t       *buf;
     emu8k_voice_t *emu_voice;
     int            pos;
-
-    /* Clean the buffers since we will accumulate into them. */
-    buf = &emu8k->buffer[emu8k->pos * 2];
-    memset(buf, 0, 2 * (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->buffer[0]));
-    memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->chorus_in_buffer[0]));
-    memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->reverb_in_buffer[0]));
+    int            num_active = 0;
 
     /* Voices section  */
     for (uint8_t c = 0; c < 32; c++) {
         emu_voice = &emu8k->voice[c];
         buf       = &emu8k->buffer[emu8k->pos * 2];
+
+        if (emu_voice->env_engine_on || emu_voice->cvcf_curr_volume)
+            num_active++;
 
         for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
             int32_t dat;
@@ -2116,31 +2130,43 @@ emu8k_update(emu8k_t *emu8k)
 #endif
     }
 
-    buf = &emu8k->buffer[emu8k->pos * 2];
-    emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, wavetable_pos_global - emu8k->pos);
-    emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, wavetable_pos_global - emu8k->pos);
-    emu8k_work_eq(buf, wavetable_pos_global - emu8k->pos);
+    /* Only run reverb/chorus/EQ when at least one voice was active. */
+    if (num_active > 0) {
+        buf = &emu8k->buffer[emu8k->pos * 2];
+        emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, num_samples);
+        emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, num_samples);
+        emu8k_work_eq(buf, num_samples);
+    }
 
     /* Update EMU clock. */
-    emu8k->wc += (wavetable_pos_global - emu8k->pos);
+    emu8k->wc += num_samples;
 
     emu8k->pos = wavetable_pos_global;
+}
+
+void
+emu8k_reset_buffer(emu8k_t *emu8k)
+{
+    emu8k->pos = 0;
+    memset(emu8k->buffer, 0, sizeof(emu8k->buffer));
+    memset(emu8k->chorus_in_buffer, 0, sizeof(emu8k->chorus_in_buffer));
+    memset(emu8k->reverb_in_buffer, 0, sizeof(emu8k->reverb_in_buffer));
 }
 
 void
 emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr)
 {
     if (emu8k->addr) {
-        io_removehandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_removehandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_removehandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_removehandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_removehandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_removehandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
         emu8k->addr = 0;
     }
     if (emu_addr) {
         emu8k->addr = emu_addr;
-        io_sethandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        io_sethandler(emu8k->addr, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_sethandler(emu8k->addr + 0x400, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
+        io_sethandler(emu8k->addr + 0x800, 0x0004, emu8k_inb, emu8k_inw, emu8k_inl, emu8k_outb, emu8k_outw, emu8k_outl, emu8k);
     }
 }
 
@@ -2154,13 +2180,15 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     double         out;
 
     fp = rom_fopen(EMU8K_ROM_PATH, "rb");
-    if (!fp)
+    if (!fp && emu_addr != 0)
         fatal("AWE32.RAW not found\n");
 
     emu8k->rom = calloc(1024, 1024);
-    if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
-        fatal("emu8k_init(): Error reading data\n");
-    fclose(fp);
+    if (fp) {
+        if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
+            fatal("emu8k_init(): Error reading data\n");
+        fclose(fp);
+    }
     /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
       then correct it*/
     if (emu8k->rom[3] == 0x314d && emu8k->rom[4] == 0x474d) {
@@ -2196,6 +2224,8 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     for (; j < 0x100; j++) {
         emu8k->ram_pointers[j] = emu8k->empty;
     }
+
+    emu8k_reset_buffer(emu8k);
 
     emu8k_change_addr(emu8k, emu_addr);
 
