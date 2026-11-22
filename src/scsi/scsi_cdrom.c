@@ -3528,6 +3528,12 @@ scsi_cdrom_philips_track_info(scsi_cdrom_t *dev, int32_t *BufLen, const uint8_t 
     packet      = (mmc[20] << 24) | (mmc[21] << 16) | (mmc[22] << 8) | mmc[23];
     length      = blank ? 0 : ((mmc[24] << 24) | (mmc[25] << 16) | (mmc[26] << 8) | mmc[27]);
 
+    /* The unwritten area is not a track, so it has no start address and is not a data track. */
+    if (blank && (flags & 0x40) && !(flags & 0xa0)) {
+        start = 0;
+        ctl   = 0x00;
+    }
+
     if (blank && (flags & 0x80))
         status = 0x00;
     else if (blank && (flags & 0x20))
