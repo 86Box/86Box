@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-11-07 01:26+0100\n"
+"PO-Revision-Date: 2026-11-22 19:16+0100\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it_IT\n"
@@ -159,7 +159,7 @@ msgid "4:3 Cen&ter"
 msgstr "Cen&trato 4:3"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Scala intera 4:3 (&verticale)"
 
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA invertito"
@@ -249,40 +249,40 @@ msgid "Sound &gain…"
 msgstr "Guadagno &suono…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "Dispositivo di uscita M&IDI"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Riavvia &dispositivo"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "Invia &comando MIDI"
 
 msgid "&GM System On"
-msgstr ""
+msgstr "&GM System On"
 
 msgid "G&S Reset"
-msgstr ""
+msgstr "G&S Reset"
 
 msgid "&XG System On"
-msgstr ""
+msgstr "&XG System On"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "&MT-32 Reset"
 
 msgid "All &notes off"
-msgstr ""
+msgstr "All &Notes Off"
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Mostra &LCD MIDI"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "LCD MIDI"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Sempre in &primo piano"
 
 msgid "&Close"
-msgstr ""
+msgstr "&Chiudi"
 
 msgid "Begin trace"
 msgstr "Inizio traccia"
@@ -453,13 +453,13 @@ msgid "MB"
 msgstr "MB"
 
 msgid "GB"
-msgstr ""
+msgstr "GB"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Memoria:"
@@ -909,7 +909,7 @@ msgid "(empty)"
 msgstr "(vuoto)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(non disponibile)"
 
 msgid "All files"
 msgstr "Tutti i file"
@@ -1679,10 +1679,10 @@ msgid "Hard disk (%1)"
 msgstr "Disco rigido (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "Scheda LED"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "Scheda LED %1"
 
 msgid "Custom…"
 msgstr "Personalizzata…"
@@ -2615,7 +2615,7 @@ msgid "Snow emulation"
 msgstr "Emulazione effetto neve CGA"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "Olivetti EGC (GO329)"
 
 msgid "Monitor type"
 msgstr "Tipo di monitor"
@@ -2678,7 +2678,7 @@ msgid "Start Address"
 msgstr "Indirizzo di partenza"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "Consenti RAM fino alla ROM di sistema"
 
 msgid "Contiguous Size"
 msgstr "Dimensione contigua"
@@ -3575,16 +3575,16 @@ msgid "&Fast forward"
 msgstr "&Avanti veloce"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "Avanti veloce all'avvio"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "Avvia le nuove macchine in modalità avanzamento rapido"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
+msgstr "Riguarda solo le macchine create da questo momento in poi. Per ogni macchina è possibile modificare le impostazioni in Macchina > Prestazioni."
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "Avanti veloce all'&avvio"
 
 msgid "Fast forward"
 msgstr "Avanti veloce"
@@ -3893,666 +3893,704 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Dispositivo per spegnimento via software (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "&Visualizzatore della memoria"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "L'emulatore è occupato; la visualizzazione della memoria non è stata aggiornata."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
-msgstr ""
+msgstr "La corrispondenza non si trova nella memoria mappata; la selezione e la visualizzazione non sono state spostate."
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "Possono essere scritte solo la RAM e la memoria video."
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
-msgstr ""
+msgstr "non scritto (RAM o memoria video non scrivibili, oppure l'emulatore è occupato)."
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "L'emulatore è occupato; riprova."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "%1 byte copiati da %2 negli appunti"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (impossibile leggere %1)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " di una selezione di %1 byte"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "Nessuna memoria mappata in cui effettuare la ricerca."
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "Nessuna memoria mappata nell'intervallo richiesto."
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "La ricerca è limitata a %1 byte."
 
 msgid "Searching memory…"
-msgstr ""
+msgstr "Ricerca nella memoria…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "La ricerca è stata annullata. La selezione non è stata spostata."
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Trovato in %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Non trovato. La selezione non è stata spostata."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Riempi selezione"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Riempi %1 byte a partire da %2 con (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Inserisci un byte esadecimale da 00 a FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
-msgstr ""
+msgstr "%1 di %2 byte riempito con %3 (%4 non erano RAM o memoria video scrivibile)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Selezionati: %1 byte (%2 ignorati)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Modifica byte"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Copia selezione (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Copia selezione (ASCII)"
 
 msgid "Fill selection…"
-msgstr ""
+msgstr "Riempi selezione…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Copia indirizzo"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Disassembla qui"
 
 msgid "Dump memory from here…"
-msgstr ""
+msgstr "Salva immagine della memoria da qui…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Visualizzatore della memoria"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pausa / Riprendi"
 
 msgid "Step"
-msgstr ""
+msgstr "Avanzamento"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Esegui il numero specificato di istruzioni (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Istruzioni di avanzamento"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fisico"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Indirizzo, registro o segmento:scostamento"
 
 msgid "Go"
-msgstr ""
+msgstr "Vai"
 
 msgid "Live update"
-msgstr ""
+msgstr "In tempo reale"
 
 msgid "Dump…"
-msgstr ""
+msgstr "Esporta…"
 
 msgid "Commands"
-msgstr ""
+msgstr "Comandi"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Mostra o nascondi i comandi del debugger (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Byte hex"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "Testo ASCII"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Valore, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Valore, word"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Valore, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
-msgstr ""
+msgstr "Specifica cosa cercare: byte esadecimali grezzi, testo o un valore esadecimale memorizzato in formato little-endian, come appare nella visualizzazione esadecimale."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Ricerca nella memoria"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
-msgstr ""
+msgstr "Ctrl+F seleziona questa casella; Invio o F3 trova la corrispondenza successiva, Maiusc+F3 quella precedente."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Trova prec."
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Cerca verso l'alto a partire dalla selezione (Maiusc+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Trova succ."
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Cerca verso il basso a partire dalla selezione (F3)"
 
 msgid "Range…"
-msgstr ""
+msgstr "Intervallo…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Esegue la ricerca all'interno di un intervallo di indirizzi anziché nell'intera memoria"
 
 msgid "From"
-msgstr ""
+msgstr "Da"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
-msgstr ""
+msgstr "Punto di inizio della ricerca (valore esadecimale, registro o segmento:scostamento; se vuoto, indica il primo byte mappato; il punto «.» indica l'inizio della selezione)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "A (incluso)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
-msgstr ""
+msgstr "Punto in cui termina la ricerca, incluso tale indirizzo (valore esadecimale, registro o segmento:scostamento; se vuoto, indica l'ultimo byte mappato; il punto «.» indica la fine della selezione)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Intervallo da"
 
 msgid "to"
-msgstr ""
+msgstr "a"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Mappato, non RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Non mappato"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Inaccessibile"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
-msgstr ""
+msgstr "Inaccessibile: in questa posizione rispondono solo i gestori di dispositivo (la lettura potrebbe avere effetti collaterali), oppure la pagina lineare non è presente."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Indirizzo lineare, registro o segmento:scostamento"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Segui CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Byte"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Istruzione"
 
 msgid "Note"
-msgstr ""
+msgstr "Nota"
 
 msgid "Double-click a line to set or clear a breakpoint there"
-msgstr ""
+msgstr "Fai doppio clic su una riga per impostare o rimuovere un punto di interruzione"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Disassemblaggio"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Disassemblaggio (non disponibile in questa versione)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "Messaggio visualizzatore"
 
 msgid "Selected range"
-msgstr ""
+msgstr "Intervallo selezionato"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Comandi debugger"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Risultato comando debugger"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Comando debugger"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "help — comandi; Su/Giù — cronologia; . — indirizzo selezionato"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
-msgstr ""
+msgstr "I comandi condividono lo spazio degli indirizzi e la selezione del visualizzatore della memoria. Digita help per visualizzare i comandi disponibili."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Avvia l'esecuzione del processore (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Ferma il processore all'istruzione successiva (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Troppi punti di interruzione."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Fermato: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "L'emulatore è occupato; la visualizzazione non è stata aggiornata."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Fermato ad un punto di interruzione."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Fermato dopo l'avanzamento."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Fermato."
 
 msgid "Stepping…"
-msgstr ""
+msgstr "Avanzamento…"
 
 msgid "Running."
-msgstr ""
+msgstr "In esecuzione."
 
 msgid "The emulator is paused; resume it to run or step."
-msgstr ""
+msgstr "L'emulatore è in pausa; riavvialo per riprendere l'esecuzione o avanzare alla prossima istruzione."
 
 msgid "The dynamic recompiler is off while this window is open."
-msgstr ""
+msgstr "Finché questa finestra è aperta, il ricompilatore dinamico è disattivato."
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Inserisci un indirizzo."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "Impossibile cercare il selettore."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Segmento \"%1\" sconosciuto."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Scostamento \"%1\" sconosciuto."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "L'indirizzo lineare non è mappato nella memoria fisica."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" non è un indirizzo né un registro."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Utilizzo: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
-msgstr ""
+msgstr "Selezione di un indirizzo fisico; utilizzare un indirizzo lineare o passare allo spazio indirizzi lineare."
 
-msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
+msgid ""
+"r name [hex-value]: read or edit a register supported by the current processor.\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\n"
+"Selectors load descriptors without executing guest instructions; cache fields are literal edits.\n"
+"Writes require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
+"r nome [valore-esadecimale]: visualizza o modifica un registro supportato dal processore corrente.\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (cache dei descrittori nascosta)\n"
+"I selettori caricano i descrittori senza eseguire le istruzioni guest; i campi della cache sono modifiche letterali.\n"
+"Le operazioni di scrittura richiedono il processore in pausa in corrispondenza di un confine di istruzione completa. Le modifiche ai registri in modalità NEC 8080 non sono disponibili."
 
-msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
+msgid ""
+"Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n"
+". means the hex selection; omitted memory addresses use it.\n"
+"help | clear | refresh | regs\n"
+"run | pause | step [count]\n"
+"space physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\n"
+"write address byte [byte ...] | dump (opens selection export)\n"
+"dbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\n"
+"u address (linear disassembly) | follow on|off\n"
+"bp address | bc address|all | bl (linear breakpoints)\n"
+"r [register [value]] (read/set; values are hex); help registers lists names\n"
+"peek port [b|w|d] | poke port value [b|w|d]\n"
+"Register/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
 msgstr ""
+"I numeri sono in formato esadecimale; il numero di avanzamento delle istruzioni è in formato decimale. Sono accettati indirizzi, registri e la notazione segmento:scostamento (seg:off).\n"
+". indica la selezione esadecimale; è utilizzato per omettere gli indirizzi di memoria.\n"
+"help | clear | refresh | regs\n"
+"run | pause | step [numero]\n"
+"space physical|linear | goto indirizzo | db [indirizzo [lunghezza]] (massimo 1000 byte esadecimali)\n"
+"write byte di indirizzo [byte ...] | dump (apre la finestra di esportazione)\n"
+"dbio [indirizzo [lunghezza]] | writeio byte di indirizzo [byte ...] (errori sui dispositivi; richiede il processore in pausa)\n"
+"u indirizzo (disassemblaggio lineare) | follow on|off\n"
+"bp indirizzo | bc indirizzo|all | bl (punti di interruzione lineari)\n"
+"r [registro [valore]] (visualizza/imposta; i valori sono esadecimali); help registers elenca i nomi dei registri.\n"
+"peek porta [b|w|d] | poke porta valore [b|w|d]\n"
+"Le operazioni di scrittura su registri/memoria e di I/O richiedono il processore in pausa. L'operazione di I/O richiama i gestori di dispositivo, il che include errori legati alle operazioni di lettura."
 
 msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
-msgstr ""
+msgstr "Registro non disponibile, valore non valido oppure processore non in pausa in corrispondenza di un confine di istruzione completa."
 
 msgid "Pause the processor before side-effecting memory access."
-msgstr ""
+msgstr "Metti in pausa il processore prima accedere alla memoria."
 
 msgid "Write exceeds 4096 bytes or wraps the address space."
-msgstr ""
+msgstr "La scrittura supera i 4096 byte o eccede lo spazio degli indirizzi."
 
 msgid "Pause the processor before writing memory."
-msgstr ""
+msgstr "Metti in pausa il processore prima di scrivere in memoria."
 
 msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
-msgstr ""
+msgstr "Eseguite %1 di %2 scritture di byte; i dispositivi potrebbero ignorare le scritture. Gli indirizzi non tradotti vengono ignorati."
 
 msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
-msgstr ""
+msgstr "Scritti %1 di %2 byte; i byte in sola lettura o inaccessibili vengono ignorati."
 
 msgid "Disassembly is not available in this build."
-msgstr ""
+msgstr "Il disassemblaggio non è disponibile in questa versione."
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "Punto di interruzione %1 in %2."
 
 msgid "set"
-msgstr ""
+msgstr "impostato"
 
 msgid "cleared"
-msgstr ""
+msgstr "pulito"
 
 msgid "%n breakpoint(s), linear addresses:"
 msgid_plural "%n breakpoints, linear addresses:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%n punto di interruzione, indirizzi lineari:"
+msgstr[1] "%n punti di interruzione, indirizzi lineari:"
 
 msgid "Pause the processor before accessing I/O ports."
-msgstr ""
+msgstr "Metti in pausa il processore prima di accedere alle porte di I/O."
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
-msgstr ""
+msgstr "Comando sconosciuto o argomenti non validi. Digita help per informazioni sulla sintassi."
 
 msgid "Dump memory"
-msgstr ""
+msgstr "Esporta immagine della memoria"
 
 msgid "Start (hex, register or seg:off):"
-msgstr ""
+msgstr "Inizio (indirizzo, registro o segmento:scostamento):"
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "Lunghezza (byte esadecimali):"
 
 msgid "Address space:"
-msgstr ""
+msgstr "Spazio degli indirizzi:"
 
 msgid "Fill byte for memory that cannot be read:"
-msgstr ""
+msgstr "Byte di riempimento per memoria inaccessibile:"
 
 msgid "File:"
-msgstr ""
+msgstr "File:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
-msgstr ""
+msgstr "Vengono letti solo la RAM e altri tipi di memoria mappati direttamente. I byte non mappati e inaccessibili sono ignorati e sostituiti con byte di riempimento."
 
 msgid "Binary files"
-msgstr ""
+msgstr "File binari"
 
 msgid "The length must be a hex number above 0."
-msgstr ""
+msgstr "La lunghezza deve essere un numero esadecimale maggiore di 0."
 
 msgid "The fill byte must be a hex number from 00 to FF."
-msgstr ""
+msgstr "Il byte di riempimento deve essere un numero esadecimale compreso tra 00 e FF."
 
 msgid "Could not open %1 for writing."
-msgstr ""
+msgstr "Impossibile aprire %1 per l'operazione di scrittura."
 
 msgid "Dumping memory…"
-msgstr ""
+msgstr "Esportazione immagine della memoria…"
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "Impossibile scrivere in %1."
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
-msgstr ""
+msgstr "Esportati %1 byte da %2 a %3 (%4 byte sono stati ignorati e sostituiti con byte di riempimento)."
 
 msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
-msgstr ""
+msgstr "Inserisci i byte esadecimali a coppie, ad es. \"8B 44 24 08\"."
 
 msgid "\"%1\" is not made of hex bytes."
-msgstr ""
+msgstr "\"%1\" non è composto da byte esadecimali."
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Inserisci un valore esadecimale da 0 a %1."
 
 msgid "The value is too large for %1 bytes."
-msgstr ""
+msgstr "Il valore è troppo grande per %1 byte."
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "Inserisci un elemento da cercare."
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "L'intervallo termina prima dell'inizio."
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Plug and Play seriale"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Modem standard a 9600 bps (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Modem standard a 14400 bps (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Modem standard a 28800 bps (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Modem standard (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Modem avanzato a 9600 bps (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Modem avanzato a 14400 bps (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Modem avanzato a 28800 bps (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Modem avanzato (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Regione tono telefonico"
 
 msgid "North America"
-msgstr ""
+msgstr "America del Nord"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Regno Unito"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Europa continentale"
 
 msgid "Japan"
-msgstr ""
+msgstr "Giappone"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Standard handshake modem"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Automatico (in base alla velocità DTE)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Tipo di connessione"
 
 msgid "Username"
-msgstr ""
+msgstr "Nome utente"
 
 msgid "Password"
-msgstr ""
+msgstr "Password"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "Compressione e crittografia PPP"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Automatico"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "Richiede MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "Gruppo PPP Multilink (identico su ciascun collegamento)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "Server DNS primario PPP"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "Server DNS secondario PPP"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "Negoziazione direzionale CCP"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Bidirezionale"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Solo trasmissione"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Solo ricezione"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Asimmetrico (preferito)"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "Richiamata PPP (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Offerto (il chiamante può rifiutare)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Richiesto (il chiamante deve accettare)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "Intervallo controllo attività PPP (secondi, 0 = spento)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Segnala al host il segnale DTMF ricevuto (<DLE>cifra)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Spento (solo con +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
-msgstr ""
+msgstr "ID chiamante tra istanze dell'emulatore (abilitare su entrambe)"
 
 msgid "Caller ID sent when dialing (number,name)"
-msgstr ""
+msgstr "ID chiamante inviato durante la composizione (numero,nome)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Limite della coda di rete verso il guest (contropressione)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Illimitato (versione precedente)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 ms di tempo di linea"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 ms di tempo di linea"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 s di tempo di linea"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 s di tempo di linea"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "Tempo limite di invio TCP"
 
 msgid "Card:"
-msgstr ""
+msgstr "Scheda:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Hub:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Memoria di massa:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
-msgstr ""
+msgstr "Le sue unità comprendono dischi rigidi, unità CD-ROM e altri dispositivi rimovibili, configurati su pagine dedicate, su bus SCSI, nei canali denominati \"Memoria di massa USB\". Ciascuna unità costituisce un'unità logica, disposta secondo l'ordine dei canali."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Dischi rigidi…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Unità CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Altri dispositivi rimovibili…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "Hub USB 1.1 a 4 porte"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "Memoria di massa USB"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "Monta la cartella come disco floppy temporaneo"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "L'unità selezionata non supporta il montaggio di cartelle."
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "Il contenuto supera la capacità dell'unità floppy configurata."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Monta la cartella come disco rimovibile temporaneo"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Impossibile montare la cartella o l'archivio"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
-msgstr ""
+msgstr "Il contenuto non entra in alcun supporto gestito dall'unità, oppure un file ha dimensioni pari o superiori a 4 GB."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
-msgstr ""
+msgstr "Nella cartella principale del supporto sono presenti troppi file."
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "Impossibile scrivere l'immagine temporanea."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Memoria insufficiente per creare l'immagine."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Impossibile leggere la cartella o l'archivio."
 
 msgid "Archives"
-msgstr ""
+msgstr "Archivi"
 
 msgid "New USB flash drive"
-msgstr ""
+msgstr "Nuova unità flash USB"
 
 msgid "&New USB flash drive…"
-msgstr ""
+msgstr "&Nuova unità flash USB…"
 
 msgid "unplugged"
-msgstr ""
+msgstr "scollegato"
 
 msgid "&Unplug"
-msgstr ""
+msgstr "&Scollega"
 
 msgid "&Unplug %1"
-msgstr ""
+msgstr "&Scollega %1"
 
 msgid "Plug in %1 (%2)"
-msgstr ""
+msgstr "Collega su %1 (%2)"
 
 msgid "&Move %1 to"
-msgstr ""
+msgstr "&Sposta %1 in"
 
 msgid "Size:"
-msgstr ""
+msgstr "Dimensione:"
 
 msgid "Custom size:"
-msgstr ""
+msgstr "Dimensione personalizzata:"
 
 msgid "None (blank)"
-msgstr ""
+msgstr "Nessuna (vuoto)"
 
 msgid "FAT16"
-msgstr ""
+msgstr "FAT16"
 
 msgid "FAT32"
-msgstr ""
+msgstr "FAT32"
 
 msgid "Format:"
-msgstr ""
+msgstr "Formattazione:"
 
 msgid "Could not create %1."
-msgstr ""
+msgstr "Impossibile creare %1."
 
 msgid "%1 already exists. Replace it?"
-msgstr ""
+msgstr "%1 esiste già. Vuoi sostituirlo?"
 
 msgid "USB port %1 (%2)"
-msgstr ""
+msgstr "Porta USB %1 (%2)"
 
 msgid "USB port"
-msgstr ""
+msgstr "Porta USB"
 
 msgid "PCI card"
-msgstr ""
+msgstr "Scheda PCI"
 
 msgid "hub"
-msgstr ""
+msgstr "hub"
 
 msgid "board"
-msgstr ""
+msgstr "scheda"
 
 msgid "now in port %1"
-msgstr ""
+msgstr "adesso nella porta %1"
