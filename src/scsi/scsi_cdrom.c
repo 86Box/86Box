@@ -1204,9 +1204,8 @@ scsi_cdrom_illegal_opcode(scsi_cdrom_t *dev, const uint8_t opcode)
 static void
 scsi_cdrom_lba_out_of_range(scsi_cdrom_t *dev)
 {
-    cdrom_write_info_t wi;
-
     scsi_cdrom_log(dev->log, "LBA out of range: %08X\n", dev->sector_pos);
+    cdrom_write_info_t wi;
 
     if (dev->drv->is_philips && !scsi_cdrom_philips_write_info(dev, &wi) &&
         (dev->sector_pos >= wi.nwa)) {
@@ -1349,8 +1348,7 @@ scsi_cdrom_data(scsi_cdrom_t *dev, const int msf, const int type, const int flag
 
     if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED))
         scsi_cdrom_not_ready(dev);
-    else if (!write && (dev->sector_pos > dev->drv->cdrom_capacity) &&
-             !(dev->drv->is_philips && cdrom_is_blank(dev->drv))) {
+    else if (!write && (dev->sector_pos > dev->drv->cdrom_capacity)) {
         scsi_cdrom_lba_out_of_range(dev);
         ret = -1;
     } else {
@@ -1396,11 +1394,6 @@ scsi_cdrom_data(scsi_cdrom_t *dev, const int msf, const int type, const int flag
                     ret = cdrom_writesector(dev->drv, dev->buffer + dev->buffer_pos,
                                             dev->sector_pos, write_type, data_block_type, ctl);
                 }
-            } else if (dev->drv->is_philips && cdrom_is_blank(dev->drv)) {
-                /* Blank media reads back as zeroes. */
-                temp_len = dev->drv->sector_size ? dev->drv->sector_size : 2048;
-                memset(dev->buffer + dev->buffer_pos, 0x00, temp_len);
-                ret = 1;
             } else
                 ret = cdrom_readsector_raw(dev->drv, dev->buffer + dev->buffer_pos,
                                            dev->sector_pos, msf, type,
