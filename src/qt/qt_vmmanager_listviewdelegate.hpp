@@ -68,7 +68,5 @@ private:
     QIcon paused_icon;
     QIcon unknown_icon;
 
-    QColor bg_color;
-    QColor highlight_color;
 };
 #endif // QT_VMMANAGER_LISTVIEWDELEGATE_H

@@ -31,9 +31,6 @@ VMManagerListViewDelegate::VMManagerListViewDelegate(QObject *parent)
     stopped_icon = QIcon(":/menuicons/qt/icons/acpi_shutdown.ico");
     paused_icon  = QIcon(":/menuicons/qt/icons/pause.ico");
     unknown_icon = QApplication::style()->standardIcon(QStyle::SP_MessageBoxQuestion);
-
-    highlight_color = QColor("#616161");
-    bg_color        = QColor("#272727");
 }
 
 VMManagerListViewDelegate::~VMManagerListViewDelegate()
@@ -43,10 +40,6 @@ void
 VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                  const QModelIndex &index) const
 {
-    bool windows_light_mode = true;
-#ifdef Q_OS_WINDOWS
-    windows_light_mode = util::isWindowsLightTheme();
-#endif
     QStyleOptionViewItem opt(option);
     initStyleOption(&opt, index);
     const QPalette &palette(opt.palette);
@@ -101,17 +94,18 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     painter->setFont(opt.font);
 
     // Draw the background
-    if (opt.state & QStyle::State_Selected) {
+    const bool selected = (opt.state & QStyle::State_Selected);
+    if (selected) {
         // When selected, only draw the highlighted part until the horizontal separator
         int  offset        = 2;
         auto highlightRect = rect.adjusted(0, 0, 0, -offset);
-        painter->fillRect(highlightRect, windows_light_mode ? palette.highlight().color() : highlight_color);
+        painter->fillRect(highlightRect, palette.highlight().color());
         // Then fill the remainder with the normal color
         auto regularRect = rect.adjusted(0, rect.height() - offset, 0, 0);
-        painter->fillRect(regularRect, windows_light_mode ? palette.light().color() : bg_color);
+        painter->fillRect(regularRect, palette.base().color());
     } else {
         // Otherwise just draw the background color as usual
-        painter->fillRect(rect, windows_light_mode ? palette.light().color() : bg_color);
+        painter->fillRect(rect, palette.base().color());
     }
 
     // Draw bottom line. Last line gets a different color
@@ -135,7 +129,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     // If desired, font can be changed here
     //    painter->setFont(f);
     painter->setFont(opt.font);
-    painter->setPen(palette.text().color());
+    painter->setPen(selected ? palette.highlightedText().color() : palette.text().color());
     painter->drawText(systemNameRect, Qt::TextSingleLine, opt.text);
 
     // Draw status icon
@@ -157,7 +151,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     //    painter->setFont(opt.font);
     painter->setFont(f);
-    painter->setPen(palette.windowText().color());
+    painter->setPen(selected ? palette.highlightedText().color() : palette.windowText().color());
     painter->drawText(statusRect, Qt::TextSingleLine,
                       index.data(VMManagerModel::Roles::ProcessStatusString).toString());
 
