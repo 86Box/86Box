@@ -9,6 +9,59 @@
 [![Downloads](https://img.shields.io/github/downloads/86Box/86Box/total.svg)](https://github.com/86Box/86Box/releases)
 [![Translation status](https://weblate.86box.net/widget/86box/86box/language-badge.svg)](https://weblate.86box.net/engage/86box/)
 
+86Box AWE32
+-----------
+
+**This is a fork of 86Box 6.0 (branch `masterAWE32`) with a Sound Blaster AWE32 that
+sounds like the real card.** Everything else is 86Box 6.0 - the rest of this README is
+the original one.
+
+86Box emulates the AWE32 and its EMU8000 wavetable synthesizer already. In this fork the
+EMU8000 is replaced by the chip of the [AWE32Emu](https://github.com/turican0/AWE32Emu)
+project: 86Box's EMU8000 corrected against recordings of a real Sound Blaster AWE32,
+made with a calibration program written for that purpose. The same file
+(`src/sound/snd_emu8k.c`) is used byte for byte in AWE32Emu and in
+[DOSBox-X AWE32](https://github.com/turican0/dosbox-x-AWE32), so all three produce the
+same sound from the same register writes.
+
+| | 86Box 6.0 | this fork |
+|---|---|---|
+| filter | cutoff about 1.8 octaves higher than on the card | Chamberlin state-variable filter with the cutoff mapping and resonance measured on the card |
+| envelopes | sustain in linear steps, slow rates rounded to zero | sustain in 0.75 dB steps, fractional rates, attack shape as measured |
+| interpolation | cubic (Catmull-Rom) | cubic B-spline, as the card's aliasing shows |
+| reverb | generic comb/all-pass network | fitted per preset to the card's line output, including the echo presets 6/7 and early reflections |
+| chorus | generic | structure, delays and feedback as measured |
+| equaliser | not implemented | bass and treble shelves decoded from INIT3/INIT4 |
+| output level | - | level and headroom of the card's output stage |
+
+The changes are marked `AWE32Emu:` in the code. Outside the chip only
+`src/sound/snd_sb.c` changes: it clears the chip's buffer with `emu8k_reset_buffer()`
+after reading it, as 86Box does after 6.0. Nothing else in the Sound Blaster, the
+settings or the machine configuration changes - an existing VM with an AWE32 just
+sounds different.
+
+For comparing runs: with the environment variable `EMU8K_TRACE=<file>` every EMU8000
+port write is recorded (the format of AWE32Emu `--replay` and of DOSBox-X AWE32), and
+`AWE32_WAV=<file>` writes the chip's output as a WAV. Without them nothing happens.
+
+Related projects:
+
+* [AWE32Emu](https://github.com/turican0/AWE32Emu) - the same EMU8000 as a `.mid` /
+  `.xmi` player with the logic of Creative's drivers, the measurements and the tools
+* [DOSBox-X AWE32](https://github.com/turican0/dosbox-x-AWE32) - DOSBox-X with a
+  complete Sound Blaster AWE32 (EMU8000, `AWEUTIL`, wave ROM download)
+
+### Thanks
+
+Many thanks to **Mysterium Xerxes** (orzipan), who patiently recorded a real Sound
+Blaster AWE32 again and again - test program after test program, the games, the line
+output and the card's own capture. Every measured detail of the EMU8000 in this fork
+comes from those recordings.
+
+---
+
+**The original 86Box README follows.**
+
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
 Features

@@ -1,0 +1,159 @@
+name: Release (86Box AWE32)
+
+# Builds the release packages of the AWE32 fork when a tag starting with "v" is
+# pushed (e.g. v6.0-AWE32-1) and attaches them to a GitHub release:
+#   86Box-AWE32-<tag>-Windows-x64.zip      (MSYS2 UCRT64, Qt 5 GUI)
+#   86Box-AWE32-<tag>-Linux-x86_64.tar.gz  (Qt 5 GUI)
+# The ROM set of 86Box (including roms/sound/creative/awe32.raw) is not part
+# of the packages, as with the official 86Box releases.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:        # can also be started by hand, as a dry run
+
+permissions:
+  contents: write           # needed to create the release
+
+jobs:
+
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Prepare MSYS2 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          release: true
+          update: true
+          msystem: UCRT64
+          install: zip
+          pacboy: >-
+            ninja:p
+            cmake:p
+            gcc:p
+            pkgconf:p
+            freetype:p
+            SDL2:p
+            zlib:p
+            libpng:p
+            openal:p
+            rtmidi:p
+            libslirp:p
+            fluidsynth:p
+            libserialport:p
+            qt5-static:p
+            vulkan-headers:p
+            llvm-openmp:p
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build --preset regular
+          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          -D QT=on
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package
+        run: |
+          cmake --install build
+          cp README.md COPYING build/artifacts/ 2>/dev/null || true
+          mkdir -p dist
+          name="86Box-AWE32-${GITHUB_REF_NAME}-Windows-x64"
+          (cd build/artifacts && zip -r -9 "../../dist/$name.zip" .)
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/*
+
+  linux:
+    name: Linux x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install dependencies
+        run: >-
+          sudo apt update && sudo apt install -y
+          build-essential
+          ninja-build
+          libfreetype-dev
+          libgles2-mesa-dev
+          libsdl2-dev
+          libpng-dev
+          libc6-dev
+          librtmidi-dev
+          libopenal-dev
+          libslirp-dev
+          libfluidsynth-dev
+          libvdeplug-dev
+          libserialport-dev
+          qtbase5-dev
+          qtbase5-private-dev
+          qttools5-dev
+          qttranslations5-l10n
+          libevdev-dev
+          libxkbcommon-x11-dev
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build --preset regular
+          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          -D QT=on
+          -D USE_QT6=off
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package
+        run: |
+          cmake --install build
+          cp README.md COPYING build/artifacts/ 2>/dev/null || true
+          mkdir -p dist
+          name="86Box-AWE32-${GITHUB_REF_NAME}-Linux-x86_64"
+          tar -czf "dist/$name.tar.gz" -C build/artifacts .
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: dist/*
+
+  release:
+    name: Release
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # A new tag gets a release with generated notes; when the release exists
+      # already (the workflow ran again), only the files are replaced.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          shopt -s nullglob
+          files=(artifacts/*/*.zip artifacts/*/*.tar.gz)
+          ls -la "${files[@]}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "${files[@]}" --verify-tag --title "86Box AWE32 $TAG" \
+                --notes "86Box 6.0 with the EMU8000 of AWE32Emu (Sound Blaster AWE32 measured on a real card). The 86Box ROM set is not included. See README.md." \
+                --repo "$GITHUB_REPOSITORY"
+          fi
