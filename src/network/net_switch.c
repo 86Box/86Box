@@ -554,7 +554,8 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
 
     for (int i = 0; i < SWITCH_PKT_BATCH; i++)
         netswitch->pkt_tx_v[i].data = calloc(1, NET_MAX_FRAME);
-    netswitch->pkt.data = calloc(1, NET_MAX_FRAME);
+    /* Secret datagrams carry the 32-byte hash before the frame. */
+    netswitch->pkt.data = calloc(1, NET_MAX_FRAME + sizeof(netswitch->secret_hash));
     net_event_init(&netswitch->tx_event);
     net_event_init(&netswitch->stop_event);
 #ifdef _WIN32
