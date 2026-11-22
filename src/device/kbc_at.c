@@ -2768,12 +2768,14 @@ kbc_at_process_cmd(void *priv)
 
             case 0xd2: /* write to keyboard output buffer */
                 kbc_at_log("ATkbc: write to keyboard output buffer\n");
-                kbc_delay_to_ob(dev, dev->ib, 0, 0x00);
+                /* Fill the output buffer when consuming the parameter: legacy USB
+                   SMI handlers may read it as soon as IBF clears. */
+                kbc_send_to_ob(dev, dev->ib, 0, 0x00);
                 break;
 
             case 0xd3: /* write to auxiliary output buffer */
                 kbc_at_log("ATkbc: write to auxiliary output buffer\n");
-                kbc_delay_to_ob(dev, dev->ib, 2, 0x00);
+                kbc_send_to_ob(dev, dev->ib, 2, 0x00);
                 break;
 
             case 0xd4: /* write to auxiliary port */
