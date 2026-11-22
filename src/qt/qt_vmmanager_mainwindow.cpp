@@ -215,6 +215,9 @@ VMManagerMainWindow::preferencesTriggered()
     updateLanguage();
 
     if (accepted) {
+        /* Only the saved preferences are passed on to the running machines */
+        vmm->sendGlobalConfigurationChanged();
+
         auto new_vmm_path = QString(vmm_path_cfg);
         if (!machinesRunning && (new_vmm_path != old_vmm_path)) {
             qDebug() << "Machine path changed: old path " << old_vmm_path << ", new path " << new_vmm_path;

@@ -136,7 +136,8 @@ VMManagerModel::addConfigToModel(VMManagerSystem *system_config)
     beginInsertRows(QModelIndex(), this->rowCount(QModelIndex()), this->rowCount(QModelIndex()));
     machines.append(system_config);
     connect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
-    connect(system_config, &VMManagerSystem::globalConfigurationChanged, this, &VMManagerModel::globalConfigurationChanged);
+    connect(system_config, &VMManagerSystem::globalConfigurationChanged, this,
+            [this, system_config] { emit globalConfigurationChanged(system_config); });
     endInsertRows();
     emit systemDataChanged();
 }
@@ -198,10 +199,11 @@ VMManagerModel::getProcessStats()
 }
 
 void
-VMManagerModel::sendGlobalConfigurationChanged()
+VMManagerModel::sendGlobalConfigurationChanged(const VMManagerSystem *except)
 {
     for (auto &system : machines) {
-        if (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped) {
+        /* The machine that changed the configuration already applied it */
+        if ((system != except) && (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped)) {
             system->sendGlobalConfigurationChanged();
         }
     }
