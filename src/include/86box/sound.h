@@ -337,6 +337,9 @@ extern const device_t ess_solo1_onboard_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;
+/* Aureal Vortex 2 */
+extern const device_t vortex2_device;
+
 extern const device_t es1371_device;
 extern const device_t es1371_onboard_device;
 extern const device_t es1373_device;

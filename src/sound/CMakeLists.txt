@@ -42,6 +42,8 @@ add_library(snd OBJECT
     snd_ad1816.c
     snd_ad1848.c
     snd_audiopci.c
+    snd_vortex2.c
+    snd_vortex2_core.c
     snd_azt2316a.c
     snd_azt2320.c
     snd_cms.c
