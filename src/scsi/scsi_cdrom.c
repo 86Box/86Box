@@ -3416,6 +3416,7 @@ scsi_cdrom_philips_data_in(scsi_cdrom_t *dev, int32_t *BufLen, const int size, c
     if (len <= 0)
         scsi_cdrom_philips_status(dev);
     else {
+        scsi_cdrom_dump(dev, "Philips response", dev->buffer, len);
         scsi_cdrom_set_buf_len(dev, BufLen, &len);
         scsi_cdrom_data_command_finish(dev, len, len, len, 0);
     }
