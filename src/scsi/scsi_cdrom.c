@@ -3569,7 +3569,7 @@ scsi_cdrom_philips_track_info(scsi_cdrom_t *dev, int32_t *BufLen, const uint8_t 
     else
         status = (ctl & 0x04) ? 0x02 : 0x0f;
 
-    incr = ((blank && (flags & 0x20)) ? 0x08 : 0x00) | ((flags & 0x10) ? 0x04 : 0x00);
+    incr = (blank ? 0x08 : 0x00) | ((flags & 0x10) ? 0x04 : 0x00);
 
     b[0]  = 0x13;
     b[1]  = tracks;
