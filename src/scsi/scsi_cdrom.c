@@ -4111,24 +4111,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         len = (max_len < 12) ? max_len : 12;
                         scsi_cdrom_set_buf_len(dev, BufLen, &len);
                         scsi_cdrom_data_command_finish(dev, len, len, len, 0);
-                    } else if (dev->drv->is_philips && (toc_format == 2)) {
-                        /* An empty raw TOC, with only the first and last track and the lead-out. */
-                        memset(dev->buffer, 0x00, 37);
-                        dev->buffer[1] = 0x23;
-                        dev->buffer[2] = 0x01;
-                        dev->buffer[3] = 0x01;
-                        for (int i = 0; i < 3; i++) {
-                            uint8_t *e = &(dev->buffer[4 + (i * 11)]);
-
-                            e[0] = 0x01;
-                            e[1] = 0x10;
-                            e[3] = 0xa0 + i;
-                        }
-                        dev->buffer[4 + 8]  = 0x01;
-                        dev->buffer[4 + 22 + 9] = 0x02;
-                        len = (max_len < 37) ? max_len : 37;
-                        scsi_cdrom_set_buf_len(dev, BufLen, &len);
-                        scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                     } else if (dev->drv->is_philips)
                         /* The Philips recorders report that they were unable to read the TOC. */
                         scsi_cdrom_philips_error(dev, SENSE_MEDIUM_ERROR, 0x57);
