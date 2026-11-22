@@ -1141,13 +1141,37 @@ scsi_cdrom_not_ready(scsi_cdrom_t *dev)
     scsi_cdrom_cmd_error(dev);
 }
 
+static int scsi_cdrom_philips_write_info(const scsi_cdrom_t *dev, cdrom_write_info_t *wi);
+
 static void
 scsi_cdrom_circ_error(scsi_cdrom_t *dev)
 {
+    cdrom_write_info_t wi;
+
     scsi_cdrom_log(dev->log, "CIRC unrecovered error\n");
     scsi_cdrom_sense_key = SENSE_MEDIUM_ERROR;
     scsi_cdrom_asc       = ASC_UNRECOVERED_READ_ERROR;
     scsi_cdrom_ascq      = ASCQ_CIRC_UNRECOVERED_ERROR;
+
+    /*
+       The 7 blocks before the next writable address are the run-out, link and run-in blocks:
+       run-out 1 and 2, link, then run-in 1 to 4.
+     */
+    if (dev->drv->is_philips && !scsi_cdrom_philips_write_info(dev, &wi) &&
+        (dev->sector_pos + 7 >= wi.nwa)) {
+        const uint32_t pos = dev->sector_pos + 7 - wi.nwa;
+
+        if (pos == 2) {
+            /* Link block, the unrecoverable read error is already set. */
+        } else if (pos == 3) {
+            scsi_cdrom_asc  = 0xd5;
+            scsi_cdrom_ascq = 0x00;
+        } else {
+            scsi_cdrom_sense_key = SENSE_VOLUME_OVERFLOW;
+            scsi_cdrom_asc       = 0xaa;
+            scsi_cdrom_ascq      = 0x00;
+        }
+    }
     scsi_cdrom_info      =  (dev->sector_pos >> 24)        |
                            ((dev->sector_pos >> 16) <<  8) |
                            ((dev->sector_pos >> 8)  << 16) |
@@ -1181,7 +1205,10 @@ static void
 scsi_cdrom_lba_out_of_range(scsi_cdrom_t *dev)
 {
     scsi_cdrom_log(dev->log, "LBA out of range: %08X\n", dev->sector_pos);
-    if (dev->drv->is_philips && cdrom_is_blank(dev->drv)) {
+    cdrom_write_info_t wi;
+
+    if (dev->drv->is_philips && !scsi_cdrom_philips_write_info(dev, &wi) &&
+        (dev->sector_pos >= wi.nwa)) {
         /* Unwritten area: end of medium reached, like the run-in and run-out blocks. */
         scsi_cdrom_sense_key = SENSE_VOLUME_OVERFLOW;
         scsi_cdrom_asc       = 0xaa;
