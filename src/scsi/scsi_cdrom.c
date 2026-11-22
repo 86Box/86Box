@@ -1205,17 +1205,8 @@ static void
 scsi_cdrom_lba_out_of_range(scsi_cdrom_t *dev)
 {
     scsi_cdrom_log(dev->log, "LBA out of range: %08X\n", dev->sector_pos);
-    cdrom_write_info_t wi;
-
-    if (dev->drv->is_philips && !scsi_cdrom_philips_write_info(dev, &wi) &&
-        (dev->sector_pos >= wi.nwa)) {
-        /* Unwritten area: end of medium reached, like the run-in and run-out blocks. */
-        scsi_cdrom_sense_key = SENSE_VOLUME_OVERFLOW;
-        scsi_cdrom_asc       = 0xaa;
-    } else {
-        scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
-        scsi_cdrom_asc       = ASC_LBA_OUT_OF_RANGE;
-    }
+    scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
+    scsi_cdrom_asc       = ASC_LBA_OUT_OF_RANGE;
     scsi_cdrom_ascq      = 0;
     scsi_cdrom_info      =  (dev->sector_pos >> 24)        |
                            ((dev->sector_pos >> 16) <<  8) |
