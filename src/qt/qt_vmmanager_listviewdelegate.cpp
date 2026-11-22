@@ -238,6 +238,17 @@ VMManagerListViewDelegateStyle::VMManagerListViewDelegateStyle()
     //
 }
 
+/* Returns the box text is drawn into from its left edge. The bounding rectangle
+   only covers the ink, which can start to the right of where the text is drawn
+   from, so cover both the ink and the advance from there on. */
+static QRect
+textBox(const QFontMetrics &fm, const QString &text)
+{
+    const QRect ink = fm.boundingRect(text);
+
+    return QRect(0, ink.top(), qMax(fm.horizontalAdvance(text), ink.right() + 1), ink.height()).adjusted(0, 0, 1, 1);
+}
+
 QRect
 VMManagerListViewDelegateStyle::statusBox(const QStyleOptionViewItem &option,
                                           const QModelIndex          &index) const
@@ -246,7 +257,7 @@ VMManagerListViewDelegateStyle::statusBox(const QStyleOptionViewItem &option,
 
     f.setPointSizeF(statusFontPointSize(option.font));
 
-    return QFontMetrics(f).boundingRect(index.data(VMManagerModel::Roles::ProcessStatusString).toString()).adjusted(0, 0, 1, 1);
+    return textBox(QFontMetrics(f), index.data(VMManagerModel::Roles::ProcessStatusString).toString());
 }
 
 qreal
@@ -259,5 +270,5 @@ VMManagerListViewDelegateStyle::statusFontPointSize(const QFont &f) const
 QRect
 VMManagerListViewDelegateStyle::systemNameBox(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    return option.fontMetrics.boundingRect(option.text).adjusted(0, 0, 1, 1);
+    return textBox(option.fontMetrics, option.text);
 }
