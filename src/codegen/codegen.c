@@ -2000,6 +2000,14 @@ codegen_skip:
       left (exec386_dynarec_dyn)*/
     if (cpu_debug_regs_486)
         uop_CALL_FUNC(ir, dynarec_rf_after_op);
+    /*An IN, OUT or string I/O handler can remap either page of this block
+      and delete it. Leave at its next PC, including after a linked entry.*/
+    if (((op_table == x86_dynarec_opcodes) && ((opcode & 0xf4) == 0xe4)) ||
+        (((opcode & 0xfc) == 0x6c) &&
+         ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE)))) {
+        uop_MOV_REG_PTR(ir, IREG_temp0, &block->valid);
+        uop_CMP_IMM_JZ(ir, IREG_temp0, 0, codegen_exit_rout);
+    }
     /*Nor are the tags known after any interpreted instruction: an x87 one
       can load them, and any can reach a reset through its I/O*/
     codegen_fpu_tag_valid = 0;

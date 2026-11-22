@@ -3781,6 +3781,22 @@ mem_write_remappedl2(uint32_t addr, uint32_t val, UNUSED(void *priv))
         *(uint32_t *) &ram[addr] = val;
 }
 
+void
+mem_set_page_byte_masks(page_t *page, uint32_t mask_page)
+{
+    uint64_t *dirty   = &byte_dirty_mask[mask_page * 64];
+    uint64_t *present = &byte_code_present_mask[mask_page * 64];
+
+    if ((page->byte_dirty_mask == dirty) && (page->byte_code_present_mask == present))
+        return;
+
+#ifdef USE_DYNAREC
+    codegen_invalidate_page_masks(page);
+#endif
+    page->byte_dirty_mask        = dirty;
+    page->byte_code_present_mask = present;
+}
+
 /* Point the page entries of base..base+size-1 at RAM from ram_addr (set), or
    back at their own physical addresses: code a chipset runs from RAM at a
    second address is then tracked for self-modification through that page, as
@@ -3802,16 +3818,14 @@ mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set)
            alias of, as mem_remap_top() does: its own index is past the end
            of the arrays, and code compiled through the alias can still be
            flushed from it. */
-        if (((uint64_t) addr + 0x1000) > ((uint64_t) mem_size << 10)) {
-            pages[c].mem = page_ff;
-            addr         = (((uint64_t) alias + 0x1000) <= ((uint64_t) mem_size << 10)) ? alias : 0;
-        } else
-            pages[c].mem = &ram[addr];
-        pages[c].write_b                = mem_write_ramb_page;
-        pages[c].write_w                = mem_write_ramw_page;
-        pages[c].write_l                = mem_write_raml_page;
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
+        const int backed = ((uint64_t) addr + 0x1000) <= ((uint64_t) mem_size << 10);
+        if (!backed)
+            addr = (((uint64_t) alias + 0x1000) <= ((uint64_t) mem_size << 10)) ? alias : 0;
+        mem_set_page_byte_masks(&pages[c], addr >> 12);
+        pages[c].mem     = backed ? &ram[addr] : page_ff;
+        pages[c].write_b = mem_write_ramb_page;
+        pages[c].write_w = mem_write_ramw_page;
+        pages[c].write_l = mem_write_raml_page;
     }
 
     if (set)
@@ -4807,12 +4821,11 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         }
         if (start_addr == 0)
             start_addr = addr;
+        mem_set_page_byte_masks(&pages[c], addr >> 12);
         pages[c].mem     = set ? &ram[addr] : page_ff;
         pages[c].write_b = set ? mem_write_ramb_page : NULL;
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
     }
 
     mem_set_mem_state_both(start * 1024, size * 1024, set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
@@ -4821,6 +4834,7 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         if ((c >= 0xc0) && (c <= 0xcf))
             continue;
 
+        mem_set_page_byte_masks(&pages[c], c);
         if (sis_mode || ((c << 12) >= (mem_size << 10)))
             pages[c].mem = page_ff;
         else {
@@ -4835,8 +4849,6 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
             pages[c].write_w = NULL;
             pages[c].write_l = NULL;
         }
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
     }
 
     if (set) {

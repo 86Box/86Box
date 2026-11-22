@@ -820,13 +820,36 @@ exec386_dynarec_dyn(const int dbg)
             }
         }
 
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+        /* Writes do not mark a checked block whose current code has the
+           entry check: its code bytes are compared with memory, here and
+           by its code on a linked entry. Written, it is interpreted in its
+           SMC cooldown as the tests below interpret a dirty block; else it
+           holds the kept version compiled from the bytes there now, or it
+           is to be compiled again, for the tests below. */
+        int put_back = 0;
+
+        if (valid_block && ((block->flags & (CODEBLOCK_CHECKED | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == (CODEBLOCK_CHECKED | CODEBLOCK_WAS_RECOMPILED))) {
+            const int check = codegen_block_check(block);
+
+            if (check < 0) {
+                exec386_dynarec_int();
+                return;
+            }
+            /* Put back runs as a block put back below does, untested */
+            put_back = check;
+        }
+#    else
+        const int put_back = 0;
+#    endif
+
         /* A compiled block off the dirty list, on one page or byte-mask
            chunk (HAS_PAGE2 is set whenever page_mask2 is not 0 on such a
            block), with no dirty code bytes and, with a static TOP,
            compiled for this one, passes every test below without a side
            effect, the SMC cooldown's included: it can only interpret a
            block that fails one of these. */
-        if (valid_block &&
+        if (valid_block && !put_back &&
             ((((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_HAS_PAGE2)) ^ CODEBLOCK_WAS_RECOMPILED) |
               ((block->TOP ^ cpu_state.TOP) & ((block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0))) |
              (block->page_mask & *block->dirty_mask))) {
@@ -858,6 +881,13 @@ exec386_dynarec_dyn(const int dbg)
                 else
                 if (!block->valid)
                     valid_block = 0;
+#        ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+                /* Made checked when the flush evicted it from the dirty
+                   list: put back or compiled below, as it would have been
+                   still on the list */
+                else if (!block->head_mem_block)
+                    block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+#        endif
             }
             if (valid_block && block->page_mask2) {
                 /* We don't want the second page to cause a page
@@ -883,6 +913,10 @@ exec386_dynarec_dyn(const int dbg)
                     else
                     if (!block->valid)
                         valid_block = 0;
+#        ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+                    else if (!block->head_mem_block)
+                        block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+#        endif
                 }
             }
             if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
@@ -909,6 +943,14 @@ exec386_dynarec_dyn(const int dbg)
                them again. */
             if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
                 codegen_block_restore_version(block);
+#        ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+            /* A checked block written is not put on the dirty list: the same
+               for it, once it is left without code. One with code here was
+               only taken off for its TOP, and compiles as any block does. */
+            else if (valid_block && ((block->flags & (CODEBLOCK_CHECKED | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == CODEBLOCK_CHECKED) &&
+                     !block->head_mem_block)
+                codegen_block_put_back(block);
+#        endif
         }
     }
 

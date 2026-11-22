@@ -108,6 +108,7 @@
 #    define OPCODE_CSEL               (0x0d4 << 21)
 #    define OPCODE_CSINC              (0x1a800400)
 #    define OPCODE_EOR_LSL            (0x250 << 21)
+#    define OPCODE_EORX_LSL           (0x650 << 21)
 #    define OPCODE_ORR_ASR            (0x154 << 21)
 #    define OPCODE_ORR_LSL            (0x150 << 21)
 #    define OPCODE_ORR_LSR            (0x152 << 21)
@@ -1180,6 +1181,11 @@ void
 host_arm64_EOR_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
 {
     codegen_addlong(block, OPCODE_EOR_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
+void
+host_arm64_EORX_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
+{
+    codegen_addlong(block, OPCODE_EORX_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
 void
 host_arm64_EOR_REG_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)

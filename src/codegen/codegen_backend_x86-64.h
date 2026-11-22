@@ -67,6 +67,11 @@ void codegen_lazy_stubs_emit(codeblock_t *block);
 /* A slot whose target changes keeps the targets it held before in a set,
    tried after a key mismatch (codegen_link.h). */
 #    define CODEGEN_BACKEND_HAS_LINK_SETS
+/* A block whose bytes writes do not track (CODEBLOCK_CHECKED) starts with a
+   compare of those bytes with memory, which every entry, the dispatcher's
+   and a link's, goes through (codegen_entry_check). A backend without it
+   leaves every block tracked by writes. */
+#    define CODEGEN_BACKEND_HAS_ENTRY_CHECK
 void codegen_link_exit(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */
 extern int codegen_block_link;

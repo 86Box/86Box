@@ -117,6 +117,7 @@ void host_arm64_INS_S(codeblock_t *block, int dst_reg, int src_reg, int dst_inde
 
 void host_arm64_EOR_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_data);
 void host_arm64_EOR_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift);
+void host_arm64_EORX_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift);
 void host_arm64_EOR_REG_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
 void host_arm64_FABS_D(codeblock_t *block, int dst_reg, int src_reg);

@@ -1402,6 +1402,7 @@ build_link_routine(codeblock_t *block)
     int32_t *one_page;
     int32_t *byte_mask;
     int32_t *no_paging_2;
+    int32_t *chk_none;
     void    *nmi_done;
     void    *irq_done;
     void    *xlat_done;
@@ -1541,6 +1542,20 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDX, 0);
     rx_rm(block, 0, 1, 0x85, REG_RDX, REG_RBX, LINK_SLOT(page_mask));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*A target whose code has the entry check is not marked by writes: its
+      chunks' dirty words are, and written it is a miss here, before the
+      stores below, as a dirty block marked by writes is. RDI = the target
+      block*/
+    rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDI, LINK_BLOCK(chk_dirty));
+    rx_rr(block, 0, 1, 0x85, REG_RDX, REG_RDX);
+    chk_none = rx_jcc(block, RX_CC_Z);
+    rx_rm(block, 0, 1, 0x8b, REG_RCX, REG_RDI, LINK_BLOCK(page_mask));
+    rx_rm(block, 0, 1, 0x23, REG_RCX, REG_RDX, 0); /*AND RCX, word 0*/
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_rm(block, 0, 1, 0x8b, REG_RCX, REG_RDI, LINK_BLOCK(page_mask2));
+    rx_rm(block, 0, 1, 0x23, REG_RCX, REG_RDX, 8); /*AND RCX, word 1*/
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_patch(chk_none, rx_here());
     rx_rm(block, 0, 0, 0x0fb6, REG_RCX, REG_RBX, LINK_SLOT(top_mask));
     rx_rm(block, 0, 0, 0x23, REG_RCX, REG_RBP, rx_state(&cpu_state.TOP));
     rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RBX, LINK_SLOT(top));
@@ -1895,6 +1910,44 @@ codegen_set_rounding_mode(int mode)
     cpu_state.new_fp_control = (cpu_state.old_fp_control & ~0x6000) | (mode << 13);
 }
 
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+/*The checked block's bytes against memory, through the mapping in _mem_exec[]
+  now, which must still be the one it was compiled under: the immediates are
+  read from that. Its dirty bits first: written since, it goes to the C loop
+  as the link routine sends a block marked by writes and dirty. A difference
+  leaves before the first instruction, through the plain exit, with nothing
+  done: the C loop then handles it (codegen_block_check()). Ahead of anything
+  with state, so it is the same from the link entry, where every register but
+  RBP is free as it is on the dispatcher's. R8 = the bytes, R9 = the words to
+  compare with*/
+static void
+entry_check_emit(codeblock_t *block)
+{
+    const codegen_entry_check_t *c = &codegen_entry_check;
+
+    rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) c->dirty);
+    rx_mov_ri64(block, REG_RAX, c->dirty_bits[0]);
+    rx_rm(block, 0, 1, 0x23, REG_RAX, REG_R9, 0); /*AND RAX, dirty[0]*/
+    if (c->dirty_bits[1]) {
+        rx_mov_ri64(block, REG_R8, c->dirty_bits[1]);
+        rx_rm(block, 0, 1, 0x23, REG_R8, REG_R9, 8); /*AND R8, dirty[1]*/
+        rx_rr(block, 0, 1, 0x09, REG_R8, REG_RAX);   /*OR RAX, R8*/
+    }
+    rx_patch(rx_jcc(block, RX_CC_NZ), codegen_exit_rout);
+    lx_abs(block, 0, 1, 0x8b, REG_R8, c->exec_slot);
+    rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) c->exec);
+    rx_rr(block, 0, 1, 0x39, REG_R9, REG_R8); /*CMP R8, R9*/
+    rx_patch(rx_jcc(block, RX_CC_NZ), codegen_exit_rout);
+    rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) c->chk);
+    for (int n = 0; n < c->nr; n++) {
+        rx_rm(block, 0, 1, 0x8b, REG_RAX, REG_R8, (int32_t) (c->offset + c->word[n] * 8));
+        rx_rm(block, 0, 1, 0x33, REG_RAX, REG_R9, n * 16);     /*XOR RAX, the bytes*/
+        rx_rm(block, 0, 1, 0x85, REG_RAX, REG_R9, n * 16 + 8); /*TEST RAX, the mask*/
+        rx_patch(rx_jcc(block, RX_CC_NZ), codegen_exit_rout);
+    }
+}
+#    endif
+
 void
 codegen_backend_prologue(codeblock_t *block)
 {
@@ -1933,6 +1986,10 @@ codegen_backend_prologue(codeblock_t *block)
         for (uintptr_t line = slot & ~(uintptr_t) 63; line < slot + sizeof(codegen_link_slot_t); line += 64)
             lx_abs(block, 0, 0, 0x0f18, 1, (void *) line); /*PREFETCHT0*/
     }
+#    endif
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+    if (codegen_entry_check.nr)
+        entry_check_emit(block);
 #    endif
     if (block->flags & CODEBLOCK_HAS_FPU) {
         host_x86_MOV32_REG_ABS(block, REG_EAX, &cpu_state.TOP);

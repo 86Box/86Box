@@ -1310,6 +1310,7 @@ build_link_routine(codeblock_t *block)
     uint32_t *one_page;
     uint32_t *byte_mask;
     uint32_t *no_paging_2;
+    uint32_t *chk_none;
     uint8_t  *nmi_done;
     uint8_t  *irq_done;
     uint8_t  *xlat_done;
@@ -1485,6 +1486,21 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDR_IMM_X(block, REG_X13, REG_X13, 0);
     host_arm64_TSTX_REG(block, REG_X13, REG_X10);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    /*A target whose code has the entry check is not marked by writes: its
+      chunks' dirty words are, and written it is a miss here, before the
+      stores below, as a dirty block marked by writes is. X16 = the target
+      block*/
+    host_arm64_LDR_IMM_X(block, REG_X13, REG_X16, offsetof(codeblock_t, chk_dirty));
+    chk_none = host_arm64_CBZ_SHORT_(block, REG_X13);
+    host_arm64_LDR_IMM_X(block, REG_X10, REG_X16, offsetof(codeblock_t, page_mask));
+    host_arm64_LDR_IMM_X(block, REG_X17, REG_X13, 0);
+    host_arm64_TSTX_REG(block, REG_X17, REG_X10);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_LDR_IMM_X(block, REG_X10, REG_X16, offsetof(codeblock_t, page_mask2));
+    host_arm64_LDR_IMM_X(block, REG_X17, REG_X13, 8);
+    host_arm64_TSTX_REG(block, REG_X17, REG_X10);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_short_branch_set_offset(chk_none, &block_write_data[block_pos]);
     host_arm64_LDR_IMM_W(block, REG_W10, REG_CPUSTATE, rep_state_offset(&cpu_state.TOP));
     host_arm64_UBFX(block, REG_W13, REG_W9, 16, 8);
     host_arm64_AND_REG(block, REG_W10, REG_W10, REG_W13, 0);
@@ -1896,6 +1912,61 @@ codegen_set_rounding_mode(int mode)
     cpu_state.new_fp_control = mode << 3;
 }
 
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+/*The checked block's bytes against memory, through the mapping in _mem_exec[]
+  now, which must still be the one it was compiled under: the immediates are
+  read from that. Its dirty bits first: written since, it goes to the C loop
+  as the link routine sends a block marked by writes and dirty. A difference
+  leaves before the first instruction, through the plain exit, with nothing
+  done: the C loop then handles it (codegen_block_check()). Ahead of anything
+  with state, so it is the same from the link entry. X1 = the bytes, X2 = the
+  words to compare with*/
+static void
+entry_check_emit(codeblock_t *block)
+{
+    const codegen_entry_check_t *c = &codegen_entry_check;
+    uint32_t                    *fail[3 + 16];
+    uint32_t                    *pass;
+    uint8_t                     *fail_dest;
+    int                          nr_fail = 0;
+
+    /*In one allocator block, for the short branches*/
+    codegen_alloc(block, (44 + 5 * c->nr) * 4);
+    host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) c->dirty);
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X1, 0);
+    host_arm64_MOVX_IMM(block, REG_X5, c->dirty_bits[0]);
+    host_arm64_TSTX_REG(block, REG_X3, REG_X5);
+    fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    if (c->dirty_bits[1]) {
+        host_arm64_MOVX_IMM(block, REG_X5, c->dirty_bits[1]);
+        host_arm64_TSTX_REG(block, REG_X4, REG_X5);
+        fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    }
+    host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) c->exec_slot);
+    host_arm64_LDR_IMM_X(block, REG_X1, REG_X1, 0);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) (uintptr_t) c->exec);
+    host_arm64_CMPX_REG(block, REG_X1, REG_X2);
+    fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_ADDX_IMM(block, REG_X1, REG_X1, c->offset);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) (uintptr_t) c->chk);
+    for (int n = 0; n < c->nr; n++) {
+        host_arm64_LDR_IMM_X(block, REG_X3, REG_X1, c->word[n] * 8);
+        host_arm64_LDP_IMM_X(block, REG_X4, REG_X5, REG_X2, n * 16);
+        host_arm64_EORX_REG(block, REG_X3, REG_X3, REG_X4, 0);
+        host_arm64_TSTX_REG(block, REG_X3, REG_X5);
+        fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    }
+    pass      = host_arm64_B_(block);
+    fail_dest = &block_write_data[block_pos];
+    host_arm64_B(block, codegen_exit_rout);
+    /*Before the short branches are set: the one ahead of it would look like
+      the skip of a conditional branch template*/
+    host_arm64_branch_set_offset(pass, &block_write_data[block_pos]);
+    for (int n = 0; n < nr_fail; n++)
+        host_arm64_short_branch_set_offset(fail[n], fail_dest);
+}
+#    endif
+
 /*R10 - cpu_state*/
 void
 codegen_backend_prologue(codeblock_t *block)
@@ -1915,6 +1986,10 @@ codegen_backend_prologue(codeblock_t *block)
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     link_site = 0;
+#    endif
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+    if (codegen_entry_check.nr)
+        entry_check_emit(block);
 #    endif
 
     if (block->flags & CODEBLOCK_HAS_FPU) {

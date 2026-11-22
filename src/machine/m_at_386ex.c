@@ -806,13 +806,12 @@ ts3x00_wrap_pages(const ts3x00_t *j)
         for (uint32_t c = base >> 12; c < ((base + j->low_top) >> 12); c++) {
             uint32_t offset = (c << 12) & TS3100_RAM_MASK;
 
-            pages[c].mem                    = &ram[offset];
-            pages[c].write_b                = mem_write_ramb_page;
-            pages[c].write_w                = mem_write_ramw_page;
-            pages[c].write_l                = mem_write_raml_page;
-            pages[c].evict_prev             = EVICT_NOT_IN_LIST;
-            pages[c].byte_dirty_mask        = &byte_dirty_mask[(offset >> 12) * 64];
-            pages[c].byte_code_present_mask = &byte_code_present_mask[(offset >> 12) * 64];
+            mem_set_page_byte_masks(&pages[c], offset >> 12);
+            pages[c].mem        = &ram[offset];
+            pages[c].write_b    = mem_write_ramb_page;
+            pages[c].write_w    = mem_write_ramw_page;
+            pages[c].write_l    = mem_write_raml_page;
+            pages[c].evict_prev = EVICT_NOT_IN_LIST;
         }
     }
 }
