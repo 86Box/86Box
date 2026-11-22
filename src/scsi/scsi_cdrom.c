@@ -1182,9 +1182,9 @@ scsi_cdrom_lba_out_of_range(scsi_cdrom_t *dev)
 {
     scsi_cdrom_log(dev->log, "LBA out of range: %08X\n", dev->sector_pos);
     if (dev->drv->is_philips && cdrom_is_blank(dev->drv)) {
-        /* No EFM at the search address. */
-        scsi_cdrom_sense_key = SENSE_BLANK_CHECK;
-        scsi_cdrom_asc       = 0xb2;
+        /* Unwritten area: end of medium reached, like the run-in and run-out blocks. */
+        scsi_cdrom_sense_key = SENSE_VOLUME_OVERFLOW;
+        scsi_cdrom_asc       = 0xaa;
     } else {
         scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
         scsi_cdrom_asc       = ASC_LBA_OUT_OF_RANGE;
