@@ -3527,7 +3527,7 @@ scsi_cdrom_philips_track_info(scsi_cdrom_t *dev, int32_t *BufLen, const uint8_t 
     }
 
     if (blank)
-        tracks = wi.track_packet ? wi.next_track : (wi.next_track - 1);
+        tracks = wi.next_track; /* The incomplete track counts. */
     else {
         uint8_t rti[65536] = { 0 };
         int     num        = 0;
