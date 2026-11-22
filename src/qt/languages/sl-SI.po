@@ -3462,7 +3462,7 @@ msgstr ""
 msgid "Windows 11"
 msgstr ""
 
-msgid "Windows Vista"
+msgid "Windows Native"
 msgstr ""
 
 msgid "Windows Classic"

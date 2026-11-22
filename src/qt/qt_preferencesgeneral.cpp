@@ -91,7 +91,7 @@ PreferencesGeneral::styleDisplayName(const QString &style)
     if (!style.compare("windows11", Qt::CaseInsensitive))
         return tr("Windows 11");
     if (!style.compare("windowsvista", Qt::CaseInsensitive))
-        return tr("Windows Vista");
+        return tr("Windows Native");
     if (!style.compare("windows", Qt::CaseInsensitive))
         return tr("Windows Classic");
 
