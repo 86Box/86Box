@@ -577,7 +577,7 @@ main(int argc, char *argv[])
         palette.setColor(QPalette::LinkVisited, Qt::magenta);
         qApp->setPalette(palette);
     }
-#elif defined(Q_OS_WINDOWS)
+#elif defined(HAS_COLOR_SCHEME_HINT)
     /* The configuration is loaded now, so apply the color scheme from it */
     util::applyColorScheme();
 #endif
@@ -588,7 +588,7 @@ main(int argc, char *argv[])
 #else
         qt_set_sequence_auto_mnemonic(dopause || (kbd_req_capture && !mouse_capture));
 #endif
-    app.setStyle(new StyleOverride());
+    util::applyStyle();
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());

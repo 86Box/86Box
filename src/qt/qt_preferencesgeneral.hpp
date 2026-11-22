@@ -23,6 +23,8 @@ private slots:
     void on_pushButtonLanguage_released();
 
 private:
+    static QString styleDisplayName(const QString &style);
+
     Ui::PreferencesGeneral *ui;
 
     SettingsCompleter *scLanguage;

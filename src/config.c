@@ -164,6 +164,12 @@ load_global_general(void)
         lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
     color_scheme = ini_section_get_int(moved_setting_section(cat, "color_scheme"), "color_scheme", 0);
+
+    p = ini_section_get_string(cat, "ui_style", NULL);
+    if (p != NULL)
+        snprintf(ui_style, sizeof(ui_style), "%s", p);
+    else
+        ui_style[0] = '\0';
 }
 
 static void
@@ -3388,6 +3394,11 @@ save_global_general(void)
         ini_section_set_int(cat, "color_scheme", color_scheme);
     else
         ini_section_delete_var(cat, "color_scheme");
+
+    if (ui_style[0] != '\0')
+        ini_section_set_string(cat, "ui_style", ui_style);
+    else
+        ini_section_delete_var(cat, "ui_style");
 
     ini_delete_section_if_empty(global, cat);
 }

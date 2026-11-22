@@ -97,6 +97,7 @@ VMManagerMainWindow::
     // Inform the main view when preferences are updated
     connect(this, &VMManagerMainWindow::preferencesUpdated, vmm, &VMManagerMain::onPreferencesUpdated);
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
+    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyStyle(); });
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
 #    ifdef USE_QDARKSTYLE
@@ -105,6 +106,8 @@ VMManagerMainWindow::
     connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &VMManagerMainWindow::updateDarkMode);
 #    endif
+#elif defined(HAS_COLOR_SCHEME_HINT)
+    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
 #endif
 
     {

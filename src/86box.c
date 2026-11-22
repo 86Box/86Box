@@ -264,7 +264,8 @@ vfio_device_conf_t vfio_device_conf[VFIO_DEVICE_MAX] = { 0 };    /* (C) VFIO pas
 
 double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 3.x input scale */
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
-int      color_scheme = 0;                                        /* (C) Color scheme of UI (Windows-only) */
+int      color_scheme = 0;                                        /* (C) Color scheme of UI */
+char     ui_style[64] = { 0 };                                    /* (C) Qt style of UI, empty for the default */
 int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
 int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
 

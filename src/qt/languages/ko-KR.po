@@ -3512,6 +3512,18 @@ msgstr "밝게"
 msgid "Dark"
 msgstr "어둡게"
 
+msgid "Style:"
+msgstr ""
+
+msgid "Windows 11"
+msgstr ""
+
+msgid "Windows Vista"
+msgstr ""
+
+msgid "Windows Classic"
+msgstr ""
+
 msgid "Force interpretation"
 msgstr "강제로 해석"
 

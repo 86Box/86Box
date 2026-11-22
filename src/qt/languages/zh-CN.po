@@ -3459,6 +3459,18 @@ msgstr "亮色"
 msgid "Dark"
 msgstr "暗色"
 
+msgid "Style:"
+msgstr ""
+
+msgid "Windows 11"
+msgstr ""
+
+msgid "Windows Vista"
+msgstr ""
+
+msgid "Windows Classic"
+msgstr ""
+
 msgid "Force interpretation"
 msgstr "强制解释执行"
 

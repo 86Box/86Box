@@ -28,6 +28,11 @@
 #    include <QDesktopWidget>
 #endif
 #include <QUuid>
+#include <QDebug>
+#include <QOperatingSystemVersion> // TMPDBG
+#include <QStyle>
+#include <QStyleFactory>
+#include "qt_styleoverride.hpp"
 #include "qt_util.hpp"
 
 #ifdef Q_OS_WINDOWS
@@ -81,6 +86,51 @@ logicalSizeForPixels(int pixels, qreal dpr)
     return size;
 }
 
+#ifdef HAS_COLOR_SCHEME_HINT
+void
+applyColorScheme(void)
+{
+    switch (color_scheme) {
+        case 1:
+            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+            break;
+        case 2:
+            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+            break;
+        default:
+            /* Follow the system */
+            QGuiApplication::styleHints()->unsetColorScheme();
+            break;
+    }
+}
+#endif
+
+void
+applyStyle(void)
+{
+    static bool    applied = false;
+    static QString appliedName;
+    const QString  name = QString::fromUtf8(ui_style);
+
+    /* Changing the style repolishes every widget, so only do it when needed */
+    if (applied && (name == appliedName))
+        return;
+
+    fprintf(stderr, "DBG os %s, app style before: %s, keys: %s\n", qPrintable(QOperatingSystemVersion::current().version().toString()), qPrintable(qApp->style()->name()), qPrintable(QStyleFactory::keys().join(','))); // TMPDBG
+    QStyle *base = nullptr;
+    if (!name.isEmpty()) {
+        base = QStyleFactory::create(name);
+        if (base == nullptr)
+            qWarning() << "Qt style" << name << "is not available, using the default one";
+    }
+
+    /* Without a base style, the override goes over the default style of the platform */
+    qApp->setStyle(new StyleOverride(base));
+
+    applied     = true;
+    appliedName = name;
+}
+
 #ifdef Q_OS_WINDOWS
 
 bool
@@ -119,25 +169,6 @@ isWindowsLightTheme(void)
     return i == 1;
 #    endif
 }
-
-#    ifndef USE_QDARKSTYLE
-void
-applyColorScheme(void)
-{
-    switch (color_scheme) {
-        case 1:
-            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
-            break;
-        case 2:
-            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
-            break;
-        default:
-            /* Follow the system */
-            QGuiApplication::styleHints()->unsetColorScheme();
-            break;
-    }
-}
-#    endif
 
 void
 setWin11RoundedCorners(WId hwnd, bool enable)
