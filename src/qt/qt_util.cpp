@@ -140,38 +140,65 @@ applyPaletteOverrides(void)
 }
 #endif
 
+/* Returns the style to use, empty for the default one of the platform */
+static QString
+effectiveStyleName(const QString &defaultName)
+{
+    const QString name = QString::fromUtf8(ui_style);
+
+#if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
+    /* The windowsvista style can't draw dark controls, so default to Fusion in dark mode */
+    if (name.isEmpty() && !defaultName.compare("windowsvista", Qt::CaseInsensitive)
+        && (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark))
+        return QStringLiteral("fusion");
+#else
+    Q_UNUSED(defaultName);
+#endif
+
+    return name;
+}
+
 void
 applyStyle(void)
 {
     static bool    applied = false;
+    static QString defaultName;
     static QString appliedName;
-    const QString  name = QString::fromUtf8(ui_style);
+
+    if (!applied) {
+#if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
+        /* Remember the default style of the platform before it gets replaced */
+        defaultName = qApp->style()->name();
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        /* The default style and the palette may depend on the color scheme, and the
+           palette still is the old one when the change is signaled */
+        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, qApp,
+                         [] { applyStyle(); }, Qt::QueuedConnection);
+#endif
+    }
+
+    const QString name = effectiveStyleName(defaultName);
 
     /* Changing the style repolishes every widget, so only do it when needed */
-    if (applied && (name == appliedName))
-        return;
+    if (!applied || name.compare(appliedName, Qt::CaseInsensitive)) {
+        QStyle *base = nullptr;
+        if (!name.isEmpty()) {
+            base = QStyleFactory::create(name);
+            if (base == nullptr)
+                qWarning() << "Qt style" << name << "is not available, using the default one";
+        }
 
-    QStyle *base = nullptr;
-    if (!name.isEmpty()) {
-        base = QStyleFactory::create(name);
-        if (base == nullptr)
-            qWarning() << "Qt style" << name << "is not available, using the default one";
+        /* Without a base style, the override goes over the default style of the platform */
+        qApp->setStyle(new StyleOverride(base));
+
+        applied     = true;
+        appliedName = name;
     }
-
-    /* Without a base style, the override goes over the default style of the platform */
-    qApp->setStyle(new StyleOverride(base));
 
 #ifdef NEUTRAL_DARK_ACCENT
-    if (!applied) {
-        /* The palette still is the old one when the color scheme change is signaled */
-        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, qApp,
-                         [] { applyPaletteOverrides(); }, Qt::QueuedConnection);
-    }
     applyPaletteOverrides();
 #endif
-
-    applied     = true;
-    appliedName = name;
 }
 
 #ifdef Q_OS_WINDOWS
@@ -179,38 +206,9 @@ applyStyle(void)
 bool
 isWindowsLightTheme(void)
 {
-#    ifndef USE_QDARKSTYLE
     /* Go by the palette in use, as the windowsvista style stays light even in dark mode */
     const QPalette palette = QApplication::palette();
     return palette.window().color().value() > palette.windowText().color().value();
-#    else
-    if (color_scheme != 0) {
-        return (color_scheme == 1);
-    }
-
-    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
-
-    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
-    auto buffer = std::vector<char>(4);
-    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
-    auto res    = RegGetValueW(
-        HKEY_CURRENT_USER,
-        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-        L"AppsUseLightTheme",
-        RRF_RT_REG_DWORD, // expected value type
-        nullptr,
-        buffer.data(),
-        &cbData);
-
-    if (res != ERROR_SUCCESS) {
-        return 1;
-    }
-
-    // convert bytes written to our buffer to an int, assuming little-endian
-    auto i = int(buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
-
-    return i == 1;
-#    endif
 }
 
 void

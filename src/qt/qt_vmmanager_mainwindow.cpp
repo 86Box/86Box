@@ -14,7 +14,6 @@
  */
 #include "qt_vmmanager_mainwindow.hpp"
 #include "qt_vmmanager_main.hpp"
-#include "qt_vmmanager_windarkmodefilter.hpp"
 #include "ui_qt_vmmanager_mainwindow.h"
 #ifdef UPDATE_CHECK
 #    include "qt_updatecheckdialog.hpp"
@@ -33,9 +32,6 @@ extern void config_save_global();
 }
 
 VMManagerMainWindow          *vmm_main_window = nullptr;
-#ifdef USE_QDARKSTYLE
-extern WindowsDarkModeFilter *vmm_dark_mode_filter;
-#endif
 
 VMManagerMainWindow::
     VMManagerMainWindow(QWidget *parent)
@@ -97,17 +93,16 @@ VMManagerMainWindow::
     // Inform the main view when preferences are updated
     connect(this, &VMManagerMainWindow::preferencesUpdated, vmm, &VMManagerMain::onPreferencesUpdated);
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
+#ifdef HAS_COLOR_SCHEME_HINT
+    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
+#endif
+    /* After the color scheme, which the default style may depend on */
     connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyStyle(); });
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
-#    ifdef USE_QDARKSTYLE
-    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { vmm_dark_mode_filter->reselectDarkMode(); });
-#    else
-    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
+#    ifdef HAS_COLOR_SCHEME_HINT
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &VMManagerMainWindow::updateDarkMode);
 #    endif
-#elif defined(HAS_COLOR_SCHEME_HINT)
-    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
 #endif
 
     {

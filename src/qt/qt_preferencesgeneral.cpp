@@ -63,8 +63,8 @@ PreferencesGeneral::PreferencesGeneral(QWidget *parent)
     ui->radioButtonLight->setChecked(color_scheme == 1);
     ui->radioButtonDark->setChecked(color_scheme == 2);
 
-#if !defined(Q_OS_WINDOWS) && !defined(HAS_COLOR_SCHEME_HINT)
-    /* Only Windows can switch color schemes without Qt's support for it */
+#ifndef HAS_COLOR_SCHEME_HINT
+    /* Qt can only switch color schemes on its own from 6.8 on */
     ui->groupBoxColorScheme->setHidden(true);
 #endif
 }

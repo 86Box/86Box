@@ -319,7 +319,6 @@ add_library(ui STATIC
     qt_vmmanager_mainwindow.ui
 
     ../qt_resources.qrc
-    ./qdarkstyle/dark/darkstyle.qrc
 
     qt_openglshadermanagerdialog.hpp
     qt_openglshadermanagerdialog.cpp
@@ -502,8 +501,6 @@ if (WIN32)
     target_sources(ui PRIVATE
         qt_winrawinputfilter.hpp
         qt_winrawinputfilter.cpp
-        qt_vmmanager_windarkmodefilter.hpp
-        qt_vmmanager_windarkmodefilter.cpp
         qt_winmanagerfilter.hpp
         qt_winmanagerfilter.cpp
     )

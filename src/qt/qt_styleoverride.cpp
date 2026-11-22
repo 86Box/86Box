@@ -30,13 +30,6 @@ extern "C" {
 #include <86box/plat.h>
 }
 
-#ifdef USE_QDARKSTYLE
-#    include <dwmapi.h>
-#    ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#        define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#    endif
-#endif
-
 int
 StyleOverride::styleHint(
     StyleHint           hint,
@@ -73,11 +66,6 @@ StyleOverride::polish(QWidget *widget)
             }
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-#ifdef USE_QDARKSTYLE
-        /* Newer Qt handles the title bar color by itself */
-        BOOL DarkMode = !util::isWindowsLightTheme();
-        DwmSetWindowAttribute((HWND) widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID) &DarkMode, sizeof(DarkMode));
-#endif
     }
 
     if (qobject_cast<QComboBox *>(widget)) {

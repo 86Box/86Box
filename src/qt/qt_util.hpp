@@ -28,7 +28,8 @@ void     copyImageToClipboard(const QImage &image);
 /* Applies the configured color scheme */
 void applyColorScheme(void);
 #endif
-/* Applies the configured Qt style, falling back to the default one */
+/* Applies the configured Qt style, falling back to the default one. With the default
+   style on Windows, Fusion stands in for the windowsvista style in dark mode. */
 void applyStyle(void);
 #if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
 /* The dark palette of Windows also tints alternating rows and checkboxes with the accent
@@ -38,10 +39,6 @@ void applyStyle(void);
 bool neutralDarkAccent(const QStyle *style);
 #endif
 #ifdef Q_OS_WINDOWS
-#    ifndef HAS_COLOR_SCHEME_HINT
-/* Qt can't switch color schemes on its own before 6.8, so dark mode is emulated with QDarkStyle */
-#        define USE_QDARKSTYLE
-#    endif
 bool isWindowsLightTheme(void);
 void setWin11RoundedCorners(WId hwnd, bool enable);
 #endif
