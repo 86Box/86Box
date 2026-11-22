@@ -231,6 +231,22 @@ agpgart_bus_ptr(uint32_t addr, uint32_t len)
     return mem_phys_ptr(addr, len);
 }
 
+/* Whether map is the aperture mapping of a GART, the first test
+   agpgart_cpu_entry() makes. Compares pointers only, so it needs no lock:
+   the instance list changes only when a GART is added or removed, never
+   while the CPU runs. CPU thread only. */
+int
+agpgart_is_aperture(const mem_mapping_t *map)
+{
+    for (int i = 0; i < AGPGART_MAX_INST; i++) {
+        const agpgart_t *dev = agpgart_inst[i];
+
+        if ((dev != NULL) && (map == &dev->aperture_mapping))
+            return 1;
+    }
+    return 0;
+}
+
 /* For a CPU write at bus address addr through mapping map: when map is an
    aperture whose table is mapped at the current generation and the entry
    for addr points outside the aperture, the entry's host address, with
