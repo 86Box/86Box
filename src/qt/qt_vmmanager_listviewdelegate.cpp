@@ -94,7 +94,12 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     // the same way as in other item views
     const bool    selected = (opt.state & QStyle::State_Selected);
     const QStyle *style    = opt.widget ? opt.widget->style() : QApplication::style();
-    painter->fillRect(rect, palette.base().color());
+    // Pick the colors from the same group as the style does for the selection, so
+    // the text of an unfocused selection matches its inactive highlight
+    const QPalette::ColorGroup cg = !(opt.state & QStyle::State_Enabled) ? QPalette::Disabled
+                                  : (opt.state & QStyle::State_Active)   ? QPalette::Active
+                                                                         : QPalette::Inactive;
+    painter->fillRect(rect, palette.color(cg, QPalette::Base));
     // Some styles (windows11) only draw the selection as a part of the whole item,
     // so draw an item without its contents
     QStyleOptionViewItem panelOpt(opt);
@@ -131,7 +136,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     // If desired, font can be changed here
     //    painter->setFont(f);
     painter->setFont(opt.font);
-    painter->setPen(highlightedText ? palette.highlightedText().color() : palette.text().color());
+    painter->setPen(palette.color(cg, highlightedText ? QPalette::HighlightedText : QPalette::Text));
     painter->drawText(systemNameRect, Qt::TextSingleLine, opt.text);
 
     // Draw status icon
@@ -153,7 +158,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     //    painter->setFont(opt.font);
     painter->setFont(f);
-    painter->setPen(highlightedText ? palette.highlightedText().color() : palette.windowText().color());
+    painter->setPen(palette.color(cg, highlightedText ? QPalette::HighlightedText : QPalette::WindowText));
     painter->drawText(statusRect, Qt::TextSingleLine,
                       index.data(VMManagerModel::Roles::ProcessStatusString).toString());
 
