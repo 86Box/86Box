@@ -494,22 +494,39 @@ sscape_his(const sscape_t *dev)
     return ret;
 }
 
+/* HIC interrupt mode select (bits 4-5 for the host/MIDI lines, 6-7 for
+   the CD-ROM interface line). */
+#define HIC_MODE_LOW_DRIVEN 2 /* low level sensitive, non-sharable */
+
 static void
 sscape_update_host_irqs(sscape_t *dev)
 {
-    const uint8_t his  = sscape_his(dev);
-    uint16_t      want = 0;
+    const uint8_t  his      = sscape_his(dev);
+    const uint8_t  hic      = dev->regs[GA_INTCFG];
+    const uint8_t  cd       = dev->regs[GA_CDCFG];
+    const uint16_t midi_irq = 1 << sscape_irqs[hic & 3];
+    const uint16_t host_irq = 1 << sscape_irqs[(hic >> 2) & 3];
+    uint16_t       want     = 0;
 
     if (dev->regs[GA_INTENA] & 0x80) {
         if (his & 0x01)
-            want |= 1 << sscape_irqs[dev->regs[GA_INTCFG] & 3];
+            want |= midi_irq;
         if (his & 0x72)
-            want |= 1 << sscape_irqs[(dev->regs[GA_INTCFG] >> 2) & 3];
+            want |= host_irq;
     }
 
     /* The DSP signals the host IRQ even when the separate codec IRQ is disabled. */
     if (dev->sb_host_irq)
-        want |= 1 << sscape_irqs[(dev->regs[GA_INTCFG] >> 2) & 3];
+        want |= host_irq;
+
+    /* In the non-sharable low level mode ODIE always drives its lines and
+       holds them high while nothing is pending, which the edge-triggered
+       ISA PIC sees as a request. SNDSCAPE.VXD finds the codec IRQ this way:
+       it switches HIC bits 6-7 from 11b to 10b and looks for the IRR bit. */
+    if (((hic >> 4) & 3) == HIC_MODE_LOW_DRIVEN)
+        want = (midi_irq | host_irq) & ~want;
+    if ((cd & 0x01) && (((hic >> 6) & 3) == HIC_MODE_LOW_DRIVEN) && !(dev->ad1848.status & 0x01))
+        want |= 1 << sscape_irqs[(cd >> 1) & 3];
 
     sscape_set_irq_lines(dev, want);
 }

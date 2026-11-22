@@ -571,7 +571,10 @@ es5506_write(es5506_t *chip, uint8_t offset, uint8_t val)
     else if (((offset & 0x3f) / 4) == (0x78 / 8))
         chip->current_page = chip->write_latch & 0x7f; /* test page: only PAGE matters */
 
-    chip->write_latch = 0;
+    /* The latch keeps its bytes after a register write (MAME clears it).
+       Soundscape firmware writes a register with movep.l and then rewrites
+       the low byte, e.g. ACCUM when it starts the wave stream voice; a
+       cleared latch would zero the upper bytes and play DRAM from word 0. */
 }
 
 static uint32_t
