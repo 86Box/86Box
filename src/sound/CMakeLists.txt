@@ -37,6 +37,7 @@ add_library(snd OBJECT
     snd_ac97_codec.c
     snd_ac97_via.c
     snd_ps1.c
+    snd_acpa.c
     snd_adlib.c
     snd_adlibgold.c
     snd_ad1816.c
@@ -66,6 +67,7 @@ add_library(snd OBJECT
     snd_saaym.c
     snd_sn76489.c
     snd_ssi2001.c
+    snd_tms320c25.c
     snd_wss.c
     snd_ym7128.c
     snd_ymz263b.c
