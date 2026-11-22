@@ -4064,8 +4064,20 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             else if (toc_format < 3) {
                 // Blank discs return invalid field when asked for a TOC
                 if (cdrom_is_blank(dev->drv)) {
-                    /* The Philips recorders report that they were unable to read the TOC. */
-                    if (dev->drv->is_philips)
+                    if (dev->drv->is_philips && (toc_format == 0)) {
+                        /* An empty TOC, with only the lead-out. */
+                        memset(dev->buffer, 0x00, 12);
+                        dev->buffer[1]  = 0x0a;
+                        dev->buffer[2]  = 0x01;
+                        dev->buffer[5]  = 0x10;
+                        dev->buffer[6]  = 0xaa;
+                        if (msf)
+                            dev->buffer[10] = 0x02;
+                        len = (max_len < 12) ? max_len : 12;
+                        scsi_cdrom_set_buf_len(dev, BufLen, &len);
+                        scsi_cdrom_data_command_finish(dev, len, len, len, 0);
+                    } else if (dev->drv->is_philips)
+                        /* The Philips recorders report that they were unable to read the TOC. */
                         scsi_cdrom_philips_error(dev, SENSE_MEDIUM_ERROR, 0x57);
                     else
                         scsi_cdrom_invalid_field(dev, toc_format);
