@@ -80,10 +80,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
             status_icon = unknown_icon;
     }
 
-    // Used to determine if the horizontal separator should be drawn
-    const bool lastIndex  = (index.model()->rowCount() - 1) == index.row();
-    const bool hasIcon    = !opt.icon.isNull();
-    const int  bottomEdge = rect.bottom();
+    const bool hasIcon = !opt.icon.isNull();
     QFont      f(opt.font);
 
     f.setPointSizeF(m_ptr->statusFontPointSize(opt.font));
@@ -94,14 +91,13 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     painter->setFont(opt.font);
 
     // Draw the background, then let the style draw the selection and hover states
-    // the same way as in other item views, up to the horizontal separator
+    // the same way as in other item views
     const bool    selected = (opt.state & QStyle::State_Selected);
     const QStyle *style    = opt.widget ? opt.widget->style() : QApplication::style();
     painter->fillRect(rect, palette.base().color());
     // Some styles (windows11) only draw the selection as a part of the whole item,
     // so draw an item without its contents
     QStyleOptionViewItem panelOpt(opt);
-    panelOpt.rect = rect.adjusted(0, 0, 0, -2);
     panelOpt.text.clear();
     panelOpt.icon = QIcon();
     panelOpt.features &= ~(QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration);
@@ -119,12 +115,6 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     // Styles that fill the selection with the highlight color draw its text in the
     // highlighted text color, the others keep the regular text color
     const bool highlightedText = selected && util::selectionUsesHighlightedText(style);
-
-    // Draw bottom line. Last line gets a different color
-    painter->setPen(lastIndex ? palette.dark().color()
-                              : palette.mid().color());
-    painter->drawLine(lastIndex ? rect.left() : m_ptr->margins.left(),
-                      bottomEdge, rect.right(), bottomEdge);
 
     // Draw system icon
     if (hasIcon) {
@@ -228,8 +218,7 @@ VMManagerListViewDelegateStyle::VMManagerListViewDelegateStyle()
     : iconSize(32, 32)
     , smallIconSize(16, 16)
     ,
-    // bottom gets a little more than the top because of the custom separator
-    margins(4, 10, 8, 12)
+    margins(4, 10, 8, 10)
     ,
     // Spacing between icon and text
     spacingHorizontal(8)
