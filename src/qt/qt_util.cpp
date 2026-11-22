@@ -29,7 +29,6 @@
 #endif
 #include <QUuid>
 #include <QDebug>
-#include <QOperatingSystemVersion> // TMPDBG
 #include <QStyle>
 #include <QStyleFactory>
 #include "qt_styleoverride.hpp"
@@ -116,7 +115,6 @@ applyStyle(void)
     if (applied && (name == appliedName))
         return;
 
-    fprintf(stderr, "DBG os %s, app style before: %s, keys: %s\n", qPrintable(QOperatingSystemVersion::current().version().toString()), qPrintable(qApp->style()->name()), qPrintable(QStyleFactory::keys().join(','))); // TMPDBG
     QStyle *base = nullptr;
     if (!name.isEmpty()) {
         base = QStyleFactory::create(name);
