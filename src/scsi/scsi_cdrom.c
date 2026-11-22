@@ -4058,7 +4058,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             else if (toc_format < 3) {
                 // Blank discs return invalid field when asked for a TOC
                 if (cdrom_is_blank(dev->drv)) {
-                    scsi_cdrom_invalid_field(dev, toc_format);
+                    /* The Philips recorders report that they were unable to read the TOC. */
+                    if (dev->drv->is_philips)
+                        scsi_cdrom_philips_error(dev, SENSE_MEDIUM_ERROR, 0x57);
+                    else
+                        scsi_cdrom_invalid_field(dev, toc_format);
                     break;
                 }
 
