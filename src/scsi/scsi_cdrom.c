@@ -4429,6 +4429,24 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 else
                     max_len = is_cdrw ? 0x23 : (is_cdr ? 0x13 : 3); /* Audio or mixed-mode CD. */
 
+                /* The Philips recorders use their own, vendor unique, medium type bits. */
+                if (dev->drv->is_philips) {
+                    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) ||
+                        (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED) ||
+                        (dev->drv->cd_status == CD_STATUS_DVD))
+                        max_len = 0x00;
+                    else {
+                        /* Vendor unique, 120 mm, and a WO area on recordable media. */
+                        max_len = 0xa0 | (dev->drv->blank_media ? 0x08 : 0x00);
+
+                        if (!is_blank) {
+                            if (dev->drv->cd_status != CD_STATUS_DATA_ONLY)
+                                max_len |= 0x04;
+                            if (cdrom_has_data(dev->drv))
+                                max_len |= 0x01;
+                        }
+                    }
+                }
                 if (dev->current_cdb[0] == GPCMD_MODE_SENSE_6) {
                     len            = scsi_cdrom_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
                     dev->buffer[0] = len - 1;
