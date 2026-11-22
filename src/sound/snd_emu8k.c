@@ -16,8 +16,6 @@
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/snd_emu8k.h>
-#include <86box/snd_emu8k_trace.h> /* AWE32Emu: local addition, not upstream */
-#include <86box/awe32_trace.h>          /* AWE32Emu: local addition, not upstream */
 #include <86box/timer.h>
 #include <86box/plat_unused.h>
 
@@ -1341,8 +1339,6 @@ uint16_t
 emu8k_inw(uint16_t addr, void *priv)
 {
     const uint16_t val = emu8k_inw_untraced(addr, priv);
-    emu8k_trace_read(addr, val);
-    awe32_trace_ioctx("r", addr, val);
     return val;
 }
 
@@ -1354,9 +1350,6 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
     /*TODO: I would like to not call this here, but i found it was needed or else cubic player would not finish opening (take a looot more of time than usual).
      * Basically, being here means that the audio is generated in the emulation thread, instead of the audio thread.*/
     emu8k_update(emu8k);
-
-    emu8k_trace_write(addr, val); /* AWE32Emu: local addition, not upstream */
-    awe32_trace_ioctx("w", addr, val);  /* AWE32Emu: local addition, not upstream */
 
 #ifdef EMU8K_DEBUG_REGISTERS
     if (addr == 0xE22) {
@@ -2802,10 +2795,6 @@ emu8k_update_chunk(emu8k_t *emu8k)
 
     /* Update EMU clock. */
     emu8k->wc += num_samples;
-
-    emu8k_trace_advance(num_samples); /* AWE32Emu: local addition, not upstream */
-    emu8k_trace_wav(&emu8k->buffer[emu8k->pos * 2],
-                    num_samples);    /* AWE32Emu: local addition, not upstream */
 
     emu8k->pos = wavetable_pos_global;
 }
