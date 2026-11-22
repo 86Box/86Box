@@ -48,6 +48,9 @@ msgstr "&Fönster"
 msgid "&Hide status bar"
 msgstr "&Dölj statusfältet"
 
+msgid "Show US&B activity"
+msgstr ""
+
 msgid "Hide &toolbar"
 msgstr "Dölj &verktygsfältet"
 
@@ -80,6 +83,9 @@ msgstr "Ange &mått…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Tvinga &4:3 bildförhållande"
+
+msgid "Force &machine display ratio"
+msgstr ""
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Tvinga &%1:%2 bildförhållande"
@@ -348,6 +354,12 @@ msgstr "Ljudförstärkning"
 msgid "New Image"
 msgstr "Ny avbildning"
 
+msgid "Removable disk type:"
+msgstr ""
+
+msgid "MO type:"
+msgstr ""
+
 msgid "Settings"
 msgstr "Inställningar"
 
@@ -441,6 +453,18 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "Flyttalsprocessor:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr ""
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr ""
+
 msgid "Internal"
 msgstr "Integrerad"
 
@@ -497,6 +521,12 @@ msgstr "Använd 486-programtolk för 286- och 386-processorer"
 
 msgid "Dynamic recompiler"
 msgstr "Dynamisk omkompilator"
+
+msgid "Dynamic recompiler is active"
+msgstr ""
+
+msgid "Dynamic recompiler is inactive"
+msgstr ""
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
@@ -734,6 +764,30 @@ msgstr "Buss:"
 msgid "Channel:"
 msgstr "Kanal:"
 
+msgid "%1 (Onboard)"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Onboard"
+msgstr ""
+
+msgid "%1: no free channels"
+msgstr ""
+
+msgid "%1: channels %2 in use"
+msgstr ""
+
+msgid "IDE Conflict"
+msgstr ""
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+
+msgid "Do you want to save the configuration anyway?"
+msgstr ""
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -812,6 +866,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "MO-enheter"
 
+msgid "MD DATA drives"
+msgstr ""
+
 msgid "MO:"
 msgstr "MO:"
 
@@ -850,6 +907,27 @@ msgstr "Kort 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "Allmänt ISA ROM-kort"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "Custom ROM:"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "ROM images"
+msgstr ""
+
+msgid "Unknown device"
+msgstr ""
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Allmän dubbel ISA ROM-kort"
@@ -950,8 +1028,17 @@ msgstr "Inmatnings&enhet"
 msgid "Sound"
 msgstr "Ljud"
 
+msgid "%1 (not detected)"
+msgstr ""
+
+msgid "%1 Hz (host will resample)"
+msgstr ""
+
 msgid "Network"
 msgstr "Nätverk"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr ""
 
 msgid "Ports (COM & LPT)"
 msgstr "Portar (COM & LPT)"
@@ -1021,6 +1108,72 @@ msgstr "Andra flyttbara enheter"
 
 msgid "Other peripherals"
 msgstr "Andra tillbehör"
+
+msgid "empty"
+msgstr ""
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr ""
+
+msgid "CompactFlash: %1"
+msgstr ""
+
+msgid "Empty (take the card out)"
+msgstr ""
+
+msgid "CompactFlash"
+msgstr ""
+
+msgid "&New CompactFlash card…"
+msgstr ""
+
+msgid "New CompactFlash card"
+msgstr ""
+
+msgid "Insert CompactFlash card"
+msgstr ""
+
+msgid "&Remove CompactFlash card"
+msgstr ""
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr ""
+
+msgid "PCMCIA"
+msgstr ""
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr ""
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+
+msgid "Network:"
+msgstr ""
+
+msgid "Socket %1"
+msgstr ""
+
+msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
+msgstr ""
+
+msgid "Choose a machine with ISA slots on the Machine page to fit one."
+msgstr ""
+
+msgid "The sockets are unavailable while the controller is not fitted."
+msgstr ""
+
+msgid "Tick the box above to fit it."
+msgstr ""
+
+msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
+msgstr ""
+
+msgid "Configure the %1."
+msgstr ""
+
+msgid "This card has no settings to configure."
+msgstr ""
 
 msgid "Other devices"
 msgstr "Andra enheter"
@@ -1189,11 +1342,23 @@ msgstr "&MO %1 (%2): %3"
 msgid "MO images"
 msgstr "MO-avbildningar"
 
+msgid "MD DATA images"
+msgstr ""
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr ""
+
+msgid "MD DATA %1 (%2): %3"
+msgstr ""
+
 msgid "Welcome to 86Box!"
 msgstr "Välkommen till 86Box!"
 
 msgid "Internal device"
 msgstr "Intern enhet"
+
+msgid "External"
+msgstr ""
 
 msgid "&File"
 msgstr "&Fil"
@@ -1215,6 +1380,96 @@ msgstr "Avsluta"
 
 msgid "No ROMs found"
 msgstr "Inga ROM-avbildningar hittades"
+
+msgid "Unsupported Hardware"
+msgstr ""
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+
+msgid "(and %i others)"
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Do you want to continue?"
+msgstr ""
+
+msgid "Machine type \"%s\""
+msgstr ""
+
+msgid "Video card \"%s\""
+msgstr ""
+
+msgid "Keyboard \"%s\""
+msgstr ""
+
+msgid "Mouse \"%s\""
+msgstr ""
+
+msgid "Tablet \"%s\""
+msgstr ""
+
+msgid "Joystick \"%s\""
+msgstr ""
+
+msgid "Sound card \"%s\""
+msgstr ""
+
+msgid "MIDI output device \"%s\""
+msgstr ""
+
+msgid "MIDI input device \"%s\""
+msgstr ""
+
+msgid "Network card \"%s\""
+msgstr ""
+
+msgid "Serial port device \"%s\""
+msgstr ""
+
+msgid "Parallel port device \"%s\""
+msgstr ""
+
+msgid "Game port \"%s\""
+msgstr ""
+
+msgid "SCSI card \"%s\""
+msgstr ""
+
+msgid "Floppy controller \"%s\""
+msgstr ""
+
+msgid "Disk controller \"%s\""
+msgstr ""
+
+msgid "CD-ROM interface \"%s\""
+msgstr ""
+
+msgid "Memory expansion card \"%s\""
+msgstr ""
+
+msgid "ROM expansion card \"%s\""
+msgstr ""
+
+msgid "RTC card \"%s\""
+msgstr ""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr ""
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
 
 msgid "Do you want to save the settings?"
 msgstr "Vill du spara inställningarna?"
@@ -1239,6 +1494,24 @@ msgstr "Visa inte detta meddelande igen"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM-avbildningar"
+
+msgid "&New CD-R image…"
+msgstr ""
+
+msgid "New CD-R&W image…"
+msgstr ""
+
+msgid "CD-RW image"
+msgstr ""
+
+msgid "CD-R image"
+msgstr ""
+
+msgid "Aaru images"
+msgstr ""
+
+msgid "Unable to create image"
+msgstr ""
 
 msgid "%1 Device Configuration"
 msgstr "%1 Enhetskonfiguration"
@@ -1632,6 +1905,12 @@ msgstr "Stäng &av…"
 
 msgid "Power &off"
 msgstr "Stäng &av"
+
+msgid "Power &off (soft)"
+msgstr ""
+
+msgid "Power off (soft)"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -2111,6 +2390,9 @@ msgstr "PS/2-tangentbord"
 msgid "PS/55 Keyboard"
 msgstr "PS/55-tangentbord"
 
+msgid "USB Keyboard"
+msgstr ""
+
 msgid "Keys"
 msgstr "Tangenter"
 
@@ -2141,8 +2423,14 @@ msgstr "PS/2-mus"
 msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort-mus"
 
+msgid "USB Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serie)"
+
+msgid "USB Tablet"
+msgstr ""
 
 msgid "Default Baud rate"
 msgstr "Standard Baudhastighet"
@@ -2167,6 +2455,9 @@ msgstr "OPL4-ML dotterkort"
 
 msgid "System MIDI"
 msgstr "System-MIDI"
+
+msgid "USB Speaker"
+msgstr ""
 
 msgid "MIDI Input Device"
 msgstr "Indataenhet för MIDI"
@@ -4475,6 +4766,18 @@ msgid "USB port %1 (%2)"
 msgstr ""
 
 msgid "USB port"
+msgstr ""
+
+msgid "%1 (write-protected)"
+msgstr ""
+
+msgid "USB flash drive"
+msgstr ""
+
+msgid "%1 is not a disk image."
+msgstr ""
+
+msgid "Flash drive images"
 msgstr ""
 
 msgid "PCI card"

@@ -48,6 +48,9 @@ msgstr "표시(&V)"
 msgid "&Hide status bar"
 msgstr "상태 바 숨기기(&H)"
 
+msgid "Show US&B activity"
+msgstr ""
+
 msgid "Hide &toolbar"
 msgstr "도구 모음 숨기기(&T)"
 
@@ -80,6 +83,9 @@ msgstr "창 크기 지정하기(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3 화면 비율로 고정(&4)"
+
+msgid "Force &machine display ratio"
+msgstr ""
 
 msgid "Force &%1:%2 display ratio"
 msgstr "%1:%2 화면 비율로 고정(&%1)"
@@ -348,6 +354,12 @@ msgstr "음량 증폭"
 msgid "New Image"
 msgstr "새 이미지"
 
+msgid "Removable disk type:"
+msgstr ""
+
+msgid "MO type:"
+msgstr ""
+
 msgid "Settings"
 msgstr "설정"
 
@@ -441,6 +453,18 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "FPU:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr ""
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr ""
+
 msgid "Internal"
 msgstr "통합된"
 
@@ -497,6 +521,12 @@ msgstr "286/386 프로세서에 486 인터프리터 사용"
 
 msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
+
+msgid "Dynamic recompiler is active"
+msgstr ""
+
+msgid "Dynamic recompiler is inactive"
+msgstr ""
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
@@ -732,6 +762,30 @@ msgstr "버스:"
 msgid "Channel:"
 msgstr "채널:"
 
+msgid "%1 (Onboard)"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Onboard"
+msgstr ""
+
+msgid "%1: no free channels"
+msgstr ""
+
+msgid "%1: channels %2 in use"
+msgstr ""
+
+msgid "IDE Conflict"
+msgstr ""
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+
+msgid "Do you want to save the configuration anyway?"
+msgstr ""
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -810,6 +864,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "광자기 드라이브"
 
+msgid "MD DATA drives"
+msgstr ""
+
 msgid "MO:"
 msgstr "광자기:"
 
@@ -848,6 +905,27 @@ msgstr "카드 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "일반 ISA ROM 보드"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "Custom ROM:"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "ROM images"
+msgstr ""
+
+msgid "Unknown device"
+msgstr ""
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "일반 듀얼 ISA ROM 보드"
@@ -955,8 +1033,17 @@ msgstr "입력 장치(&D)"
 msgid "Sound"
 msgstr "사운드"
 
+msgid "%1 (not detected)"
+msgstr ""
+
+msgid "%1 Hz (host will resample)"
+msgstr ""
+
 msgid "Network"
 msgstr "네트워크"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr ""
 
 msgid "Ports (COM & LPT)"
 msgstr "포트 (COM & LPT)"
@@ -1026,6 +1113,72 @@ msgstr "기타 이동식 저장장치"
 
 msgid "Other peripherals"
 msgstr "기타 주변기기"
+
+msgid "empty"
+msgstr ""
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr ""
+
+msgid "CompactFlash: %1"
+msgstr ""
+
+msgid "Empty (take the card out)"
+msgstr ""
+
+msgid "CompactFlash"
+msgstr ""
+
+msgid "&New CompactFlash card…"
+msgstr ""
+
+msgid "New CompactFlash card"
+msgstr ""
+
+msgid "Insert CompactFlash card"
+msgstr ""
+
+msgid "&Remove CompactFlash card"
+msgstr ""
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr ""
+
+msgid "PCMCIA"
+msgstr ""
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr ""
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+
+msgid "Network:"
+msgstr ""
+
+msgid "Socket %1"
+msgstr ""
+
+msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
+msgstr ""
+
+msgid "Choose a machine with ISA slots on the Machine page to fit one."
+msgstr ""
+
+msgid "The sockets are unavailable while the controller is not fitted."
+msgstr ""
+
+msgid "Tick the box above to fit it."
+msgstr ""
+
+msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
+msgstr ""
+
+msgid "Configure the %1."
+msgstr ""
+
+msgid "This card has no settings to configure."
+msgstr ""
 
 msgid "Other devices"
 msgstr "기타 저장장치"
@@ -1204,11 +1357,23 @@ msgstr "광자기 %1 (%2): %3(&M)"
 msgid "MO images"
 msgstr "광자기 이미지"
 
+msgid "MD DATA images"
+msgstr ""
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr ""
+
+msgid "MD DATA %1 (%2): %3"
+msgstr ""
+
 msgid "Welcome to 86Box!"
 msgstr "86Box에 어서오세요!"
 
 msgid "Internal device"
 msgstr "내부 장치"
+
+msgid "External"
+msgstr ""
 
 msgid "&File"
 msgstr "파일(&F)"
@@ -1230,6 +1395,96 @@ msgstr "종료"
 
 msgid "No ROMs found"
 msgstr "ROM을 찾을 수 없습니다"
+
+msgid "Unsupported Hardware"
+msgstr ""
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+
+msgid "(and %i others)"
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Do you want to continue?"
+msgstr ""
+
+msgid "Machine type \"%s\""
+msgstr ""
+
+msgid "Video card \"%s\""
+msgstr ""
+
+msgid "Keyboard \"%s\""
+msgstr ""
+
+msgid "Mouse \"%s\""
+msgstr ""
+
+msgid "Tablet \"%s\""
+msgstr ""
+
+msgid "Joystick \"%s\""
+msgstr ""
+
+msgid "Sound card \"%s\""
+msgstr ""
+
+msgid "MIDI output device \"%s\""
+msgstr ""
+
+msgid "MIDI input device \"%s\""
+msgstr ""
+
+msgid "Network card \"%s\""
+msgstr ""
+
+msgid "Serial port device \"%s\""
+msgstr ""
+
+msgid "Parallel port device \"%s\""
+msgstr ""
+
+msgid "Game port \"%s\""
+msgstr ""
+
+msgid "SCSI card \"%s\""
+msgstr ""
+
+msgid "Floppy controller \"%s\""
+msgstr ""
+
+msgid "Disk controller \"%s\""
+msgstr ""
+
+msgid "CD-ROM interface \"%s\""
+msgstr ""
+
+msgid "Memory expansion card \"%s\""
+msgstr ""
+
+msgid "ROM expansion card \"%s\""
+msgstr ""
+
+msgid "RTC card \"%s\""
+msgstr ""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr ""
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
 
 msgid "Do you want to save the settings?"
 msgstr "설정을 저장하시겠습니까?"
@@ -1266,6 +1521,24 @@ msgstr "이 메시지를 다시 표시하지 않음"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM 이미지"
+
+msgid "&New CD-R image…"
+msgstr ""
+
+msgid "New CD-R&W image…"
+msgstr ""
+
+msgid "CD-RW image"
+msgstr ""
+
+msgid "CD-R image"
+msgstr ""
+
+msgid "Aaru images"
+msgstr ""
+
+msgid "Unable to create image"
+msgstr ""
 
 msgid "%1 Device Configuration"
 msgstr "%1 장치 설정"
@@ -1652,6 +1925,12 @@ msgstr "전원 끄기(&o)…"
 
 msgid "Power &off"
 msgstr "전원 끄기(&o)"
+
+msgid "Power &off (soft)"
+msgstr ""
+
+msgid "Power off (soft)"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "에뮬레이션된 컴퓨터의 전원을 끄면 데이터가 손실될 수 있습니다. "
@@ -2157,6 +2436,9 @@ msgstr "PS/2 키보드"
 msgid "PS/55 Keyboard"
 msgstr "PS/55 키보드"
 
+msgid "USB Keyboard"
+msgstr ""
+
 msgid "Keys"
 msgstr "키"
 
@@ -2187,8 +2469,14 @@ msgstr "PS/2 마우스"
 msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort 마우스"
 
+msgid "USB Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M 마이크로터치(직렬)"
+
+msgid "USB Tablet"
+msgstr ""
 
 msgid "Default Baud rate"
 msgstr "기본 보드 속도"
@@ -2213,6 +2501,9 @@ msgstr "OPL4-ML 도터보드"
 
 msgid "System MIDI"
 msgstr "시스템 미디"
+
+msgid "USB Speaker"
+msgstr ""
 
 msgid "MIDI Input Device"
 msgstr "미디 입력 장치"
@@ -4475,6 +4766,18 @@ msgid "USB port %1 (%2)"
 msgstr ""
 
 msgid "USB port"
+msgstr ""
+
+msgid "%1 (write-protected)"
+msgstr ""
+
+msgid "USB flash drive"
+msgstr ""
+
+msgid "%1 is not a disk image."
+msgstr ""
+
+msgid "Flash drive images"
 msgstr ""
 
 msgid "PCI card"
