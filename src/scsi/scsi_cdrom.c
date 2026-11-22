@@ -3495,7 +3495,8 @@ scsi_cdrom_philips_track_info(scsi_cdrom_t *dev, int32_t *BufLen, const uint8_t 
     mmc_cdb[1] = 0x01;
     mmc_cdb[5] = cdb[5];
 
-    if (cdrom_read_track_information(dev->drv, mmc_cdb, mmc) != 36) {
+    /* Blank media returns a shorter block, with the rest left zeroed. */
+    if (cdrom_read_track_information(dev->drv, mmc_cdb, mmc) < 28) {
         scsi_cdrom_philips_error(dev, SENSE_ILLEGAL_REQUEST, 0x81);
         return;
     }
@@ -3525,7 +3526,7 @@ scsi_cdrom_philips_track_info(scsi_cdrom_t *dev, int32_t *BufLen, const uint8_t 
     start       = (mmc[8] << 24) | (mmc[9] << 16) | (mmc[10] << 8) | mmc[11];
     free_blocks = (mmc[16] << 24) | (mmc[17] << 16) | (mmc[18] << 8) | mmc[19];
     packet      = (mmc[20] << 24) | (mmc[21] << 16) | (mmc[22] << 8) | mmc[23];
-    length      = (mmc[24] << 24) | (mmc[25] << 16) | (mmc[26] << 8) | mmc[27];
+    length      = blank ? 0 : ((mmc[24] << 24) | (mmc[25] << 16) | (mmc[26] << 8) | mmc[27]);
 
     if (blank && (flags & 0x80))
         status = 0x00;
@@ -5020,6 +5021,10 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             scsi_cdrom_buf_alloc(dev, 65536);
 
             cdrom_read_disc_information(dev->drv, dev->buffer);
+
+            /* For the Philips recorders, this bit means a restricted use disc. */
+            if (dev->drv->is_philips)
+                dev->buffer[7] &= ~0x20;
 
             len = MIN(34, max_len);
 
