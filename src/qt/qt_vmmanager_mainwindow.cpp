@@ -101,7 +101,8 @@ VMManagerMainWindow::
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
 #    ifdef HAS_COLOR_SCHEME_HINT
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &VMManagerMainWindow::updateDarkMode);
+    /* Queued, as the palette still is the old one when the change is signaled */
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &VMManagerMainWindow::updateDarkMode, Qt::QueuedConnection);
 #    endif
 #endif
 
