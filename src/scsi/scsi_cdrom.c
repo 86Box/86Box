@@ -637,7 +637,7 @@ scsi_cdrom_mode_sense(const scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos,
     page &= 0x3f;
 
     if (block_descriptor_len) {
-        buf[pos++] = 0x01;                        /* Density code. */
+        buf[pos++] = dev->drv->is_philips ? 0x00 : 0x01; /* Density code. */
         buf[pos++] = 0x00;                        /* Number of blocks (0 = all). */
         buf[pos++] = 0x00;
         buf[pos++] = 0x00;
