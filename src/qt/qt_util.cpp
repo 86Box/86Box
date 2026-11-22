@@ -106,6 +106,24 @@ applyColorScheme(void)
 }
 #endif
 
+bool
+selectionUsesHighlightedText(const QStyle *style)
+{
+    const auto *proxy = qobject_cast<const QProxyStyle *>(style);
+    if (proxy != nullptr)
+        style = proxy->baseStyle();
+    if (style == nullptr)
+        return true;
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 1, 0)
+    const QString name = style->name();
+#else
+    const QString name = style->objectName();
+#endif
+    /* The native Windows styles draw a light selection behind the regular text color */
+    return name.compare("windowsvista", Qt::CaseInsensitive) && name.compare("windows11", Qt::CaseInsensitive);
+}
+
 #ifdef NEUTRAL_DARK_ACCENT
 bool
 neutralDarkAccent(const QStyle *style)

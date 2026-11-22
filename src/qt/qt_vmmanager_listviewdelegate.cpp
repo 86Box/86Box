@@ -93,20 +93,23 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     painter->setClipRect(rect);
     painter->setFont(opt.font);
 
-    // Draw the background
-    const bool selected = (opt.state & QStyle::State_Selected);
-    if (selected) {
-        // When selected, only draw the highlighted part until the horizontal separator
-        int  offset        = 2;
-        auto highlightRect = rect.adjusted(0, 0, 0, -offset);
-        painter->fillRect(highlightRect, palette.highlight().color());
-        // Then fill the remainder with the normal color
-        auto regularRect = rect.adjusted(0, rect.height() - offset, 0, 0);
-        painter->fillRect(regularRect, palette.base().color());
-    } else {
-        // Otherwise just draw the background color as usual
-        painter->fillRect(rect, palette.base().color());
-    }
+    // Draw the background, then let the style draw the selection and hover states
+    // the same way as in other item views, up to the horizontal separator
+    const bool    selected = (opt.state & QStyle::State_Selected);
+    const QStyle *style    = opt.widget ? opt.widget->style() : QApplication::style();
+    painter->fillRect(rect, palette.base().color());
+    // Some styles (windows11) only draw the selection as a part of the whole item,
+    // so draw an item without its contents
+    QStyleOptionViewItem panelOpt(opt);
+    panelOpt.rect = rect.adjusted(0, 0, 0, -2);
+    panelOpt.text.clear();
+    panelOpt.icon = QIcon();
+    panelOpt.features &= ~(QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration);
+    style->drawControl(QStyle::CE_ItemViewItem, &panelOpt, painter, opt.widget);
+
+    // Styles that fill the selection with the highlight color draw its text in the
+    // highlighted text color, the others keep the regular text color
+    const bool highlightedText = selected && util::selectionUsesHighlightedText(style);
 
     // Draw bottom line. Last line gets a different color
     painter->setPen(lastIndex ? palette.dark().color()
@@ -129,7 +132,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     // If desired, font can be changed here
     //    painter->setFont(f);
     painter->setFont(opt.font);
-    painter->setPen(selected ? palette.highlightedText().color() : palette.text().color());
+    painter->setPen(highlightedText ? palette.highlightedText().color() : palette.text().color());
     painter->drawText(systemNameRect, Qt::TextSingleLine, opt.text);
 
     // Draw status icon
@@ -151,7 +154,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     //    painter->setFont(opt.font);
     painter->setFont(f);
-    painter->setPen(selected ? palette.highlightedText().color() : palette.windowText().color());
+    painter->setPen(highlightedText ? palette.highlightedText().color() : palette.windowText().color());
     painter->drawText(statusRect, Qt::TextSingleLine,
                       index.data(VMManagerModel::Roles::ProcessStatusString).toString());
 

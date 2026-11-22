@@ -38,6 +38,9 @@ void applyStyle(void);
 /* Returns whether the style should keep the accent color to selections */
 bool neutralDarkAccent(const QStyle *style);
 #endif
+/* Returns whether selected items are drawn with the highlighted text color, which
+   the native Windows styles don't do as they draw a light selection */
+bool selectionUsesHighlightedText(const QStyle *style);
 #ifdef Q_OS_WINDOWS
 bool isWindowsLightTheme(void);
 void setWin11RoundedCorners(WId hwnd, bool enable);
