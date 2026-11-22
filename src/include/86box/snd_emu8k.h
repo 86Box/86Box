@@ -92,7 +92,11 @@ typedef struct emu8k_envelope_t {
     int32_t value_db_oct;
     int32_t sustain_value_db_oct;
     int32_t attack_amount_amp_hz;
+    /* AWE32Emu: Q16 fixed point (1/65536 of a value unit per sample); the
+     * fraction is carried in ramp_frac, so slow Creative rates do not round
+     * to zero. */
     int32_t ramp_amount_db_oct;
+    int32_t ramp_frac; /* AWE32Emu: local addition, not upstream */
 } emu8k_envelope_t;
 
 typedef struct emu8k_chorus_eng_t {
@@ -244,7 +248,9 @@ typedef struct emu8k_voice_t {
 #define DCYSUSV_GENERATOR_ENGINE_ON(dcysusv) !(dcysusv & 0x0080)
 #define DCYSUSV_SUSVALUE_GET(dcysusv)        ((dcysusv >> 8) & 0x7F)
 /* Inverting the range compared to documentation because the envelope runs from 0dBFS = 0 to -96dBFS = (1 <<21) */
-#define DCYSUSV_SUS_TO_ENV_RANGE(susvalue) (((0x7F - susvalue) << 21) / 0x7F)
+/* AWE32Emu: 0.75 dB per step (= 16384 value units) as measured on the card
+ * (AWETST25 block 11), sustain 0 = silence. Upstream: ((0x7F - s) << 21) / 0x7F. */
+#define DCYSUSV_SUS_TO_ENV_RANGE(susvalue) (((susvalue) == 0) ? (1 << 21) : ((0x7F - (susvalue)) << 14))
 #define DCYSUSV_DECAYRELEASE_GET(dcysusv)  (dcysusv & 0x7F)
 
     uint16_t envval;
@@ -255,7 +261,9 @@ typedef struct emu8k_voice_t {
     uint16_t dcysus;
 #define DCYSUS_IS_RELEASE(dcysus)         (dcysus & 0x8000)
 #define DCYSUS_SUSVALUE_GET(dcysus)       ((dcysus >> 8) & 0x7F)
-#define DCYSUS_SUS_TO_ENV_RANGE(susvalue) ((susvalue << 21) / 0x7F)
+/* AWE32Emu: 0.75 dB-equivalent steps below full, like the volume envelope;
+ * sustain 0 = 0. Upstream: (s << 21) / 0x7F. */
+#define DCYSUS_SUS_TO_ENV_RANGE(susvalue) (((susvalue) == 0) ? 0 : ((1 << 21) - ((0x7F - (susvalue)) << 14)))
 #define DCYSUS_DECAYRELEASE_GET(dcysus)   (dcysus & 0x7F)
 
     uint16_t atkhldv;
@@ -347,6 +355,16 @@ typedef struct emu8k_voice_t {
     int32_t filt_att;
     int64_t filt_buffer[5];
 
+    /* AWE32Emu: local addition, not upstream. Chamberlin filter state and the
+     * filter modulation in octaves (target computed with the envelopes,
+     * current used by the filter, like vtft/cvcf). */
+    double cham_lp;
+    double cham_bp;
+    /* Samples since the end of the volume attack, -1 = no overshoot running. */
+    int32_t overshoot_samples;
+    double filt_oct_target;
+    double filt_oct_curr;
+
 } emu8k_voice_t;
 
 typedef struct emu8k_t {
@@ -375,6 +393,52 @@ typedef struct emu8k_t {
     uint16_t wc;
 
     uint16_t id;
+
+    /* AWE32Emu: local addition, not upstream. Equalizer (bass and treble
+     * shelves decoded from INIT3/INIT4). */
+    int    eq_bass;
+    int    eq_treble;
+    double eq_coef[2][5];  /* [0 bass, 1 treble] b0 b1 b2 a1 a2 */
+    double eq_z[2][2][2];  /* [shelf][channel][z1, z2] */
+
+    /* AWE32Emu: local addition, not upstream. Reverb fitted to the card
+     * (comb/allpass network per preset, see emu8k_rv_* in snd_emu8k.c). */
+    float rv_comb[2][8][1664];
+    int   rv_comb_len[2][8];
+    int   rv_comb_pos[2][8];
+    float rv_comb_store[2][8];
+    float rv_ap[2][4][600];
+    int   rv_ap_len[2][4];
+    int   rv_ap_pos[2][4];
+    float rv_pre[13231];
+    int   rv_pre_len;
+    int   rv_pre_pos;
+    int   rv_preset;
+    float rv_feedback;
+    float rv_damp;
+    float rv_in_gain;
+    float rv_out_gain;
+    /* Echo train of the delay presets 6/7 (0 = comb network). */
+    int   rv_echo_mode;           /* 1 delay (both channels), 2 panning delay */
+    float rv_echo_x[16384];       /* input history */
+    float rv_echo_z[16384];       /* echoes after the first one */
+    int   rv_echo_pos;
+    int   rv_echo_per;            /* echo period, samples */
+    int   rv_echo_d[2];           /* first echo, samples (L, R) */
+    float rv_echo_fb;             /* gain per period */
+    float rv_echo_c[2];           /* gain of the first echo */
+    float rv_echo_g[2];
+    /* Early reflections of the room presets 0-5 (tapped delay line). */
+    float rv_er[2400];
+    int   rv_er_pos;
+    float rv_er_gain;
+
+    /* AWE32Emu: local addition, not upstream. Layered state dump
+     * (EMU8K_STATE_DUMP=file, EMU8K_STATE_STEP=frames): the same lines from
+     * the VM and from a replay, compared field by field. */
+    void    *state_dump; /* FILE* */
+    uint64_t state_frame;
+    int      state_step;
 
     /* The empty block is used to act as an unallocated memory returning zero. */
     int16_t *ram;
