@@ -1150,6 +1150,10 @@ void CQM_WriteReg(cqm_t* chip, uint16_t reg, uint8_t data)
                 data &= 0xfb;
         }
 
+        /* Only the low three bits select the waveform; anything above is ignored. */
+        if ((reg & 0xe0) == 0xe0)
+            data &= 0x07;
+
         if ((reg & 0xf0) == 0xb0)
             chip->key[regh * 9 + (reg & 0xf)] = (data >> 5) & 1;
 
