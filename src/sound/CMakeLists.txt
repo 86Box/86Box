@@ -240,6 +240,10 @@ if(SOUNDCANVAS)
     endif()
 endif()
 
+if(ENABLE_VORTEX2_LOG)
+    target_compile_definitions(snd PRIVATE ENABLE_VORTEX2_LOG)
+endif()
+
 if(SOFTMODEM)
     target_compile_definitions(snd PRIVATE USE_SOFTMODEM)
 endif()

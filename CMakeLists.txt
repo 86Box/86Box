@@ -173,6 +173,10 @@ option(SDL2         "Use SDL2 instead of SDL3"                                  
 option(BUILD_TESTING "Build the unit test suite"                                  OFF)
 option(BUILD_BENCHMARKS "Build performance benchmarks"                            OFF)
 
+option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" OFF)
+option(ENABLE_VORTEX2_LOG "Enable Aureal Vortex 2 logging"                  OFF)
+
+
 if(BUILD_TESTING)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)
@@ -240,7 +244,6 @@ cmake_dependent_option(SOFTMODEM      "AC'97 Softmodem"                         
 
 # Defaults to DEV_BRANCH like the options above, but can also be enabled on its own
 option(RAGE128_MAXX "ATI Rage Fury MAXX" ${DEV_BRANCH})
-option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" OFF)
 
 # Ditto but for Qt
 if(QT)

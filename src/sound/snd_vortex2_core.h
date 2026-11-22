@@ -41,7 +41,9 @@ typedef struct v2_host_t {
     uint16_t (*codec_read)(void *priv, uint8_t reg);
     void (*codec_write)(void *priv, uint8_t reg, uint16_t val);
     /* Optional log sink (may be NULL). */
+#ifdef ENABLE_VORTEX2_LOG
     void (*log)(void *priv, const char *msg);
+#endif
     /* Optional: the codec's ADC input (what its record select picks, after
        record gain) for one block of V2_BLOCK samples at 48 kHz, left and
        right. The driver routes it (ADB sources 0x70/0x71) through the
