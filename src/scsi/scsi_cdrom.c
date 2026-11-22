@@ -807,6 +807,20 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         double  bytes_per_second;
         double  period;
 
+        const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) || (dev->block_len == 0))
+                      ? dev->sectors_num
+                      : ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
+
+        /* With DPM, media reads take their time at any speed. */
+        if (dev->was_cached == 0) {
+            period = cdrom_dpm_period(dev->drv, num);
+            if (period >= 0.0) {
+                dev->callback += period;
+                scsi_cdrom_set_callback(dev);
+                return;
+            }
+        }
+
         int active = cdrom_get_active_speed(dev->drv);
         int turbo = 0;
         if (dev->drv->cd_status == CD_STATUS_DVD)
@@ -820,10 +834,6 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             else if (dev->was_cached == -1)
                 dev->callback = 512.0 + (scsi_cdrom_bus_speed(dev) * (double) (dev->packet_len));
             else {
-                const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
-                                 (dev->block_len == 0)) ? dev->sectors_num :
-                                ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
-
                 dev->callback = scsi_cdrom_bus_speed(dev) * ((double) num) * 2352.0;
             }
         } else {
@@ -866,10 +876,6 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             if (dev->was_cached == -1)
                 period *= (double) dev->packet_len;
             else {
-                const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
-                                 (dev->block_len == 0)) ? dev->sectors_num :
-                                ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
-
                 period *= ((double) num) * 2352.0;
             }
             scsi_cdrom_log(dev->log, "Sector transfer period: %lf us\n", period);

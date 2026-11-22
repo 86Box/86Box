@@ -64,6 +64,20 @@ extern void *aaru_image_source_open(const char *path, aaru_write_track_t *tracks
 extern int   aaru_image_source_read(void *source, const int32_t lba, uint8_t *buffer);
 extern void  aaru_image_source_close(void *source);
 
+/* MDS DPM angle table, data[i] is the angle at the end of interval i in 1/256 turn. */
+typedef struct mds_dpm_t {
+    uint32_t  start;
+    uint32_t  resolution;
+    uint32_t  count;
+    uint32_t *data;
+} mds_dpm_t;
+
+extern int  mds_load_dpm_blocks(FILE *fp, const uint32_t offs, mds_dpm_t *dpm,
+                                uint32_t **bad_sectors, uint32_t *bad_sectors_num);
+extern int  mds_dpm_get(const mds_dpm_t *dpm, const uint32_t sector,
+                        double *angle, double *density);
+extern void mds_dpm_free(mds_dpm_t *dpm);
+
 extern void *image_open(cdrom_t *dev, const char *path);
 extern void *aaru_image_open(cdrom_t *dev, const char *path);
 extern void *chd_image_open(cdrom_t *dev, const char *path);
