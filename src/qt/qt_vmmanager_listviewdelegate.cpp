@@ -107,6 +107,15 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     panelOpt.features &= ~(QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration);
     style->drawControl(QStyle::CE_ItemViewItem, &panelOpt, painter, opt.widget);
 
+    // Styles can move the contents of list view items to make room for a selection
+    // indicator of their own (windows11), so move ours by the same amount. They don't
+    // know the view without the widget, so the difference is that shift.
+    QStyleOptionViewItem decorationOpt(panelOpt);
+    decorationOpt.features |= QStyleOptionViewItem::HasDecoration;
+    decorationOpt.decorationSize = m_ptr->iconSize;
+    const int contentShift = style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, opt.widget).left()
+                           - style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, nullptr).left();
+
     // Styles that fill the selection with the highlight color draw its text in the
     // highlighted text color, the others keep the regular text color
     const bool highlightedText = selected && util::selectionUsesHighlightedText(style);
@@ -119,14 +128,14 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     // Draw system icon
     if (hasIcon) {
-        painter->drawPixmap(contentRect.left(), contentRect.top(),
+        painter->drawPixmap(contentRect.left() + contentShift, contentRect.top(),
                             opt.icon.pixmap(m_ptr->iconSize));
     }
 
     // System name
     QRect systemNameRect(m_ptr->systemNameBox(opt, index));
 
-    systemNameRect.moveTo(m_ptr->margins.left() + m_ptr->iconSize.width()
+    systemNameRect.moveTo(m_ptr->margins.left() + contentShift + m_ptr->iconSize.width()
                               + m_ptr->spacingHorizontal,
                           contentRect.top());
     // If desired, font can be changed here
