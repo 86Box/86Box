@@ -33689,6 +33689,310 @@ run_tex_cache_store(void)
     atomic_store(&rage128_harness_store_hook, NULL);
     close_dev(dev);
 }
+
+/* ------------------------------------------------------------------ */
+/* Unit lfb-marks: the store marks of a word or dword aperture store.  */
+/* After its bytes, every store into local memory sets changedvram of  */
+/* the page it starts in, and for every page it touches the 64 KB      */
+/* piece mark and then the any-mark of the levels the CPU lanes keep,  */
+/* the 4 KB page mark of the levels cached with a GPU backend, and the */
+/* host-newer page mark of the GPU mirror. The submit thread clears    */
+/* those marks as it copies, so a store that lands after a clear has   */
+/* to set them again even where an earlier store had set them already. */
+/* Each leg stores once to mark the page, clears the marks on one      */
+/* thread, then stores into the same bytes on the other thread, both   */
+/* ways round. The thread join orders each clear before the next      */
+/* store, so these rows catch a writer that remembers what it marked   */
+/* (a cache that cannot see the clear), not one that reads the mark    */
+/* and skips it in a race with the clear. The common path is a dword   */
+/* or word inside one page; a dword that crosses a page, here also     */
+/* into the next 64 KB piece, and one inside a SURFACE window that     */
+/* moves it to another 64 KB piece take the full path and must leave   */
+/* the same marks. Every store also checks which path it took, with    */
+/* sync telemetry and the aperture profile off for the legs. The legs  */
+/* run on a fabricated backend with a host-newer map of their own,     */
+/* with the command executor parked so no other thread reads either,   */
+/* so every mark is live in every lane. Two overlay rows check the     */
+/* store note on the common path: a store into the composed source     */
+/* makes the next line compose again, one outside it does not.         */
+/* ------------------------------------------------------------------ */
+#define LM_PAGE 0x00345000u /* card offset of the page the legs store into */
+#define LM_CFC  3u          /* the changedvram value the legs run with  */
+
+typedef struct {
+    rage128_t *dev;
+    uint32_t   ap;    /* aperture address of the store        */
+    uint32_t   off;   /* card offset of the bytes it reaches  */
+    uint32_t   len;   /* 2 or 4                               */
+    uint32_t   val;
+    int        clear; /* the thread clears instead of storing */
+} lm_job_t;
+
+static void
+lm_store(const lm_job_t *j)
+{
+    if (j->len == 2)
+        rage128_lfb_writew(j->ap, (uint16_t) j->val, j->dev);
+    else
+        rage128_lfb_writel(j->ap, j->val, j->dev);
+}
+
+/* Clear the marks of every page [off, off+len) touches with the
+   operations the submit thread takes them with, and their changedvram
+   entries. The callers order it against the stores by a thread join. */
+static void
+lm_clear(rage128_t *dev, uint32_t off, uint32_t len)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+
+    atomic_store(&ts->keep_any, 0);
+    atomic_store(&ts->keep_all, 0);
+    atomic_store(&ts->cst_all, 0);
+    atomic_store(&dev->vram_hnew_all, 0);
+    for (uint32_t p = off >> 12; p <= (off + len - 1u) >> 12; p++) {
+        (void) atomic_exchange(&ts->keep_pg[p >> (R128_TEX_KEEP_SHIFT - 12)], 0);
+        (void) atomic_exchange(&ts->cst_pg[p], 0);
+        (void) atomic_exchange(&dev->vram_hnew[p], 0);
+        dev->svga.changedvram[p] = 0;
+    }
+}
+
+static void *
+lm_thread(void *arg)
+{
+    const lm_job_t *j = (const lm_job_t *) arg;
+
+    if (j->clear)
+        lm_clear(j->dev, j->off, j->len);
+    else
+        lm_store(j);
+    return NULL;
+}
+
+/* Run the job on a second thread and wait for it. */
+static void
+lm_on_thread(lm_job_t *j)
+{
+    pthread_t th;
+
+    if (pthread_create(&th, NULL, lm_thread, j) != 0) {
+        check_true("lfb marks: second thread starts", 0);
+        lm_thread(j);
+        return;
+    }
+    pthread_join(th, NULL);
+}
+
+/* The store just made took the full path (full) or the common one. */
+static void
+lm_path(const char *leg, uint32_t before, int full)
+{
+    char name[200];
+
+    snprintf(name, sizeof(name), "lfb marks: %s: took the %s path", leg, full ? "full" : "common");
+    check32(name, atomic_load(&rage128_harness_full_stores) - before, full ? 1u : 0u);
+}
+
+static void
+lm_check(rage128_t *dev, const char *leg, const lm_job_t *j, int cst)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+    const uint8_t            *v  = dev->svga.vram;
+    uint32_t                  m  = dev->vram_mask;
+    char                      name[200];
+
+    snprintf(name, sizeof(name), "lfb marks: %s: bytes landed", leg);
+    if (j->len == 2)
+        check32(name, (uint32_t) v[j->off] | ((uint32_t) v[(j->off + 1u) & m] << 8),
+                j->val & 0xffffu);
+    else
+        check32(name, (uint32_t) v[j->off] | ((uint32_t) v[(j->off + 1u) & m] << 8)
+                    | ((uint32_t) v[(j->off + 2u) & m] << 16)
+                    | ((uint32_t) v[(j->off + 3u) & m] << 24),
+                j->val);
+    snprintf(name, sizeof(name), "lfb marks: %s: kept-level any-mark set", leg);
+    check32(name, atomic_load(&ts->keep_any), 1);
+    for (uint32_t p = j->off >> 12; p <= (j->off + j->len - 1u) >> 12; p++) {
+        if (p == j->off >> 12) {
+            snprintf(name, sizeof(name), "lfb marks: %s: page %05x changedvram set", leg, p);
+            check32(name, dev->svga.changedvram[p], LM_CFC);
+        }
+        snprintf(name, sizeof(name), "lfb marks: %s: page %05x kept-level piece mark set", leg, p);
+        check32(name, atomic_load(&ts->keep_pg[p >> (R128_TEX_KEEP_SHIFT - 12)]), 1);
+        snprintf(name, sizeof(name), "lfb marks: %s: page %05x host-newer mark set", leg, p);
+        check32(name, atomic_load(&dev->vram_hnew[p]), 1);
+        if (cst) {
+            snprintf(name, sizeof(name), "lfb marks: %s: page %05x cached-level mark set", leg, p);
+            check32(name, atomic_load(&ts->cst_pg[p]), 1);
+        }
+    }
+}
+
+/* One case: a first store marks the page, then the clear and the second
+   store run on different threads, both ways round. */
+static void
+lm_case(rage128_t *dev, const char *what, uint32_t ap, uint32_t off, uint32_t len, int cst,
+        int full)
+{
+    lm_job_t st = { dev, ap, off, len, 0x5a5a1234u, 0 };
+    lm_job_t cl = st;
+    char     leg[160];
+    uint32_t n;
+
+    cl.clear = 1;
+    lm_clear(dev, off, len);
+    n = atomic_load(&rage128_harness_full_stores);
+    lm_store(&st);
+    snprintf(leg, sizeof(leg), "%s, first store", what);
+    lm_path(leg, n, full);
+    lm_check(dev, leg, &st, cst);
+
+    st.val = 0x11223344u;
+    lm_on_thread(&cl);
+    n = atomic_load(&rage128_harness_full_stores);
+    lm_store(&st);
+    snprintf(leg, sizeof(leg), "%s, cleared on a second thread, stored again on the first", what);
+    lm_path(leg, n, full);
+    lm_check(dev, leg, &st, cst);
+
+    st.val = 0xa1b2c3d4u;
+    lm_clear(dev, off, len);
+    n = atomic_load(&rage128_harness_full_stores);
+    lm_on_thread(&st);
+    snprintf(leg, sizeof(leg), "%s, cleared on the first thread, stored again on a second", what);
+    lm_path(leg, n, full);
+    lm_check(dev, leg, &st, cst);
+}
+
+/* Hold the command executor at the abort park at its loop top, where it
+   reads neither dev->gpu nor the host-newer map, for as long as the legs
+   replace them. */
+static int
+lm_park(rage128_t *dev)
+{
+    atomic_store(&dev->cce_parked, 0);
+    atomic_store(&dev->cce_abort, 1);
+    thread_set_event(dev->cce_wake_event);
+    for (int i = 0; i < 2000 && !atomic_load(&dev->cce_parked); i++)
+        lap_msleep(1);
+    return atomic_load(&dev->cce_parked);
+}
+
+static void
+lm_unpark(rage128_t *dev)
+{
+    atomic_store(&dev->cce_abort, 0);
+    thread_set_event(dev->cce_wake_event);
+}
+
+static void
+run_lfb_marks(void)
+{
+    rage128_t    *dev       = rage128_init(&ati_rage128_pro_device);
+    uint32_t      npages    = (dev->vram_mask >> 12) + 1u;
+    atomic_uchar *map       = calloc(npages, 1);
+    atomic_uchar *saved_map = dev->vram_hnew;
+    void         *fab       = NULL;
+    int           cfc       = dev->svga.monitor->mon_changeframecount;
+    void         *synctel   = dev->synctel;
+    int           ftl_en    = dev->ftl_en;
+    uint32_t      win       = 0, xa = 0, head = 0, n;
+    int           cst;
+
+    if (!map) {
+        check_true("lfb marks: host-newer map allocated", 0);
+        close_dev(dev);
+        return;
+    }
+    flush_sync(dev);
+    if (!lm_park(dev)) {
+        check_true("lfb marks: executor parked", 0);
+        lm_unpark(dev);
+        free(map);
+        close_dev(dev);
+        return;
+    }
+    if (harness_gpu_available()) {
+        fab = harness_gpu_fab_alloc();
+        check_true("lfb marks: fabricated backend allocated", fab != NULL);
+    } else
+        printf("SKIP lfb marks: cached-level marks and overlay rows (built without Vulkan headers)\n");
+    if (fab)
+        fab_in(dev, fab);
+    cst            = fab != NULL;
+    dev->vram_hnew = map;
+    /* sync telemetry (R128_GPU_SYNC_TELEMETRY) and the aperture profile
+       send every store down the full path; the legs run without them */
+    dev->synctel = NULL;
+    dev->ftl_en  = 0;
+    /* a value no clear leaves, so a row cannot pass on a page that was
+       never stored to */
+    dev->svga.monitor->mon_changeframecount = LM_CFC;
+    wr(dev, 0x0b0c, 0); /* SURFACE0_INFO: no window */
+
+    lm_case(dev, "aligned dword", dev->lfb_base + LM_PAGE + 0x120u, LM_PAGE + 0x120u, 4, cst, 0);
+    lm_case(dev, "aligned word", dev->lfb_base + LM_PAGE + 0x342u, LM_PAGE + 0x342u, 2, cst, 0);
+    lm_case(dev, "dword in the last bytes of a page", dev->lfb_base + LM_PAGE + 0xffcu,
+            LM_PAGE + 0xffcu, 4, cst, 0);
+    lm_case(dev, "word in the last bytes of a page", dev->lfb_base + LM_PAGE + 0xffeu,
+            LM_PAGE + 0xffeu, 2, cst, 0);
+    lm_case(dev, "dword crossing into the next page and 64 KB piece",
+            dev->lfb_base + 0x0034fffeu, 0x0034fffeu, 4, cst, 1);
+
+    /* An aligned dword of a 5120-byte SURFACE window whose translated
+       bytes lie in another 64 KB piece, and so another 4 KB page, than
+       its untranslated offset: the full path translates it, and the
+       marks follow the translated bytes. */
+    wr(dev, 0x0b04, 0x00300000); /* SURFACE0_LOWER_BOUND */
+    wr(dev, 0x0b08, 0x00400000); /* SURFACE0_UPPER_BOUND */
+    wr(dev, 0x0b0c, 11);         /* SURFACE0_INFO, PITCHSEL 11 = 5120 B */
+    for (uint32_t o = 0x00300000u; o < 0x00340000u; o += 4u) {
+        uint32_t t = rage128_surf_xlate(dev, o, 4, &head);
+
+        if (head == 4 && t >> 16 != o >> 16) {
+            win = o;
+            xa  = t;
+            break;
+        }
+    }
+    check_true("lfb marks: a SURFACE dword that moves to another 64 KB piece exists", win != 0);
+    if (win)
+        lm_case(dev, "dword in a SURFACE window", dev->lfb_base + win, xa, 4, cst, 1);
+    wr(dev, 0x0b0c, 0);
+
+    if (fab) {
+        /* the overlay store note on the common path */
+        dev->ov0.gpu_frame  = 7;
+        dev->ov0.gpu_src_lo = LM_PAGE;
+        dev->ov0.gpu_src_hi = LM_PAGE + 0x100u;
+        n                   = atomic_load(&rage128_harness_full_stores);
+        rage128_lfb_writel(dev->lfb_base + LM_PAGE + 0x800u, 0x01020304u, dev);
+        lm_path("dword outside the overlay source", n, 0);
+        check32("lfb marks: a dword outside the overlay source leaves its frame",
+                dev->ov0.gpu_frame, 7);
+        n = atomic_load(&rage128_harness_full_stores);
+        rage128_lfb_writel(dev->lfb_base + LM_PAGE + 0xfcu, 0x01020304u, dev);
+        lm_path("dword into the overlay source", n, 0);
+        check32("lfb marks: a dword into the overlay source composes it again",
+                dev->ov0.gpu_frame, 0);
+        dev->ov0.gpu_src_lo = dev->ov0.gpu_src_hi = 0;
+        fab_out(dev);
+        harness_gpu_fab_free(fab);
+    }
+    /* The device's own map comes back with every page marked, so a real
+       mirror copies every page these stores reached. */
+    dev->vram_hnew = saved_map;
+    free(map);
+    dev->svga.monitor->mon_changeframecount = cfc;
+    dev->synctel                            = synctel;
+    dev->ftl_en                             = ftl_en;
+    r128_vram_hnew_all(dev);
+    lm_unpark(dev);
+    close_dev(dev);
+}
+#undef LM_PAGE
+#undef LM_CFC
+
 /* The capture threads' grouping handshake under stress
    (harness_gpu_group_wake): rounds sized to finish as the submit thread
    turns from spinning to sleeping, where a completion that neither
@@ -33729,7 +34033,7 @@ static const char *const shard_units[] = {
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep",
-    "tex-batch", "tex-cache-store", "gpu-stage-modes", "gpu-cap-wake"
+    "tex-batch", "tex-cache-store", "gpu-stage-modes", "gpu-cap-wake", "lfb-marks"
 };
 static char *selected_units;
 
@@ -34472,6 +34776,8 @@ main(int argc, char **argv)
         run_tex_cache_store();
     if (unit_selected("gpu-cap-wake"))
         run_gpu_cap_wake();
+    if (unit_selected("lfb-marks"))
+        run_lfb_marks();
     if (getenv("R128_LANEGAP"))
         if (unit_selected("lanegap-expectedfail"))
             run_lanegap_expectedfail();

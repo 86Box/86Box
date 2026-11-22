@@ -395,8 +395,12 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
 }
 
+/* The word and dword store in every case: the profiler, the SURFACE
+   windows and split stores, sync telemetry, a store that crosses a page,
+   and the GPU barrier. rage128_lfb_write_n below takes the common case
+   itself and calls this for the rest. */
 static inline __attribute__((always_inline)) void
-rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
+rage128_lfb_write_full(uint32_t addr, uint32_t val, void *priv, uint32_t len)
 {
     rage128_t *dev  = (rage128_t *) priv;
     svga_t    *svga = &dev->svga;
@@ -438,6 +442,70 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
     r128_vram_hnew(dev, addr, len);
     if (t0)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
+}
+
+#ifdef REG_HARNESS
+/* Register harness only: counts the stores the full path makes, so a test
+   can tell which path a store took. */
+_Atomic uint32_t rage128_harness_full_stores;
+#    define r128_harness_full_store() atomic_fetch_add(&rage128_harness_full_stores, 1)
+#else
+#    define r128_harness_full_store() ((void) 0)
+#endif
+
+/* Kept out of line so the common path below holds no call and saves no
+   registers. */
+static __attribute__((noinline)) void
+rage128_lfb_write_full_w(uint32_t addr, uint32_t val, void *priv)
+{
+    r128_harness_full_store();
+    rage128_lfb_write_full(addr, val, priv, 2);
+}
+
+static __attribute__((noinline)) void
+rage128_lfb_write_full_l(uint32_t addr, uint32_t val, void *priv)
+{
+    r128_harness_full_store();
+    rage128_lfb_write_full(addr, val, priv, 4);
+}
+
+/* The common word or dword store: no profiler, no SURFACE window, no sync
+   telemetry, inside one 4 KB page, and with the GPU backend on, a store
+   no texture level or GPU work can see. A game that redraws the screen
+   through the aperture makes tens of millions of these per emulated
+   second, so this path does only what the store owes in that case, in
+   the same order as the full path: the overlay note, the bus time, the
+   bytes, changedvram and the store marks. Every test before the first
+   store only loads, so a store that fails one is made by the full path
+   from the start. */
+static inline __attribute__((always_inline)) void
+rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
+{
+    rage128_t  *dev  = (rage128_t *) priv;
+    svga_t     *svga = &dev->svga;
+    const void *gpu  = dev->gpu;
+    uint32_t    off  = (addr - dev->lfb_base) & dev->vram_mask;
+
+    if (dev->ftl_en || dev->surf_xlate_on || dev->synctel
+        || (off & 0xfffu) > 0x1000u - len
+        || (gpu && !rage128_gpu_cpu_store_quick(dev, off, len))) {
+        if (len == 2)
+            rage128_lfb_write_full_w(addr, val, priv);
+        else
+            rage128_lfb_write_full_l(addr, val, priv);
+        return;
+    }
+    if (gpu) {
+        r128_ov0_store_note(dev, off, len);
+        r128_harness_store_site(dev, off, len);
+    }
+    cycles -= rage128_lfb_write_timing(dev, len);
+    if (len == 2)
+        *(uint16_t *) &svga->vram[off] = (uint16_t) val;
+    else
+        *(uint32_t *) &svga->vram[off] = val;
+    svga->changedvram[off >> 12] = svga->monitor->mon_changeframecount;
+    r128_vram_hnew_page(dev, off);
 }
 
 static void
