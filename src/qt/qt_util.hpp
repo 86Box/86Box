@@ -7,6 +7,7 @@
 #include <initializer_list>
 
 class QImage;
+class QStyle;
 class QScreen;
 namespace util {
 static constexpr auto UUID_MIN_LENGTH = 36;
@@ -29,6 +30,13 @@ void applyColorScheme(void);
 #endif
 /* Applies the configured Qt style, falling back to the default one */
 void applyStyle(void);
+#if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
+/* The dark palette of Windows also tints alternating rows and checkboxes with the accent
+   color, which Fusion and the classic Windows style draw as they are */
+#    define NEUTRAL_DARK_ACCENT
+/* Returns whether the style should keep the accent color to selections */
+bool neutralDarkAccent(const QStyle *style);
+#endif
 #ifdef Q_OS_WINDOWS
 #    ifndef HAS_COLOR_SCHEME_HINT
 /* Qt can't switch color schemes on its own before 6.8, so dark mode is emulated with QDarkStyle */

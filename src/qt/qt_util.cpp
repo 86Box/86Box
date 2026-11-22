@@ -29,6 +29,8 @@
 #endif
 #include <QUuid>
 #include <QDebug>
+#include <QPalette>
+#include <QProxyStyle>
 #include <QStyle>
 #include <QStyleFactory>
 #include "qt_styleoverride.hpp"
@@ -104,6 +106,40 @@ applyColorScheme(void)
 }
 #endif
 
+#ifdef NEUTRAL_DARK_ACCENT
+bool
+neutralDarkAccent(const QStyle *style)
+{
+    if ((style == nullptr) || (QGuiApplication::styleHints()->colorScheme() != Qt::ColorScheme::Dark))
+        return false;
+
+    const QString name = style->name();
+    return !name.compare("fusion", Qt::CaseInsensitive) || !name.compare("windows", Qt::CaseInsensitive);
+}
+
+/* Replaces the accent color of alternating rows with a neutral one where needed */
+static void
+applyPaletteOverrides(void)
+{
+    static bool overridden = false;
+
+    const auto  *proxy = qobject_cast<QProxyStyle *>(qApp->style());
+    const QStyle *base = (proxy != nullptr) ? proxy->baseStyle() : qApp->style();
+
+    if (neutralDarkAccent(base)) {
+        /* Only the roles set here are overridden, the rest keeps following the system */
+        QPalette palette;
+        palette.setColor(QPalette::AlternateBase, qApp->palette().color(QPalette::Base).lighter(115));
+        qApp->setPalette(palette);
+        overridden = true;
+    } else if (overridden) {
+        /* An empty palette brings back the system one */
+        qApp->setPalette(QPalette());
+        overridden = false;
+    }
+}
+#endif
+
 void
 applyStyle(void)
 {
@@ -124,6 +160,15 @@ applyStyle(void)
 
     /* Without a base style, the override goes over the default style of the platform */
     qApp->setStyle(new StyleOverride(base));
+
+#ifdef NEUTRAL_DARK_ACCENT
+    if (!applied) {
+        /* The palette still is the old one when the color scheme change is signaled */
+        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, qApp,
+                         [] { applyPaletteOverrides(); }, Qt::QueuedConnection);
+    }
+    applyPaletteOverrides();
+#endif
 
     applied     = true;
     appliedName = name;
