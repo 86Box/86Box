@@ -1500,7 +1500,7 @@ static const device_config_t vortex2_config[] = {
     /* TODO: to put the following two options in development branch */
     {
         .name           = "log",
-        .description    = "Write diagnostic log (vortex2.log in the machine folder)",
+        .description    = "Write diagnostic log",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -1511,7 +1511,7 @@ static const device_config_t vortex2_config[] = {
     },
     {
         .name           = "trace",
-        .description    = "Write register trace (vortex2-trace.txt and vortex2-dma.bin; large)",
+        .description    = "Write register trace (Warning: Very large!)",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
