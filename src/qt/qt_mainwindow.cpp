@@ -1423,7 +1423,7 @@ MainWindow::on_actionNon_maskable_interrupt_triggered()
 void
 MainWindow::on_actionPause_triggered()
 {
-    runctl_pause_user_toggle();
+    runctl_toggle_pause();
 }
 
 void
@@ -2100,7 +2100,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         return;
     if (event->key() == Qt::Key_Pause) {
         if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
-            runctl_pause_user_toggle();
+            runctl_toggle_pause();
         }
     }
 
@@ -2457,7 +2457,7 @@ MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
 void
 MainWindow::on_actionFast_forward_triggered()
 {
-    runctl_fast_forward_toggle();
+    runctl_toggle_fast_forward();
 }
 
 void
@@ -2797,6 +2797,10 @@ void
 MainWindow::updateUiPauseState()
 {
     updateMenuKeyboardState();
+    run_status_t st;
+    runctl_status(&st);
+    /* Locked while automation has the controls or a blocking reason (debugger, sync, fatal) is set. */
+    ui->actionPause->setEnabled(runctl_can_toggle_pause(&st));
     const auto pause_icon   = dopause ? QIcon(":/menuicons/qt/icons/run.ico") : QIcon(":/menuicons/qt/icons/pause.ico");
     const auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
     const auto menu_text    = dopause ? QString(tr("Re&sume")) : QString(tr("&Pause"));
@@ -2807,11 +2811,14 @@ MainWindow::updateUiPauseState()
 }
 
 /* Fast forward can be set from the menu, the accelerator or automation;
-   the check and the muted sound icon follow runctl. */
+   the check, the lock and the muted sound icon follow runctl. */
 void
 MainWindow::updateUiFastForwardState()
 {
-    ui->actionFast_forward->setChecked(runctl_mode() == RUN_MODE_FAST);
+    run_status_t st;
+    runctl_status(&st);
+    ui->actionFast_forward->setEnabled(runctl_can_toggle_fast_forward(&st));
+    ui->actionFast_forward->setChecked(st.mode == RUN_MODE_FAST);
     if (status)
         status->updateSoundIcon();
 }

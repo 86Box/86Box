@@ -20,11 +20,6 @@
 #ifndef EMU_AUTOMATION_H
 #define EMU_AUTOMATION_H
 
-/* Values returned by automation_run_state(). */
-#define AUTOMATION_FREE 0 /* no opinion: run with normal real-time pacing */
-#define AUTOMATION_HOLD 1 /* do not run the CPU */
-#define AUTOMATION_RUN  2 /* run the CPU now, without real-time pacing */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,7 +37,6 @@ extern void automation_init(void);
 extern void automation_close(void);
 /* Called by the main loop on the CPU thread, once per scheduler pass. */
 extern void automation_poll(void);
-extern int  automation_run_state(void);
 /* Called by the main loop on the CPU thread after each pc_run(). */
 extern void automation_quantum(void);
 /* Called by the video core whenever a frame is handed to the renderer. */
@@ -70,7 +64,6 @@ extern void automation_fatal(const char *msg);
 #    define automation_init()
 #    define automation_close()
 #    define automation_poll()
-#    define automation_run_state() AUTOMATION_FREE
 #    define automation_quantum()
 #    define automation_frame(x, y, w, h, monitor_index)
 #    define automation_reset(hard)

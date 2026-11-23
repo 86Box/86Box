@@ -7,14 +7,16 @@
  *          This file is part of the 86Box distribution.
  *
  *          Emulation run control: CPU thread lifecycle, pause reasons,
- *          pacing mode and speed measurement.
+ *          claims, pacing mode and speed measurement.
  *
  *          The machine runs only while the CPU thread is running and no
- *          pause reason is set. Each owner sets and clears only its own
+ *          pause reason is in effect. Each owner sets and clears its own
  *          reason, so e.g. closing a dialog never resumes a machine the
- *          user paused. Every change is announced with
- *          ui_notify(UI_NOTIFY_RUN_STATE); frontends react on their UI
- *          thread and read the state with runctl_get_status().
+ *          user paused; the user's Resume may clear any user-clearable
+ *          reason. A claim (automation) locks the user's controls. Every
+ *          change is announced with ui_notify(UI_NOTIFY_RUN_STATE);
+ *          frontends react on their UI thread and read the state with
+ *          runctl_status().
  *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -29,7 +31,7 @@
 extern "C" {
 #endif
 
-/* Lifecycle of the CPU thread. RUN_PAUSED is RUNNING with a pause reason set. */
+/* Lifecycle of the CPU thread. RUN_PAUSED is RUNNING with a pause reason in effect. */
 typedef enum {
     RUN_STOPPED = 0, /* no CPU thread */
     RUN_STARTING,    /* thread being created */
@@ -38,7 +40,10 @@ typedef enum {
     RUN_STOPPING     /* stop requested, thread winding down */
 } run_state_t;
 
-/* Why the machine is paused. A bit mask; each owner touches only its own bit. */
+/* Why the machine is paused. A bit mask; each owner sets and clears its own
+   bit. The user's Pause/Resume control may also clear any user-clearable
+   reason; every other reason blocks the control while it is set. A new
+   reason is blocking unless it is added to RUN_PAUSE_USER_CLEARABLE. */
 typedef enum {
     RUN_PAUSE_USER    = 1 << 0, /* menu, pause key, SDL monitor, VM manager */
     RUN_PAUSE_DIALOG  = 1 << 1, /* modal dialog or message box over the main window */
@@ -47,68 +52,102 @@ typedef enum {
     RUN_PAUSE_MESSAGE = 1 << 4, /* core warning() message box */
     RUN_PAUSE_FATAL   = 1 << 5, /* fatal() error; never cleared */
     RUN_PAUSE_SYNC    = 1 << 6, /* quiesce the CPU around a device state change */
-    RUN_PAUSE_HOLD    = 1 << 7, /* automation hold (not wired up yet) */
+    RUN_PAUSE_HOLD    = 1 << 7, /* automation hold; only under RUN_CLAIM_AUTOMATION */
     RUN_PAUSE_DEBUG   = 1 << 8, /* GDB stub stop (not wired up yet) */
     RUN_PAUSE_SLEEP   = 1 << 9, /* guest entered an ACPI sleeping state; resuming wakes it */
 } run_pause_t;
 
+#define RUN_PAUSE_USER_CLEARABLE (RUN_PAUSE_USER | RUN_PAUSE_DIALOG | RUN_PAUSE_FOCUS | RUN_PAUSE_REMOTE | \
+                                  RUN_PAUSE_MESSAGE | RUN_PAUSE_SLEEP)
+#define RUN_PAUSE_BLOCKING       (~(uint32_t) RUN_PAUSE_USER_CLEARABLE)
+
+/* Owners that take over the user's controls. While a claim is active both
+   controls are locked and some pause reasons are ignored: still recorded, so
+   they apply again once the claim ends. Ending a claim also clears the
+   reasons and the step override it owns.
+     RUN_CLAIM_AUTOMATION: ignores USER, FOCUS, REMOTE, DIALOG and MESSAGE;
+                           owns HOLD and the step override. */
+typedef enum {
+    RUN_CLAIM_AUTOMATION = 1 << 0,
+} run_claim_t;
+
 /* How the CPU thread paces emulated time against host time. */
 typedef enum {
     RUN_MODE_REALTIME = 0, /* emulated time follows host time */
-    RUN_MODE_FAST,         /* fast forward: as fast as the host allows, sound muted */
-    RUN_MODE_UNPACED       /* reserved for automation's held steps; not used yet */
+    RUN_MODE_FAST          /* as fast as the host allows, sound output muted */
 } run_mode_t;
 
-/* Reasons the user's Pause/Resume control clears. */
-#define RUN_PAUSE_USER_RESUMABLE (RUN_PAUSE_USER | RUN_PAUSE_FOCUS | RUN_PAUSE_SLEEP)
-
 typedef struct {
-    run_state_t state;
-    uint32_t    pause_reasons;
-    run_mode_t  mode;
-    uint32_t    epoch;   /* bumps on every run state change */
-    uint64_t    emu_us;  /* emulated time executed since startup */
-    uint64_t    host_us; /* host monotonic time when emu_us was sampled */
-    uint32_t    seq;     /* snapshot sequence number */
+    run_state_t state;         /* effective: RUN_PAUSED while a reason is in effect */
+    uint32_t    pause_reasons; /* raw, including the ones a claim ignores */
+    uint32_t    claims;        /* opaque; see runctl_can_toggle_*() */
+    run_mode_t  mode;          /* effective, including the step override */
+    uint32_t    epoch;         /* bumps on every run state or effective mode change */
+    uint64_t    emu_us;        /* emulated time executed since startup */
+    uint64_t    host_us;       /* host monotonic time when emu_us was sampled */
+    uint32_t    seq;           /* snapshot sequence number */
 } run_status_t;
 
-/* Pause reasons; any thread. runctl_pause() returns at once. runctl_pause_wait()
-   also waits until the CPU thread is parked at a safe point, so the caller can
-   touch machine state; it doesn't wait on the CPU thread itself or when the CPU
-   thread isn't running. */
-extern void     runctl_pause(run_pause_t reason);
-extern void     runctl_pause_wait(run_pause_t reason);
-extern void     runctl_resume(run_pause_t reason);
-extern void     runctl_pause_user_toggle(void); /* pause key and menu: USER on, or USER_RESUMABLE off */
-extern uint32_t runctl_pause_reasons(void);
-extern int      runctl_paused(void);
+/* Owner calls; any thread. They never check the user's locks.
+   runctl_pause() returns at once. runctl_pause_wait() also waits until the
+   CPU thread is parked at a safe point, so the caller can touch machine
+   state; it doesn't wait on the CPU thread itself or when the CPU thread
+   isn't running. */
+extern void runctl_pause(run_pause_t reason);
+extern void runctl_pause_wait(run_pause_t reason);
+extern void runctl_resume(run_pause_t reason);
 
-/* Pacing mode; any thread. runctl_set_mode() takes only REALTIME or FAST;
-   unpaced will be a separate override. A change bumps the epoch and posts
-   ui_notify(UI_NOTIFY_RUN_STATE). runctl_mode() doesn't take the lock, so the
-   pacing loop and audio threads can poll it. */
-extern void       runctl_set_mode(run_mode_t mode);
-extern run_mode_t runctl_mode(void);
-extern void       runctl_fast_forward_toggle(void); /* menu, accelerator, SDL monitor */
+/* The pacing mode shared by the user and automation's ff command. A change
+   of the effective mode bumps the epoch and posts ui_notify(UI_NOTIFY_RUN_STATE). */
+extern void runctl_set_mode(run_mode_t mode);
+
+/* Claims. runctl_claim() does nothing if the claim is already active.
+   runctl_unclaim() ends it, clearing its own reasons and step override in
+   the same change, and returns the ignored reasons that are in effect again. */
+extern void     runctl_claim(run_claim_t owner);
+extern uint32_t runctl_unclaim(run_claim_t owner);
+
+/* Automation's hold and step override, in one change: hold sets or clears
+   RUN_PAUSE_HOLD; step_fast forces RUN_MODE_FAST while an unpaced step from
+   held runs. Setting either needs RUN_CLAIM_AUTOMATION. */
+extern void runctl_set_hold(int hold, int step_fast);
+
+/* User controls: pause key, menu, accelerator, SDL monitor, VM manager. They
+   do nothing while locked. Resume clears every user-clearable reason; Pause
+   sets RUN_PAUSE_USER. The getters say whether a control is unlocked in a
+   status snapshot. */
+extern void runctl_toggle_pause(void);
+extern void runctl_toggle_fast_forward(void);
+extern int  runctl_can_toggle_pause(const run_status_t *st);
+extern int  runctl_can_toggle_fast_forward(const run_status_t *st);
+
+/* Getters; any thread. runctl_mode() is the effective mode and doesn't take
+   the lock, so the pacing loop and audio threads can poll it.
+   runctl_pause_reasons() is raw; runctl_paused() says whether any reason is
+   in effect. */
+extern run_mode_t  runctl_mode(void);
+extern uint32_t    runctl_pause_reasons(void);
+extern int         runctl_paused(void);
+extern run_state_t runctl_state(void);
+extern void        runctl_status(run_status_t *out);
 
 /* Lifecycle. */
-extern run_state_t runctl_state(void);
-extern void        runctl_request_stop(void); /* also clears cpu_thread_run */
+extern void runctl_request_stop(void); /* also clears cpu_thread_run */
 
 /* Called by the frontend that owns the CPU thread. */
-extern void runctl_thread_starting(void); /* before creating it */
-extern void runctl_thread_started(void);  /* first thing on the CPU thread */
-extern void runctl_thread_exiting(void);  /* last thing on the CPU thread */
-extern void runctl_safe_point(void);      /* CPU thread, between quanta; runs queued requests */
-extern void runctl_quantum_done(uint32_t emu_us); /* CPU thread, after each quantum */
+extern void runctl_thread_starting(void);                /* before creating it */
+extern void runctl_thread_started(void);                 /* first thing on the CPU thread */
+extern void runctl_thread_exiting(void);                 /* last thing on the CPU thread */
+extern void runctl_thread_safe_point(void);              /* CPU thread, between quanta; runs queued requests */
+extern void runctl_thread_quantum_done(uint32_t emu_us); /* CPU thread, after each quantum */
 
 /* The CPU thread's body: marks the calling thread as the CPU thread, then
    runs quanta paced against host time (or as fast as possible in fast
-   forward and automation steps), idles while paused, and returns once a stop
-   or quit is requested, after runctl_thread_exiting(). The frontend creates
-   the thread, sets its priority and name, and calls this. pass, if not NULL,
+   forward), idles while paused, and returns once a stop or quit is
+   requested, after runctl_thread_exiting(). The frontend creates the
+   thread, sets its priority and name, and calls this. pass, if not NULL,
    runs on the CPU thread after every pass of the loop. */
-extern void runctl_run_loop(void (*pass)(void));
+extern void runctl_thread_run_loop(void (*pass)(void));
 
 /* Run fn(arg) on the CPU thread at its next safe point, between quanta, where
    it may touch machine state. Requests run in order, also while the machine
@@ -119,8 +158,6 @@ extern void runctl_run_loop(void (*pass)(void));
 extern void runctl_call(void (*fn)(void *arg), void *arg);
 extern void runctl_call_wait(void (*fn)(void *arg), void *arg);
 
-/* Status snapshot; any thread. */
-extern void runctl_get_status(run_status_t *out);
 /* Percent of real time between two snapshots, or -1 if not meaningful. */
 extern int runctl_speed_between(const run_status_t *older, const run_status_t *newer);
 
