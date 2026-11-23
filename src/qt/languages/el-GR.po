@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-22 22:41+0000\n"
+"PO-Revision-Date: 2026-11-23 13:47+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1178,12 +1178,14 @@ msgstr ""
 
 msgid "Choose a machine with ISA slots on the Machine page to fit one."
 msgstr ""
+"Επιλέξτε μία μηχανή με υποδοχές ISA στη σελίδα Μηχανή για να τοποθετήσετε "
+"ένα."
 
 msgid "The sockets are unavailable while the controller is not fitted."
-msgstr ""
+msgstr "Οι υποδοχές είναι μη διαθέσιμες όσο ο ελεγκτής δεν είναι τοποθετημένος."
 
 msgid "Tick the box above to fit it."
-msgstr ""
+msgstr "Τσεκάρετε το παραπάνω κουτάκι για να τον τοποθετήσετε."
 
 msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
 msgstr ""
