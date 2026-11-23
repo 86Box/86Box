@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 00:31+0000\n"
+"PO-Revision-Date: 2026-11-23 17:52+0000\n"
 "Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -278,7 +278,7 @@ msgid "All &notes off"
 msgstr ""
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Показать MIDI &LCD"
 
 msgid "MIDI LCD"
 msgstr "MIDI LCD"
@@ -524,7 +524,7 @@ msgid "Dynamic recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Динамичный рекомпилятор активен"
 
 msgid "Dynamic recompiler is inactive"
 msgstr ""
