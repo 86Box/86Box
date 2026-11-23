@@ -54,6 +54,7 @@ add_library(snd OBJECT
     snd_solo1.c
     snd_covox.c
     snd_cs423x.c
+    snd_ibm_speech.c
     snd_imfc.cpp
     snd_gus.c
     snd_sb.c
@@ -74,6 +75,8 @@ add_library(snd OBJECT
     musashi/softfloat/softfloat.c
     snd_ssi2001.c
     snd_tms320c25.c
+    snd_tms5220.c
+    snd_cvsd.c
     snd_wss.c
     snd_ym7128.c
     snd_ymz263b.c

@@ -169,6 +169,7 @@ static const SOUND_CARD sound_cards[] = {
     { &cms_device                   },
     { &ess_488_device               },
     { &ess_1488_device              },
+    { &ibm_speech_device            },
     { &imfc_device                  },
     { &ssi2001_device               },
     { &thunderboard_device          },

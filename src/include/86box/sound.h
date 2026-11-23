@@ -366,6 +366,9 @@ extern const device_t gus_pnp_compaq_device;
 /* IBM M-ACPA/A (Audio Capture & Playback Adapter) */
 extern const device_t acpa_mca_device;
 
+/* IBM PS/2 Speech Adapter */
+extern const device_t ibm_speech_device;
+
 /* IBM Music Feature Card */
 extern const device_t imfc_device;
 
