@@ -528,6 +528,11 @@ spock_process_imm_cmd(spock_t *scsi)
             spock_log("Format prepare.\n");
             spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
             break;
+        case CMD_ABORT:
+            scsi->scb_state = 0;
+            spock_log("Abort command, attention=%02x.\n", scsi->attention & 0x0f);
+            spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
+            break;
         case CMD_RESET:
             scsi->id_connected = 0;
             spock_log("Reset command, attention=%02x.\n", scsi->attention & 0x0f);
@@ -1075,12 +1080,13 @@ spock_callback(void *priv)
                     scsi->cmd_status = 0x0a;
                     scsi->command    = scsi->cir[0] | (scsi->cir[1] << 8) | (scsi->cir[2] << 16) | (scsi->cir[3] << 24);
                     switch (scsi->command & CMD_MASK) {
-                        case CMD_ASSIGN:
                         case CMD_DMA_PACING_CONTROL:
                         case CMD_FEATURE_CONTROL:
                         case CMD_FORMAT_PREPARE:
                         case CMD_RUN_DIAG_TEST:
                         case CMD_RUN_SELF_TEST:
+                        case CMD_ASSIGN:
+                        case CMD_ABORT:
                         case CMD_RESET:
                             spock_process_imm_cmd(scsi);
                             break;
