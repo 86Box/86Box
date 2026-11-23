@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 18:11+0000\n"
-"Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
+"PO-Revision-Date: 2026-11-23 17:52+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -49,7 +49,7 @@ msgid "&Hide status bar"
 msgstr "&Durum çubuğunu gizle"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "US&B etkiniğini göster"
 
 msgid "Hide &toolbar"
 msgstr "Araç &çubuğunu gizle"
@@ -85,7 +85,7 @@ msgid "Force &4:3 display ratio"
 msgstr "&4:3 görüntü oranına zorla"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "&Makine görüntü oranına zorla"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "&%1:%2 görüntü oranına zorla"
@@ -157,13 +157,13 @@ msgid "4:&3 Integer scale"
 msgstr "Tam sayı ölçeklemesi (4:&3)"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Orta"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 Or&ta"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Tam sayı ölçeklemesi (4:3, &dikey)"
 
 msgid "Inverted VGA monitor"
 msgstr "Ters renkli VGA monitör"
@@ -253,13 +253,13 @@ msgid "Sound &gain…"
 msgstr "&Sesi artır…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "M&IDI çıkış cihazı"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Cihazı yeni&den başlat"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "MIDI &komutu gönder"
 
 msgid "&GM System On"
 msgstr ""
