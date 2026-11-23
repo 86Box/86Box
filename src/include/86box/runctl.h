@@ -49,6 +49,7 @@ typedef enum {
     RUN_PAUSE_SYNC    = 1 << 6, /* quiesce the CPU around a device state change */
     RUN_PAUSE_HOLD    = 1 << 7, /* automation hold (not wired up yet) */
     RUN_PAUSE_DEBUG   = 1 << 8, /* GDB stub stop (not wired up yet) */
+    RUN_PAUSE_SLEEP   = 1 << 9, /* guest entered an ACPI sleeping state; resuming wakes it */
 } run_pause_t;
 
 /* How the CPU thread paces emulated time against host time. */
@@ -59,7 +60,7 @@ typedef enum {
 } run_mode_t;
 
 /* Reasons the user's Pause/Resume control clears. */
-#define RUN_PAUSE_USER_RESUMABLE (RUN_PAUSE_USER | RUN_PAUSE_FOCUS)
+#define RUN_PAUSE_USER_RESUMABLE (RUN_PAUSE_USER | RUN_PAUSE_FOCUS | RUN_PAUSE_SLEEP)
 
 typedef struct {
     run_state_t state;

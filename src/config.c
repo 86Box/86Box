@@ -447,6 +447,7 @@ load_general(void)
 
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
     fast_forward_on_start = !!ini_section_get_int(cat, "fast_forward_on_start", 0);
+    pause_on_sleep        = !!ini_section_get_int(cat, "pause_on_sleep", 1);
     fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
     p = ini_section_get_string(cat, "uuid", NULL);
@@ -3232,6 +3233,7 @@ config_load(void)
         dpi_scale            = 1;
         force_constant_mouse = 0;
         fast_forward_on_start = fast_forward_new_machines;
+        pause_on_sleep        = 1;
 
         cpu_override_interpreter = 0;
         cpu_debug_regs_486       = 0;
@@ -3727,6 +3729,11 @@ save_general(void)
         ini_section_set_int(cat, "fast_forward_on_start", fast_forward_on_start);
     else
         ini_section_delete_var(cat, "fast_forward_on_start");
+
+    if (pause_on_sleep)
+        ini_section_delete_var(cat, "pause_on_sleep");
+    else
+        ini_section_set_int(cat, "pause_on_sleep", pause_on_sleep);
 
     if (fdd_sounds_enabled == 1)
         ini_section_delete_var(cat, "fdd_sounds_enabled");

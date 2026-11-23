@@ -45,6 +45,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/sis_55xx.h>
+#include <86box/runctl.h>
 
 int        acpi_rtc_status     = 0;
 atomic_int acpi_pwrbut_pressed = 0;
@@ -1386,6 +1387,12 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                     dev->wake_pending = 0;
                     acpi_sleeping     = sus_typ;
                     acpi_log("ACPI: sleeping (SLP_TYP %i)\n", dev->sleep_typ);
+
+                    /* If the user wants it, pause the emulator while the
+                       machine sleeps; the user resuming it is a wake event
+                       (acpi_sleep_run()). */
+                    if (pause_on_sleep)
+                        runctl_pause(RUN_PAUSE_SLEEP);
                 }
             }
             dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
@@ -3049,6 +3056,11 @@ acpi_sleep_run(int32_t cycs)
 
     /* The CPU is stopped: time passes for the timers alone. */
     while ((dev != NULL) && dev->sleeping) {
+        /* With pause_on_sleep, running here at all means the user resumed
+           the emulator out of the sleep pause: wake the machine, unless a
+           power button press is on its way to do it. */
+        if (pause_on_sleep && !atomic_load(&acpi_pwrbut_pressed) && !atomic_load(&acpi_pwrbut_hold_req))
+            dev->wake_pending = 1;
         if (dev->wake_pending) {
             acpi_wake_now(dev);
             return;
@@ -3375,6 +3387,7 @@ acpi_reset(void *priv)
     /* A reset ends any sleeping state and power button hold. */
     if (dev->sleeping)
         acpi_sleeping = 0;
+    runctl_resume(RUN_PAUSE_SLEEP);
     dev->sleeping     = 0;
     dev->wake_pending = 0;
     dev->pwrbtn_held  = 0;
@@ -3478,6 +3491,7 @@ acpi_close(void *priv)
     cpu_stpclk       = 0;
     cpu_throttle_run = 0;
 
+    runctl_resume(RUN_PAUSE_SLEEP);
     if (acpi_active == dev) {
         acpi_active   = NULL;
         acpi_sleeping = 0;
