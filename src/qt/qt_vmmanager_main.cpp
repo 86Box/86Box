@@ -403,9 +403,7 @@ illegal_chars:
         }
     });
 
-    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, []() {
-        vmm_main_window->updateSettings();
-    });
+    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, &VMManagerMain::onGlobalConfigurationChanged);
 
     // Initial default details view
     vm_details = new VMManagerDetails(ui->detailsArea);
@@ -495,9 +493,7 @@ VMManagerMain::reload()
     proxy_model->setSortCaseSensitivity(Qt::CaseInsensitive);
     ui->listView->model()->sort(0, Qt::AscendingOrder);
     connect(vm_model, &VMManagerModel::systemDataChanged, this, &VMManagerMain::modelDataChange);
-    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, []() {
-        vmm_main_window->updateSettings();
-    });
+    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, &VMManagerMain::onGlobalConfigurationChanged);
 #ifdef DISCORD
     discord->setModel(vm_model);
 #endif
@@ -951,9 +947,21 @@ VMManagerMain::onPreferencesUpdated()
 #ifdef DISCORD
     discord->loadSettings();
 #endif
+}
 
+void
+VMManagerMain::sendGlobalConfigurationChanged(const VMManagerSystem *except) const
+{
     if (vm_model)
-        vm_model->sendGlobalConfigurationChanged();
+        vm_model->sendGlobalConfigurationChanged(except);
+}
+
+void
+VMManagerMain::onGlobalConfigurationChanged(const VMManagerSystem *sender) const
+{
+    /* Apply the changes here, then pass them on to the other running machines */
+    vmm_main_window->updateSettings();
+    sendGlobalConfigurationChanged(sender);
 }
 
 void
@@ -974,6 +982,8 @@ VMManagerMain::onLanguageUpdated()
     ui->detailsArea->layout()->addWidget(vm_details);
     if (vm_model->rowCount(QModelIndex()) > 0)
         vm_details->updateData(selected_sysconfig);
+    /* Retranslating the main window brought back the default texts of the toolbar */
+    vmStateChange();
 }
 
 #ifdef Q_OS_WINDOWS

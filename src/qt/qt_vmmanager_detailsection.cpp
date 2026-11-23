@@ -18,13 +18,7 @@
 #include <QPushButton>
 #include "qt_util.hpp"
 
-#define HEADER_STYLESHEET_LIGHT "background-color: palette(midlight);"
-#ifdef Q_OS_WINDOWS
-#    define HEADER_STYLESHEET_DARK     "background-color: #616161;"
-#    define BACKGROUND_STYLESHEET_DARK "background-color: #272727;"
-#else
-#    define HEADER_STYLESHEET_DARK "background-color: palette(mid);"
-#endif
+#define HEADER_STYLESHEET "background-color: palette(midlight);"
 
 const QString VMManagerDetailSection::sectionSeparator = ";";
 using namespace VMManager;
@@ -44,21 +38,7 @@ VMManagerDetailSection::
     setSectionName(sectionName);
     ui->collapseButtonHolder->setContentsMargins(getMargins(MarginSection::ToolButton));
 
-    // Simple method to try and determine if light mode is enabled on the host
-#ifdef Q_OS_WINDOWS
-    const bool lightMode = util::isWindowsLightTheme();
-#else
-    const bool lightMode = QApplication::palette().window().color().value() > QApplication::palette().windowText().color().value();
-#endif
-    // Alternate layout
-    if (lightMode) {
-        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_LIGHT);
-    } else {
-#ifdef Q_OS_WINDOWS
-        ui->outerFrame->setStyleSheet(BACKGROUND_STYLESHEET_DARK);
-#endif
-        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_DARK);
-    }
+    ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET);
     const auto sectionLabel = new QLabel(sectionName);
     sectionLabel->setStyleSheet(sectionLabel->styleSheet().append("font-weight: bold;"));
     ui->collapseButtonHolder->setContentsMargins(QMargins(3, 2, 0, 2));
@@ -224,14 +204,9 @@ VMManagerDetailSection::clear()
 void
 VMManagerDetailSection::updateStyle()
 {
-    const bool lightMode = util::isWindowsLightTheme();
-    if (lightMode) {
-        ui->outerFrame->setStyleSheet("");
-        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_LIGHT);
-    } else {
-        ui->outerFrame->setStyleSheet(BACKGROUND_STYLESHEET_DARK);
-        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_DARK);
-    }
+    /* Reapply the stylesheet so that it picks up the new palette */
+    ui->collapseButtonHolder->setStyleSheet("");
+    ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET);
 }
 #endif
 

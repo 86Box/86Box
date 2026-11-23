@@ -3811,6 +3811,18 @@ msgstr "Φωτεινό"
 msgid "Dark"
 msgstr "Σκοτεινό"
 
+msgid "Style:"
+msgstr ""
+
+msgid "Windows 11"
+msgstr ""
+
+msgid "Windows Native"
+msgstr ""
+
+msgid "Windows Classic"
+msgstr ""
+
 msgid "Force interpretation"
 msgstr "Εξαναγκασμός ερμηνείας"
 

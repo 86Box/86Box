@@ -2857,10 +2857,11 @@ MainWindow::on_actionPreferences_triggered()
 void
 MainWindow::applyGlobalPreferences()
 {
-#ifdef Q_OS_WINDOWS
-    extern void selectDarkMode();
-    selectDarkMode();
+#ifdef HAS_COLOR_SCHEME_HINT
+    util::applyColorScheme();
 #endif
+    /* After the color scheme, which the default style may depend on */
+    util::applyStyle();
 
     auto size = centralWidget()->size();
 

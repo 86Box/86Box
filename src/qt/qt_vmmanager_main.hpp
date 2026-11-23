@@ -84,6 +84,9 @@ public slots:
 #endif
     void modelDataChange();
     void onPreferencesUpdated();
+    /* Tells the running machines to reload the global configuration */
+    void sendGlobalConfigurationChanged(const VMManagerSystem *except = nullptr) const;
+    void onGlobalConfigurationChanged(const VMManagerSystem *sender) const;
     void onLanguageUpdated();
 #ifdef Q_OS_WINDOWS
     void onDarkModeUpdated();

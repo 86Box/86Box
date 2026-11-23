@@ -23,18 +23,12 @@
 #include <QMainWindow>
 #include <QPainter>
 #include <QToolBar>
+#include <QApplication>
 
 extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
 }
-
-#ifdef USE_QDARKSTYLE
-#    include <dwmapi.h>
-#    ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#        define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#    endif
-#endif
 
 int
 StyleOverride::styleHint(
@@ -72,11 +66,6 @@ StyleOverride::polish(QWidget *widget)
             }
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-#ifdef USE_QDARKSTYLE
-        /* Newer Qt handles the title bar color by itself */
-        BOOL DarkMode = !util::isWindowsLightTheme();
-        DwmSetWindowAttribute((HWND) widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID) &DarkMode, sizeof(DarkMode));
-#endif
     }
 
     if (qobject_cast<QComboBox *>(widget)) {
@@ -94,6 +83,30 @@ StyleOverride::polish(QWidget *widget)
 void
 StyleOverride::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
+#ifdef NEUTRAL_DARK_ACCENT
+    /* Windows fills checkboxes and radio buttons with the accent color in dark mode,
+       draw them with the plain base colors of the application instead */
+    if (((element == PE_IndicatorCheckBox) || (element == PE_IndicatorRadioButton)) && util::neutralDarkAccent(baseStyle())) {
+        const auto group = option->palette.currentColorGroup();
+        const auto app   = QApplication::palette();
+        auto       neutral = [&](QStyleOption &opt) {
+            opt.palette.setColor(group, QPalette::Base, app.color(group, QPalette::Base));
+            opt.palette.setColor(group, QPalette::Button, app.color(group, QPalette::Button));
+        };
+
+        if (const auto *button = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+            QStyleOptionButton opt(*button);
+            neutral(opt);
+            QProxyStyle::drawPrimitive(element, &opt, painter, widget);
+        } else {
+            QStyleOption opt(*option);
+            neutral(opt);
+            QProxyStyle::drawPrimitive(element, &opt, painter, widget);
+        }
+        return;
+    }
+#endif
+
     /* The windows11 style draws hovered toolbar buttons as a framed control,
        draw them with the filled highlight of menu bar items instead. */
     if ((element == PE_PanelButtonTool) && widget && qobject_cast<QToolBar *>(widget->parentWidget()) && isWindows11Style()) {

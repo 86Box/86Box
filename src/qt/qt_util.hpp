@@ -7,6 +7,7 @@
 #include <initializer_list>
 
 class QImage;
+class QStyle;
 class QScreen;
 namespace util {
 static constexpr auto UUID_MIN_LENGTH = 36;
@@ -21,17 +22,28 @@ QScreen *screenOfWidget(QWidget *widget);
 int      logicalSizeForPixels(int pixels, qreal dpr);
 /* Puts an image on the clipboard, offering PNG ahead of the other formats */
 void     copyImageToClipboard(const QImage &image);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+/* Qt can switch color schemes on its own from 6.8 on, where the platform supports it */
+#    define HAS_COLOR_SCHEME_HINT
+/* Applies the configured color scheme */
+void applyColorScheme(void);
+#endif
+/* Applies the configured Qt style, falling back to the default one. With the default
+   style on Windows, Fusion stands in for the windowsvista style in dark mode. */
+void applyStyle(void);
+#if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
+/* The dark palette of Windows also tints alternating rows and checkboxes with the accent
+   color, which Fusion and the classic Windows style draw as they are */
+#    define NEUTRAL_DARK_ACCENT
+/* Returns whether the style should keep the accent color to selections */
+bool neutralDarkAccent(const QStyle *style);
+#endif
+/* Returns whether selected items are drawn with the highlighted text color, which
+   the native Windows styles don't do as they draw a light selection */
+bool selectionUsesHighlightedText(const QStyle *style);
 #ifdef Q_OS_WINDOWS
-#    if QT_VERSION < QT_VERSION_CHECK(6, 8, 0)
-/* Qt can't switch color schemes on its own before 6.8, so dark mode is emulated with QDarkStyle */
-#        define USE_QDARKSTYLE
-#    endif
 bool isWindowsLightTheme(void);
 void setWin11RoundedCorners(WId hwnd, bool enable);
-#    ifndef USE_QDARKSTYLE
-/* Applies the configured color scheme to the built-in Windows theme */
-void applyColorScheme(void);
-#    endif
 #endif
 QString currentUuid();
 QString generateUuid(const QString &path);
