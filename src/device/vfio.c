@@ -2858,13 +2858,19 @@ vfio_dev_init(vfio_device_t *dev)
                 if ((dev->config.fd > 0) && (pread(dev->config.fd, &cls, sizeof(cls), dev->config.offset + 0x0b) == sizeof(cls)) && (cls != 0x03))
                     break;
 
+                /* The legacy VGA ranges belong to the emulated video card if there is one, as
+                   a bridge's VGA Enable would route them; the passthrough card is secondary. */
+                if (gfxcard[0] != VID_NONE) {
+                    vfio_log("VFIO %s: Not mapping VGA regions, as a video card is emulated\n", dev->name);
+                    break;
+                }
+
                 vfio_region_init(dev, &reg, &dev->vga_io_lo); /* I/O [3B0:3BB] */
                 vfio_region_init(dev, &reg, &dev->vga_io_hi); /* I/O [3C0:3DF] */
                 vfio_region_init(dev, &reg, &dev->vga_mem);   /* memory [A0000:BFFFF] */
 
-                /* Inform that a PCI VGA video card is attached if no video card is emulated. */
-                if (gfxcard[0] == VID_NONE)
-                    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
+                /* Inform that a PCI VGA video card is attached. */
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
                 break;
 
             default:
