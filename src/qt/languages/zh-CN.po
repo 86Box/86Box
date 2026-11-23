@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 04:05+0000\n"
+"PO-Revision-Date: 2026-11-23 19:22+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -3736,10 +3736,10 @@ msgid "Windows 11"
 msgstr ""
 
 msgid "Windows Native"
-msgstr ""
+msgstr "Windows原生"
 
 msgid "Windows Classic"
-msgstr ""
+msgstr "Windows经典"
 
 msgid "Force interpretation"
 msgstr "强制解释执行"
