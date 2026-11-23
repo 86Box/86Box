@@ -2857,13 +2857,12 @@ MainWindow::on_actionPreferences_triggered()
 void
 MainWindow::applyGlobalPreferences()
 {
+    const auto size = centralWidget()->size();
 #ifdef HAS_COLOR_SCHEME_HINT
     util::applyColorScheme();
 #endif
     /* After the color scheme, which the default style may depend on */
     util::applyStyle();
-
-    auto size = centralWidget()->size();
 
     Preferences::loadTranslators(QCoreApplication::instance());
     Preferences::reloadStrings();
@@ -2881,12 +2880,25 @@ MainWindow::applyGlobalPreferences()
 
     /* Keep the size of the screen while the menus and the status bar change. */
     QTimer::singleShot(200, this, [this, size] () {
+        if (video_fullscreen || isMaximized())
+            return;
         centralWidget()->setFixedSize(size);
         QApplication::processEvents();
         /* Only preserve the viewport while relaying out the translated UI.
            The outer window constrains fixed modes; the viewport must still
            be able to follow the guest's next resolution change. */
         centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        /* A style can change the menu and tool bar heights. Resize the
+           outer window to keep the display size unchanged. */
+        if (vid_resize != 1) {
+            emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x,
+                                vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
+        } else {
+            const int barsHeight = menuBar()->height()
+                + (statusBar()->height() * !hide_status_bar)
+                + (ui->toolBar->height() * !hide_tool_bar);
+            resize(size.width(), size.height() + barsHeight);
+        }
     });
 
     updateShortcuts();
@@ -2920,9 +2932,11 @@ MainWindow::changeEvent(QEvent *event)
         auto size = this->centralWidget()->size();
         QApplication::setFont(Preferences::getUIFont());
         processEventsOnlyWhenPausedOrModal();
-        main_window->centralWidget()->setFixedSize(size);
-        processEventsOnlyWhenPausedOrModal();
-        main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (!isFullScreen() && !isMaximized()) {
+            main_window->centralWidget()->setFixedSize(size);
+            processEventsOnlyWhenPausedOrModal();
+            main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
     }
 #endif
     QWidget::changeEvent(event);
