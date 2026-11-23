@@ -67,7 +67,7 @@ ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uop_MOV_IMM(ir, IREG_pc, new_pc);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
-    uop_CALL_FUNC(ir, loadcsjmp);
+    uop_CALL_FUNC(ir, loadcsjmp_pm_fast);
     /*A task switch can keep the RF it loads*/
     if (cpu_debug_regs_486)
         uop_CALL_FUNC(ir, dynarec_rf_after_op);
@@ -85,7 +85,7 @@ ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uop_MOV_IMM(ir, IREG_pc, new_pc);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 6);
-    uop_CALL_FUNC(ir, loadcsjmp);
+    uop_CALL_FUNC(ir, loadcsjmp_pm_fast);
     if (cpu_debug_regs_486)
         uop_CALL_FUNC(ir, dynarec_rf_after_op);
 
@@ -424,9 +424,10 @@ ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     return -1;
 }
 
-/*Protected mode outside V86: pmoderetf pops CS:EIP and, on a privilege
-  change, SS:ESP itself, and puts ESP back on every fault it raises, so
-  nothing is popped here and nothing follows the call but the block's end*/
+/*Protected mode outside V86: pmoderetf (or its same-level short path,
+  pmoderetf_pm_fast) pops CS:EIP and, on a privilege change, SS:ESP itself,
+  and puts ESP back on every fault it raises, so nothing is popped here and
+  nothing follows the call but the block's end*/
 static uint32_t
 retf_pm(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32, int has_imm)
 {
@@ -441,7 +442,7 @@ retf_pm(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32, int has_imm
     codegen_accumulate_flush(ir);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, is32);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, offset);
-    uop_CALL_FUNC(ir, pmoderetf);
+    uop_CALL_FUNC(ir, pmoderetf_pm_fast);
 
     return -1;
 }

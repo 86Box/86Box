@@ -1999,6 +1999,226 @@ pmoderetf(int is32, uint16_t off)
     }
 }
 
+#if !defined(OPS_286_386) && defined(USE_DYNAREC)
+/* The far CALL, far RET and far JMP of recompiled code in protected mode
+   take the short paths below when the transfer stays at the CPL and lands
+   in a code segment: no fault, no gate, no task, no page walk and no
+   Accessed bit write. Any other case runs the C routine before anything is
+   written. They are taken only on the processors far_load_order marks as
+   following the Intel Architecture manuals, whose books give these
+   transfers one text (1999 vol. 2: CALL pp. 3-57, 3-58, RET pp. 3-610,
+   3-611, JMP pp. 3-336, 3-337; the 1997 one and the Pentium Pro's say the
+   same); those have a 32-bit bus and skip the Accessed bit write when the
+   bit is set. */
+static inline int
+far_pm_fast_ok(void)
+{
+    return (msw & 1) && !(cpu_state.eflags & VM_FLAG) && !cpu_state.abrt && (far_load_order == FAR_LOAD_ORDER_IA) &&
+           is486 && !israpidcad && !cpu_16bitbus;
+}
+
+/* The descriptor seg selects, by read_descriptor()'s readmeml() hits on the
+   table or on an entry held, with its linear address: 0 when the selector
+   is null or past the table limit, or the read would take the memory call */
+static inline int
+far_pm_fast_desc(uint16_t seg, uint32_t *addr, uint16_t *segdat)
+{
+    const x86seg *dt = (seg & 0x0004) ? &ldt : &gdt;
+    uintptr_t     lookup;
+    uint32_t      a = seg & 0xfff8;
+    uint32_t      lo;
+    uint32_t      hi;
+
+    if (!(seg & 0xfffc) || ((a + 7) > dt->limit))
+        return 0;
+    a += dt->base;
+    lookup = readlookup2[a >> 12];
+    if ((lookup == (uintptr_t) LOOKUP_INV) && mem_held_num) {
+        cpl_override = 1;
+        lookup       = mem_held_read(a);
+        cpl_override = 0;
+    }
+    if ((lookup == (uintptr_t) LOOKUP_INV) || (a & 7))
+        return 0;
+    lo        = *(uint32_t *) (lookup + a);
+    hi        = *(uint32_t *) (lookup + (a + 4));
+    segdat[0] = lo & 0xffff;
+    segdat[1] = lo >> 16;
+    segdat[2] = hi & 0xffff;
+    segdat[3] = hi >> 16;
+    *addr     = a;
+    return 1;
+}
+
+/* A present code segment with the Accessed bit set that the CPL enters
+   without a change of privilege, by loadcscall()'s and loadcsjmp()'s tests
+   (and pmoderetf()'s, whose RPL is the CPL here); and a CPL whose reload
+   leaves the held lookup entries and the ring 3 lookup alone */
+static inline int
+far_pm_fast_code(uint16_t seg, const uint16_t *segdat)
+{
+    const int cpl = CPL;
+    const int dpl = (segdat[2] >> 13) & 3;
+
+    if (((segdat[2] & 0x1800) != 0x1800) || ((segdat[2] & 0x8100) != 0x8100))
+        return 0;
+    if (segdat[2] & 0x0400) {
+        if (dpl > cpl)
+            return 0;
+    } else if (((seg & 0x0003) > cpl) || (dpl != cpl))
+        return 0;
+
+    return !(mem_held_num && (cpl != 3)) && !((cpl == 3) && (oldcpl != 3));
+}
+
+/* CS as the three routines load it on this path: RPL and DPL are the CPL */
+static inline void
+far_pm_fast_load_cs(uint16_t seg, const uint16_t *segdat)
+{
+    const int cpl = CPL;
+
+    CS = (seg & 0xfffc) | cpl;
+    seg_load_fields(&cpu_state.seg_cs, segdat[0], segdat[1], (segdat[2] & ~(3 << 13)) | (cpl << 13), segdat[3]);
+    cpu_cur_status = seg_load_status(&cpu_state.seg_cs, cpu_cur_status);
+    set_use32(segdat[3] & 0x0040);
+    oldcpl       = cpl;
+    cpl_override = 0;
+}
+
+/* CALL_FAR_w/l with loadcscall(), new_pc the target offset and ret_pc the
+   address after the instruction: both items of the return address within
+   the SS limits and stored by the writememw()/writememl() hit, the target
+   within the new CS limit. Returns 0, with nothing written, when the C
+   path is to run */
+int
+call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int is32)
+{
+    const uint32_t width = is32 ? 4 : 2;
+    uint16_t       segdat[4];
+    uint32_t       addr;
+    uint32_t       sp1;
+    uint32_t       sp2;
+    uint32_t       a1;
+    uint32_t       a2;
+    uintptr_t      w1;
+    uintptr_t      w2;
+    uint32_t       old_cs;
+
+    if (!far_pm_fast_ok() || !far_pm_fast_desc(seg, &addr, segdat) || !far_pm_fast_code(seg, segdat) ||
+        !call_far_frame_in_limits(is32) || (new_pc > desc_limit(segdat)))
+        return 0;
+    if (stack32) {
+        sp1 = ESP - width;
+        sp2 = ESP - 2 * width;
+    } else {
+        sp1 = (SP - width) & 0xffff;
+        sp2 = (SP - 2 * width) & 0xffff;
+    }
+    a1 = ss + sp1;
+    a2 = ss + sp2;
+    w1 = writelookup2[a1 >> 12];
+    w2 = writelookup2[a2 >> 12];
+    if ((ss == 0xffffffff) || (w1 == (uintptr_t) LOOKUP_INV) || (w2 == (uintptr_t) LOOKUP_INV) || (a1 & (width - 1)) ||
+        (a2 & (width - 1)))
+        return 0;
+
+    old_cs                = CS;
+    cpu_state.pc          = new_pc;
+    optype                = 0;
+    cgate16               = 0;
+    cgate32               = 0;
+    cgate_task            = 0;
+    call_gate_undo.active = 0;
+    call_far_a_addr       = addr;
+    call_far_a_word       = segdat[2];
+    call_far_a_pending    = 0;
+    far_pm_fast_load_cs(seg, segdat);
+    cycles -= timing_call_pm;
+    oldss = ss;
+    if (is32) {
+        *(uint32_t *) (w1 + a1) = old_cs;
+        *(uint32_t *) (w2 + a2) = ret_pc;
+    } else {
+        *(uint16_t *) (w1 + a1) = old_cs;
+        *(uint16_t *) (w2 + a2) = ret_pc;
+    }
+    if (stack32)
+        ESP = sp2;
+    else
+        SP = sp2;
+
+    return 1;
+}
+
+/* pmoderetf() to the same privilege level: both items within the SS limits
+   and read by the readmemw()/readmeml() hit, the return offset within the
+   new CS limit */
+void
+pmoderetf_pm_fast(int is32, uint16_t off)
+{
+    const uint32_t width = is32 ? 4 : 2;
+    uint16_t       segdat[4];
+    uint32_t       addr;
+    uint32_t       a1;
+    uint32_t       a2;
+    uintptr_t      r1;
+    uintptr_t      r2;
+    uint32_t       newpc;
+    uint16_t       seg;
+
+    if (!far_pm_fast_ok() || (ss == 0xffffffff) || !retf_item_in_limits(ESP, 0, is32) || !retf_item_in_limits(ESP, width, is32)) {
+        pmoderetf(is32, off);
+        return;
+    }
+    a1 = ss + (stack32 ? ESP : SP);
+    a2 = ss + (stack32 ? (ESP + width) : ((SP + width) & 0xffff));
+    r1 = readlookup2[a1 >> 12];
+    r2 = readlookup2[a2 >> 12];
+    if ((r1 == (uintptr_t) LOOKUP_INV) || (r2 == (uintptr_t) LOOKUP_INV) || (a1 & (width - 1)) || (a2 & (width - 1))) {
+        pmoderetf(is32, off);
+        return;
+    }
+    if (is32) {
+        newpc = *(uint32_t *) (r1 + a1);
+        seg   = *(uint32_t *) (r2 + a2);
+    } else {
+        newpc = *(uint16_t *) (r1 + a1);
+        seg   = *(uint16_t *) (r2 + a2);
+    }
+    if (((seg & 0x0003) != CPL) || !far_pm_fast_desc(seg, &addr, segdat) || !far_pm_fast_code(seg, segdat) ||
+        (newpc > desc_limit(segdat))) {
+        pmoderetf(is32, off);
+        return;
+    }
+
+    if (stack32)
+        ESP += 2 * width + off;
+    else
+        SP += 2 * width + off;
+    cpu_state.pc = newpc;
+    far_pm_fast_load_cs(seg, segdat);
+    cycles -= timing_retf_pm;
+}
+
+/* loadcsjmp() to a code segment, the target offset (in cpu_state.pc)
+   within the new CS limit */
+void
+loadcsjmp_pm_fast(uint16_t seg, uint32_t old_pc)
+{
+    uint16_t segdat[4];
+    uint32_t addr;
+
+    if (!far_pm_fast_ok() || !far_pm_fast_desc(seg, &addr, segdat) || !far_pm_fast_code(seg, segdat) ||
+        (cpu_state.pc > desc_limit(segdat))) {
+        loadcsjmp(seg, old_pc);
+        return;
+    }
+
+    far_pm_fast_load_cs(seg, segdat);
+    cycles -= timing_jmp_pm;
+}
+#endif
+
 void
 #ifdef OPS_286_386
 pmodeint_2386(int num, int soft)

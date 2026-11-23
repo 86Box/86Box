@@ -58,6 +58,9 @@ extern void x86_fault_in_delivery(int first, int second);
 extern int  loadseg(uint16_t seg, x86seg *s);
 #ifdef USE_DYNAREC
 extern int  loadseg_pm_fast(uint16_t seg, x86seg *s);
+extern int  call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int is32);
+extern void pmoderetf_pm_fast(int is32, uint16_t off);
+extern void loadcsjmp_pm_fast(uint16_t seg, uint32_t old_pc);
 #endif
 /* The prototype of loadcs_2386() is needed here for reset. */
 extern void loadcs_2386(uint16_t seg);
