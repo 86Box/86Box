@@ -5093,8 +5093,13 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             cdrom_read_disc_information(dev->drv, dev->buffer);
 
             /* For the Philips recorders, this bit means a restricted use disc. */
-            if (dev->drv->is_philips)
+            if (dev->drv->is_philips) {
                 dev->buffer[7] &= ~0x20;
+
+                /* An empty disc has no invisible track yet, so no last track in the last session. */
+                if (dev->drv->blank_media && ((dev->buffer[2] & 0x03) == 0x00))
+                    dev->buffer[6] = 0x00;
+            }
 
             len = MIN(34, max_len);
 
