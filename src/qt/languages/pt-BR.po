@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 14:41+0000\n"
+"PO-Revision-Date: 2026-11-23 18:36+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -1877,15 +1877,11 @@ msgstr "Desligar"
 msgid "Power &off"
 msgstr "&Desligar"
 
-#, fuzzy
-#| msgid "Power &off (soft)"
 msgid "Softw&are shutdown"
-msgstr "&Desligar (soft)"
+msgstr "&Desligamento por software"
 
-#, fuzzy
-#| msgid "Power off (soft)"
 msgid "Software shutdown"
-msgstr "Desligar (soft)"
+msgstr "Desligamento por software"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "Desligar a máquina virtual pode causar perda de dados. Você tem certeza que deseja continuar?"
