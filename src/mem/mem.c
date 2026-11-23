@@ -1782,6 +1782,53 @@ mem_no_mmut_walk_n(uint32_t addr, uint32_t *a64, int num, int write)
     return 0;
 }
 
+/* The physical addresses of a write's bytes, resolved at the start of the
+   write, before any part of it is written: the translate step left
+   MMUT_UNWALKED for a page whose lookup entry it used, and that entry can be
+   gone by now (a flush from an I/O read, or the write ring). Each such page
+   takes its frame from its page_lookup entry if it still has one, as
+   writemembl() writes through it, else from a walk made now. Every part is
+   then written with these frames: the first part of a page-crossing store
+   can recycle the second page's entry or rewrite its page table entry, and
+   writememll() too takes both frames before it writes. Non-zero if a walk
+   faulted. */
+static __inline int
+mem_no_mmut_resolve_w(uint32_t addr, uint32_t *a64, int num)
+{
+    if (!(cr0 >> 31))
+        return 0;
+    for (int i = 0; i < num; i++) {
+        const uint32_t va = addr + i;
+        const page_t  *pl;
+        uint32_t       a;
+
+        if (a64[i] != MMUT_UNWALKED)
+            continue;
+        pl = mem_page_lookup(va >> 12);
+        if (pl && pl->write_b)
+            a = ((uint32_t) (pl - pages) << 12) | (va & 0xfff);
+        else if ((va >> 12) == (addr >> 12)) {
+            a = mem_no_mmut_walk(va, 1);
+            if (cpu_state.abrt)
+                return 1;
+        } else {
+            /* The second page is walked at the store's last byte, as
+               writememll() and do_mmutranslate() walk it: a fault reports
+               that address. */
+            a = mem_no_mmut_walk(addr + num - 1, 1);
+            if (cpu_state.abrt)
+                return 1;
+            a = (a & ~0xfff) | (va & 0xfff);
+        }
+        a64[i] = a;
+        while (((i + 1) < num) && ((va >> 12) == ((addr + i + 1) >> 12))) {
+            i++;
+            a64[i] = a + (uint32_t) (addr + i - va);
+        }
+    }
+    return 0;
+}
+
 /* Read a byte from memory without MMU translation - result of previous MMU translation passed as value. */
 static uint8_t
 readmembl_no_mmut_body(uint32_t addr, uint32_t a64)
@@ -1860,11 +1907,8 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
         return;
     }
 
-    if ((cr0 >> 31) && (a64 == MMUT_UNWALKED)) {
-        a64 = mem_no_mmut_walk(addr, 1);
-        if (cpu_state.abrt)
-            return;
-    }
+    if (mem_no_mmut_resolve_w(addr, &a64, 1))
+        return;
 
     writemembl_no_mmut_body(addr, a64, val);
 }
@@ -2169,7 +2213,7 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
         return;
     }
 
-    if (mem_no_mmut_walk_n(addr, a64, 2, 1))
+    if (mem_no_mmut_resolve_w(addr, a64, 2))
         return;
 
     writememwl_no_mmut_body(addr, a64, val);
@@ -2516,7 +2560,7 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
         return;
     }
 
-    if (mem_no_mmut_walk_n(addr, a64, 4, 1))
+    if (mem_no_mmut_resolve_w(addr, a64, 4))
         return;
 
     writememll_no_mmut_body(addr, a64, val);
@@ -2780,7 +2824,8 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
                 a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
                 a64[i] = (uint32_t) a;
             }
-        }
+        } else
+            a64[i] = MMUT_UNWALKED;
 
         addr++;
     }
