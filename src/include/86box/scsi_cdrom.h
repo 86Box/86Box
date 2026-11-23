@@ -71,6 +71,7 @@ typedef struct scsi_cdrom_t {
     int                sectors_num;
 
     int                philips_in_seq;
+    int                philips_audio;
     int                philips_inc;
     int                philips_internal;
     uint32_t           philips_packet;

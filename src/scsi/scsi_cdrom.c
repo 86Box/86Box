@@ -1391,6 +1391,16 @@ scsi_cdrom_data(scsi_cdrom_t *dev, const int msf, const int type, const int flag
                                    dev->buffer_pos, write_type, data_block_type);
                     uint32_t sum = 0;
 
+                    /* Philips recorders take the audio samples most significant byte first. */
+                    if (dev->drv->is_philips && dev->philips_audio) {
+                        for (int k = 0; k < (temp_len - 1); k += 2) {
+                            const uint8_t t = dev->buffer[dev->buffer_pos + k];
+
+                            dev->buffer[dev->buffer_pos + k]     = dev->buffer[dev->buffer_pos + k + 1];
+                            dev->buffer[dev->buffer_pos + k + 1] = t;
+                        }
+                    }
+
                     for (int k = 0; k < temp_len; k++)
                         sum = (sum * 31) + dev->buffer[dev->buffer_pos + k];
 
@@ -3500,6 +3510,7 @@ scsi_cdrom_philips_start_write(scsi_cdrom_t *dev, const int raw, const int aud, 
     p[4] = dbt;
 
     dev->philips_in_seq = 1;
+    dev->philips_audio  = aud && !raw;
 
     return 0;
 }
