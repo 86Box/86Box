@@ -86,7 +86,6 @@ typedef int sock_t;
 #include <86box/video.h>
 #include <86box/version.h>
 #include <86box/nvr.h>
-#include <86box/acpi.h>
 #include <86box/char.h>
 #include <86box/serial.h>
 #include <86box/automation.h>
@@ -2710,10 +2709,9 @@ handle_request(char *line)
     } else if (!strcmp(argv[0], "quit") && (argc == 2) && !strcmp(argv[1], "soft")) {
         respond_ok_time();
         complete();
-        if (acpi_enabled)
-            acpi_pwrbut_pressed = 1;
-        else if (device_has_power_button())
-            device_power_button();
+        /* Commands run on the CPU thread, at a safe point (automation_poll()). */
+        if (machine_power_button_type() >= 0)
+            machine_power_button_press();
         else
             plat_power_off();
         return;

@@ -59,7 +59,6 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/apm.h>
 #include <86box/nvr.h>
-#include <86box/acpi.h>
 #include <86box/renderdefs.h>
 #include <86box/midi.h>
 #include <86box/midi_lcd.h>
@@ -1974,21 +1973,21 @@ MainWindow::hasKanaLock()
     return machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
 }
 
-/* Labels the soft power off action after the method it uses: ACPI, or another
-   soft power device. Machines with neither can only be powered off hard. Both
-   labels share the same mnemonic. */
+/* Labels the soft power off action after the machine's power button: an ACPI
+   power button event, or the PC Convertible's suspend. Machines without one
+   can only be powered off hard. */
 void
 MainWindow::updatePowerOffAction()
 {
-    const bool has_power_button = device_has_power_button();
-    if (!acpi_enabled && has_power_button) {
-        ui->actionACPI_Shutdown->setText(tr("Softw&are shutdown"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Software shutdown"));
+    const int type = machine_power_button_type();
+    if (type == POWER_BUTTON_CONVERTIBLE_SUSPEND) {
+        ui->actionACPI_Shutdown->setText(tr("Suspen&d"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Suspend"));
     } else {
         ui->actionACPI_Shutdown->setText(tr("&ACPI shutdown"));
         ui->actionACPI_Shutdown->setToolTip(tr("ACPI shutdown"));
     }
-    ui->actionACPI_Shutdown->setEnabled(acpi_enabled || has_power_button);
+    ui->actionACPI_Shutdown->setEnabled(type >= 0);
 }
 
 void
@@ -3117,13 +3116,7 @@ MainWindow::on_actionPen_triggered()
 void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
-    if (acpi_enabled) {
-        acpi_pwrbut_press();
-        return;
-    }
-
-    if (device_has_power_button())
-        runctl_call_wait([](void *) { device_power_button(); }, nullptr);
+    runctl_call_wait([](void *) { machine_power_button_press(); }, nullptr);
 }
 
 /* A hard power off is equivalent to exiting 86Box. */

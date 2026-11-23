@@ -428,6 +428,12 @@ extern int                    bios_only;
 extern int                    machine;
 extern void *                 machine_snd;
 
+/* Emulated power button types, for machine_set_power_button(). */
+enum {
+    POWER_BUTTON_ACPI = 0,           /* Raises an ACPI power button event. */
+    POWER_BUTTON_CONVERTIBLE_SUSPEND /* IBM PC Convertible: suspends, then cuts power. */
+};
+
 /* Core functions. */
 extern int             machine_count(void);
 extern int             machine_available(int m);
@@ -436,6 +442,12 @@ extern const char *    machine_get_internal_name(void);
 extern const char *    machine_get_nvr_name(void);
 extern int             machine_get_machine_from_internal_name(const char *s);
 extern void            machine_init(void);
+/* The machine's emulated power button: one slot, cleared on every hard reset;
+   the last setter wins. machine_power_button_type() returns -1 when there is
+   none. Press it on the CPU thread, at a safe point. */
+extern void            machine_set_power_button(int type, void (*press)(void *priv), void *priv);
+extern int             machine_power_button_type(void);
+extern void            machine_power_button_press(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
 extern const device_t *machine_get_kbd_device(int m);

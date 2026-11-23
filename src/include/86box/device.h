@@ -188,8 +188,6 @@ typedef struct _device_ {
     const char *machine;
     const device_config_t *config;
 
-    void (*power_button)(void *priv); /* Optional emulated power-button press. */
-
     const char *short_name;                           /* Short label, as on an IDE channel; name if NULL. */
     uint32_t  (*ide_boards)(const struct _device_ *); /* The IDE boards the device claims, with its
                                                          configuration as the current context. */
@@ -243,9 +241,6 @@ extern void *device_get_priv(const device_t *dev);
 extern int   device_available(const device_t *dev);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
-extern int   device_has_power_button(void);
-/* Call with the CPU paused before dispatching to device state. */
-extern void  device_power_button(void);
 extern const char *device_get_bus_name(const device_t *dev);
 extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);

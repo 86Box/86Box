@@ -1913,15 +1913,11 @@ msgstr "Απενεργοποίηση"
 msgid "Power &off"
 msgstr "&Απενεργοποίηση"
 
-#, fuzzy
-#| msgid "Power &off (soft)"
-msgid "Softw&are shutdown"
-msgstr "&Απενεργοποίηση (ομαλή)"
+msgid "Suspen&d"
+msgstr ""
 
-#, fuzzy
-#| msgid "Power off (soft)"
-msgid "Software shutdown"
-msgstr "Απενεργοποίηση (ομαλή)"
+msgid "Suspend"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""

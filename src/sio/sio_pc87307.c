@@ -1942,8 +1942,11 @@ pc87307_init(const device_t *info)
 
         timer_add(&dev->failsafe_timer, pc87307_failsafe_expire, dev, 0);
     }
-    if (dev->is_97317)
+    if (dev->is_97317) {
         timer_add(&dev->pm_tmr_timer, pc97317_pm_tmr_carry, dev, 0);
+        /* The PC97317 drives the board's power (APC): it has the power button. */
+        machine_set_power_button(POWER_BUTTON_ACPI, pc97317_power_button, dev);
+    }
 
     pc87307_reset(dev);
 
@@ -1992,7 +1995,6 @@ const device_t pc87307_both_device = {
     .config        = NULL
 };
 
-/* The PC97317 drives the board's power (APC): it has the power button. */
 const device_t pc97317_device = {
     .name          = "National Semiconductor PC97317 Super I/O",
     .internal_name = "pc97317",
@@ -2004,8 +2006,7 @@ const device_t pc97317_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL,
-    .power_button  = pc97317_power_button
+    .config        = NULL
 };
 
 const device_t pc97307_device = {

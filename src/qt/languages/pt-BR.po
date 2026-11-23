@@ -1877,15 +1877,11 @@ msgstr "Desligar"
 msgid "Power &off"
 msgstr "&Desligar"
 
-#, fuzzy
-#| msgid "Power &off (soft)"
-msgid "Softw&are shutdown"
-msgstr "&Desligar (soft)"
+msgid "Suspen&d"
+msgstr ""
 
-#, fuzzy
-#| msgid "Power off (soft)"
-msgid "Software shutdown"
-msgstr "Desligar (soft)"
+msgid "Suspend"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "Desligar a máquina virtual pode causar perda de dados. Você tem certeza que deseja continuar?"
