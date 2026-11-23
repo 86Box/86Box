@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-23 17:54+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -787,7 +787,7 @@ msgid "These IDE controllers need channels that another device already has, and 
 msgstr ""
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Вы всё равно хотите сохранить конфигурацию?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -916,10 +916,10 @@ msgid "Custom ROM:"
 msgstr ""
 
 msgid "Group"
-msgstr ""
+msgstr "Группа"
 
 msgid "Location"
-msgstr ""
+msgstr "Локация"
 
 msgid "Name"
 msgstr ""
