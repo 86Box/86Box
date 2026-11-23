@@ -70,6 +70,12 @@ uint32_t  mem_size = 8192; /* KB; GART tables and rings live in ram[] */
 uint8_t  *ram;
 monitor_t monitors[MONITORS_NUM];
 int       monitor_index_global = 0;
+/* The emulator's CPU-thread mark, set on that thread when it starts. No
+   harness thread is the emulator's CPU thread, so it stays 0 on all of
+   them: device code that keys work to it, such as the write-back
+   hand-off answered from the vertical blank callbacks, leaves that work
+   to the harness's own register reads and engine waits. */
+__thread int is_cpu_thread = 0;
 uint32_t *video_15to32;
 uint32_t *video_16to32;
 
@@ -762,7 +768,11 @@ ui_msgbox_header(int flags, char *header, char *message)
 void
 video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
 {
-    (void) type; (void) ptr; (void) monitor_index;
+    /* Records the board's timing table as the core does, so a row can
+       derive the per-access cycle counts from it. The counts stay zero
+       until a row sets them. */
+    monitors[monitor_index].mon_vid_type    = type;
+    monitors[monitor_index].mon_vid_timings = ptr;
 }
 
 /* ---- SVGA core shell. Allocates what the device owns and wires the

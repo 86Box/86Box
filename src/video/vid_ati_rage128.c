@@ -77,13 +77,20 @@ rage128_log(const char *fmt, ...)
 }
 
 /* Bus clocks per CPU access, which video_inform turns into CPU cycles.
-   The framebuffer and register read handlers charge them: a read stalls
-   the CPU for the whole bus transaction, and that cost is what limits
-   how fast a driver can poll a status register. The counts are the same
-   on both boards; what differs is the clock they are counted in. The
-   PCI board runs at the PCI clock, while the AGP board's CPU accesses
-   cross the AGP bus at its own, faster clock, so the core scales its
-   counts by the AGP clock instead. */
+   The framebuffer handlers charge them in both directions and the
+   register read handlers charge the read counts. A read stalls the CPU
+   for the whole bus transaction, and that cost is what limits how fast
+   a driver can poll a status register. A write is posted, but each one
+   still takes a data phase on the bus, so a program that redraws the
+   screen with no other wait is held to what the bus can carry. The
+   guides give no clock count for a CPU write; the chip has a 6 x 64-bit
+   write-through FIFO and takes burst writes with zero wait states
+   (GCS: Host Bus Interface, p. 4-11 / PDF 59), so one clock per dword in
+   a burst and two for a partial word or byte are modeled. The counts are
+   the same on both boards; what differs is the clock they are counted in.
+   The PCI board runs at the PCI clock, while the AGP board's CPU
+   accesses cross the AGP bus at its own, faster clock, so the core
+   scales its counts by the AGP clock instead. */
 static video_timings_t timing_rage128     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 static video_timings_t timing_rage128_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
@@ -280,6 +287,18 @@ rage128_lfb_read_timing(const rage128_t *dev, uint32_t len)
                       : mon->mon_video_timing_read_b;
 }
 
+/* Bus cost of a len-byte aperture write, the write-side twin of the
+   read helper above. */
+static inline __attribute__((always_inline)) int
+rage128_lfb_write_timing(const rage128_t *dev, uint32_t len)
+{
+    const monitor_t *mon = dev->svga.monitor;
+
+    return (len == 4) ? mon->mon_video_timing_write_l
+        : (len == 2)  ? mon->mon_video_timing_write_w
+                      : mon->mon_video_timing_write_b;
+}
+
 /* Word and dword aperture access, one body per direction. The
    width-named handlers below call it with a constant len, so each
    compiles to the same code as a hand-written handler. An access whose
@@ -368,6 +387,7 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
         rage128_gpu_cpu_access(dev, addr, 1, 1);
     if (t0)
         t2 = rage128_now_ns();
+    cycles -= svga->monitor->mon_video_timing_write_b;
     svga->vram[addr]              = val;
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
     r128_vram_hnew(dev, addr, 1);
@@ -375,8 +395,12 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
 }
 
+/* The word and dword store in every case: the profiler, the SURFACE
+   windows and split stores, sync telemetry, a store that crosses a page,
+   and the GPU barrier. rage128_lfb_write_n below takes the common case
+   itself and calls this for the rest. */
 static inline __attribute__((always_inline)) void
-rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
+rage128_lfb_write_full(uint32_t addr, uint32_t val, void *priv, uint32_t len)
 {
     rage128_t *dev  = (rage128_t *) priv;
     svga_t    *svga = &dev->svga;
@@ -409,6 +433,7 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
         rage128_gpu_cpu_access(dev, addr, len, 1);
     if (t0)
         t2 = rage128_now_ns();
+    cycles -= rage128_lfb_write_timing(dev, len);
     if (len == 2)
         *(uint16_t *) &svga->vram[addr] = (uint16_t) val;
     else
@@ -417,6 +442,70 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
     r128_vram_hnew(dev, addr, len);
     if (t0)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
+}
+
+#ifdef REG_HARNESS
+/* Register harness only: counts the stores the full path makes, so a test
+   can tell which path a store took. */
+_Atomic uint32_t rage128_harness_full_stores;
+#    define r128_harness_full_store() atomic_fetch_add(&rage128_harness_full_stores, 1)
+#else
+#    define r128_harness_full_store() ((void) 0)
+#endif
+
+/* Kept out of line so the common path below holds no call and saves no
+   registers. */
+static __attribute__((noinline)) void
+rage128_lfb_write_full_w(uint32_t addr, uint32_t val, void *priv)
+{
+    r128_harness_full_store();
+    rage128_lfb_write_full(addr, val, priv, 2);
+}
+
+static __attribute__((noinline)) void
+rage128_lfb_write_full_l(uint32_t addr, uint32_t val, void *priv)
+{
+    r128_harness_full_store();
+    rage128_lfb_write_full(addr, val, priv, 4);
+}
+
+/* The common word or dword store: no profiler, no SURFACE window, no sync
+   telemetry, inside one 4 KB page, and with the GPU backend on, a store
+   no texture level or GPU work can see. A game that redraws the screen
+   through the aperture makes tens of millions of these per emulated
+   second, so this path does only what the store owes in that case, in
+   the same order as the full path: the overlay note, the bus time, the
+   bytes, changedvram and the store marks. Every test before the first
+   store only loads, so a store that fails one is made by the full path
+   from the start. */
+static inline __attribute__((always_inline)) void
+rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
+{
+    rage128_t  *dev  = (rage128_t *) priv;
+    svga_t     *svga = &dev->svga;
+    const void *gpu  = dev->gpu;
+    uint32_t    off  = (addr - dev->lfb_base) & dev->vram_mask;
+
+    if (dev->ftl_en || dev->surf_xlate_on || dev->synctel
+        || (off & 0xfffu) > 0x1000u - len
+        || (gpu && !rage128_gpu_cpu_store_quick(dev, off, len))) {
+        if (len == 2)
+            rage128_lfb_write_full_w(addr, val, priv);
+        else
+            rage128_lfb_write_full_l(addr, val, priv);
+        return;
+    }
+    if (gpu) {
+        r128_ov0_store_note(dev, off, len);
+        r128_harness_store_site(dev, off, len);
+    }
+    cycles -= rage128_lfb_write_timing(dev, len);
+    if (len == 2)
+        *(uint16_t *) &svga->vram[off] = (uint16_t) val;
+    else
+        *(uint32_t *) &svga->vram[off] = val;
+    svga->changedvram[off >> 12] = svga->monitor->mon_changeframecount;
+    r128_vram_hnew_page(dev, off);
 }
 
 static void
@@ -589,6 +678,7 @@ rage128_agp_write_n(uint32_t addr, void *priv, const void *src, uint32_t len)
     rage128_t *dev = (rage128_t *) priv;
 
     rage128_agp_image_write(dev, addr - dev->lfb_base, (const uint8_t *) src, len);
+    cycles -= rage128_lfb_write_timing(dev, len);
 }
 
 static uint8_t
@@ -790,10 +880,13 @@ rage128_gen_int_update(rage128_t *dev)
    no extra test. A bus-master list that a packet started is run here
    too, before the line is brought up to date, because it can only run
    on the CPU thread and its end raises BUSMASTER_EOL_INT
-   (vid_ati_rage128_bm.c). */
+   (vid_ati_rage128_bm.c). So is a staged surface the packet thread has
+   handed over for its write to guest memory (rage128_pm4_wb_handoff):
+   the packet thread waits for it, so it goes first. */
 void
 rage128_gen_int_sync(rage128_t *dev)
 {
+    rage128_pm4_wb_service(dev);
     if (atomic_load_explicit(&dev->bm_pend_mask, memory_order_relaxed))
         rage128_bm_sync(dev);
     if (atomic_load_explicit(&dev->gen_int_stale, memory_order_relaxed))
@@ -823,10 +916,18 @@ rage128_gen_int_fold_gui_idle(rage128_t *dev)
    vertical blank starts a front porch before vertical sync, so the two
    events are latched separately. The bit stays set until the driver
    writes 1 to CRTC_VBLANK_INT_AK (RRG: GEN_INT_STATUS, p. 3-193 /
-   PDF 211). */
+   PDF 211). This callback and the vsync one also answer a write-back
+   hand-off from the packet thread (rage128_pm4_wb_handoff), which
+   bounds its wait to a frame when the guest makes no register read and
+   no ring pump is pending. The is_cpu_thread test keeps that to the
+   emulator's CPU thread, the only thread that may write guest memory;
+   an offline harness that drives these callbacks from another thread
+   answers the hand-off from its own main loop. */
 void
 rage128_gen_int_vblank(rage128_t *dev)
 {
+    if (is_cpu_thread)
+        rage128_pm4_wb_service(dev);
     rage128_gen_int_fold_gui_idle(dev);
     atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VBLANK);
     rage128_gen_int_update(dev);
@@ -838,6 +939,8 @@ rage128_gen_int_vblank(rage128_t *dev)
 void
 rage128_gen_int_vsync(rage128_t *dev)
 {
+    if (is_cpu_thread)
+        rage128_pm4_wb_service(dev);
     rage128_gen_int_fold_gui_idle(dev);
     atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VSYNC);
     rage128_gen_int_update(dev);
@@ -2767,7 +2870,8 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
        finds an empty FIFO and flushes, which takes this mutex and reads
        dev->raster, tex_stage and ftl_en; the GPU init above stores the
        last two when it starts at once (R128_GPU_DEFER=0). */
-    dev->raster_flush_mtx = thread_create_mutex();
+    dev->raster_flush_mtx  = thread_create_mutex();
+    dev->raster_flush_free = thread_create_event();
 
     rage128_pm4_thread_init(dev);
 
@@ -2835,6 +2939,8 @@ rage128_chip_close(rage128_t *dev)
     rage128_gpu_close(dev);                    /* executors stopped -> no GPU work in flight */
     thread_close_mutex(dev->raster_flush_mtx); /* no flusher left */
     dev->raster_flush_mtx = NULL;
+    thread_destroy_event(dev->raster_flush_free);
+    dev->raster_flush_free = NULL;
     free(dev->tex_stage.arena); /* workers joined -> arenas safe to free */
     free(dev->z_stage.arena);
     free(dev->z_stage.shadow);

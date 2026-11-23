@@ -898,6 +898,10 @@ pick_flip_pump(rage128_t *dev)
         struct timespec ts = { 0, 50000 };
         uint32_t        rd;
 
+        /* The executor may be waiting on a write-back hand-off, which
+           only this thread answers. */
+        rage128_pm4_wb_service(dev);
+
         pending_flush(dev);
         if (rage128_pm4_ring_bm(dev)
             && dev->pm4_rptr != (dev->pm4_wptr & rage128_pm4_ring_mask(dev))) {
@@ -1472,9 +1476,11 @@ main(int argc, char **argv)
                         (unsigned long long) pick_mutated);
         }
         /* A bus-master list that a ring packet starts is run by the CPU
-           thread at its next register read. A replay makes no register
-           reads, so the waiting starts are run here, between records,
-           in the final wait below and once after it. */
+           thread at its next register read, and so is a write-back the
+           executor hands over (rage128_pm4_wb_handoff). A replay makes
+           no register reads, so the waiting work is run here, between
+           records, in the final wait below and once after it. */
+        rage128_pm4_wb_service(dev);
         rage128_bm_sync(dev);
         switch (line[0]) {
             case 'D':
@@ -1611,9 +1617,11 @@ main(int argc, char **argv)
             } else
                 stall++;
             thread_set_event(dev->cce_wake_event);
+            rage128_pm4_wb_service(dev);
             rage128_bm_sync(dev);
             plat_delay_ms(1);
         }
+        rage128_pm4_wb_service(dev);
         rage128_bm_sync(dev);
     }
     /* The stop itself comes after the report and the VRAM dump: clearing

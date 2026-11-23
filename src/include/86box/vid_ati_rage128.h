@@ -1146,6 +1146,15 @@ typedef struct rage128_t {
        executor is on its way to the same flush. Created before the
        executor thread exists. */
     mutex_t *raster_flush_mtx;
+    /* Taken ahead of raster_flush_mtx by rage128_flush_lock, so the CPU
+       thread can answer a write-back hand-off while it waits for a flush
+       on the packet thread to end instead of sleeping on the mutex.
+       0 = free, 1 = taken; raster_flush_waiters counts the threads
+       waiting for it, and raster_flush_free is set when it drops while
+       one waits. */
+    atomic_int raster_flush_claim;
+    atomic_int raster_flush_waiters;
+    event_t   *raster_flush_free;
     int      jit_enabled;      /* "recompiler" config option (per-VM cfg)    */
     void    *jit;              /* opaque span-JIT context (vid_ati_rage128_jit.c) */
     void    *synctel;          /* GPU-offload flush-point telemetry, NULL = off
@@ -1417,6 +1426,14 @@ typedef struct rage128_t {
     struct rage128_span_stage c_stage; /* 3D color/render target  */
     struct rage128_span_stage s2d_dst; /* 2D dst window scratch   */
     struct rage128_span_stage s2d_src; /* 2D src window scratch   */
+    /* Write-back hand-off (rage128_pm4_wb_handoff): the packet thread
+       posts a stage in cce_wb_req and sleeps on cce_wb_event until the
+       CPU thread has written it to guest memory and set cce_wb_done, or
+       until the device's close sets cce_wb_closing. */
+    _Atomic(struct rage128_span_stage *) cce_wb_req;
+    atomic_int                           cce_wb_done;
+    atomic_int                           cce_wb_closing;
+    event_t                             *cce_wb_event;
 
     /* R128_GPU_2D=verify comparison for queued 2D operations whose
        result the CPU works out (keyed blit, stretch, line, gradient):
@@ -1707,6 +1724,20 @@ extern int  r128_span_stage_acquire_tiled(rage128_t                 *dev,
                                           uint32_t tbase, uint32_t tpitch,
                                           uint32_t extent);
 extern void r128_span_stage_writeback(rage128_t *dev, struct rage128_span_stage *st);
+extern void r128_span_stage_push(rage128_t *dev, struct rage128_span_stage *st);
+/* A write-back's changed runs, copied out of a staging so the CPU thread
+   can store them after the staging's owner has gone on
+   (vid_ati_rage128_mem.c r128_span_stage_take). run holds nruns pairs of
+   arena offset and length; data holds their bytes back to back. */
+typedef struct r128_stage_job_t {
+    uint32_t  vm, len, tbase, tpitch;
+    uint32_t  tiled;
+    uint32_t  nruns;
+    uint32_t *run;
+    uint8_t  *data;
+} r128_stage_job_t;
+extern int  r128_span_stage_take(struct rage128_span_stage *st, r128_stage_job_t *job);
+extern void r128_stage_job_write(rage128_t *dev, r128_stage_job_t *job);
 extern int  r128_surf_map(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *st,
                           uint32_t lo, uint32_t len);
 extern int  r128_surf_map_tiled(rage128_t *dev, r128_surf_t *s,
@@ -2134,9 +2165,22 @@ extern int rage128_raster_nthreads(rage128_t *dev);
 extern int  rage128_pm4_scratch_hold(rage128_t *dev, uint32_t n, uint32_t val, uint32_t mask);
 extern void rage128_pm4_scratch_apply(rage128_t *dev);
 extern void rage128_pm4_scratch_drop(rage128_t *dev);
-/* Device->guest GART writes -- write-back twin of the staging reads
-   (vid_ati_rage128_pm4.c). SUBMIT-THREAD ONLY. */
-extern int rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
+/* Device writes to guest memory, the write-back counterpart of the
+   staging reads, and the hand-off that brings a packet-thread write-back
+   to the CPU thread (vid_ati_rage128_pm4.c). rage128_pm4_bus_write_block
+   runs on the CPU thread only. rage128_pm4_wb_service is called by the
+   CPU thread wherever it can answer a pending hand-off. The flush lock
+   pair brackets every rage128_raster_flush and every other user of
+   raster_flush_mtx. */
+extern int  rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
+extern int  rage128_pm4_wb_handoff(rage128_t *dev, struct rage128_span_stage *st);
+extern void rage128_pm4_wb_service(rage128_t *dev);
+extern void rage128_flush_lock(rage128_t *dev);
+extern void rage128_flush_unlock(rage128_t *dev);
+#ifdef REG_HARNESS
+extern _Atomic(void (*)(rage128_t *dev, struct rage128_span_stage *st)) rage128_harness_wb_hook;
+extern atomic_int rage128_harness_take_nomem;
+#endif
 
 /* ---- Depth plane, fixed point ----
    Interpolated depth is modeled as an exact fixed-point plane: normalized
@@ -3030,7 +3074,7 @@ struct rage128_gpu_hull {
    The pending interval is read first: an empty one, read with acquire,
    was emptied after the submit that widened the submitted interval,
    which the second acquire load then sees. */
-static inline int
+static inline __attribute__((always_inline)) int
 r128_gpu_hull_maybe(struct rage128_gpu_hull *h, uint32_t lo, uint32_t hi, int writes)
 {
     uint64_t p = atomic_load_explicit(writes ? &h->pnd_all : &h->pnd_st,
@@ -3199,21 +3243,29 @@ r128_texcache_reset_locked(struct rage128_tex_stage *ts)
     ts->keep_hi   = 0;
 }
 
+/* Is a store into [lo, lo+len) outside the combined source range, so it
+   cannot touch a cached level? Every guest aperture store asks this, and
+   taking the lock costs two atomic read-modify-writes, so a miss is
+   decided without it. A possible hit is tested again under the lock, and
+   that test decides. */
+static inline int
+r128_texcache_miss(struct rage128_tex_stage *ts, uint32_t lo, uint32_t len)
+{
+    uint32_t slo = atomic_load_explicit(&ts->src_lo, memory_order_relaxed);
+    uint32_t shi = atomic_load_explicit(&ts->src_hi, memory_order_relaxed);
+
+    return shi == slo || lo >= shi || (uint64_t) lo + len <= slo;
+}
+
 /* Returns 0 for a store outside the combined source range, 1 for one
    inside it whose pages hold no cached level (decided without the lock),
    2 for one that took the lock and walked the entry table. */
 static inline int
 r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
 {
-    struct rage128_tex_stage *ts  = &dev->tex_stage;
-    uint32_t                  slo = atomic_load_explicit(&ts->src_lo, memory_order_relaxed);
-    uint32_t                  shi = atomic_load_explicit(&ts->src_hi, memory_order_relaxed);
+    struct rage128_tex_stage *ts = &dev->tex_stage;
 
-    /* Every guest aperture store comes through here, and taking the lock
-       costs two atomic read-modify-writes, so a miss is decided without
-       it. A possible hit is tested again under the lock, and that test
-       decides. */
-    if (shi == slo || lo >= shi || (uint64_t) lo + len <= slo)
+    if (r128_texcache_miss(ts, lo, len))
         return 0;
     if (!r128_texcache_pg_any(ts, lo, (uint64_t) lo + len))
         return 1;
@@ -3291,20 +3343,30 @@ r128_texcache_dirty_cpu(rage128_t *dev, uint32_t lo, uint32_t len)
     }
 }
 
+/* Make the overlay compose again if a store lands in its source. The
+   overlay compositor keeps this frame's composed result and decides
+   whether to dispatch again from the overlay registers alone, so it
+   cannot see a store into its source pixels; clearing gpu_frame makes
+   the next scanned line compose again, and without it the new pixels
+   would not show until the next frame. The scanout sets the frame and
+   the source bounds; a guest store from any thread that reaches the
+   barrier, such as a command-stream write through MM_DATA, clears the
+   frame. */
+static inline void
+r128_ov0_store_note(rage128_t *dev, uint32_t addr, uint32_t len)
+{
+    if (dev->ov0.gpu_frame && addr + len > dev->ov0.gpu_src_lo
+        && addr < dev->ov0.gpu_src_hi)
+        dev->ov0.gpu_frame = 0;
+}
+
 /* What a guest store owes before any GPU range test: drop the staged
-   texture levels copied from those bytes, and make the overlay compose
-   again if they are its source. The overlay compositor keeps this
-   frame's composed result and decides whether to dispatch again from
-   the overlay registers alone, so it cannot see a store into its source
-   pixels; clearing gpu_frame makes the next scanned line compose again,
-   and without it the new pixels would not show until the next frame. */
+   texture levels copied from those bytes, and the overlay note above. */
 static inline void
 r128_gpu_store_note(rage128_t *dev, uint32_t addr, uint32_t len)
 {
     r128_texcache_dirty_cpu(dev, addr, len);
-    if (dev->ov0.gpu_frame && addr + len > dev->ov0.gpu_src_lo
-        && addr < dev->ov0.gpu_src_hi)
-        dev->ov0.gpu_frame = 0;
+    r128_ov0_store_note(dev, addr, len);
 }
 
 #ifdef REG_HARNESS
@@ -3347,6 +3409,25 @@ rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
     if (writes)
         r128_harness_store_site(dev, addr, len);
 }
+
+/* Can a guest store into [addr, addr+len), with the GPU backend on, skip
+   the call above and owe only the overlay note? Yes when the access is
+   not a sampled one, the store misses every cached texture level and no
+   GPU work can touch the range. That is the common case, an aperture
+   store into a frame the GPU is not drawing. The test only loads, in the
+   order the call above loads, so a caller that is told no can make the
+   whole call afterwards with nothing done twice. */
+static inline __attribute__((always_inline)) int
+rage128_gpu_cpu_store_quick(rage128_t *dev, uint32_t addr, uint32_t len)
+{
+    return !dev->lfbt.sample
+        && r128_texcache_miss(&dev->tex_stage, addr, len)
+        && addr + len > addr /* always, for a masked offset; lets the
+                                compiler drop the empty-range test below */
+        && !r128_gpu_hull_maybe((struct rage128_gpu_hull *) dev->gpu, addr,
+                                addr + len, 1);
+}
+
 /* Local bytes [lo, lo+len) of svga.vram have been stored to by something
    other than the 3D engine: tell the CPU lanes, which may hold a
    texture level copied from those bytes (rage128_t tex_stage keep_lo).
@@ -3443,6 +3524,30 @@ r128_vram_hnew(rage128_t *dev, uint32_t lo, uint32_t len)
     for (uint32_t o = 0; o < len; o += 0x1000u)
         atomic_store_explicit(&h[((lo + o) & m) >> 12], 1, memory_order_release);
     atomic_store_explicit(&h[((lo + len - 1u) & m) >> 12], 1, memory_order_release);
+}
+
+/* r128_vram_hnew for a store that lies inside one 4 KB page, with lo
+   already reduced through vram_mask: the same marks in the same order,
+   each stored once. The walks above store the mark of a one-page store
+   twice, back to back. One store of the same value gives what the pair
+   gives whenever no clear falls between the two, an order the pair can
+   always run in, so it adds no outcome. Every mark is still stored on
+   every call: a
+   writer that read a mark as set and skipped it could have its bytes
+   missed by a copy whose exchange clears that mark (see
+   r128_tex_cache_note). */
+static inline __attribute__((always_inline)) void
+r128_vram_hnew_page(rage128_t *dev, uint32_t lo)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+    atomic_uchar             *h  = dev->vram_hnew;
+
+    atomic_store_explicit(&ts->keep_pg[lo >> R128_TEX_KEEP_SHIFT], 1, memory_order_release);
+    atomic_store_explicit(&ts->keep_any, 1, memory_order_release);
+    if (dev->gpu)
+        atomic_store_explicit(&ts->cst_pg[lo >> R128_TEX_CST_SHIFT], 1, memory_order_release);
+    if (h)
+        atomic_store_explicit(&h[lo >> 12], 1, memory_order_release);
 }
 
 /* Every page host-newer: for a store whose resolved address is not known

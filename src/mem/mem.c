@@ -2028,7 +2028,7 @@ writememwl(uint32_t addr, uint16_t val)
 
     if (map && map->write_w) {
         map->write_w(addr, val, map->priv);
-        if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31))
+        if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31) && agpgart_is_aperture(map))
             mem_ap_fill(va);
         return;
     }
@@ -2361,7 +2361,7 @@ writememll(uint32_t addr, uint32_t val)
 
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);
-        if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31))
+        if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31) && agpgart_is_aperture(map))
             mem_ap_fill(va);
         return;
     }
@@ -2883,7 +2883,12 @@ mem_phys_exec(const mem_mapping_t *map, uint32_t addr, uint32_t len)
    the walk and the aperture handler test it, so the entry holds what the
    next walk and handler would find while its values stay the same. Only
    pages the walk lets any CPL write, with the accessed and dirty bits
-   already set, so its stores to the paging entries change nothing. */
+   already set, so its stores to the paging entries change nothing. The
+   callers make it only for a write that went through an aperture's
+   mapping. A write to any other mapping, such as a framebuffer store,
+   skips this fill, its lock and its second page-table read, and makes
+   no new entry, even where that store itself rewrote its page tables to
+   point into an aperture. */
 static __attribute__((noinline)) void
 mem_ap_fill(uint32_t addr)
 {
