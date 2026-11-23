@@ -176,6 +176,21 @@ block_chk_dirty_sync(codeblock_t *block)
     block->chk_dirty = (block->dirty_mask == &block_untracked_mask) ?
         &pages[block->phys >> 12].byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK] : NULL;
 }
+
+/*A page's code or dirty masks are about to change: its fast store chunks no
+  longer hold. Its byte masks may be another page's (an alias), whose own fast
+  chunks read the same byte masks, so that page's go too.*/
+static void
+page_store_fast_clear(page_t *page)
+{
+    page->store_fast_mask = 0;
+    if (!page->byte_masks_own && page->byte_dirty_mask && (page->byte_dirty_mask >= byte_dirty_mask)) {
+        const uintptr_t owner = (uintptr_t) (page->byte_dirty_mask - byte_dirty_mask) / 64;
+
+        if ((owner < pages_sz) && (pages[owner].byte_dirty_mask == page->byte_dirty_mask))
+            pages[owner].store_fast_mask = 0;
+    }
+}
 #ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
 /*The version a checked block's compile records, once its code is generated*/
 static uint16_t block_version_checked_nr;
@@ -1403,6 +1418,7 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
         }
     }
 
+    page_store_fast_clear(page);
     if (page->code_present_mask & page->dirty_mask)
         remove_from_evict_list = 1;
     page->code_present_mask &= ~page->dirty_mask;
@@ -1602,6 +1618,7 @@ codegen_block_generate_end_mask_recompile(void)
     const int untracked = block_version_cur[block_current] && block_versions[block_version_cur[block_current]].checked;
 
     p = &pages[block->phys >> 12];
+    page_store_fast_clear(p);
     if (block->flags & CODEBLOCK_BYTE_MASK) {
         int offset = (block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
 
@@ -1630,6 +1647,7 @@ codegen_block_generate_end_mask_recompile(void)
         if (block->phys_2 != -1) {
             page_t *page_2 = &pages[block->phys_2 >> 12];
 
+            page_store_fast_clear(page_2);
             if (block->flags & CODEBLOCK_BYTE_MASK) {
                 int offset = (block->phys_2 >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
 
@@ -1693,6 +1711,7 @@ codegen_block_generate_end_mask_mark(void)
     }
 
     p = &pages[block->phys >> 12];
+    page_store_fast_clear(p);
     p->code_present_mask |= block->page_mask;
     if ((p->dirty_mask & block->page_mask) && !page_in_evict_list(p))
         page_add_to_evict_list(p);
@@ -1710,6 +1729,7 @@ codegen_block_generate_end_mask_mark(void)
             for (; start_pc <= end_pc; start_pc++)
                 block->page_mask2 |= ((uint64_t) 1 << start_pc);
 
+            page_store_fast_clear(page_2);
             page_2->code_present_mask |= block->page_mask2;
             if ((page_2->dirty_mask & block->page_mask2) && !page_in_evict_list(page_2))
                 page_add_to_evict_list(page_2);

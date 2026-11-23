@@ -3832,6 +3832,11 @@ mem_set_page_byte_masks(page_t *page, uint32_t mask_page)
     uint64_t *dirty   = &byte_dirty_mask[mask_page * 64];
     uint64_t *present = &byte_code_present_mask[mask_page * 64];
 
+    /* Every caller sets the page's mem and write handlers right after this:
+       the recompiler's direct stores to its chunks (store_fast_mask) assume
+       the RAM and handlers they were marked with, so they stop here. */
+    page->store_fast_mask = 0;
+    page->byte_masks_own  = (mask_page == (uint32_t) (page - pages));
     if ((page->byte_dirty_mask == dirty) && (page->byte_code_present_mask == present))
         return;
 
@@ -4749,6 +4754,7 @@ mem_reset(void)
         pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
+        pages[c].byte_masks_own         = ((uint64_t) c << 12) < ((uint64_t) mem_size << 10);
     }
 
     memset(_mem_exec, 0x00, sizeof(_mem_exec));

@@ -237,6 +237,11 @@ typedef struct page_t {
 
     uint8_t *mem;
 
+    /*Chunks that hold no code and whose dirty bit is set, of a page that owns
+      its byte masks: a store there whose bytes are already dirty changes no
+      mask. Cleared whenever a chunk gets code or the dirty bits are cleared.*/
+    uint64_t store_fast_mask;
+
     uint32_t block, block_2;
 
     /*Head of codeblock tree associated with this page*/
@@ -247,6 +252,10 @@ typedef struct page_t {
 
     uint32_t evict_prev;
     uint32_t evict_next;
+
+    /*byte_dirty_mask and byte_code_present_mask are this page's own, not
+      those of another page it aliases*/
+    uint8_t byte_masks_own;
 
     uint64_t *byte_dirty_mask;
     uint64_t *byte_code_present_mask;

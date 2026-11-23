@@ -262,6 +262,15 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 }
 
 #    if !defined(USE_GDBSTUB)
+static void
+build_store_logical_addr(codeblock_t *block)
+{
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &mem_logical_addr);
+    host_arm64_STR_IMM_W(block, REG_W0, REG_X6, 0);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &high_page);
+    host_arm64_STRB_IMM(block, REG_WZR, REG_X6, 0);
+}
+
 /*An aligned byte, word or dword store to a RAM page whose writes are tracked
   (page_lookup): what writemem*l() and mem_write_ram*_page() do, without the
   two calls. The store never reaches the next 64-byte chunk, so only one dirty
@@ -273,6 +282,8 @@ static int
 build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 {
     uint32_t *done[3];
+    uint32_t *marked[2];
+    uint32_t *fast_skip[4];
     uint32_t *add_evict;
     int       nr_to_c   = 0;
     int       byte_mask = (1 << size) - 1;
@@ -290,10 +301,6 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
         write_offset = offsetof(page_t, write_l);
     }
 
-    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &codegen_in_recompile);
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
-    host_arm64_CMP_IMM(block, REG_W3, 0);
-    to_c[nr_to_c++] = host_arm64_BNE_(block);
     /*An armed debug breakpoint needs writememll()'s check*/
     host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &cpu_dr_armed);
     host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
@@ -306,6 +313,41 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_arm64_LDRX_REG_LSL3(block, REG_X4, REG_X3, REG_X2);
     host_arm64_CMPX_IMM(block, REG_X4, 0);
     to_c[nr_to_c++] = host_arm64_BEQ_(block);
+
+    /*A chunk in store_fast_mask holds no code and is dirty: when the store's
+      bytes are dirty too, the marking below would change nothing, so only
+      the data is stored. A bit is only set on a RAM page with the RAM
+      write handlers, and cleared before either changes
+      (mem_set_page_byte_masks()), so neither needs testing here. Compiled
+      code never runs while codegen_in_recompile is set.*/
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X4, offsetof(page_t, store_fast_mask));
+    host_arm64_UBFX(block, REG_W6, REG_W0, 6, 6);
+    host_arm64_LSRX(block, REG_X12, REG_X8, REG_X6);
+    host_arm64_TST_IMM(block, REG_W12, 1);
+    marked[0] = host_arm64_BEQ_(block);
+    host_arm64_LDR_IMM_X(block, REG_X11, REG_X4, offsetof(page_t, byte_dirty_mask));
+    host_arm64_MOV_REG(block, REG_W13, REG_W6, 3);
+    host_arm64_LDR_REG_X(block, REG_X12, REG_X11, REG_X13);
+    host_arm64_AND_IMM(block, REG_W9, REG_W0, 63);
+    host_arm64_MOVZ_IMM(block, REG_X10, byte_mask);
+    host_arm64_LSLX(block, REG_X10, REG_X10, REG_X9);
+    host_arm64_ORRX_REG(block, REG_X8, REG_X12, REG_X10, 0);
+    host_arm64_CMPX_REG(block, REG_X8, REG_X12);
+    marked[1] = host_arm64_BNE_(block);
+    host_arm64_LDR_IMM_X(block, REG_X5, REG_X4, offsetof(page_t, mem));
+    build_store_logical_addr(block);
+    host_arm64_AND_IMM(block, REG_W6, REG_W0, 0xfff);
+    if (size == 1)
+        host_arm64_STRB_REG(block, REG_W1, REG_X5, REG_X6);
+    else if (size == 2)
+        host_arm64_STRH_REG(block, REG_W1, REG_X5, REG_X6);
+    else
+        host_arm64_STR_REG(block, REG_W1, REG_X5, REG_X6);
+    host_arm64_MOVZ_IMM(block, REG_X1, 0);
+    host_arm64_RET(block, REG_X30);
+
+    for (int c = 0; c < 2; c++)
+        host_arm64_branch_set_offset(marked[c], &block_write_data[block_pos]);
     host_arm64_LDR_IMM_X(block, REG_X5, REG_X4, write_offset);
     host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) write_fn);
     host_arm64_CMPX_REG(block, REG_X5, REG_X6);
@@ -318,11 +360,11 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) page_ff);
     host_arm64_CMPX_REG(block, REG_X5, REG_X6);
     to_c[nr_to_c++] = host_arm64_BEQ_(block);
-
-    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &mem_logical_addr);
-    host_arm64_STR_IMM_W(block, REG_W0, REG_X6, 0);
-    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &high_page);
-    host_arm64_STRB_IMM(block, REG_WZR, REG_X6, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &codegen_in_recompile);
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
+    host_arm64_CMP_IMM(block, REG_W3, 0);
+    to_c[nr_to_c++] = host_arm64_BNE_(block);
+    build_store_logical_addr(block);
 
     /*Unchanged data: no store and no dirty bits. The C functions take the
       data as uint8_t or uint16_t, so only its low bits count.*/
@@ -362,6 +404,28 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_arm64_LDR_IMM_X(block, REG_X12, REG_X11, 0);
     host_arm64_ORRX_REG(block, REG_X12, REG_X12, REG_X10, 0);
     host_arm64_STR_IMM_Q(block, REG_X12, REG_X11, 0);
+
+    /*The chunk's dirty bit is set now: one with no code of either kind, of a
+      page with its own byte masks, goes into store_fast_mask*/
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X4, offsetof(page_t, store_fast_mask));
+    host_arm64_LSRX(block, REG_X3, REG_X8, REG_X6);
+    host_arm64_TST_IMM(block, REG_W3, 1);
+    fast_skip[0] = host_arm64_BNE_(block);
+    host_arm64_LDRB_IMM_W(block, REG_W3, REG_X4, offsetof(page_t, byte_masks_own));
+    host_arm64_CMP_IMM(block, REG_W3, 0);
+    fast_skip[1] = host_arm64_BEQ_(block);
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X4, offsetof(page_t, code_present_mask));
+    host_arm64_LSRX(block, REG_X3, REG_X3, REG_X6);
+    host_arm64_TST_IMM(block, REG_W3, 1);
+    fast_skip[2] = host_arm64_BNE_(block);
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X4, offsetof(page_t, byte_code_present_mask));
+    host_arm64_LDR_REG_X(block, REG_X3, REG_X3, REG_X13);
+    host_arm64_CMPX_IMM(block, REG_X3, 0);
+    fast_skip[3] = host_arm64_BNE_(block);
+    host_arm64_ORRX_REG(block, REG_X8, REG_X8, REG_X7, 0);
+    host_arm64_STR_IMM_Q(block, REG_X8, REG_X4, offsetof(page_t, store_fast_mask));
+    for (int c = 0; c < 4; c++)
+        host_arm64_branch_set_offset(fast_skip[c], &block_write_data[block_pos]);
 
     /*A page not yet on the evict list goes on it when the store hits code*/
     host_arm64_LDR_IMM_W(block, REG_W12, REG_X4, offsetof(page_t, evict_prev));

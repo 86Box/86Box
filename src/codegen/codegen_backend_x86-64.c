@@ -316,6 +316,8 @@ static int
 build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 {
     uint32_t *done[3];
+    uint32_t *marked[2];
+    uint32_t *fast_skip[4];
     uint32_t *add_evict;
     int       nr_to_c   = 0;
     int       byte_mask = (1 << size) - 1;
@@ -333,9 +335,6 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
         write_offset = offsetof(page_t, write_l);
     }
 
-    host_x86_MOV32_REG_ABS(block, REG_ESI, &codegen_in_recompile);
-    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
-    to_c[nr_to_c++] = host_x86_JNZ_long(block);
     /*An armed debug breakpoint needs writememll()'s check*/
     host_x86_MOV32_REG_ABS(block, REG_ESI, &cpu_dr_armed);
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
@@ -348,6 +347,56 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_R8, REG_RSI, 3);
     host_x86_CMP64_REG_IMM(block, REG_RSI, 0);
     to_c[nr_to_c++] = host_x86_JZ_long(block);
+
+    /*A chunk in store_fast_mask holds no code and is dirty: when the store's
+      bytes are dirty too, the marking below would change nothing, so only
+      the data is stored. A bit is only set on a RAM page with the RAM
+      write handlers, and cleared before either changes
+      (mem_set_page_byte_masks()), so neither needs testing here. Compiled
+      code never runs while codegen_in_recompile is set.
+      R10 = the chunk's bit, R8 = the store's bits in the byte_dirty_mask
+      dword holding them; SHL takes its count modulo 64 or 32. An aligned
+      store never crosses a dword of the mask. ECX is kept in R11 meanwhile.*/
+    host_x86_MOV32_REG_REG(block, REG_R11, REG_ECX);
+    host_x86_MOV32_REG_REG(block, REG_ECX, REG_EDI);
+    host_x86_SHR32_IMM(block, REG_ECX, 6);
+    host_x86_MOV32_REG_IMM(block, REG_R10, 1);
+    host_x86_SHL64_CL(block, REG_R10);
+    host_x86_MOV32_REG_REG(block, REG_ECX, REG_EDI);
+    host_x86_MOV32_REG_IMM(block, REG_R8, byte_mask);
+    host_x86_SHL32_CL(block, REG_R8);
+    host_x86_MOV32_REG_REG(block, REG_ECX, REG_R11);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, store_fast_mask));
+    host_x86_TEST64_REG(block, REG_R9, REG_R10);
+    marked[0] = host_x86_JZ_long(block);
+    /*R10 = (chunk * 8) + (bit 5 of the address) * 4*/
+    host_x86_MOV32_REG_REG(block, REG_R10, REG_EDI);
+    host_x86_SHR32_IMM(block, REG_R10, 3);
+    host_x86_AND32_REG_IMM(block, REG_R10, 0x1fc);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, byte_dirty_mask));
+    host_x86_MOV32_REG_BASE_INDEX(block, REG_R9, REG_R9, REG_R10);
+    host_x86_OR32_REG_REG(block, REG_R8, REG_R9);
+    host_x86_CMP32_REG_REG(block, REG_R8, REG_R9);
+    marked[1] = host_x86_JNZ_long(block);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, mem));
+    host_x86_MOV32_ABS_REG(block, &mem_logical_addr, REG_EDI);
+    host_x86_MOV8_ABS_IMM(block, &high_page, 0);
+    host_x86_MOV32_REG_REG(block, REG_R8, REG_EDI);
+    host_x86_AND32_REG_IMM(block, REG_R8, 0xfff);
+    if (size == 1)
+        host_x86_MOV8_BASE_INDEX_REG(block, REG_R9, REG_R8, REG_ECX);
+    else if (size == 2)
+        host_x86_MOV16_BASE_INDEX_REG(block, REG_R9, REG_R8, REG_ECX);
+    else
+        host_x86_MOV32_BASE_INDEX_REG(block, REG_R9, REG_R8, REG_ECX);
+    host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
+    host_x86_RET(block);
+
+    for (int c = 0; c < 2; c++)
+        jump_long_here(marked[c]);
+    host_x86_MOV32_REG_ABS(block, REG_R8, &codegen_in_recompile);
+    host_x86_TEST32_REG(block, REG_R8, REG_R8);
+    to_c[nr_to_c++] = host_x86_JNZ_long(block);
     host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, write_offset);
     host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) write_fn);
     host_x86_CMP64_REG_REG(block, REG_R9, REG_R8);
@@ -402,6 +451,25 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_x86_SHL64_CL(block, REG_R11);
     host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, byte_dirty_mask));
     host_x86_OR64_BASE_INDEX_SHIFT_REG(block, REG_R9, REG_R8, 3, REG_R11);
+
+    /*The chunk's dirty bit is set now: one with no code of either kind, of a
+      page with its own byte masks, goes into store_fast_mask*/
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, store_fast_mask));
+    host_x86_TEST64_REG(block, REG_R9, REG_R10);
+    fast_skip[0] = host_x86_JNZ_long(block);
+    host_x86_MOV32_REG_BASE_OFFSET(block, REG_ECX, REG_RSI, offsetof(page_t, byte_masks_own));
+    host_x86_TEST8_REG_IMM(block, REG_ECX, 0xff);
+    fast_skip[1] = host_x86_JZ_long(block);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_RDI, REG_RSI, offsetof(page_t, code_present_mask));
+    host_x86_TEST64_REG(block, REG_RDI, REG_R10);
+    fast_skip[2] = host_x86_JNZ_long(block);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_RDI, REG_RSI, offsetof(page_t, byte_code_present_mask));
+    host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RDI, REG_RDI, REG_R8, 3);
+    host_x86_TEST64_REG(block, REG_RDI, REG_RDI);
+    fast_skip[3] = host_x86_JNZ_long(block);
+    host_x86_OR64_BASE_OFFSET_REG(block, REG_RSI, offsetof(page_t, store_fast_mask), REG_R10);
+    for (int c = 0; c < 4; c++)
+        jump_long_here(fast_skip[c]);
 
     /*A page not yet on the evict list goes on it when the store hits code*/
     host_x86_MOV32_REG_BASE_OFFSET(block, REG_EDI, REG_RSI, offsetof(page_t, evict_prev));
