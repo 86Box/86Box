@@ -4452,9 +4452,9 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         max_len = 0xa0 | (dev->drv->blank_media ? 0x08 : 0x00);
 
                         /* Easy CD Creator (cdrims.drv) treats bits 1:0 == 0 as an unknown session type
-                           and refuses the disc, so a blank disc reports CD-ROM mode 1 (the E5 track type). */
+                           and refuses the disc, so a blank disc reports CD-ROM XA mode 2, the session type it wants to write. */
                         if (is_blank)
-                            max_len |= 0x01;
+                            max_len |= 0x02;
                         else {
                             if (dev->drv->cd_status != CD_STATUS_DATA_ONLY)
                                 max_len |= 0x04;
