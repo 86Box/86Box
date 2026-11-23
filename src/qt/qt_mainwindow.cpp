@@ -2883,9 +2883,10 @@ MainWindow::applyGlobalPreferences()
     QTimer::singleShot(200, this, [this, size] () {
         centralWidget()->setFixedSize(size);
         QApplication::processEvents();
-        if (vid_resize == 1) {
-            centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        }
+        /* Only preserve the viewport while relaying out the translated UI.
+           The outer window constrains fixed modes; the viewport must still
+           be able to follow the guest's next resolution change. */
+        centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     });
 
     updateShortcuts();
@@ -2921,9 +2922,7 @@ MainWindow::changeEvent(QEvent *event)
         processEventsOnlyWhenPausedOrModal();
         main_window->centralWidget()->setFixedSize(size);
         processEventsOnlyWhenPausedOrModal();
-        if (vid_resize == 1) {
-            main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        }
+        main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
 #endif
     QWidget::changeEvent(event);
