@@ -1342,7 +1342,15 @@ scsi_cdrom_data(scsi_cdrom_t *dev, const int msf, const int type, const int flag
 
     if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED))
         scsi_cdrom_not_ready(dev);
-    else if (!write && (dev->sector_pos > dev->drv->cdrom_capacity)) {
+    else if (!write && dev->drv->is_philips && dev->drv->blank_media) {
+        /* Reading the unwritten area of a blank disc. */
+        scsi_cdrom_sense_key = SENSE_BLANK_CHECK;
+        scsi_cdrom_asc       = 0x00;
+        scsi_cdrom_ascq      = 0x00;
+        scsi_cdrom_info      = 0;
+        scsi_cdrom_cmd_error(dev);
+        ret = -1;
+    } else if (!write && (dev->sector_pos > dev->drv->cdrom_capacity)) {
         scsi_cdrom_lba_out_of_range(dev);
         ret = -1;
     } else {
