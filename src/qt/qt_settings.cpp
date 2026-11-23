@@ -109,6 +109,7 @@ Settings::Settings(QWidget *parent)
     : PagedDialog(tr("Settings"), QSize(720, 472), settingsPages, parent)
 {
     Settings::settings = this;
+    setFitCurrentPage(true);
 
     Harddrives::busTrackClass = new SettingsBusTracking;
 

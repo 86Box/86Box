@@ -2,13 +2,28 @@
 #define QT_PAGEDDIALOG_HPP
 
 #include <QDialog>
+#include <QStackedWidget>
 #include <QVector>
 
 namespace Ui {
 class PagedDialog;
 }
 
-class QStackedWidget;
+/* Settings builds hidden pages when validating a save. Those pages must not
+   change the size of the page the user is still looking at. */
+class PagedDialogStack : public QStackedWidget {
+public:
+    explicit PagedDialogStack(QWidget *parent = nullptr);
+    void setFitCurrentPage(bool enabled);
+
+    QSize sizeHint() const override;
+    QSize minimumSizeHint() const override;
+    bool  hasHeightForWidth() const override;
+    int   heightForWidth(int width) const override;
+
+private:
+    bool fitCurrentPage = false;
+};
 
 /* A dialog of pages chosen from a list beside them, with the name and icon
    of the page shown above it: the settings and the preferences. */
@@ -31,6 +46,7 @@ protected:
     ~PagedDialog() override;
 
     QStackedWidget *pageStack() const;
+    void setFitCurrentPage(bool enabled);
     /* Selects the first page, once the dialog has added its pages. */
     void showFirstPage();
     /* Selects the page at a list index, as a click on it in the list does. */
