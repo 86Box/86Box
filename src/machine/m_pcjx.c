@@ -26,6 +26,7 @@
 #include <86box/nvr.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/ppi.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
@@ -708,7 +709,8 @@ typedef struct pcjx_t {
     uint8_t memory_reg[11][2];
     uint8_t io_reg[20][2];
     uint8_t decoder_phase, decoder_selector;
-    uint8_t pa, pb, ppi_control, nmi_control;
+    uint8_t pa, pb, nmi_control;
+    i8255_t *ppi;
     uint8_t keyboard_level, keyboard_latched;
     uint8_t rom_data[0x20000];
     uint8_t rom_present[32];
@@ -992,57 +994,88 @@ pcjx_cassette_mix(int32_t *buffer, uint16_t len, void *priv)
     dev->cassette_pos = 0;
 }
 
+/* 8255 port A is a plain latch. */
+static uint8_t
+pcjx_ppi_in_pa(void *priv)
+{
+    const pcjx_t *dev = (pcjx_t *) priv;
+
+    return dev->pa;
+}
+
+static void
+pcjx_ppi_out_pa(uint8_t value, void *priv)
+{
+    pcjx_t *dev = (pcjx_t *) priv;
+
+    dev->pa = value;
+}
+
+/* 8255 port C: keyboard latch, option cards, cassette in, timer 2 out,
+   keyboard data. */
+static uint8_t
+pcjx_ppi_in_pc(void *priv)
+{
+    const pcjx_t *dev          = (pcjx_t *) priv;
+    int           cassette_bit = (cassette && !(dev->pb & 0x18)) ? pc_cas_get_inp(cassette) : ppispeakon;
+
+    return dev->keyboard_latched | 0x02 | (dev->fdc ? 0 : 0x04) |
+           (dev->general_size >= 0x20000 ? 0 : 0x08) |
+           (cassette_bit ? 0x10 : 0) | (ppispeakon ? 0x20 : 0) |
+           (dev->keyboard_level ? 0x40 : 0);
+}
+
+/* 8255 port B: speaker, sound mux, cassette motor, memory map. */
+static void
+pcjx_ppi_out_pb(uint8_t value, void *priv)
+{
+    pcjx_t *dev = (pcjx_t *) priv;
+
+    speaker_update();
+    dev->pb = value;
+    dev->video.pb = value;
+    speaker_gated = value & 1;
+    speaker_enable = value & 2;
+    if (speaker_enable)
+        was_speaker_enable = 1;
+    /* PB4 disables the internal beeper, not the selected external
+     * source. The existing mixer combines both PIT2 routes. */
+    speaker_mute = (value & 0x10) && (value & 0x60);
+    sn76489_mute = (value & 0x60) != 0x60;
+    pit_devs[0].set_gate(pit_devs[0].data, 2, value & 1);
+    if (cassette) {
+        pc_cas_set_motor(cassette, !(value & 0x18));
+        pc_cas_set_out(cassette, ppispeakon);
+    }
+    pcjx_rebuild_memory(dev);
+}
+
+/* Undriven port pins read low, as the board left them before. */
+static uint8_t
+pcjx_ppi_tri(void *priv)
+{
+    (void) priv;
+    return 0x00;
+}
+
 static uint8_t
 pcjx_ppi_read(uint16_t port, void *priv)
 {
     pcjx_t *dev = (pcjx_t *) priv;
-    switch (port & 3) {
-        case 0: return dev->pa;
-        case 1: return dev->pb;
-        case 2: {
-            int cassette_bit = (cassette && !(dev->pb & 0x18)) ? pc_cas_get_inp(cassette) : ppispeakon;
-            return dev->keyboard_latched | 0x02 | (dev->fdc ? 0 : 0x04) |
-                   (dev->general_size >= 0x20000 ? 0 : 0x08) |
-                   (cassette_bit ? 0x10 : 0) | (ppispeakon ? 0x20 : 0) |
-                   (dev->keyboard_level ? 0x40 : 0);
-        }
-        default: return 0xff; /* The PPI control word is write-only. */
-    }
+
+    /* The PPI control word is write-only. */
+    if ((port & 3) == 3)
+        return 0xff;
+
+    return i8255_read(dev->ppi, port & 3);
 }
 
 static void
 pcjx_ppi_write(uint16_t port, uint8_t value, void *priv)
 {
     pcjx_t *dev = (pcjx_t *) priv;
-    switch (port & 3) {
-        case 0:
-            dev->pa = value;
-            break;
-        case 1:
-            speaker_update();
-            dev->pb = value;
-            dev->video.pb = value;
-            speaker_gated = value & 1;
-            speaker_enable = value & 2;
-            if (speaker_enable)
-                was_speaker_enable = 1;
-            /* PB4 disables the internal beeper, not the selected external
-             * source. The existing mixer combines both PIT2 routes. */
-            speaker_mute = (value & 0x10) && (value & 0x60);
-            sn76489_mute = (value & 0x60) != 0x60;
-            pit_devs[0].set_gate(pit_devs[0].data, 2, value & 1);
-            if (cassette) {
-                pc_cas_set_motor(cassette, !(value & 0x18));
-                pc_cas_set_out(cassette, ppispeakon);
-            }
-            pcjx_rebuild_memory(dev);
-            break;
-        case 3:
-            dev->ppi_control = value;
-            break;
-        default:
-            break;
-    }
+
+    i8255_write(dev->ppi, port & 3, value);
 }
 
 static uint8_t
@@ -1404,6 +1437,15 @@ pcjx_init(const machine_t *model, unsigned profile)
     dev->memory_reg[0][0] = 0xbc;
     dev->memory_reg[0][1] = 0x23;
     pcjx_rebuild_memory(dev);
+    dev->ppi = device_add(&i8255_device);
+    i8255_set_priv(dev->ppi, dev);
+    i8255_set_in(dev->ppi, I8255_PORT_A, pcjx_ppi_in_pa);
+    i8255_set_in(dev->ppi, I8255_PORT_C, pcjx_ppi_in_pc);
+    i8255_set_out(dev->ppi, I8255_PORT_A, pcjx_ppi_out_pa);
+    i8255_set_out(dev->ppi, I8255_PORT_B, pcjx_ppi_out_pb);
+    i8255_set_tri(dev->ppi, I8255_PORT_A, pcjx_ppi_tri);
+    i8255_set_tri(dev->ppi, I8255_PORT_B, pcjx_ppi_tri);
+    i8255_reset(dev->ppi);
     io_sethandler(0x1ff, 1, pcjx_decoder_read, NULL, NULL, pcjx_decoder_write, NULL, NULL, dev);
     /* Register last: close removes child-device handlers before they are freed. */
     device_add_ex(&pcjx_device, dev);
