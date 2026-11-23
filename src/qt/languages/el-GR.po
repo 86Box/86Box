@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-19 23:29+0000\n"
+"PO-Revision-Date: 2026-11-22 22:41+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -49,7 +49,7 @@ msgid "&Hide status bar"
 msgstr "&Απόκρυψη γραμμής κατάστασης"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Εμφάνιση δραστηριότητας US&B"
 
 msgid "Hide &toolbar"
 msgstr "Απόκρυψη &γραμμής εργαλείων"
@@ -85,7 +85,7 @@ msgid "Force &4:3 display ratio"
 msgstr "Εξαναγκασμός &αναλογίας οθόνης 4:3"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "Επιβολή αναλογίας οθόνης &μηχανής"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Εξαναγκασμός &αναλογίας οθόνης &%1:%2"
@@ -355,10 +355,10 @@ msgid "New Image"
 msgstr "Δημιουργία εικόνας"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Τύπος αφαιρούμενου δίσκου:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "Τύπος MO:"
 
 msgid "Settings"
 msgstr "Ρυθμίσεις"
@@ -455,15 +455,20 @@ msgstr "FPU:"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr ""
+"Συνεπεξεργαστής κινητής υποδιαστολής χαρτογραφημένος στη μνήμη στη διεύθυνση "
+"C0000000h. Τα συμβατά προγράμματα μπορούν να τον χρησιμοποιήσουν παράλληλα ή "
+"αντί για έναν 387."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Συνεπεξεργαστής Weitek WTL 3167"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
 msgstr ""
+"Συνεπεξεργαστής κινητής υποδιαστολής χαρτογραφημένος στη μνήμη, στη "
+"διεύθυνση C0000000h, για λογισμικό συμβατό με 486."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Συνεπεξεργαστής Weitek WTL 4167"
 
 msgid "Internal"
 msgstr "Ενσωματωμένο"
@@ -523,10 +528,10 @@ msgid "Dynamic recompiler"
 msgstr "Δυναμικός αναμεταγλωττιστής"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Ο δυναμικός επαναμεταγλωττιστής είναι ενεργός"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Ο δυναμικός επαναμεταγλωττιστής είναι ανενεργός"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμεταγλωττιστή"
@@ -765,28 +770,30 @@ msgid "Channel:"
 msgstr "Κανάλι:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (Ενσωματωμένο)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(κανένα)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "Ενσωματωμένο"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: δεν υπάρχουν ελεύθερα κανάλια"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: κανάλια %2 σε χρήση"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "Διένεξη IDE"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
+"Αυτοί οι ελεγκτές IDE χρειάζονται κανάλια που χρησιμοποιούνται ήδη από άλλη "
+"συσκευή και δεν θα λειτουργήσουν:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Θέλετε να αποθηκεύσετε τη διαμόρφωση ούτως ή άλλως;"
 
 msgid "ID:"
 msgstr "ID:"
@@ -867,7 +874,7 @@ msgid "MO drives"
 msgstr "Οδηγοί MO"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "Οδηγοί MD DATA"
 
 msgid "MO:"
 msgstr "MO:"
@@ -910,24 +917,26 @@ msgstr "Γενική ISA ROM πλακέτα"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"Δεν βρέθηκαν συσκευές. Βεβαιωθείτε ότι το VT-d ή το IOMMU είναι "
+"ενεργοποιημένο στο σύστημά σας."
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "Προσαρμοσμένη ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "Ομάδα"
 
 msgid "Location"
-msgstr ""
+msgstr "Τοποθεσία"
 
 msgid "Name"
-msgstr ""
+msgstr "Όνομα"
 
 msgid "ROM images"
-msgstr ""
+msgstr "Εικόνες ROM"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Άγνωστη συσκευή"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Γενική Διπλή ISA ROM πλακέτα"
@@ -1029,16 +1038,16 @@ msgid "Sound"
 msgstr "Ήχος"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (δεν εντοπίστηκε)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (ο κεντρικός υπολογιστής θα κάνει επαναδειγματοληψία)"
 
 msgid "Network"
 msgstr "Δίκτυο"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "Λήψη IPv4 και ARP ως 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
@@ -1110,52 +1119,59 @@ msgid "Other peripherals"
 msgstr "Άλλα περιφερειακά"
 
 msgid "empty"
-msgstr ""
+msgstr "κενό"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (προστασία εγγραφής)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Άδειο (αφαιρέστε την κάρτα)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Δημιουργία κάρτας CompactFlash…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Δημιουργία κάρτας CompactFlash"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "Εισαγωγή κάρτας CompactFlash"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "&Αφαίρεση κάρτας CompactFlash"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "Δεν ήταν δυνατή η χρήση του %1 ως εικόνας CompactFlash."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "Ελεγκτής PC Card (Cirrus Logic CL-PD6722, ISA, θύρες 3E0h-3E1h)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
+"Ένας ελεγκτής PC Card (PCMCIA), συμβατός με τον Intel 82365SL, που διαθέτει "
+"δύο υποδοχές, συναντάται σε φορητούς υπολογιστές καθώς και σε κάρτες "
+"προσαρμογέα PC Card.\n"
+"Οι υπηρεσίες καρτών και υποδοχών (card and socket services) στο DOS, καθώς "
+"και τα Windows 95/98 και το Linux (i82365), τον εντοπίζουν."
 
 msgid "Network:"
-msgstr ""
+msgstr "Δίκτυο:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "Socket %1"
 
 msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
 msgstr ""
+"Ο ελεγκτής PC Card είναι κάρτα ISA και αυτή η μηχανή δεν διαθέτει υποδοχή "
+"ISA."
 
 msgid "Choose a machine with ISA slots on the Machine page to fit one."
 msgstr ""

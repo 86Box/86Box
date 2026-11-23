@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-16 18:42+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-11-23 00:31+0000\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -20,7 +20,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Клавиатура требует захвата"
 
 msgid "&Right CTRL is left ALT"
-msgstr "П&равый CTRL - это левый ALT"
+msgstr "&Правый CTRL - это левый ALT"
 
 msgid "&Hard reset"
 msgstr "&Холодная перезагрузка"
@@ -50,7 +50,7 @@ msgid "&Hide status bar"
 msgstr "&Скрыть строку состояния"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Показать активность US&B"
 
 msgid "Hide &toolbar"
 msgstr "С&крыть панель инструментов"
@@ -164,7 +164,7 @@ msgid "4:3 Cen&ter"
 msgstr "По цен&тру, 4:3"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Целочисленное масштабирование 4:3 (&вертикаль)"
 
 msgid "Inverted VGA monitor"
 msgstr "Инвертировать цвета VGA"
@@ -257,7 +257,7 @@ msgid "M&IDI output device"
 msgstr ""
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Перезапустить &устройство"
 
 msgid "Send MIDI &command"
 msgstr ""
@@ -269,10 +269,10 @@ msgid "G&S Reset"
 msgstr ""
 
 msgid "&XG System On"
-msgstr ""
+msgstr "&XG включена"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "&MT-32 Сброс"
 
 msgid "All &notes off"
 msgstr ""
@@ -281,13 +281,13 @@ msgid "Show MIDI &LCD"
 msgstr ""
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "MIDI LCD"
 
 msgid "Always on &top"
 msgstr ""
 
 msgid "&Close"
-msgstr ""
+msgstr "&Закрыть"
 
 msgid "Begin trace"
 msgstr "Начать трассировку"
@@ -356,10 +356,10 @@ msgid "New Image"
 msgstr "Новый образ"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Тип съемного диска:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "Тип MO:"
 
 msgid "Settings"
 msgstr "Настройки"
