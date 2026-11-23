@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-21 10:28+0000\n"
+"PO-Revision-Date: 2026-11-23 04:05+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -50,7 +50,7 @@ msgid "&Hide status bar"
 msgstr "隐藏状态栏(&H)"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "显示USB活动(&B)"
 
 msgid "Hide &toolbar"
 msgstr "隐藏工具栏(&T)"
@@ -86,7 +86,7 @@ msgid "Force &4:3 display ratio"
 msgstr "强制 4:3 显示比例(&4)"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "强制设备显示比例(&M)"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "强制 %1:%2 显示比例(&%1)"
@@ -356,10 +356,10 @@ msgid "New Image"
 msgstr "新建镜像"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "可移动磁盘类型："
 
 msgid "MO type:"
-msgstr ""
+msgstr "MO盘类型："
 
 msgid "Settings"
 msgstr "设置"
@@ -476,13 +476,13 @@ msgid "MB"
 msgstr "MB"
 
 msgid "GB"
-msgstr ""
+msgstr "GB"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "内存:"
@@ -524,10 +524,10 @@ msgid "Dynamic recompiler"
 msgstr "动态重编译器"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "动态重编译器已激活"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "动态重编译器已被停用"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "动态重编译器下更准确的FPU模拟"
@@ -764,28 +764,28 @@ msgid "Channel:"
 msgstr "通道："
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (板载)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(无)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "板载"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: 无空置通道"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: 通道%2正在被占用"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "IDE冲突"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "确定仍然保存配置吗？"
 
 msgid "ID:"
 msgstr "ID:"
@@ -866,7 +866,7 @@ msgid "MO drives"
 msgstr "磁光盘驱动器"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA驱动器"
 
 msgid "MO:"
 msgstr "磁光盘:"
@@ -908,25 +908,25 @@ msgid "Generic ISA ROM Board"
 msgstr "通用 ISA ROM 卡"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
-msgstr ""
+msgstr "未找到相应设备。请确认已启用当前主机的VT-d或IOMMU功能。"
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "自定义ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "组"
 
 msgid "Location"
-msgstr ""
+msgstr "位置"
 
 msgid "Name"
-msgstr ""
+msgstr "名称"
 
 msgid "ROM images"
-msgstr ""
+msgstr "ROM镜像"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "未知设备"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "通用 ISA 双 ROM 卡"
@@ -1028,7 +1028,7 @@ msgid "Sound"
 msgstr "声音"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (未检测到)"
 
 msgid "%1 Hz (host will resample)"
 msgstr ""
@@ -1037,7 +1037,7 @@ msgid "Network"
 msgstr "网络"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "将IPv4和ARP作为802.3 LLC/SNAP接收"
 
 msgid "Ports (COM & LPT)"
 msgstr "端口 (COM 和 LPT)"
@@ -1169,10 +1169,10 @@ msgid "Configure is unavailable because the socket is empty.\nSelect a card firs
 msgstr ""
 
 msgid "Configure the %1."
-msgstr ""
+msgstr "配置%1。"
 
 msgid "This card has no settings to configure."
-msgstr ""
+msgstr "扩展卡无可配置项目。"
 
 msgid "Other devices"
 msgstr "其他设备"
@@ -1341,7 +1341,7 @@ msgid "MO images"
 msgstr "磁光盘（MO）镜像"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "MD DATA镜像"
 
 msgid "&MD DATA %1 (%2): %3"
 msgstr ""
@@ -1356,7 +1356,7 @@ msgid "Internal device"
 msgstr "内部设备"
 
 msgid "External"
-msgstr ""
+msgstr "外置"
 
 msgid "&File"
 msgstr "文件(&F)"
@@ -1380,25 +1380,25 @@ msgid "No ROMs found"
 msgstr "找不到 ROM"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "不支持的硬件"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
-msgstr ""
+msgstr "设备配置文件中的部分硬件不受当前版本86Box支持。"
 
 msgid "(and %i others)"
 msgstr ""
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
-msgstr ""
+msgstr "继续加载这一配置会替换虚拟机机型并覆写现有配置。"
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
-msgstr ""
+msgstr "继续加载这一配置会移除这些组件并覆写现有配置。"
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
-msgstr ""
+msgstr "继续加载这一配置会替换虚拟机机型、移除其他组件并覆写现有配置。"
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "确定要继续吗？"
 
 msgid "Machine type \"%s\""
 msgstr ""
@@ -1494,22 +1494,22 @@ msgid "CD-ROM images"
 msgstr "光盘镜像"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "新建CD-R镜像(&N)…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "新建CD-RW镜像(&W)…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "CD-RW镜像"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "CD-R镜像"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Aaru镜像"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "无法创建镜像"
 
 msgid "%1 Device Configuration"
 msgstr "%1 设备配置"
@@ -2390,7 +2390,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 键盘"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "USB 键盘"
 
 msgid "Keys"
 msgstr "按键"
@@ -2423,13 +2423,13 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort 鼠标"
 
 msgid "USB Mouse"
-msgstr ""
+msgstr "USB 鼠标"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (串口)"
 
 msgid "USB Tablet"
-msgstr ""
+msgstr "USB 数位板"
 
 msgid "Default Baud rate"
 msgstr "默认波特率"
@@ -2456,7 +2456,7 @@ msgid "System MIDI"
 msgstr "系统 MIDI"
 
 msgid "USB Speaker"
-msgstr ""
+msgstr "USB 扬声器"
 
 msgid "MIDI Input Device"
 msgstr "MIDI 输入设备"
@@ -2783,7 +2783,7 @@ msgid "SB low DMA"
 msgstr "Sound Blaster 低 DMA"
 
 msgid "6CH variant (6-channel)"
-msgstr "6通道变体"
+msgstr "6CH六声道型号"
 
 msgid "Enable CMS"
 msgstr "启用 CMS"
@@ -3853,7 +3853,7 @@ msgid "Auto-detect"
 msgstr "自动检测"
 
 msgid "Channel"
-msgstr "通道"
+msgstr "声道"
 
 msgid "Both Channels"
 msgstr "双声道"
@@ -4268,10 +4268,10 @@ msgid "to"
 msgstr "至"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "已映射，非RAM"
 
 msgid "Unmapped"
 msgstr "未映射"
@@ -4383,7 +4383,7 @@ msgid "\"%1\" is not an address or a register."
 msgstr ""
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "用法：%1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
@@ -4744,16 +4744,16 @@ msgid "USB port"
 msgstr "USB端口"
 
 msgid "%1 (write-protected)"
-msgstr ""
+msgstr "%1 (写保护)"
 
 msgid "USB flash drive"
-msgstr ""
+msgstr "USB闪存盘"
 
 msgid "%1 is not a disk image."
-msgstr ""
+msgstr "%1不是一个磁盘镜像。"
 
 msgid "Flash drive images"
-msgstr ""
+msgstr "闪存盘镜像"
 
 msgid "PCI card"
 msgstr "PCI扩展卡"
