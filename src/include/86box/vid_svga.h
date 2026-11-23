@@ -251,6 +251,10 @@ typedef struct svga_t {
     /* Called on each new CRTC line, after vc advances. */
     void (*line_callback)(struct svga_t *svga);
 
+    /* Called for proprietary memory enables. */
+    int (*ven_mem_enabled)(void *priv);
+    void *ven_mem_enabled_priv;
+
     uint32_t (*translate_address)(uint32_t addr, void *priv);
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */

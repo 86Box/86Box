@@ -199,6 +199,14 @@ vid_in(uint16_t addr, void *priv)
     return ret;
 }
 
+static int
+vid_mem_enabled(void *priv)
+{
+    tivga_t *ti = (tivga_t *) priv;
+
+    return !!(ti->reg_2100 & 0x10);
+}
+
 static void
 vid_speed_changed(void *priv)
 {
@@ -251,6 +259,9 @@ vid_init(const device_t *info)
 
     ti->svga.bpp     = 8;
     ti->svga.miscout = 0;
+
+    ti->svga.ven_mem_enabled      = vid_mem_enabled;
+    ti->svga.ven_mem_enabled_priv = ti;
 
     return ti;
 }
