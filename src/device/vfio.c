@@ -76,6 +76,11 @@ typedef struct vfio_iomirror_t {
     uint16_t              base;
 } vfio_iomirror_t;
 
+typedef struct vfio_configmirror_t {
+    struct _vfio_region_ *bar;
+    uint32_t              base;
+} vfio_configmirror_t;
+
 typedef struct _vfio_region_ {
     int                   fd;
     uint64_t              precalc_offset;
@@ -98,9 +103,7 @@ typedef struct _vfio_region_ {
         vfio_iomirror_t iomirrors[VFIO_IOMIRROR_MAX];
         uint8_t         iomirror_count;
 
-        struct {
-            uint32_t offset;
-        } configmirror;
+        vfio_configmirror_t configmirrors[2];
 
         struct {
             struct {
@@ -438,105 +441,68 @@ vfio_quirk_capture_io(vfio_device_t *dev, vfio_region_t *bar,
     }
 }
 
-static uint8_t
-vfio_quirk_configmirror_readb(uint32_t addr, void *priv)
-{
-    vfio_region_t *bar = (vfio_region_t *) priv;
-    vfio_device_t *dev = bar->dev;
+/* Memory mappings cover whole pages, so a configuration space mirror's
+   mapping also catches the rest of its page, which goes to the BAR. */
+#define VFIO_CONFIGMIRROR_RW(length_char, val_type)                                                     \
+    static val_type                                                                                     \
+    vfio_quirk_configmirror_read##length_char(uint32_t addr, void *priv)                                \
+    {                                                                                                   \
+        const vfio_configmirror_t *mirror = (vfio_configmirror_t *) priv;                               \
+        vfio_region_t             *bar    = mirror->bar;                                                \
+        uint32_t                   index  = addr - mirror->base;                                        \
+                                                                                                        \
+        /* Cascade to the main handler. */                                                              \
+        val_type ret = bar->mmap_base ? vfio_mem_read##length_char##_mm(addr, bar->mmap_precalc) :     \
+                                        vfio_mem_read##length_char##_fd(addr, bar);                     \
+        if (index > (256 - sizeof(val_type)))                                                           \
+            return ret;                                                                                 \
+                                                                                                        \
+        /* Read configuration register. */                                                              \
+        ret = vfio_dev_config_read##length_char(bar->dev, index);                                       \
+        vfio_log_op("VFIO %s: Config mirror: Read %0*X from index %02X\n",                              \
+                    bar->dev->name, (int) (sizeof(val_type) << 1), ret, index);                         \
+        return ret;                                                                                     \
+    }                                                                                                   \
+                                                                                                        \
+    static void                                                                                         \
+    vfio_quirk_configmirror_write##length_char(uint32_t addr, val_type val, void *priv)                 \
+    {                                                                                                   \
+        const vfio_configmirror_t *mirror = (vfio_configmirror_t *) priv;                               \
+        vfio_region_t             *bar    = mirror->bar;                                                \
+        uint32_t                   index  = addr - mirror->base;                                        \
+                                                                                                        \
+        if (index > (256 - sizeof(val_type))) {                                                         \
+            if (bar->mmap_base)                                                                         \
+                vfio_mem_write##length_char##_mm(addr, val, bar->mmap_precalc);                         \
+            else                                                                                        \
+                vfio_mem_write##length_char##_fd(addr, val, bar);                                       \
+            return;                                                                                     \
+        }                                                                                               \
+                                                                                                        \
+        /* Write configuration register. */                                                             \
+        vfio_log_op("VFIO %s: Config mirror: Write %0*X to index %02X\n",                               \
+                    bar->dev->name, (int) (sizeof(val_type) << 1), val, index);                         \
+        vfio_dev_config_write##length_char(bar->dev, index, val);                                       \
+    }
 
-    /* Cascade to the main handler. */
-    vfio_mem_readb_fd(addr, bar);
-
-    /* Read configuration register. */
-    uint8_t ret = vfio_dev_config_readb(dev, addr - bar->quirks.configmirror.offset);
-    vfio_log_op("VFIO %s: Config mirror: Read %02X from index %02X\n",
-                dev->name, ret, addr - bar->quirks.configmirror.offset);
-
-    return ret;
-}
-
-static uint16_t
-vfio_quirk_configmirror_readw(uint32_t addr, void *priv)
-{
-    vfio_region_t *bar = (vfio_region_t *) priv;
-    vfio_device_t *dev = bar->dev;
-
-    /* Cascade to the main handler. */
-    vfio_mem_readw_fd(addr, bar);
-
-    /* Read configuration register. */
-    uint16_t ret = vfio_dev_config_readw(dev, addr - bar->quirks.configmirror.offset);
-    vfio_log_op("VFIO %s: Config mirror: Read %04X from index %02X\n",
-                dev->name, ret, addr - bar->quirks.configmirror.offset);
-
-    return ret;
-}
-
-static uint32_t
-vfio_quirk_configmirror_readl(uint32_t addr, void *priv)
-{
-    vfio_region_t *bar = (vfio_region_t *) priv;
-    vfio_device_t *dev = bar->dev;
-
-    /* Cascade to the main handler. */
-    vfio_mem_readl_fd(addr, bar);
-
-    /* Read configuration register. */
-    uint32_t ret = vfio_dev_config_readl(dev, addr - bar->quirks.configmirror.offset);
-    vfio_log_op("VFIO %s: Config mirror: Read %08X from index %02X\n",
-                dev->name, ret, addr - bar->quirks.configmirror.offset);
-
-    return ret;
-}
-
-static void
-vfio_quirk_configmirror_writeb(uint32_t addr, uint8_t val, void *priv)
-{
-    vfio_region_t *bar = (vfio_region_t *) priv;
-    vfio_device_t *dev = bar->dev;
-
-    /* Write configuration register. */
-    vfio_log_op("VFIO %s: Config mirror: Write %02X to index %02X\n",
-                dev->name, val, addr - bar->quirks.configmirror.offset);
-    vfio_dev_config_writeb(dev, addr - bar->quirks.configmirror.offset, val);
-}
-
-static void
-vfio_quirk_configmirror_writew(uint32_t addr, uint16_t val, void *priv)
-{
-    vfio_region_t *bar = (vfio_region_t *) priv;
-    vfio_device_t *dev = bar->dev;
-
-    /* Write configuration register. */
-    vfio_log_op("VFIO %s: Config mirror: Write %04X to index %02X\n",
-                dev->name, val, addr - bar->quirks.configmirror.offset);
-    vfio_dev_config_writew(dev, addr - bar->quirks.configmirror.offset, val);
-}
-
-static void
-vfio_quirk_configmirror_writel(uint32_t addr, uint32_t val, void *priv)
-{
-    vfio_region_t *bar = (vfio_region_t *) priv;
-    vfio_device_t *dev = bar->dev;
-
-    /* Write configuration register. */
-    vfio_log_op("VFIO %s: Config mirror: Write %08X to index %02X\n",
-                dev->name, val, addr - bar->quirks.configmirror.offset);
-    vfio_dev_config_writel(dev, addr - bar->quirks.configmirror.offset, val);
-}
+VFIO_CONFIGMIRROR_RW(b, uint8_t)
+VFIO_CONFIGMIRROR_RW(w, uint16_t)
+VFIO_CONFIGMIRROR_RW(l, uint32_t)
 
 static void
 vfio_quirk_configmirror(vfio_device_t *dev, vfio_region_t *bar,
                         uint32_t offset, uint8_t mapping_slot, uint8_t enable)
 {
-    /* Get the additional memory mapping structure. */
-    mem_mapping_t *mapping = &bar->quirks.mem_mappings[mapping_slot];
+    /* Get the additional memory mapping structure and its mirror. */
+    mem_mapping_t       *mapping = &bar->quirks.mem_mappings[mapping_slot];
+    vfio_configmirror_t *mirror  = &bar->quirks.configmirrors[mapping_slot];
 
     vfio_log("VFIO %s: %sapping configuration space mirror for %s @ %08X\n",
              dev->name, enable ? "M" : "Unm", bar->name, bar->emulated_offset + offset);
 
     /* Add mapping if it wasn't already added.
        Being added after region setup, it should override the main BAR mapping. */
+    mirror->bar = bar;
     if (!mapping->base)
         mem_mapping_add(mapping, 0, 0,
                         vfio_quirk_configmirror_readb,
@@ -545,14 +511,14 @@ vfio_quirk_configmirror(vfio_device_t *dev, vfio_region_t *bar,
                         vfio_quirk_configmirror_writeb,
                         vfio_quirk_configmirror_writew,
                         vfio_quirk_configmirror_writel,
-                        NULL, MEM_MAPPING_EXTERNAL, bar);
+                        NULL, MEM_MAPPING_EXTERNAL, mirror);
 
-    /* Store start offset. */
-    bar->quirks.configmirror.offset = bar->emulated_offset + offset;
+    /* Store start address. */
+    mirror->base = bar->emulated_offset + offset;
 
     /* Enable or disable mapping. */
     if (enable)
-        mem_mapping_set_addr(mapping, bar->emulated_offset + offset, 256);
+        mem_mapping_set_addr(mapping, mirror->base, 256);
     else
         mem_mapping_disable(mapping);
 }
