@@ -1423,7 +1423,11 @@ vfio_bar_remap(vfio_device_t *dev, vfio_region_t *bar, uint32_t new_offset)
                 mem_mapping_disable(&dev->irq.msix.pba_mapping);
         }
 
-        bar->mmap_precalc = bar->mmap_base - new_offset;
+        /* Set new emulated and precalculated offsets now, as the quirks are mapped through them.
+           The precalculated offsets speed up read/write operations. */
+        bar->emulated_offset = new_offset;
+        bar->precalc_offset  = bar->offset - new_offset;
+        bar->mmap_precalc    = bar->mmap_base - new_offset;
         /* Expansion ROM requires both ROM enable and memory enable. */
         if (((bar->bar_id != 0xff) || dev->rom_enabled) && dev->mem_enabled && new_offset) {
             vfio_log("VFIO %s: Mapping %s memory @ %08X-%08X\n", dev->name,
@@ -1480,7 +1484,11 @@ vfio_bar_remap(vfio_device_t *dev, vfio_region_t *bar, uint32_t new_offset)
                                  bar);
         }
 
-        bar->mmap_precalc = bar->mmap_base - new_offset;
+        /* Set new emulated and precalculated offsets now, as the quirks are mapped through them.
+           The precalculated offsets speed up read/write operations. */
+        bar->emulated_offset = new_offset;
+        bar->precalc_offset  = bar->offset - new_offset;
+        bar->mmap_precalc    = bar->mmap_base - new_offset;
         if (dev->io_enabled && new_offset) {
             vfio_log("VFIO %s: Mapping %s I/O @ %04X-%04X\n", dev->name,
                      bar->name, new_offset, new_offset + bar->size - 1);
@@ -1509,11 +1517,6 @@ vfio_bar_remap(vfio_device_t *dev, vfio_region_t *bar, uint32_t new_offset)
             vfio_quirk_remap(dev, bar, 1);
         }
     }
-
-    /* Set new emulated and precalculated offsets.
-       The precalculated offsets speed up read/write operations. */
-    bar->emulated_offset = new_offset;
-    bar->precalc_offset  = bar->offset - new_offset;
 }
 
 static uint32_t
