@@ -32,6 +32,7 @@ add_library(snd OBJECT
     snd_lpt_cms.c
     snd_lpt_dac.c
     snd_lpt_dss.c
+    snd_lpt_msound.c
     snd_lpt_tndlpt.c
     snd_pssj.c
     snd_ac97_codec.c
