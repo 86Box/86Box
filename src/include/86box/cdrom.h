@@ -632,6 +632,7 @@ typedef struct cdrom {
     uint8_t            extra_buffer[296];
 
     int32_t            is_chinon;
+    int32_t            is_philips;
     int32_t            is_pioneer;
     int32_t            is_plextor;
     int32_t            is_sony;

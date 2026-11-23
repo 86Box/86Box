@@ -4130,6 +4130,10 @@ cdrom_hard_reset(void)
             dev->is_nec     = (dev->bus_type == CDROM_BUS_SCSI) &&
                               !strcmp(vendor, "NEC");
             dev->is_chinon  = !strcmp(vendor, "CHINON");
+            dev->is_philips = (dev->bus_type == CDROM_BUS_SCSI) &&
+                              cdrom_is_writable(dev->type) &&
+                              (!strcmp(vendor, "GRUNDIG") ||
+                               !strcmp(vendor, "PHILIPS"));
             dev->is_pioneer = !strcmp(vendor, "PIONEER");
             dev->is_plextor = !strcmp(vendor, "PLEXTOR");
             dev->is_sony    = (dev->bus_type == CDROM_BUS_SCSI) &&
