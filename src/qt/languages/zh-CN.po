@@ -1862,22 +1862,19 @@ msgstr "音频:"
 msgid "ACPI shutdown"
 msgstr "ACPI 关机"
 
-msgid "ACP&I shutdown"
-msgstr "ACPI 关机(&I)"
+msgid "&ACPI shutdown"
+msgstr "ACPI 关机(&A)"
 
 msgid "Power off"
 msgstr "关机"
 
-msgid "Power &off…"
-msgstr "关机(&O)…"
-
 msgid "Power &off"
 msgstr "关机(&O)"
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

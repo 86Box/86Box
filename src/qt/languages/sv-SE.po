@@ -1894,22 +1894,23 @@ msgstr "Ljud:"
 msgid "ACPI shutdown"
 msgstr "ACPI-avstängning"
 
-msgid "ACP&I shutdown"
-msgstr "ACP&I-avstängning"
+msgid "&ACPI shutdown"
+msgstr "&ACPI-avstängning"
 
 msgid "Power off"
 msgstr "Stäng av"
 
-msgid "Power &off…"
-msgstr "Stäng &av…"
-
 msgid "Power &off"
 msgstr "Stäng &av"
 
-msgid "Power &off (soft)"
+#, fuzzy
+#| msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr "Stäng &av (mjuk)"
 
-msgid "Power off (soft)"
+#, fuzzy
+#| msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr "Stäng av (mjuk)"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

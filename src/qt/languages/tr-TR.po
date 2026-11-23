@@ -1887,22 +1887,19 @@ msgstr "Ses:"
 msgid "ACPI shutdown"
 msgstr "ACPI ile kapat"
 
-msgid "ACP&I shutdown"
-msgstr "ACP&I ile kapat"
+msgid "&ACPI shutdown"
+msgstr "&ACPI ile kapat"
 
 msgid "Power off"
 msgstr "Gücü kapat"
 
-msgid "Power &off…"
-msgstr "Gücü &kapat…"
-
 msgid "Power &off"
 msgstr "Gücü &kapat"
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

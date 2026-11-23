@@ -1933,22 +1933,19 @@ msgstr "Zvuk:"
 msgid "ACPI shutdown"
 msgstr "Vypnout pomocí rozhraní ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Vypnout pomocí rozhraní ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Vypnout pomocí rozhraní &ACPI"
 
 msgid "Power off"
 msgstr "Vypnout"
 
-msgid "Power &off…"
-msgstr "&Vypnout…"
-
 msgid "Power &off"
 msgstr "&Vypnout"
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

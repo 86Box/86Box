@@ -1904,22 +1904,23 @@ msgstr "Ήχος:"
 msgid "ACPI shutdown"
 msgstr "Τερματισμός ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Τερματισμός ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Τερματισμός &ACPI"
 
 msgid "Power off"
 msgstr "Απενεργοποίηση"
 
-msgid "Power &off…"
-msgstr "&Απενεργοποίηση…"
-
 msgid "Power &off"
 msgstr "&Απενεργοποίηση"
 
-msgid "Power &off (soft)"
+#, fuzzy
+#| msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr "&Απενεργοποίηση (ομαλή)"
 
-msgid "Power off (soft)"
+#, fuzzy
+#| msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr "Απενεργοποίηση (ομαλή)"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

@@ -99,6 +99,7 @@
     <addaction name="actionNon_maskable_interrupt"/>
     <addaction name="separator"/>
     <addaction name="actionACPI_Shutdown"/>
+    <addaction name="actionPower_off"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -847,13 +848,25 @@
      <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>ACP&amp;I shutdown</string>
+    <string>&amp;ACPI shutdown</string>
    </property>
    <property name="toolTip">
     <string>ACPI shutdown</string>
    </property>
    <property name="visible">
     <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionPower_off">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/stop.ico</normaloff>:/menuicons/qt/icons/stop.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Power &amp;off</string>
+   </property>
+   <property name="toolTip">
+    <string>Power off</string>
    </property>
   </action>
   <action name="actionBegin_trace">
