@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-23 17:52+0000\n"
-"Last-Translator: TheCawa <vos80584@gmail.com>\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -527,7 +527,7 @@ msgid "Dynamic recompiler is active"
 msgstr "Динамический рекомпилятор активен"
 
 msgid "Dynamic recompiler is inactive"
-msgstr "Динамичный компилятор не активен"
+msgstr "Динамический компилятор не активен"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точное окружение FPU в динамическом рекомпиляторе"
