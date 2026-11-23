@@ -425,8 +425,13 @@ emu8008_read_reg32(emu8008_t *dev, uint8_t bank, uint8_t idx)
     if (bank == 5 && idx == 0x3B)
         return dev->sample_clock;
 
-    if (bank == 4)
+    if (bank == 4) {
+        /* EMU8008.VXD checks bit 6 of 3Eh after sending 26h to 3Fh
+           at the end of chip initialization. */
+        if (idx == 0x3E && (dev->bank4_regs[0x3F] & 0xFF) == 0x26)
+            return dev->bank4_regs[idx] | 0x40;
         return dev->bank4_regs[idx];
+    }
     if (bank == 5)
         return dev->bank5_regs[idx];
 
