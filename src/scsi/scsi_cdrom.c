@@ -4451,7 +4451,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         /* Vendor unique, 120 mm, and a WO area on recordable media. */
                         max_len = 0xa0 | (dev->drv->blank_media ? 0x08 : 0x00);
 
-                        if (!is_blank) {
+                        /* Easy CD Creator (cdrims.drv) treats bits 1:0 == 0 as an unknown session type
+                           and refuses the disc, so a blank disc reports CD-ROM mode 1 (the E5 track type). */
+                        if (is_blank)
+                            max_len |= 0x01;
+                        else {
                             if (dev->drv->cd_status != CD_STATUS_DATA_ONLY)
                                 max_len |= 0x04;
                             if (cdrom_has_data(dev->drv))
