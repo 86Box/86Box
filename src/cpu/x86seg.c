@@ -17,6 +17,7 @@
  *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -668,6 +669,43 @@ loadseg(uint16_t seg, x86seg *s)
 }
 
 #if !defined(OPS_286_386) && defined(USE_DYNAREC)
+seg_load_cache_t seg_load_cache[SEG_LOAD_CACHE_SIZE] __attribute__((aligned(64)));
+
+_Static_assert(sizeof(seg_load_cache_t) == 64, "seg_load_cache_t is indexed as 64 bytes");
+_Static_assert(offsetof(x86seg, checked) == sizeof(((seg_load_cache_t *) NULL)->image), "the image ends at checked");
+_Static_assert((offsetof(x86seg, base) == 0) && (offsetof(x86seg, limit) == 4) &&
+                   (offsetof(seg_load_cache_t, dt_limit) == offsetof(seg_load_cache_t, dt_base) + 4),
+               "base and limit are compared as one 64-bit word");
+
+void
+seg_load_cache_flush(void)
+{
+    memset(seg_load_cache, 0, sizeof(seg_load_cache));
+}
+
+/* The entry for a load loadseg_pm_fast() has just completed into s from the
+   descriptor at addr (lo, hi) of table dt. The status bits are the end of
+   seg_load_status() for DS and for ES: FS and GS take only NOT64K */
+static void
+seg_load_cache_fill(uint16_t seg, const x86seg *dt, uint32_t addr, uint32_t lo, uint32_t hi, const x86seg *s)
+{
+    seg_load_cache_t *e    = &seg_load_cache[(seg >> 2) & (SEG_LOAD_CACHE_SIZE - 1)];
+    const int         flat = (s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff);
+    const int         wide = (s->limit_high == 0xffffffff) && ((s->access & 0x0a) == 0x02) && (s->base != 0xffffffff);
+    const uint16_t    n64  = (s->limit_low || (s->limit_high != 0xffff)) ? CPU_STATUS_NOT64K : 0;
+
+    e->tag       = seg | (CPL << 16) | SEG_LOAD_CACHE_VALID;
+    e->addr      = addr;
+    e->dt        = dt;
+    e->dt_base   = dt->base;
+    e->dt_limit  = dt->limit;
+    e->lookup    = &readlookup2[addr >> 12];
+    e->desc      = lo | ((uint64_t) hi << 32);
+    memcpy(e->image, s, sizeof(e->image));
+    e->status_ds = (flat ? 0 : CPU_STATUS_NOTFLATDS) | (wide ? 0 : CPU_STATUS_NOTWIDEDS) | n64;
+    e->status_es = (flat ? 0 : CPU_STATUS_NOTFLATES) | n64;
+}
+
 /* loadseg() for DS, ES, FS or GS, called from recompiled code. The common
    protected-mode load is done here: a non-null selector inside its table,
    an aligned descriptor whose page is in the read lookup, a data or
@@ -730,6 +768,12 @@ loadseg_pm_fast(uint16_t seg, x86seg *s)
         codegen_flat_ds = codegen_wide_ds = 0;
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
+    /* Only on the processors whose manuals give these loads one text (1999
+       vol. 2: LDS/LES p. 3-350, MOV p. 3-404, POP p. 3-533; the 1997 one
+       and the Pentium Pro's say the same), and only for a read that the
+       table's own entry gave */
+    if ((far_load_order == FAR_LOAD_ORDER_IA) && (readlookup2[addr >> 12] == lookup))
+        seg_load_cache_fill(seg, dt, addr, lo, hi, s);
 
     return 0;
 }

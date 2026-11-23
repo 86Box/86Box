@@ -84,3 +84,5 @@ void codegen_mem_slow_reset(void);
 void codegen_mem_slow_emit(codeblock_t *block);
 /*REP MOVS/STOS routines, indexed by [STOS][log2 element size][32-bit addressing]*/
 extern void *codegen_rep_rout[2][3][2];
+/*Protected-mode loads of DS, ES, FS and GS (seg_load_cache), in that order*/
+extern void *codegen_load_seg_rout[4];
