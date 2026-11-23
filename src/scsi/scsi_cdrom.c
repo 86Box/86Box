@@ -1331,6 +1331,7 @@ scsi_cdrom_data(scsi_cdrom_t *dev, const int msf, const int type, const int flag
     int       num             = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
                                 dev->requested_blocks : 1;
     int       data_block_type = dev->ms_pages_saved.pages[GPMODE_CDROM_WRITE_PARAMETERS_PAGE][4] & 0x0f;
+    cdrom_write_info_t blank_wi = { 0 };
 
     dev->sectors_num   = 0;
 
@@ -1342,7 +1343,9 @@ scsi_cdrom_data(scsi_cdrom_t *dev, const int msf, const int type, const int flag
 
     if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED))
         scsi_cdrom_not_ready(dev);
-    else if (!write && dev->drv->is_philips && dev->drv->blank_media) {
+    else if (!write && dev->drv->is_philips && dev->drv->blank_media &&
+             !scsi_cdrom_philips_write_info(dev, &blank_wi) &&
+             (blank_wi.state == CD_WSTATE_BLANK)) {
         /* Reading the unwritten area of a blank disc. */
         scsi_cdrom_sense_key = SENSE_BLANK_CHECK;
         scsi_cdrom_asc       = 0x00;
@@ -3686,6 +3689,21 @@ scsi_cdrom_command_philips(void *sc, const uint8_t *cdb, int32_t *BufLen)
             } else if (!dev->philips_in_seq && scsi_cdrom_philips_start_page_write(dev)) {
                 scsi_cdrom_invalid_field(dev, dev->ms_pages_saved.pages[GPMODE_WRITE_TRACK_PAGE_PHILIPS][3]);
                 cmd_stat = 0x01;
+            } else if (!scsi_cdrom_philips_write_info(dev, &wi)) {
+                /* The recorder ignores the address and writes at the next writable one. */
+                uint8_t *w = (uint8_t *) cdb;
+
+                if (cdb[0] == GPCMD_WRITE_6) {
+                    w[1] = (w[1] & 0xe0) | ((wi.nwa >> 16) & 0x1f);
+                    w[2] = wi.nwa >> 8;
+                    w[3] = wi.nwa;
+                } else {
+                    w[2] = wi.nwa >> 24;
+                    w[3] = wi.nwa >> 16;
+                    w[4] = wi.nwa >> 8;
+                    w[5] = wi.nwa;
+                }
+                memcpy(dev->current_cdb, cdb, 12);
             }
             break;
 
