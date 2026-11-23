@@ -1204,7 +1204,10 @@ scsi_cdrom_illegal_opcode(scsi_cdrom_t *dev, const uint8_t opcode)
 static void
 scsi_cdrom_lba_out_of_range(scsi_cdrom_t *dev)
 {
-    scsi_cdrom_log(dev->log, "LBA out of range: %08X\n", dev->sector_pos);
+    scsi_cdrom_log(dev->log, "LBA out of range: %08X (blank %i, block size %i, "
+                   "capacity %u, philips %i)\n",
+                   dev->sector_pos, dev->drv->blank_media, dev->drv->sector_size,
+                   dev->drv->cdrom_capacity, dev->drv->is_philips);
     scsi_cdrom_sense_key = SENSE_ILLEGAL_REQUEST;
     scsi_cdrom_asc       = ASC_LBA_OUT_OF_RANGE;
     scsi_cdrom_ascq      = 0;
