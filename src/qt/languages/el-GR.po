@@ -1168,6 +1168,9 @@ msgstr "Δίκτυο:"
 msgid "Socket %1"
 msgstr "Socket %1"
 
+msgid "Socket %1: %2"
+msgstr "Socket %1: %2"
+
 msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
 msgstr ""
 "Ο ελεγκτής PC Card είναι κάρτα ISA και αυτή η μηχανή δεν διαθέτει υποδοχή "

@@ -1162,6 +1162,9 @@ msgstr "Nätverk:"
 msgid "Socket %1"
 msgstr "Sockel %1"
 
+msgid "Socket %1: %2"
+msgstr "Sockel %1: %2"
+
 msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
 msgstr ""
 "PC Card-styrenheten är ett ISA-kort, och denna maskin har ingen ISA-plats."

@@ -1153,6 +1153,9 @@ msgstr ""
 msgid "Socket %1"
 msgstr ""
 
+msgid "Socket %1: %2"
+msgstr ""
+
 msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
 msgstr ""
 
