@@ -259,10 +259,12 @@ struct v2_chip_t {
     int      timer_fired;
     uint32_t timer_last;
     uint32_t timer_t0;
+#ifdef ENABLE_VORTEX2_LOG
     uint32_t timer_missed;
     uint32_t n_fired, n_acked, n_irq_raise, n_zero_timer;
     double   lr[4][3]; /* stereo diagnostics: sum LL, RR, LR at A3D out, canceller out, EQ out, output */
     uint32_t status_frames;
+#endif
 
     v2_dma_t adb[NR_ADBDMA];
     v2_dma_t wt[NR_WTDMA];
@@ -283,13 +285,17 @@ struct v2_chip_t {
     int16_t  src_owner[NR_SRC]; /* source each converter last converted */
     float    adc[2][B];         /* codec ADC input for this block */
     int      adc_done;
+#ifdef ENABLE_VORTEX2_LOG
     uint8_t  a3d_used[NR_A3D];
     uint32_t graph_hash;
+#endif
     uint32_t glide_frames; /* sample count for the 64-sample glide tick */
     uint8_t  mix_sign[NR_MIXOUT * 32 + NR_MIXOUT]; /* sign of each gain's last sample */
     uint8_t  mix_ran[NR_MIXOUT];
+#ifdef ENABLE_VORTEX2_LOG
     uint32_t log_clk_last; /* log clock: last 32-bit reading, and the wraps so far */
     uint64_t log_clk_wraps;
+#endif
     uint32_t wt_routed[2]; /* voices whose own ADB source is routed somewhere */
     uint32_t wt_aacc[2];   /* attack- and mute-ramp phase accumulators, per bank */
     uint32_t wt_macc[2];
@@ -300,7 +306,9 @@ struct v2_chip_t {
 
     int     eq_dirty;
     v2_eq_t eq;
+#ifdef ENABLE_VORTEX2_LOG
     char    eq_logged[512];
+#endif
 
     /* per-block evaluation */
     float   sbuf[256][B];
@@ -326,6 +334,7 @@ struct v2_chip_t {
 #define LO16(w) ((int16_t) ((w) & 0xffff))
 #define HI16(w) ((int16_t) ((w) >> 16))
 
+#ifdef ENABLE_VORTEX2_LOG
 /* Append to a log line, stopping at the end of the buffer (snprintf
    returns the length it wanted, which may be more than fitted). */
 static int
@@ -357,6 +366,7 @@ v2_log(v2_chip_t *c, const char *fmt, ...)
     va_end(ap);
     c->host.log(c->host.priv, buf);
 }
+#endif
 
 static inline float
 clampf(float v, float lo, float hi)
@@ -516,7 +526,9 @@ init_tables(void)
 /* Interrupts                                                          */
 /* ------------------------------------------------------------------ */
 
+#ifdef ENABLE_VORTEX2_LOG
 static double v2_now(v2_chip_t *c);
+#endif
 
 static void
 update_irq(v2_chip_t *c)
@@ -525,8 +537,10 @@ update_irq(v2_chip_t *c)
 
     if (level != c->irq_level) {
         c->irq_level = level;
+#ifdef ENABLE_VORTEX2_LOG
         if (level)
             c->n_irq_raise++;
+#endif
         if (c->host.set_irq)
             c->host.set_irq(c->host.priv, level);
     }
@@ -552,6 +566,7 @@ v2_ext_irq(v2_chip_t *c, uint32_t bits, int set)
 void
 v2_timer_expired(v2_chip_t *c)
 {
+#ifdef ENABLE_VORTEX2_LOG
     if (c->timer_fired) {
         if (++c->timer_missed == 50)
             v2_log(c, "Vortex2: [%9.3f] timer interrupts not being serviced (IRQ_CTRL %08x CTRL %08x)\n",
@@ -559,6 +574,7 @@ v2_timer_expired(v2_chip_t *c)
     } else
         c->timer_missed = 0;
     c->n_fired++;
+#endif
     c->timer_fired = 1;
     raise_irq(c, IRQ_TIMER);
 }
@@ -612,6 +628,7 @@ dma_bps(int fmt)
     return (fmt == 1 || fmt == 2 || fmt == 3) ? 1 : 2;
 }
 
+#ifdef ENABLE_VORTEX2_LOG
 static double
 v2_now(v2_chip_t *c)
 {
@@ -636,6 +653,7 @@ dma_log_state(v2_chip_t *c, v2_dma_t *d, const char *what)
     v2_log(c, "Vortex2: [%9.3f] ADB DMA %2d %s, page %d pos %03x, cfg %08x %08x, ctrl %08x\n",
            v2_now(c), d->ch, what, d->page, d->pos, R(dma_cfg(d)), R(dma_cfg(d) + 4), R(dma_ctrl(d)));
 }
+#endif
 
 static void
 dma_enter_page(v2_chip_t *c, v2_dma_t *d, int page)
@@ -656,7 +674,9 @@ dma_page_end(v2_chip_t *c, v2_dma_t *d)
         dma_enter_page(c, d, nib & 3);
     else {
         d->state = DMA_END;
+#ifdef ENABLE_VORTEX2_LOG
         dma_log_state(c, d, "ended (page without carry-on)");
+#endif
         /* The card drops the FIFO's run bits when a stream ends (seen as
            0x42070 -> 0x2680 in the DOS Sound Blaster trace). */
         R(dma_fifo(d)) &= ~(FIFO_VALID | FIFO_U1);
@@ -693,7 +713,9 @@ dma_begin(v2_chip_t *c, v2_dma_t *d, int cont)
     d->pos   = R(dma_ctrl(d)) & 0xfff;
     d->state = DMA_RUN;
     d->stopped = 0;
+#ifdef ENABLE_VORTEX2_LOG
     dma_log_state(c, d, "started");
+#endif
 }
 
 /* Pull bytes from guest memory into the FIFO until it holds `need`. */
@@ -714,7 +736,9 @@ dma_fill(v2_chip_t *c, v2_dma_t *d, uint32_t need)
                 return;
             R(dma_fifo(d)) |= FIFO_VALID | FIFO_U1;
             dma_enter_page(c, d, nib & 3);
+#ifdef ENABLE_VORTEX2_LOG
             dma_log_state(c, d, "resumed after late carry-on");
+#endif
             continue;
         }
         if (d->state != DMA_RUN)
@@ -1000,6 +1024,7 @@ fifo_ctrl_write(v2_chip_t *c, v2_dma_t *d, uint32_t old, uint32_t val)
 /* Routing graph                                                       */
 /* ------------------------------------------------------------------ */
 
+#ifdef ENABLE_VORTEX2_LOG
 /* Diagnostics: the routing table (source > sink, ADB addresses in hex)
    and every enabled mixer input with its volume byte, logged when either
    changes. */
@@ -1010,6 +1035,8 @@ graph_dump(v2_chip_t *c)
     int      n = 0;
     uint32_t h = 2166136261u;
 
+    if (!c->host.log)
+        return;
     n = v2_cat(line, sizeof(line), n, "Vortex2: routes:");
     for (int r = 0; r < c->nroutes && n < (int) sizeof(line) - 16; r++) {
         n = v2_cat(line, sizeof(line), n, " %02x>%02x", c->route[r].src, c->route[r].sink);
@@ -1033,9 +1060,9 @@ graph_dump(v2_chip_t *c)
         return;
     c->graph_hash = h;
     v2_cat(line, sizeof(line), n, "\n");
-    if (c->host.log)
-        c->host.log(c->host.priv, line);
+    c->host.log(c->host.priv, line);
 }
+#endif
 
 static void
 graph_rebuild(v2_chip_t *c)
@@ -1089,8 +1116,10 @@ graph_rebuild(v2_chip_t *c)
         else if (src >= AS_WT1 && src < AS_WT1 + 32)
             c->wt_routed[1] |= 1u << (src - AS_WT1);
     }
+#ifdef ENABLE_VORTEX2_LOG
     v2_log(c, "Vortex2: routing rebuilt, %d routes (ADB_SR %06x)\n", c->nroutes, sr);
     graph_dump(c);
+#endif
 }
 
 /* ------------------------------------------------------------------ */
@@ -1865,7 +1894,9 @@ a3d_slot_run(v2_chip_t *c, int s, float *outl, float *outr)
         a->settled = 0;
         c->a3d_tgt_dirty[s] = 0;
     }
+#ifdef ENABLE_VORTEX2_LOG
     c->a3d_used[s] = 1;
+#endif
     c->a3d_cur_dirty[s] = 0;
 
     /* Glide current values toward the targets. Once nothing moves, the
@@ -2189,6 +2220,7 @@ eq_load(v2_chip_t *c)
         c->eq.bypass[s] = LO16(R(s ? EQ_BYPASS_R : EQ_BYPASS_L)) / 32768.0f;
     }
     c->eq_dirty = 0;
+#ifdef ENABLE_VORTEX2_LOG
     if (c->host.log) {
         /* the band gain may live at +0x28 (target) as well as +0x2c */
         char line[512];
@@ -2203,6 +2235,7 @@ eq_load(v2_chip_t *c)
             c->host.log(c->host.priv, line);
         }
     }
+#endif
 }
 
 static void
@@ -2383,6 +2416,7 @@ v2_run_block(v2_chip_t *c, float *out)
     for (int bank = 0; bank < 2; bank++)
         if (!c->wt_done[bank])
             wt_bank_run(c, bank);
+#ifdef ENABLE_VORTEX2_LOG
     /* Stereo diagnostics: how alike left and right are at each stage. */
     {
         const float *sl[4] = { NULL, c->xt_done ? c->xt_out[0] : NULL, c->eq_done ? c->eq_out[0] : NULL, fl };
@@ -2470,6 +2504,7 @@ v2_run_block(v2_chip_t *c, float *out)
         c->status_frames = 0;
         c->n_fired = c->n_acked = c->n_irq_raise = 0;
     }
+#endif
 
     /* Playback DMA channels with no consumer at all still drain. That
        includes a finished stream whose routes the driver removed before
@@ -2567,7 +2602,9 @@ v2_read(v2_chip_t *c, uint32_t addr)
                 v |= n - el;
             }
             c->timer_fired = 0;
+#ifdef ENABLE_VORTEX2_LOG
             c->n_acked++;
+#endif
             c->irq_src &= ~IRQ_TIMER;
             update_irq(c);
             break;
@@ -2717,8 +2754,10 @@ v2_write(v2_chip_t *c, uint32_t addr, uint32_t val)
                    A real card then fires at once: in a Half-Life session
                    (A3D) all 21,510 zero writes were followed by a fired
                    timer about 0.13 ms later, before the next write. */
+#ifdef ENABLE_VORTEX2_LOG
                 if (c->n_zero_timer++ < 20)
                     v2_log(c, "Vortex2: [%9.3f] driver wrote 0 to the sample timer; firing at once\n", v2_now(c));
+#endif
                 val = (val & ~0xffffu) | 1;
             }
             c->timer_last  = val;

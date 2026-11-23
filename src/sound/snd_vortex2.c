@@ -82,8 +82,6 @@ typedef struct vortex2_t {
        timers; the sound itself is made by the driver's software from that
        copy (sbprobe fm and fmmap, 2026-11-18). */
     int        fm_on;
-    int        fm_vortex; /* 1: Aureal's own FM (the driver's software synth); 0: 86Box's OPL3 */
-    fm_drv_t   opl;
     uint8_t    fm_index, fm_bank, fm_new;
     uint8_t    fm_t[2], fm_ctl, fm_flags;
     pc_timer_t fm_timer[2];
@@ -96,7 +94,9 @@ typedef struct vortex2_t {
     uint32_t   frames;
 
     int   rear_mix;
+#ifdef ENABLE_VORTEX2_LOG
     int   log_routes;
+#endif
     int   cd_filter;
     /* CD audio on its way into the codec's ADC: 44.1 kHz frames written by
        86Box's CD-audio thread, read by the emulation thread. */
@@ -107,8 +107,10 @@ typedef struct vortex2_t {
     double            cd_phase;
     float             cd_prev[2], cd_cur[2];
     int               cd_primed; /* enough buffered to play without gaps */
+#ifdef ENABLE_VORTEX2_LOG
     uint32_t          cd_log_n, cd_log_wr; /* diagnostic log: samples since the last line, cd_wr then */
     float             cd_log_peak;
+#endif
     float             cd_level;  /* drive's analog output against codec full scale */
     /* The host's audio input, as the codec's microphone and line inputs:
        interleaved stereo at the capture rate, written by 86Box's sound
@@ -119,9 +121,11 @@ typedef struct vortex2_t {
     volatile uint32_t in_wr, in_rd;
     double            in_frac;
     int               in_rate, in_primed, in_started, in_idle;
+#ifdef ENABLE_VORTEX2_LOG
     FILE *logf;
     FILE *tracef; /* register trace, same format as the real-card sessions */
     FILE *dmaf;   /* sample data the chip fetched: u32 addr, u32 len, bytes */
+#endif
     float out[V2_BLOCK * 4];
 
     int16_t ring[V2_BLOCK * 8 * 2];
@@ -163,11 +167,13 @@ host_mem_read(void *priv, uint32_t addr, uint8_t *buf, uint32_t len)
         dma_bm_read(addr, buf, len, 4);
     else
         memset(buf, 0, len);
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->dmaf) {
         fwrite(&addr, 4, 1, dev->dmaf);
         fwrite(&len, 4, 1, dev->dmaf);
         fwrite(buf, 1, len, dev->dmaf);
     }
+#endif
 }
 
 static void
@@ -215,11 +221,13 @@ host_clock(void *priv)
 
 /* Register trace in the format of the real-card sessions' timeline.txt,
    so the same tools replay either. */
+#ifdef ENABLE_VORTEX2_LOG
 static double
 trace_time(const vortex2_t *dev)
 {
     return (double) host_clock((void *) dev) / (256.0 * 48000.0);
 }
+#endif
 
 /* ------------------------------------------------------------------ */
 /* Legacy MIDI and game port                                           */
@@ -258,7 +266,9 @@ trace_time(const vortex2_t *dev)
 #define V2_CTRL_FM_EN 0x4
 
 static uint8_t fm_read(uint16_t port, void *priv);
+#ifdef ENABLE_VORTEX2_CORE_LOG
 static double  trace_time(const vortex2_t *dev);
+#endif
 
 /* The MPU-401 ports go through the device so that the trace option can
    record them (as "port" lines, which v2replay skips): MIDI problems are
@@ -269,8 +279,10 @@ mpu_port_read(uint16_t port, void *priv)
     vortex2_t *dev = (vortex2_t *) priv;
     uint8_t    v   = mpu401_read(port, dev->mpu);
 
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  R 0x%05x port 0x%08x\n", trace_time(dev), port, v);
+#endif
     return v;
 }
 
@@ -279,8 +291,10 @@ mpu_port_write(uint16_t port, uint8_t val, void *priv)
 {
     vortex2_t *dev = (vortex2_t *) priv;
 
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  W 0x%05x port 0x%08x\n", trace_time(dev), port, val);
+#endif
     mpu401_write(port, val, dev->mpu);
 }
 static void    fm_write(uint16_t port, uint8_t val, void *priv);
@@ -308,17 +322,10 @@ legacy_remap(vortex2_t *dev)
     }
     int fm = !!(ctl & V2_CTRL_FM_EN);
     if (fm != dev->fm_on) {
-        if (dev->fm_vortex) {
-            if (fm)
-                io_sethandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
-            else
-                io_removehandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
-        } else {
-            if (fm)
-                io_sethandler(0x388, 4, dev->opl.read, NULL, NULL, dev->opl.write, NULL, NULL, dev->opl.priv);
-            else
-                io_removehandler(0x388, 4, dev->opl.read, NULL, NULL, dev->opl.write, NULL, NULL, dev->opl.priv);
-        }
+        if (fm)
+            io_sethandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
+        else
+            io_removehandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
         dev->fm_on = fm;
         vortex2_log("Vortex2: FM ports %s\n", fm ? "on" : "off");
     }
@@ -554,13 +561,17 @@ tr_read(vortex2_t *dev, uint32_t a)
 {
     uint32_t v;
     if (a >= V2_MIDI_DATA && a < V2_MIDI_DATA + 0x20 && legacy_read(dev, a, &v)) {
+#ifdef ENABLE_VORTEX2_LOG
         if (dev->tracef)
             fprintf(dev->tracef, "%11.6f  R 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
+#endif
         return v;
     }
     v = v2_read(dev->chip, a);
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  R 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
+#endif
     if (a >= V2_FM_FILE + 0x50 && a < V2_FM_FILE + 0xd4) {
         /* Key-on bytes (0xb0-0xb8 of each bank) carry bits 7-6 after a
            key-off write; reading the word clears them (sbprobe fmflag: the
@@ -583,8 +594,10 @@ static void vortex2_chip_reset(vortex2_t *dev);
 static void
 tr_write(vortex2_t *dev, uint32_t a, uint32_t v)
 {
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  W 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
+#endif
     if (a >= V2_MIDI_DATA && a < V2_MIDI_DATA + 0x20 && legacy_write(dev, a, v))
         return;
     if (a == V2_FM_LATCH) {
@@ -752,10 +765,12 @@ host_codec_write(void *priv, uint8_t reg, uint16_t val)
     vortex2_t *dev = (vortex2_t *) priv;
 
     if (dev->codec) {
+#ifdef ENABLE_VORTEX2_LOG
         if (dev->log_routes && dev->logf && reg != 0x26 && reg != 0x2c && reg != 0x32) {
             fprintf(dev->logf, "Vortex2: [%9.3f] codec %02x <- %04x\n", (double) dev->frames / 48000.0, reg, val);
             fflush(dev->logf);
         }
+#endif
         ac97_codec_writew(dev->codec, reg, val);
         /* Install the CD filter once the driver sets up the CD input, as the
            VIA AC'97 device does; the codec mutes CD at reset, so installing
@@ -845,6 +860,7 @@ host_codec_adc(void *priv, float *l, float *r, int n)
                 r[i] += hr * rgr;
         }
     }
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->log_routes && dev->logf) {
         /* Every 10 s: whether CD audio is arriving from the drive and how loud it is at the ADC. */
         for (int i = 0; i < n; i++)
@@ -861,8 +877,10 @@ host_codec_adc(void *priv, float *l, float *r, int n)
             dev->cd_log_peak = 0.0f;
         }
     }
+#endif
 }
 
+#ifdef ENABLE_VORTEX2_LOG
 static void
 host_log(void *priv, const char *msg)
 {
@@ -873,6 +891,7 @@ host_log(void *priv, const char *msg)
         fflush(dev->logf);
     }
 }
+#endif
 
 /* ------------------------------------------------------------------ */
 /* Sound output                                                        */
@@ -962,21 +981,6 @@ vortex2_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     for (int c = 0; c < (int) len * 2; c++)
         buffer[c] += dev->buffer[c];
     dev->pos = 0;
-}
-
-/* With "Vortex FM synthesis" off (the default), the FM ports go to 86Box's
-   OPL3 instead of the chip's front end, and its output is mixed in here.
-   The chip's register copy then stays empty, so Aureal's software synth,
-   which renders from it, stays silent. */
-static void
-vortex2_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
-{
-    vortex2_t     *dev = (vortex2_t *) priv;
-    const int32_t *opl_buf = dev->opl.update(dev->opl.priv);
-
-    for (int c = 0; c < (int) len * 2; c++)
-        buffer[c] += (int32_t) (opl_buf[c] * 0.7171630859375);
-    dev->opl.reset_buffer(dev->opl.priv);
 }
 
 static void
@@ -1328,8 +1332,9 @@ vortex2_init(UNUSED(const device_t *info))
     v2_host_t  host;
 
     dev->rear_mix   = device_get_config_int("rear_mix");
-    dev->log_routes = device_get_config_int("log");
     dev->cd_level   = powf(10.0f, device_get_config_int("cd_level") / 20.0f);
+#ifdef ENABLE_VORTEX2_LOG
+    dev->log_routes = device_get_config_int("log");
     if (dev->log_routes) {
         /* Its own file in the machine's folder, so it works in release
            builds and without command-line options. */
@@ -1349,6 +1354,7 @@ vortex2_init(UNUSED(const device_t *info))
         path_append_filename(fn, usr_path, "vortex2-dma.bin");
         dev->dmaf = plat_fopen(fn, "wb");
     }
+#endif
 
     memset(&host, 0, sizeof(host));
     host.priv        = dev;
@@ -1359,7 +1365,9 @@ vortex2_init(UNUSED(const device_t *info))
     host.clock       = host_clock;
     host.codec_read  = host_codec_read;
     host.codec_write = host_codec_write;
+#ifdef ENABLE_VORTEX2_LOG
     host.log         = host_log;
+#endif
     host.codec_adc   = host_codec_adc;
 
     sound_in_add_handler(vortex2_in_put_buffer, dev);
@@ -1394,11 +1402,6 @@ vortex2_init(UNUSED(const device_t *info))
        which then holds the address the Vortex's Gameport Interface asks
        for. Off, nothing answers there and the card's legacy byte reads as
        an empty port. */
-    dev->fm_vortex = device_get_config_int("vortex_fm");
-    if (!dev->fm_vortex) {
-        fm_driver_get(FM_YMF262, &dev->opl);
-        music_add_handler(vortex2_get_music_buffer, dev);
-    }
     timer_add(&dev->fm_timer[0], fm_timer1, dev, 0);
     timer_add(&dev->fm_timer[1], fm_timer2, dev, 0);
     if (device_get_config_int("gameport")) {
@@ -1423,12 +1426,14 @@ vortex2_close(void *priv)
         sound_in_stop_input();
     v2_destroy(dev->chip);
     free(dev->mpu);
+#ifdef ENABLE_VORTEX2_LOG
     if (dev->logf)
         fclose(dev->logf);
     if (dev->tracef)
         fclose(dev->tracef);
     if (dev->dmaf)
         fclose(dev->dmaf);
+#endif
     free(dev);
 }
 
@@ -1454,25 +1459,14 @@ static const device_config_t vortex2_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "0 dB (drive at codec full scale)", .value =   0 },
-            { .description = "-4 dB",                            .value =  -4 },
-            { .description = "-8 dB",                            .value =  -8 },
-            { .description = "-12 dB (default)",                 .value = -12 },
-            { .description = "-18 dB",                           .value = -18 },
-            { .description = "-24 dB",                           .value = -24 },
-            { .description = ""                                               }
+            { .description = "0 dB",   .value =   0 },
+            { .description = "-4 dB",  .value =  -4 },
+            { .description = "-8 dB",  .value =  -8 },
+            { .description = "-12 dB", .value = -12 },
+            { .description = "-18 dB", .value = -18 },
+            { .description = "-24 dB", .value = -24 },
+            { .description = ""                     }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "vortex_fm",
-        .description    = "Vortex FM synthesis",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -1497,7 +1491,7 @@ static const device_config_t vortex2_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    /* TODO: to put the following two options in development branch */
+#ifdef ENABLE_VORTEX2_LOG
     {
         .name           = "log",
         .description    = "Write diagnostic log",
@@ -1520,6 +1514,7 @@ static const device_config_t vortex2_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
+#endif
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
