@@ -89,7 +89,7 @@ static inline floatx80 load_pack_float80(uint32 ea)
 {
 	uint32 dw1, dw2, dw3;
 	floatx80 result;
-	double tmp;
+	double tmp = 0.0;
 	char str[128], *ch;
 
 	dw1 = m68ki_read_32(ea);
@@ -129,7 +129,8 @@ static inline floatx80 load_pack_float80(uint32 ea)
 	*ch++ = (char)(((dw1 >> 16) & 0xf) + '0');
 	*ch = '\0';
 
-	sscanf(str, "%le", &tmp);
+	if (sscanf(str, "%le", &tmp) != 1)
+		tmp = 0.0;
 
 	result = double_to_fx80(tmp);
 

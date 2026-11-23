@@ -1829,7 +1829,7 @@ sscape_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     const double step = (double) dev->otto_rate / (double) SOUND_FREQ;
 
     ad1848_update(&dev->ad1848);
-    for (uint16_t c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += dev->ad1848.buffer[c] / 2;
     dev->ad1848.pos = 0;
 
