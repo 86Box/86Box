@@ -58,7 +58,6 @@ private:
 
     int        machineId { 0 };
     QCheckBox *enable;
-    QLabel    *hint;
     Socket     sock[PCMCIA_SOCKETS];
 };
 

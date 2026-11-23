@@ -1158,27 +1158,6 @@ msgstr "Soquete %1"
 msgid "Socket %1: %2"
 msgstr "Soquete %1: %2"
 
-msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
-msgstr "O controlador PC Card é uma placa ISA, e essa máquina não tem slot ISA."
-
-msgid "Choose a machine with ISA slots on the Machine page to fit one."
-msgstr "Escolha uma máquina com slots ISA na página de Máquina para inserí-la."
-
-msgid "The sockets are unavailable while the controller is not fitted."
-msgstr "Os soquetes não estão disponíveis enquanto a controladora não for inserida."
-
-msgid "Tick the box above to fit it."
-msgstr "Marque a caixa acima para inserí-la."
-
-msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
-msgstr "Configuração não está disponível porque o soquete está vazio.\nSelecione um cartão primeiro."
-
-msgid "Configure the %1."
-msgstr "Configurar o %1."
-
-msgid "This card has no settings to configure."
-msgstr "Este cartão não tem ajustes para configurar."
-
 msgid "Other devices"
 msgstr "Outros dispositivos"
 

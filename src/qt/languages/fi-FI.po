@@ -1155,27 +1155,6 @@ msgstr ""
 msgid "Socket %1: %2"
 msgstr ""
 
-msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
-msgstr ""
-
-msgid "Choose a machine with ISA slots on the Machine page to fit one."
-msgstr ""
-
-msgid "The sockets are unavailable while the controller is not fitted."
-msgstr ""
-
-msgid "Tick the box above to fit it."
-msgstr ""
-
-msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
-msgstr ""
-
-msgid "Configure the %1."
-msgstr ""
-
-msgid "This card has no settings to configure."
-msgstr ""
-
 msgid "Other devices"
 msgstr "Muut laitteet"
 

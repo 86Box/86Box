@@ -1171,33 +1171,6 @@ msgstr "Socket %1"
 msgid "Socket %1: %2"
 msgstr "Socket %1: %2"
 
-msgid "The PC Card controller is an ISA card, and this machine has no ISA slot."
-msgstr ""
-"Ο ελεγκτής PC Card είναι κάρτα ISA και αυτή η μηχανή δεν διαθέτει υποδοχή "
-"ISA."
-
-msgid "Choose a machine with ISA slots on the Machine page to fit one."
-msgstr ""
-"Επιλέξτε μία μηχανή με υποδοχές ISA στη σελίδα Μηχανή για να τοποθετήσετε "
-"ένα."
-
-msgid "The sockets are unavailable while the controller is not fitted."
-msgstr "Οι υποδοχές είναι μη διαθέσιμες όσο ο ελεγκτής δεν είναι τοποθετημένος."
-
-msgid "Tick the box above to fit it."
-msgstr "Τσεκάρετε το παραπάνω κουτάκι για να τον τοποθετήσετε."
-
-msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
-msgstr ""
-"Η διαμόρφωση δεν είναι διαθέσιμη επειδή η υποδοχή είναι κενή.\n"
-"Επιλέξτε πρώτα μια κάρτα."
-
-msgid "Configure the %1."
-msgstr "Διαμόρφωση του %1."
-
-msgid "This card has no settings to configure."
-msgstr "Αυτή η κάρτα δεν διαθέτει ρυθμίσεις για διαμόρφωση."
-
 msgid "Other devices"
 msgstr "Άλλες συσκευές"
 
