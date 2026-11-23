@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 00:31+0000\n"
+"PO-Revision-Date: 2026-11-23 18:02+0000\n"
 "Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -278,7 +278,7 @@ msgid "All &notes off"
 msgstr ""
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Показать MIDI &LCD"
 
 msgid "MIDI LCD"
 msgstr "MIDI LCD"
@@ -524,10 +524,10 @@ msgid "Dynamic recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Динамический рекомпилятор активен"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Динамический компилятор не активен"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точное окружение FPU в динамическом рекомпиляторе"
@@ -781,13 +781,13 @@ msgid "%1: channels %2 in use"
 msgstr ""
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "Конфликт IDE"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Вы всё равно хотите сохранить конфигурацию?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -916,19 +916,19 @@ msgid "Custom ROM:"
 msgstr ""
 
 msgid "Group"
-msgstr ""
+msgstr "Группа"
 
 msgid "Location"
-msgstr ""
+msgstr "Расположение"
 
 msgid "Name"
-msgstr ""
+msgstr "Имя"
 
 msgid "ROM images"
-msgstr ""
+msgstr "Образы ПЗУ"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Неизвестное устройство"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Стандартная плата на 2 ПЗУ ISA"
