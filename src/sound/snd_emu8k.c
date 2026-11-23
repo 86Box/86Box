@@ -785,6 +785,149 @@ emu8k_log(const char *fmt, ...)
 #    define emu8k_log(fmt, ...)
 #endif
 
+static uint32_t *
+emu8k_voice_dword(emu8k_voice_t *voice, unsigned reg)
+{
+    switch (reg) {
+        case EMU8K_VOICE_CPF:  return &voice->cpf;
+        case EMU8K_VOICE_PTRX: return &voice->ptrx;
+        case EMU8K_VOICE_CVCF: return &voice->cvcf;
+        case EMU8K_VOICE_VTFT: return &voice->vtft;
+        case EMU8K_VOICE_Z2:   return &voice->z2;
+        case EMU8K_VOICE_Z1:   return &voice->z1;
+        case EMU8K_VOICE_PSST: return &voice->psst;
+        case EMU8K_VOICE_CSL:  return &voice->csl;
+        case EMU8K_VOICE_CCCA: return &voice->ccca;
+        default:              return NULL;
+    }
+}
+
+uint32_t
+emu8k_voice_read(emu8k_voice_t *voice, unsigned reg)
+{
+    const uint32_t *value = emu8k_voice_dword(voice, reg);
+    return value ? *value : UINT32_MAX;
+}
+
+static void
+emu8k_voice_sync(emu8k_voice_t *voice, unsigned reg, int high)
+{
+    switch (reg) {
+        case EMU8K_VOICE_PSST:
+            voice->loop_start.int_address = voice->psst & EMU8K_MEM_ADDRESS_MASK;
+            if (high) {
+                voice->vol_l = voice->psst_pan;
+                voice->vol_r = 255 - voice->psst_pan;
+            }
+            break;
+        case EMU8K_VOICE_CSL:
+            voice->loop_end.int_address = voice->csl & EMU8K_MEM_ADDRESS_MASK;
+            break;
+        case EMU8K_VOICE_CCCA:
+            voice->addr.int_address = voice->ccca & EMU8K_MEM_ADDRESS_MASK;
+            voice->filterq_idx = CCCA_FILTQ_GET(voice->ccca);
+            voice->filt_att = filter_atten[voice->filterq_idx];
+            break;
+        default:
+            break;
+    }
+}
+
+void
+emu8k_voice_write(emu8k_voice_t *voice, unsigned reg, uint32_t val)
+{
+    uint32_t *value = emu8k_voice_dword(voice, reg);
+    if (value) {
+        *value = val;
+        emu8k_voice_sync(voice, reg, 1);
+    }
+}
+
+void
+emu8k_voice_set_ip(emu8k_voice_t *voice, uint16_t val)
+{
+    voice->ip              = val;
+    voice->ptrx_pit_target = freqtable[val] >> 18;
+}
+
+void
+emu8k_voice_set_ifatn(emu8k_voice_t *voice, uint16_t val)
+{
+    voice->ifatn              = val;
+    voice->initial_att        = ((int32_t) voice->ifatn_attenuation << 21) / 0xFF;
+    voice->vtft_vol_target    = attentable[voice->ifatn_attenuation];
+    voice->initial_filter     = ((int32_t) voice->ifatn_init_filter << 21) / 0xFF;
+    voice->vtft_filter_target = voice->ifatn_init_filter == 0xFF ? 0xFFFF : voice->initial_filter >> 5;
+}
+
+static inline void
+emu8k_update_voice_address(emu8k_voice_t *voice)
+{
+    voice->ccca               = ((uint32_t) voice->ccca_qcontrol << 24) | voice->addr.int_address;
+    voice->cpf_curr_frac_addr = voice->addr.fract_address;
+}
+
+/* The PCI host uses both loop crossings and can advance past a short loop
+   more than once in a tick. Preserve the ISA oscillator's single-wrap rule. */
+static inline unsigned
+emu8k_advance_voice(emu8k_voice_t *voice, uint64_t step, int pci)
+{
+    const uint64_t previous = voice->addr.addr;
+    voice->addr.addr += step;
+    voice->cpf_curr_pitch = voice->ptrx_pit_target;
+    if (!pci) {
+        if (voice->addr.addr >= voice->loop_end.addr) {
+            voice->addr.int_address -= voice->loop_end.int_address - voice->loop_start.int_address;
+            voice->addr.int_address &= EMU8K_MEM_ADDRESS_MASK;
+        }
+        return 0;
+    }
+
+    unsigned crossed = 0;
+    if (previous < voice->loop_start.addr && voice->addr.addr >= voice->loop_start.addr)
+        crossed |= EMU8K_LOOP_START;
+    if (voice->addr.addr >= voice->loop_end.addr) {
+        crossed |= EMU8K_LOOP_END;
+        voice->addr.int_address = voice->loop_start.int_address +
+            (voice->addr.int_address - voice->loop_end.int_address) %
+            (voice->loop_end.int_address - voice->loop_start.int_address);
+    }
+    return crossed;
+}
+
+unsigned
+emu8k_pcm_voice_tick(emu8k_voice_t *voice, emu8k_sample_read_t read_sample, const void *context, int32_t *mix)
+{
+    if (voice->loop_end.addr <= voice->loop_start.addr)
+        return 0;
+
+    const int16_t sample = read_sample(context, voice->addr.int_address);
+    const int32_t scaled = (sample * attentable[voice->ifatn_attenuation]) >> 16;
+    mix[0] += scaled * voice->vol_l / 255;
+    mix[1] += scaled * voice->vol_r / 255;
+
+    /* As on ISA, advance using current pitch before latching the new target.
+       Once the PCM voice settles at IP, retain the table's full precision. */
+    const uint64_t target = freqtable[voice->ip];
+    voice->ptrx_pit_target = target >> 18;
+    const uint64_t step = voice->cpf_curr_pitch == voice->ptrx_pit_target
+        ? target
+        : (uint64_t) voice->cpf_curr_pitch << 18;
+    const unsigned crossed = emu8k_advance_voice(voice, step, 1);
+    emu8k_update_voice_address(voice);
+    return crossed;
+}
+
+void
+emu8k_reset_pcm_voices(emu8k_t *emu8k)
+{
+    for (unsigned i = 0; i < EMU8K_VOICE_COUNT; i++) {
+        if (emu8k->pcm_voices & (1u << i))
+            memset(&emu8k->voice[i], 0, sizeof(emu8k->voice[i]));
+    }
+    emu8k->pcm_voices = 0;
+}
+
 static inline int16_t
 EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
@@ -1079,43 +1222,8 @@ emu8k_inw_untraced(uint16_t addr, void *priv)
     switch (addr & 0xF02) {
         case 0x600:
         case 0x602: /*Data0. also known as BLASTER+0x400 and EMU+0x000 */
-            switch (emu8k->cur_reg) {
-                case 0:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].cpf);
-                    return ret;
-
-                case 1:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].ptrx);
-                    return ret;
-
-                case 2:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].cvcf);
-                    return ret;
-
-                case 3:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].vtft);
-                    return ret;
-
-                case 4:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].z2);
-                    return ret;
-
-                case 5:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].z1);
-                    return ret;
-
-                case 6:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].psst);
-                    return ret;
-
-                case 7:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].csl);
-                    return ret;
-
-                default:
-                    break;
-            }
-            break;
+            READ16(addr, emu8k_voice_read(&emu8k->voice[emu8k->cur_voice], emu8k->cur_reg));
+            return ret;
 
         case 0xA00: /*Data1. also known as BLASTER+0x800 and EMU+0x400 */
             switch (emu8k->cur_reg) {
@@ -1422,56 +1530,13 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
     switch (addr & 0xF02) {
         case 0x600:
         case 0x602: /*Data0. also known as BLASTER+0x400 and EMU+0x000 */
-            switch (emu8k->cur_reg) {
-                case 0:
-                    /* The docs says that this value is constantly updating, and it should have no actual effect. Actions should be done over ptrx */
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].cpf, val);
-                    return;
-
-                case 1:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].ptrx, val);
-                    return;
-
-                case 2:
-                    /* The docs says that this value is constantly updating, and it should have no actual effect. Actions should be done over vtft */
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].cvcf, val);
-                    return;
-
-                case 3:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].vtft, val);
-                    return;
-
-                case 4:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].z2, val);
-                    return;
-
-                case 5:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].z1, val);
-                    return;
-
-                case 6:
-                    {
-                        emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
-                        WRITE16(addr, emu_voice->psst, val);
-                        /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
-                        emu_voice->loop_start.int_address = emu_voice->psst & EMU8K_MEM_ADDRESS_MASK;
-                        if (addr & 2) {
-                            emu_voice->vol_l = emu_voice->psst_pan;
-                            emu_voice->vol_r = 255 - (emu_voice->psst_pan);
-                        }
-                    }
-                    return;
-
-                case 7:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].csl, val);
-                    /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
-                    emu8k->voice[emu8k->cur_voice].loop_end.int_address = emu8k->voice[emu8k->cur_voice].csl & EMU8K_MEM_ADDRESS_MASK;
-                    return;
-
-                default:
-                    break;
-            }
-            break;
+        {
+            emu8k_voice_t *voice = &emu8k->voice[emu8k->cur_voice];
+            uint32_t *reg = emu8k_voice_dword(voice, emu8k->cur_reg);
+            WRITE16(addr, *reg, val);
+            emu8k_voice_sync(voice, emu8k->cur_reg, addr & 2);
+            return;
+        }
 
         case 0xA00: /*Data1. also known as BLASTER+0x800 and EMU+0x400 */
             switch (emu8k->cur_reg) {
@@ -1733,10 +1798,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                     {
                         emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
                         WRITE16(addr, emu_voice->ccca, val);
-                        emu_voice->addr.int_address = emu_voice->ccca & EMU8K_MEM_ADDRESS_MASK;
-                        uint32_t paramq             = CCCA_FILTQ_GET(emu_voice->ccca);
-                        emu_voice->filt_att         = filter_atten[paramq];
-                        emu_voice->filterq_idx      = paramq;
+                        emu8k_voice_sync(emu_voice, EMU8K_VOICE_CCCA, addr & 2);
                     }
                     return;
 
@@ -1991,28 +2053,11 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
         case 0xE00: /*Data3. also known as BLASTER+0xC00 and EMU+0x800 */
             switch (emu8k->cur_reg) {
                 case 0:
-                    emu8k->voice[emu8k->cur_voice].ip              = val;
-                    emu8k->voice[emu8k->cur_voice].ptrx_pit_target = freqtable[val] >> 18;
+                    emu8k_voice_set_ip(&emu8k->voice[emu8k->cur_voice], val);
                     return;
 
                 case 1:
-                    {
-                        emu8k_voice_t *const the_voice = &emu8k->voice[emu8k->cur_voice];
-                        // 86Box dropped this write on a silent voice when the low byte was 0 (an Impulse
-                        // Tracker click workaround). The card stores it: the VXD reads IFATN back and
-                        // keeps the high byte (read-modify-write 0xC0FFC47F), so the dropped init value
-                        // FF00 turned into 00FF instead of FFFF on the free voices.
-                        the_voice->ifatn           = val;
-                        the_voice->initial_att     = (((int32_t) the_voice->ifatn_attenuation << 21) / 0xFF);
-                        the_voice->vtft_vol_target = attentable[the_voice->ifatn_attenuation];
-
-                        the_voice->initial_filter = (((int32_t) the_voice->ifatn_init_filter << 21) / 0xFF);
-                        if (the_voice->ifatn_init_filter == 0xFF) {
-                            the_voice->vtft_filter_target = 0xFFFF;
-                        } else {
-                            the_voice->vtft_filter_target = the_voice->initial_filter >> 5;
-                        }
-                    }
+                    emu8k_voice_set_ifatn(&emu8k->voice[emu8k->cur_voice], val);
                     return;
 
                 case 2:
@@ -2366,7 +2411,9 @@ emu8k_update_chunk(emu8k_t *emu8k)
     int            num_active = 0;
 
     /* Voices section  */
-    for (uint8_t c = 0; c < 32; c++) {
+    for (uint8_t c = 0; c < EMU8K_VOICE_COUNT; c++) {
+        if (emu8k->pcm_voices & (1u << c))
+            continue;
         emu_voice = &emu8k->voice[c];
         buf       = &emu8k->buffer[emu8k->pos * 2];
 
@@ -2741,22 +2788,16 @@ emu8k_update_chunk(emu8k_t *emu8k)
             -In programs that use the awe, they generally set the loop address as "loopaddress -1" to compensate for the above.
             (Note: I am already using address+1 in the interpolators so these things are already as they should.)
             */
-            emu_voice->addr.addr += ((uint64_t) emu_voice->cpf_curr_pitch) << 18;
-            if (emu_voice->addr.addr >= emu_voice->loop_end.addr) {
-                emu_voice->addr.int_address -= (emu_voice->loop_end.int_address - emu_voice->loop_start.int_address);
-                emu_voice->addr.int_address &= EMU8K_MEM_ADDRESS_MASK;
-            }
+            emu8k_advance_voice(emu_voice, (uint64_t) emu_voice->cpf_curr_pitch << 18, 0);
 
             /* TODO: How and when are the target and current values updated */
-            emu_voice->cpf_curr_pitch       = emu_voice->ptrx_pit_target;
             emu_voice->cvcf_curr_volume     = emu8k_vol_slide(&emu_voice->volumeslide, emu_voice->vtft_vol_target);
             emu_voice->cvcf_curr_filt_ctoff = emu_voice->vtft_filter_target;
             emu_voice->filt_oct_curr        = emu_voice->filt_oct_target; /* AWE32Emu */
         }
 
         /* Update EMU voice registers. */
-        emu_voice->ccca               = (((uint32_t) emu_voice->ccca_qcontrol) << 24) | emu_voice->addr.int_address;
-        emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
+        emu8k_update_voice_address(emu_voice);
 
 #if 0
         if (emu_voice->cvcf_curr_volume != old_vol[c]) {
