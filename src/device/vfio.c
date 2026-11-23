@@ -263,7 +263,7 @@ static pc_timer_t      irq_timer;
 static vfio_irq_t     *current_irq = NULL;
 static const device_t  vfio_device;
 
-#define ENABLE_VFIO_LOG 2
+#define ENABLE_VFIO_LOG 1
 #ifdef ENABLE_VFIO_LOG
 int vfio_do_log = ENABLE_VFIO_LOG;
 
@@ -282,7 +282,12 @@ vfio_log(const char *fmt, ...)
 #    if ENABLE_VFIO_LOG == 2
 #        define vfio_log_op vfio_log
 #    else
-#        define vfio_log_op(fmt, ...)
+/* Keep the arguments referenced, as some variables only exist for these logs. */
+#        define vfio_log_op(fmt, ...)             \
+            do {                                  \
+                if (0)                            \
+                    vfio_log(fmt, ##__VA_ARGS__); \
+            } while (0)
 #    endif
 #else
 #    define vfio_log(fmt, ...)
