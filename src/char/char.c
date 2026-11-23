@@ -56,6 +56,7 @@ static const struct {
     { &lpt_dac_stereo_device },
     { &lpt_dac_ftl_device },
     { &lpt_dac_soundjr_device },
+    { &lpt_msound_device },
     { &lpt_adlipt_device },
     { &lpt_opl3_device },
     { &lpt_cms_device },

@@ -128,6 +128,8 @@ extern const device_t      lpt_dac_soundjr_device;
 
 extern const device_t      dss_device;
 
+extern const device_t      lpt_msound_device;
+
 extern const device_t      lpt_adlipt_device;
 extern const device_t      lpt_opl3_device;
 extern const device_t      lpt_cms_device;
