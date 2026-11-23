@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 13:47+0000\n"
+"PO-Revision-Date: 2026-11-23 13:53+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1189,12 +1189,14 @@ msgstr "Τσεκάρετε το παραπάνω κουτάκι για να το
 
 msgid "Configure is unavailable because the socket is empty.\nSelect a card first."
 msgstr ""
+"Η διαμόρφωση δεν είναι διαθέσιμη επειδή η υποδοχή είναι κενή.\n"
+"Επιλέξτε πρώτα μια κάρτα."
 
 msgid "Configure the %1."
-msgstr ""
+msgstr "Διαμόρφωση του %1."
 
 msgid "This card has no settings to configure."
-msgstr ""
+msgstr "Αυτή η κάρτα δεν διαθέτει ρυθμίσεις για διαμόρφωση."
 
 msgid "Other devices"
 msgstr "Άλλες συσκευές"
@@ -1366,13 +1368,13 @@ msgid "MO images"
 msgstr "Εικόνες MO"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "Εικόνες MD DATA"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MD DATA %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "Καλως ορίσατε στο 86Box!"
@@ -1381,7 +1383,7 @@ msgid "Internal device"
 msgstr "Εσωτερική συσκευή"
 
 msgid "External"
-msgstr ""
+msgstr "Εξωτερικός"
 
 msgid "&File"
 msgstr "&Αρχείο"
@@ -1405,13 +1407,15 @@ msgid "No ROMs found"
 msgstr "Δεν βρέθηκαν ROMs"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Μη υποστηριζόμενο υλικό"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"Το υλικό σε αυτό το προφίλ μηχανής δεν υποστηρίζεται από την τρέχουσα έκδοση "
+"του 86Box."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(και %i ακόμη)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
