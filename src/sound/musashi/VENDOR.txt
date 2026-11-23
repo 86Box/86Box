@@ -1,0 +1,17 @@
+Musashi M680x0 emulator, vendored for the Ensoniq Soundscape's 68EC000.
+
+Upstream: https://github.com/kstenerud/Musashi
+Commit:   313ebf1bd9f4d0d93341eb5ce21fd8a119e9dbdd (2026-03-08)
+License:  MIT (see readme.txt); softfloat/ is SoftFloat 2b (see softfloat/README.txt)
+
+Local changes:
+- m68kconf.h: only the 68000 is enabled, the PMMU is off, and interrupt
+  acknowledge calls sscape_m68k_int_ack() (ODIE supplies vectored IRQs).
+- m68kops.c/m68kops.h are generated, not upstream files. To regenerate:
+      cc -o m68kmake m68kmake.c && ./m68kmake . m68k_in.c
+- m68kdasm.c is not built; it is kept for debugging firmware.
+- m68kfpu.c: load_pack_float80() checks the sscanf() result (CodeQL).
+
+The core keeps its CPU state in globals and calls the global
+m68k_read_memory_* / m68k_write_memory_* functions, which snd_sscape.c
+defines, so only one Soundscape can be installed at a time.

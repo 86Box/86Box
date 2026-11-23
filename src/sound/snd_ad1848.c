@@ -342,6 +342,9 @@ ad1848_read(uint16_t addr, void *priv)
 
         case 2:
             ret = ad1848->status;
+            /* PRDY: the playback PIO data register can take a sample */
+            if (ad1848->fifo_enable && !fifo_get_full(ad1848->play_fifo))
+                ret |= 0x02;
             if (ad1848->regs[11] & 0xc0) {
                 ret |= 0x10;
                 ad1848->regs[11] &= 0x3f;
@@ -675,6 +678,9 @@ readonly_i:
             return;
 
         case 2:
+            /* A status write acknowledges the interrupt and deasserts INT. */
+            if (ad1848->status & 0x01)
+                picintc(1 << ad1848->irq);
             ad1848->status &= 0xfe;
             ad1848->regs[24] &= 0x0f;
             break;
@@ -1093,7 +1099,8 @@ ad1848_pio_poll(void *priv)
             ad1848->regs[24] &= 0xfe;
         }
 
-        int32_t temp;
+        int32_t   temp;
+        const int fifo_before = fifo_get_count(ad1848->play_fifo);
 
         switch (ad1848->regs[8] & ad1848->fmt_mask) {
             case 0x00: /* Mono, 8-bit PCM */
@@ -1210,6 +1217,22 @@ ad1848_pio_poll(void *priv)
             ad1848->out_r = 0;
         else
             ad1848->out_r = (int16_t) ((ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16);
+
+        /* PIO playback counts samples and interrupts like DMA playback does. */
+        if (fifo_get_count(ad1848->play_fifo) != fifo_before) {
+            /* a count of N interrupts after N + 1 samples */
+            if (--ad1848->count < 0) {
+                ad1848->count = ad1848->regs[15] | (ad1848->regs[14] << 8);
+                if (!(ad1848->status & 0x01)) {
+                    ad1848->status |= 0x01;
+                    ad1848->regs[24] |= 0x10;
+                }
+                if (ad1848->regs[10] & 2)
+                    picint(1 << ad1848->irq);
+                else
+                    picintc(1 << ad1848->irq);
+            }
+        }
     } else {
         ad1848->out_l = ad1848->out_r = 0;
         ad1848->cd_vol_l = ad1848->cd_vol_r = 0;

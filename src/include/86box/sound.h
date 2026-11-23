@@ -347,6 +347,9 @@ extern const device_t es1373_onboard_device;
 extern const device_t ct5880_device;
 extern const device_t ct5880_onboard_device;
 
+/* Ensoniq Soundscape */
+extern const device_t sscape_device;
+
 /* Gravis UltraSound family */
 extern const device_t gus_device;
 extern const device_t gus_v34_device;
