@@ -3496,7 +3496,7 @@ scsi_cdrom_philips_start_write(scsi_cdrom_t *dev, const int raw, const int aud, 
     if (dev->ms_pages_saved.pages[GPMODE_SPEED_PAGE_PHILIPS][3] & 0x01)
         p[2] |= 0x10;
 
-    p[3] = (aud ? 0x00 : 0x04) | ((copy != 0x00) ? 0x02 : 0x00);
+    p[3] = (aud ? ((mode & 0x01) ? 0x01 : 0x00) : 0x04) | ((copy != 0x00) ? 0x02 : 0x00);
     p[4] = dbt;
 
     dev->philips_in_seq = 1;
@@ -3814,8 +3814,8 @@ scsi_cdrom_command_philips(void *sc, const uint8_t *cdb, int32_t *BufLen)
             if (!have_wi)
                 scsi_cdrom_philips_error(dev, SENSE_ILLEGAL_REQUEST, 0xa3);
             else if ((cdb[9] & 0x40) ||
-                     scsi_cdrom_philips_start_write(dev, !!(flags & 0x10), !!(flags & 0x08), flags & 0x07,
-                                                    (flags >> 5) & 0x03, 0))
+                     scsi_cdrom_philips_start_write(dev, !!(flags & 0x10), !!(flags & 0x04), flags & 0x03,
+                                                    (flags >> 5) & 0x03, !!(flags & 0x08)))
                 scsi_cdrom_invalid_field(dev, flags);
             else {
                 /* The data is taken as a WRITE (10) that starts at the next writable address. */
