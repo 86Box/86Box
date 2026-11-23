@@ -184,11 +184,14 @@ static void
 page_store_fast_clear(page_t *page)
 {
     page->store_fast_mask = 0;
+    page->store_full_mask = 0;
     if (!page->byte_masks_own && page->byte_dirty_mask && (page->byte_dirty_mask >= byte_dirty_mask)) {
         const uintptr_t owner = (uintptr_t) (page->byte_dirty_mask - byte_dirty_mask) / 64;
 
-        if ((owner < pages_sz) && (pages[owner].byte_dirty_mask == page->byte_dirty_mask))
+        if ((owner < pages_sz) && (pages[owner].byte_dirty_mask == page->byte_dirty_mask)) {
             pages[owner].store_fast_mask = 0;
+            pages[owner].store_full_mask = 0;
+        }
     }
 }
 #ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK

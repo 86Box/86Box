@@ -1825,8 +1825,18 @@ codegen_mem_slow(codeblock_t *block, const mem_slow_t *slow)
     if (slow->misaligned_p)
         jump_here(slow->misaligned_p);
     jump_here(slow->miss_p);
-    host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
-    host_x86_CALL(block, slow->rout);
+    /*A byte, word or long store goes straight to its routine's entry behind
+      the writelookup2 test, which the block has just done*/
+    if (slow->store && (slow->rout == codegen_mem_store_byte) && codegen_mem_store_byte_tracked)
+        host_x86_CALL(block, codegen_mem_store_byte_tracked);
+    else if (slow->store && (slow->rout == codegen_mem_store_word) && codegen_mem_store_word_tracked)
+        host_x86_CALL(block, codegen_mem_store_word_tracked);
+    else if (slow->store && (slow->rout == codegen_mem_store_long) && codegen_mem_store_long_tracked)
+        host_x86_CALL(block, codegen_mem_store_long_tracked);
+    else {
+        host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
+        host_x86_CALL(block, slow->rout);
+    }
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     codegen_exit_Jcc_add(block, slow->add, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
     if (!slow->store) {

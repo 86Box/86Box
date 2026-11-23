@@ -677,6 +677,15 @@ host_arm64_CBNZ_(codeblock_t *block, int reg)
     codegen_addlong(block, OPCODE_B);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }
+/*CBZ Xreg in the same template: a CBNZ over the B*/
+uint32_t *
+host_arm64_CBZ_(codeblock_t *block, int reg)
+{
+    codegen_alloc(block, 12);
+    codegen_addlong(block, OPCODE_CBNZ | OFFSET19(8) | Rt(reg));
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
 
 void
 host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
@@ -1995,6 +2004,14 @@ host_arm64_TBNZ(codeblock_t *block, int reg, int bit)
 {
     codegen_alloc(block, 12);
     codegen_addlong(block, OPCODE_TBZ | Rt(reg) | BIT_TBxZ(bit) | OFFSET14(8));
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_TBZ(codeblock_t *block, int reg, int bit)
+{
+    codegen_alloc(block, 12);
+    codegen_addlong(block, OPCODE_TBNZ | Rt(reg) | BIT_TBxZ(bit) | OFFSET14(8));
     codegen_addlong(block, OPCODE_B);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }

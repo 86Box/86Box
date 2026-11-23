@@ -48,6 +48,7 @@ uint32_t *host_arm64_BPL_(codeblock_t *block);
 uint32_t *host_arm64_BVC_(codeblock_t *block);
 uint32_t *host_arm64_BVS_(codeblock_t *block);
 uint32_t *host_arm64_CBNZ_(codeblock_t *block, int reg);
+uint32_t *host_arm64_CBZ_(codeblock_t *block, int reg);
 
 void host_arm64_branch_set_offset(uint32_t *opcode, void *dest);
 
@@ -291,6 +292,7 @@ void host_arm64_SUB_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int src_
 void host_arm64_SUB_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
 uint32_t *host_arm64_TBNZ(codeblock_t *block, int reg, int bit);
+uint32_t *host_arm64_TBZ(codeblock_t *block, int reg, int bit);
 
 #define host_arm64_TST_IMM(block, src_n_reg, imm_data) host_arm64_ANDS_IMM(block, REG_XZR, src_n_reg, imm_data)
 

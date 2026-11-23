@@ -237,6 +237,10 @@ typedef struct page_t {
 
     uint8_t *mem;
 
+    /*The chunks of store_fast_mask whose bytes are all dirty: any store there
+      changes no mask. Right after mem, so both load as a pair.*/
+    uint64_t store_full_mask;
+
     /*Chunks that hold no code and whose dirty bit is set, of a page that owns
       its byte masks: a store there whose bytes are already dirty changes no
       mask. Cleared whenever a chunk gets code or the dirty bits are cleared.*/
