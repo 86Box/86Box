@@ -1915,22 +1915,19 @@ msgstr "Audio:"
 msgid "ACPI shutdown"
 msgstr "Arresto ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Arresto ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Arresto &ACPI"
 
 msgid "Power off"
 msgstr "Arresta"
 
-msgid "Power &off…"
-msgstr "&Arresta…"
-
 msgid "Power &off"
 msgstr "&Arresta"
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

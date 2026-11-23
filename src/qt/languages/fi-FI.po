@@ -1867,22 +1867,19 @@ msgstr "Ääni:"
 msgid "ACPI shutdown"
 msgstr "ACPI-sammutus"
 
-msgid "ACP&I shutdown"
-msgstr "ACP&I-sammutus"
+msgid "&ACPI shutdown"
+msgstr "&ACPI-sammutus"
 
 msgid "Power off"
-msgstr ""
-
-msgid "Power &off…"
 msgstr ""
 
 msgid "Power &off"
 msgstr ""
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

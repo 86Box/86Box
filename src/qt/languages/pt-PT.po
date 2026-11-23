@@ -1868,22 +1868,19 @@ msgstr "Som:"
 msgid "ACPI shutdown"
 msgstr "Encerramento ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Encerramento ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Encerramento &ACPI"
 
 msgid "Power off"
 msgstr "Desligar"
 
-msgid "Power &off…"
-msgstr "&Desligar…"
-
 msgid "Power &off"
 msgstr "&Desligar"
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"

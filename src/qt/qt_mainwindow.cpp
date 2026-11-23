@@ -590,6 +590,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef Q_OS_MACOS
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setVisible(false);
+#else
+    /* Hard power off is the same as exiting. Only macOS needs it, since Qt
+       moves Exit out of the Action menu into the application menu there. */
+    ui->actionPower_off->setVisible(false);
 #endif
 
     if ((QApplication::platformName().contains("eglfs") || QApplication::platformName() == "haiku")) {
@@ -1970,19 +1974,21 @@ MainWindow::hasKanaLock()
     return machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
 }
 
-/* Labels the power off action, which only asks for confirmation without ACPI. */
+/* Labels the soft power off action after the method it uses: ACPI, or another
+   soft power device. Machines with neither can only be powered off hard. Both
+   labels share the same mnemonic. */
 void
 MainWindow::updatePowerOffAction()
 {
     const bool has_power_button = device_has_power_button();
-    if (acpi_enabled || has_power_button) {
-        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
+    if (!acpi_enabled && has_power_button) {
+        ui->actionACPI_Shutdown->setText(tr("Softw&are shutdown"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Software shutdown"));
     } else {
-        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
+        ui->actionACPI_Shutdown->setText(tr("&ACPI shutdown"));
+        ui->actionACPI_Shutdown->setToolTip(tr("ACPI shutdown"));
     }
-    ui->actionACPI_Shutdown->setEnabled(true);
+    ui->actionACPI_Shutdown->setEnabled(acpi_enabled || has_power_button);
 }
 
 void
@@ -3116,13 +3122,14 @@ MainWindow::on_actionACPI_Shutdown_triggered()
         return;
     }
 
-    if (device_has_power_button()) {
+    if (device_has_power_button())
         runctl_call_wait([](void *) { device_power_button(); }, nullptr);
-        return;
-    }
+}
 
-    /* Without a soft-power method the only way to power the machine off is to
-     * stop the emulator: a hard power off is equivalent to exiting 86Box. */
+/* A hard power off is equivalent to exiting 86Box. */
+void
+MainWindow::on_actionPower_off_triggered()
+{
     if (confirm_exit && confirm_exit_cmdl) {
         QMessageBox questionbox(QMessageBox::Icon::Warning, EMU_NAME, tr("Powering off the emulated machine may cause data loss. Are you sure you want to continue?"), QMessageBox::Yes | QMessageBox::No, this);
         questionbox.setDefaultButton(QMessageBox::No);

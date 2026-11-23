@@ -124,6 +124,7 @@
         <file>qt/icons/hard_reset.ico</file>
         <file>qt/icons/pause.ico</file>
         <file>qt/icons/run.ico</file>
+        <file>qt/icons/stop.ico</file>
         <file>qt/icons/send_cad.ico</file>
         <file>qt/icons/send_cae.ico</file>
         <file>qt/icons/settings.ico</file>

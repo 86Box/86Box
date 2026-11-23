@@ -1900,22 +1900,19 @@ msgstr "Аудіо:"
 msgid "ACPI shutdown"
 msgstr "Сигнал завершення ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Сигнал завершення ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Сигнал завершення &ACPI"
 
 msgid "Power off"
 msgstr "Вимкнути живлення"
 
-msgid "Power &off…"
-msgstr "Вимкнути &живлення…"
-
 msgid "Power &off"
 msgstr "Вимкнути &живлення"
 
-msgid "Power &off (soft)"
+msgid "Softw&are shutdown"
 msgstr ""
 
-msgid "Power off (soft)"
+msgid "Software shutdown"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
