@@ -520,6 +520,12 @@ mem_held_w(uint32_t addr)
     return ptr;
 }
 
+int
+mem_held_write_listed(uint32_t page)
+{
+    return mem_held_num && (CPL == 3) && (writelookup_held_at(page) >= 0);
+}
+
 uintptr_t
 mem_held_read(uint32_t addr)
 {

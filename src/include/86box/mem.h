@@ -324,8 +324,10 @@ extern uint32_t  mmut_hit_w_page;
 
 /* The lookup entries held out of the tables while the CPU is in ring 3
    (mem.c): how many, what the tables would hold for an access they are held
-   for, and their move into the tables. */
+   for, and their move into the tables; whether a write to the page would
+   look at an entry held, with nothing moved. */
 extern int       mem_held_num;
+extern int       mem_held_write_listed(uint32_t page);
 extern uintptr_t mem_held_read(uint32_t addr);
 extern page_t   *mem_held_write_page(uint32_t page);
 extern void      mem_held_promote(void);

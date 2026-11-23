@@ -2129,9 +2129,58 @@ far_pm_fast_load_cs(uint16_t seg, const uint16_t *segdat)
     cpl_override = 0;
 }
 
+/* Where the aligned push of width bytes at a goes: the writememw() /
+   writememl() hit, or on a page holding code (page_lookup) a 64-byte chunk
+   where mem_write_ramw_page() / mem_write_raml_page() would store the data
+   and change no mask: no code in it, and all its bytes dirty
+   (store_full_mask) or the pushed ones (store_fast_mask). *tracked is set
+   for those, which writememwl() / writememll() reach with no breakpoint
+   armed and no entry held for the page. NULL when the C path is to run. */
+static inline uint8_t *
+far_pm_fast_push_ptr(uint32_t a, uint32_t width, int *tracked)
+{
+    const uintptr_t w = writelookup2[a >> 12];
+#ifndef USE_GDBSTUB
+    const page_t *p;
+    uint32_t      c;
+    uint64_t      bytes;
+#endif
+
+    *tracked = 0;
+    if (a & (width - 1))
+        return NULL;
+    if (w != (uintptr_t) LOOKUP_INV)
+        return (uint8_t *) (w + a);
+#ifdef USE_GDBSTUB
+    return NULL;
+#else
+    p = page_lookup[a >> 12];
+    if (!p || cpu_dr_armed || (mem_held_num && mem_held_write_listed(a >> 12)))
+        return NULL;
+    c = (a >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+    if (!((p->store_full_mask >> c) & 1)) {
+        bytes = (((uint64_t) 1 << width) - 1) << (a & PAGE_BYTE_MASK_MASK);
+        if (!((p->store_fast_mask >> c) & 1) || ((p->byte_dirty_mask[c] & bytes) != bytes))
+            return NULL;
+    }
+    *tracked = 1;
+    return &p->mem[a & 0xfff];
+#endif
+}
+
+/* What writememwl() / writememll() leave besides the store */
+static inline void
+far_pm_fast_push_tracked(uint32_t a, uint32_t width)
+{
+    for (uint32_t i = 0; i < width; i++)
+        addr64a[i] = a + i;
+    mem_logical_addr = a;
+    high_page        = 0;
+}
+
 /* CALL_FAR_w/l with loadcscall(), new_pc the target offset and ret_pc the
    address after the instruction: both items of the return address within
-   the SS limits and stored by the writememw()/writememl() hit, the target
+   the SS limits and stored as far_pm_fast_push_ptr() says, the target
    within the new CS limit. Returns 0, with nothing written, when the C
    path is to run */
 int
@@ -2144,12 +2193,13 @@ call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int is32)
     uint32_t       sp2;
     uint32_t       a1;
     uint32_t       a2;
-    uintptr_t      w1;
-    uintptr_t      w2;
+    uint8_t       *h1;
+    uint8_t       *h2;
+    int            t1;
+    int            t2;
     uint32_t       old_cs;
 
-    if (!far_pm_fast_ok() || !far_pm_fast_desc(seg, &addr, segdat) || !far_pm_fast_code(seg, segdat) ||
-        !call_far_frame_in_limits(is32) || (new_pc > desc_limit(segdat)))
+    if (!far_pm_fast_ok() || (ss == 0xffffffff))
         return 0;
     if (stack32) {
         sp1 = ESP - width;
@@ -2160,10 +2210,12 @@ call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int is32)
     }
     a1 = ss + sp1;
     a2 = ss + sp2;
-    w1 = writelookup2[a1 >> 12];
-    w2 = writelookup2[a2 >> 12];
-    if ((ss == 0xffffffff) || (w1 == (uintptr_t) LOOKUP_INV) || (w2 == (uintptr_t) LOOKUP_INV) || (a1 & (width - 1)) ||
-        (a2 & (width - 1)))
+    h1 = far_pm_fast_push_ptr(a1, width, &t1);
+    if (!h1)
+        return 0;
+    h2 = far_pm_fast_push_ptr(a2, width, &t2);
+    if (!h2 || !far_pm_fast_desc(seg, &addr, segdat) || !far_pm_fast_code(seg, segdat) ||
+        !call_far_frame_in_limits(is32) || (new_pc > desc_limit(segdat)))
         return 0;
 
     old_cs                = CS;
@@ -2179,13 +2231,18 @@ call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int is32)
     far_pm_fast_load_cs(seg, segdat);
     cycles -= timing_call_pm;
     oldss = ss;
-    if (is32) {
-        *(uint32_t *) (w1 + a1) = old_cs;
-        *(uint32_t *) (w2 + a2) = ret_pc;
-    } else {
-        *(uint16_t *) (w1 + a1) = old_cs;
-        *(uint16_t *) (w2 + a2) = ret_pc;
-    }
+    if (t1)
+        far_pm_fast_push_tracked(a1, width);
+    if (is32)
+        *(uint32_t *) h1 = old_cs;
+    else
+        *(uint16_t *) h1 = old_cs;
+    if (t2)
+        far_pm_fast_push_tracked(a2, width);
+    if (is32)
+        *(uint32_t *) h2 = ret_pc;
+    else
+        *(uint16_t *) h2 = ret_pc;
     if (stack32)
         ESP = sp2;
     else
