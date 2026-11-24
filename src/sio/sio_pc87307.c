@@ -141,7 +141,6 @@ typedef struct pc87307_t {
     uint8_t   pm[0x20];
     uint16_t  superio_base;
     uint16_t  gpio_base;
-    uint16_t  gpio_base2;
     uint16_t  pm_base;
     int       cur_reg;
     void     *kbc;
@@ -301,22 +300,19 @@ pc87307_gpio_remove(pc87307_t *dev)
                          pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
         dev->gpio_base = 0xffff;
     }
-
-    if (dev->gpio_base2 != 0xffff) {
-        io_removehandler(dev->gpio_base2, 0x0008,
-                         pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
-        dev->gpio_base2 = 0xffff;
-    }
 }
 
+/* One base address for both banks (data sheet 8.1, indexes 60h and 61h of
+   logical device 7); the active bank is the GPIO Bank Select bit of SCNF2
+   and is decoded in the read and write handlers, not by a second base.
+   The data sheet also requires a GPIO port not share an address with
+   another PC87307/PC97307 register (8.1). */
 static void
-pc87307_gpio_init(pc87307_t *dev, int bank, uint16_t addr)
+pc87307_gpio_init(pc87307_t *dev, uint16_t addr)
 {
-    uint16_t *bank_base = bank ? &(dev->gpio_base2) : &(dev->gpio_base);
+    dev->gpio_base = addr;
 
-    *bank_base = addr;
-
-    io_sethandler(*bank_base, 0x0008,
+    io_sethandler(dev->gpio_base, 0x0008,
                   pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
 }
 
@@ -988,14 +984,10 @@ gpio_handler(pc87307_t *dev)
                       (!dev->is_97317 || (dev->pm[0x01] & FER2_GPIO));
     uint16_t addr   = (dev->ld_regs[LD_GPIO][0x30] << 8) |
                       dev->ld_regs[LD_GPIO][0x31];
-    uint16_t addr_2 = (dev->ld_regs[LD_GPIO][0x32] << 8) |
-                      dev->ld_regs[LD_GPIO][0x33];
 
     if (active) {
-        pc87307_log("Enabling GPIO #1 on %04X...\n", addr);
-        pc87307_gpio_init(dev, 0, addr);
-        pc87307_log("Enabling GPIO #2 on %04X...\n", addr_2);
-        pc87307_gpio_init(dev, 1, addr_2);
+        pc87307_log("Enabling GPIO on %04X...\n", addr);
+        pc87307_gpio_init(dev, addr);
     }
 }
 
@@ -1971,21 +1963,7 @@ const device_t pc87307_15c_device = {
     .name          = "National Semiconductor PC87307 Super I/O (Port 15Ch)",
     .internal_name = "pc87307_15c",
     .flags         = 0,
-    .local         = 0x2c0,
-    .init          = pc87307_init,
-    .close         = pc87307_close,
-    .reset         = pc87307_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t pc87307_both_device = {
-    .name          = "National Semiconductor PC87307 Super I/O (Ports 2Eh and 15Ch)",
-    .internal_name = "pc87307_both",
-    .flags         = 0,
-    .local         = 0x3c0,
+    .local         = 0x2c0 | PCX730X_15C,
     .init          = pc87307_init,
     .close         = pc87307_close,
     .reset         = pc87307_reset,
