@@ -58,6 +58,14 @@ static mutex_t *input_mutex         = NULL;
    point at a newly selected one while the old one is still open. */
 static int    active_backend        = 0;
 
+/* Input may be provided by another backend than the output one (XAudio2 and
+   FAudio can not capture, so OpenAL is used for that). */
+static int    input_backend         = -1;
+static void * input_handle          = NULL;
+static int    input_own_handle      = 0;
+
+#define IN_BACKEND (((input_backend >= 0) ? sound_backends[input_backend].backend : NULL))
+
 #define CUR_BACKEND (sound_backends[active_backend].backend)
 
 int
@@ -99,11 +107,31 @@ sound_backend_get_output_devices_of(const int backend)
     return NULL;
 }
 
+static int
+sound_backend_input_provider(const int backend)
+{
+    if (!sound_backend_valid(backend))
+        return -1;
+
+    if (sound_backends[backend].backend->init_input != NULL)
+        return backend;
+
+    for (int c = 0; sound_backends[c].backend != NULL; c++) {
+        if ((sound_backends[c].backend->init_input != NULL) &&
+            !strcmp(sound_backends[c].backend->internal_name, "openal"))
+            return c;
+    }
+
+    return -1;
+}
+
 const char *
 sound_backend_get_input_devices_of(const int backend)
 {
-    if (sound_backend_valid(backend) && (sound_backends[backend].backend->get_input_devices != NULL))
-        return sound_backends[backend].backend->get_input_devices();
+    const int prov = sound_backend_input_provider(backend);
+
+    if ((prov >= 0) && (sound_backends[prov].backend->get_input_devices != NULL))
+        return sound_backends[prov].backend->get_input_devices();
 
     return NULL;
 }
@@ -233,22 +261,43 @@ sound_backend_input_open(void)
     /* Opening a capture device can take a while, so do it without holding
        the lock the emulation thread needs to poll the input. */
     sound_backend_input_lock();
-    const int need = (cur_input == NULL) && sound_input_enabled && (CUR_BACKEND != NULL) &&
-                     (CUR_BACKEND->init_input != NULL);
-    const sound_backend_t *be = CUR_BACKEND;
+    const int prov = sound_backend_input_provider(active_backend);
+    const int need = (cur_input == NULL) && sound_input_enabled && (prov >= 0);
+    const int cur_active = active_backend;
     sound_backend_input_unlock();
 
     if (!need)
         return;
 
-    void *in = be->init_input(cur_backend, (sb_input_rate == FREQ_48000) ? FREQ_48000 : FREQ_44100);
+    const sound_backend_t *be     = sound_backends[prov].backend;
+    void                  *handle = cur_backend;
+    int                    own    = 0;
+
+    if (prov != cur_active) {
+        if (be->init != NULL)
+            handle = be->init();
+        own = 1;
+        if (handle == NULL)
+            return;
+    }
+
+    void *in = be->init_input(handle, (sb_input_rate == FREQ_48000) ? FREQ_48000 : FREQ_44100);
 
     sound_backend_input_lock();
-    if ((in != NULL) && (cur_input == NULL) && (CUR_BACKEND == be))
-        cur_input = in;
-    else if ((in != NULL) && (be->close_input != NULL))
-        be->close_input(cur_backend, in);
+    if ((in != NULL) && (cur_input == NULL) && (active_backend == cur_active)) {
+        cur_input        = in;
+        input_backend    = prov;
+        input_handle     = handle;
+        input_own_handle = own;
+        sound_backend_input_unlock();
+        return;
+    }
     sound_backend_input_unlock();
+
+    if ((in != NULL) && (be->close_input != NULL))
+        be->close_input(handle, in);
+    if (own && (be->close != NULL))
+        be->close(handle);
 }
 
 void
@@ -257,10 +306,17 @@ sound_backend_input_close(void)
     sound_backend_input_lock();
 
     if (cur_input != NULL) {
-        if ((CUR_BACKEND != NULL) && (CUR_BACKEND->close_input != NULL))
-            CUR_BACKEND->close_input(cur_backend, cur_input);
+        const sound_backend_t *be = IN_BACKEND;
 
-        cur_input = NULL;
+        if ((be != NULL) && (be->close_input != NULL))
+            be->close_input(input_handle, cur_input);
+        if (input_own_handle && (be != NULL) && (be->close != NULL))
+            be->close(input_handle);
+
+        cur_input        = NULL;
+        input_handle     = NULL;
+        input_backend    = -1;
+        input_own_handle = 0;
     }
 
     sound_backend_input_unlock();
@@ -281,8 +337,8 @@ sound_backend_input_start(void)
 {
     sound_backend_input_lock();
 
-    if ((cur_input != NULL) && (CUR_BACKEND->start_input != NULL))
-        CUR_BACKEND->start_input(cur_backend, cur_input);
+    if ((cur_input != NULL) && (IN_BACKEND->start_input != NULL))
+        IN_BACKEND->start_input(input_handle, cur_input);
 
     sound_backend_input_unlock();
 }
@@ -292,8 +348,8 @@ sound_backend_input_stop(void)
 {
     sound_backend_input_lock();
 
-    if ((cur_input != NULL) && (CUR_BACKEND->stop_input != NULL))
-        CUR_BACKEND->stop_input(cur_backend, cur_input);
+    if ((cur_input != NULL) && (IN_BACKEND->stop_input != NULL))
+        IN_BACKEND->stop_input(input_handle, cur_input);
 
     sound_backend_input_unlock();
 }
@@ -305,8 +361,8 @@ sound_backend_input_get_rate(void)
 
     sound_backend_input_lock();
 
-    if ((cur_input != NULL) && (CUR_BACKEND->get_input_rate != NULL))
-        rate = CUR_BACKEND->get_input_rate(cur_backend, cur_input);
+    if ((cur_input != NULL) && (IN_BACKEND->get_input_rate != NULL))
+        rate = IN_BACKEND->get_input_rate(input_handle, cur_input);
 
     sound_backend_input_unlock();
 
@@ -321,8 +377,8 @@ sound_backend_input_get_data(int16_t *buf, size_t *len)
 
     sound_backend_input_lock();
 
-    if ((cur_input != NULL) && (CUR_BACKEND->get_input_data != NULL))
-        CUR_BACKEND->get_input_data(cur_backend, cur_input, buf, len);
+    if ((cur_input != NULL) && (IN_BACKEND->get_input_data != NULL))
+        IN_BACKEND->get_input_data(input_handle, cur_input, buf, len);
     else
         *len = 0;
 
