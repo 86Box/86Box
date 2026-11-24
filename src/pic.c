@@ -1325,6 +1325,38 @@ picint_steered(uint16_t num, int level, int set, uint8_t *irq_state)
     picint_lines(num, level, set, irq_state, 0);
 }
 
+#ifdef USE_VFIO
+/* The I/O APIC side of an IRQ line, for a level source which reaches the 8259 by
+   picint_steered: the wired-OR of every level source on the line. */
+void
+picint_ioapic_level(uint16_t num, int set, uint8_t *irq_state)
+{
+    uint16_t apic_lines = 0x0000;
+
+    if ((!!*irq_state) == !!set)
+        return;
+    *irq_state = !!set;
+
+    /* IRQ 2 on the bus is IRQ 9. */
+    if (num & 0x0004)
+        num = (num & ~0x0004) | 0x0200;
+
+    for (uint8_t i = 0; i < 16; i++) {
+        if (!(num & (1 << i)))
+            continue;
+        if (set)
+            pic_ioapic_lines[i]++;
+        else if (pic_ioapic_lines[i])
+            pic_ioapic_lines[i]--;
+        if (pic_ioapic_lines[i] == (!!set))
+            apic_lines |= 1 << i;
+    }
+
+    if (apic_lines)
+        ioapic_legacy_irq(apic_lines, PIC_IRQ_LEVEL, set);
+}
+#endif
+
 static uint8_t
 pic_i86_mode(pic_t *dev)
 {

@@ -559,6 +559,21 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
     if (direct_intin_route)
         pci_apic_direct_intin(intin, irq_line, set, irq_state);
 
+#ifdef USE_VFIO
+    /* VFIO is an edge to the 8259 (see above), which keeps no state for it, and
+       which the I/O APIC input of the IRQ would see as a pulse. Track the level
+       here, and hold that input like the level it is, as VFIO only finds out
+       whether the device is still asserting when the I/O APIC asks on EOI. */
+    if (is_vfio && (irq_state != NULL)) {
+        picint_steered(1 << irq_line, level, set, irq_state);
+        if (pirq_wired)
+            *irq_state = !!set;
+        else
+            picint_ioapic_level(1 << irq_line, set, irq_state);
+        return;
+    }
+#endif
+
     if (pirq_wired)
         picint_steered(1 << irq_line, level, set, irq_state);
     else
