@@ -1244,8 +1244,11 @@ addreadlookup(uint32_t virt, uint32_t phys)
     uintptr_t ptr;
 
     /* Nothing goes in while a debug register breakpoint is armed, so that
-       every access is checked (cpu_dr7_update()). */
-    if ((virt == 0xffffffff) || cpu_dr_armed)
+       every access is checked (cpu_dr7_update()). Nothing goes in from a
+       device thread either: its physical reads have no linear address,
+       mem_logical_addr then holds the CPU thread's current one, and the
+       table is the CPU thread's alone. */
+    if (!is_cpu_thread || (virt == 0xffffffff) || cpu_dr_armed)
         return;
 
     if (GDBSTUB_WATCHED(virt))
@@ -3034,14 +3037,29 @@ mem_read_mapping_at(uint32_t addr)
     return read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
 }
 
+/* A physical read has no linear address and no walk of its own, so on the
+   CPU thread it clears both, and a read handler it reaches adds no lookup
+   entry from an older walk or access. Device threads (a bus master that
+   runs on its own thread) read through here as well. The walk and the
+   linear address belong to the CPU thread, which may be in the middle of
+   an access when such a read comes, so a device thread leaves them as they
+   are, and addreadlookup() adds nothing for it. */
+static __inline void
+mem_phys_read_start(void)
+{
+    if (is_cpu_thread) {
+        mmu_walk_forget();
+        mem_logical_addr = 0xffffffff;
+    }
+}
+
 uint8_t
 mem_readb_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
     uint8_t        ret = 0xff;
 
-    mmu_walk_forget();
-    mem_logical_addr = 0xffffffff;
+    mem_phys_read_start();
 
     if (map) {
         const uint8_t *p = mem_phys_exec(map, addr, 1);
@@ -3062,8 +3080,7 @@ mem_readw_phys(uint32_t addr)
     uint16_t        ret;
     const uint16_t *p;
 
-    mmu_walk_forget();
-    mem_logical_addr = 0xffffffff;
+    mem_phys_read_start();
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (p = (uint16_t *) mem_phys_exec(map, addr, 2))) {
         ret = *p;
@@ -3084,8 +3101,7 @@ mem_readl_phys(uint32_t addr)
     uint32_t        ret;
     const uint32_t *p;
 
-    mmu_walk_forget();
-    mem_logical_addr = 0xffffffff;
+    mem_phys_read_start();
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (p = (uint32_t *) mem_phys_exec(map, addr, 4))) {
         ret = *p;
@@ -3126,8 +3142,7 @@ mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
     uint8_t *p    = (uint8_t *) dest;
     uint32_t done = 0;
 
-    mmu_walk_forget();
-    mem_logical_addr = 0xffffffff;
+    mem_phys_read_start();
 
     if (!cpu_use_exec)
         return 0;

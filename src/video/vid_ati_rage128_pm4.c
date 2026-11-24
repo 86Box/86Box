@@ -27,15 +27,19 @@
  *          vid_ati_rage128.h.
  *
  *          Through the on-chip PCI GART, the table and the pages it maps
- *          in system RAM are read straight through the ram array, which
- *          touches no CPU-thread state. The AGP aperture, and table
- *          entries that point into it, are read through dma_bm_read,
- *          from the CCE thread as well, the way the Voodoo FIFO thread
- *          reads an AGP command FIFO with mem_readl_phys. Every write the
- *          device makes to guest memory goes through dma_bm_write on the
- *          CPU thread, which marks the pages changed and drops recompiled
- *          code built from them; a write-back the CCE thread needs is
- *          handed to the CPU thread (rage128_pm4_wb_handoff).
+ *          in system RAM are read straight through the ram array. The AGP
+ *          aperture, and table entries that point into it, are read
+ *          through dma_bm_read, from the CCE thread as well, the way the
+ *          Voodoo FIFO thread reads an AGP command FIFO with
+ *          mem_readl_phys. A physical read made off the CPU thread leaves
+ *          the CPU thread's memory state alone: the page walk it last
+ *          recorded, the linear address of the access it is making, and
+ *          its read lookup table, which only the CPU thread fills. Every
+ *          write the device makes to guest memory goes through
+ *          dma_bm_write on the CPU thread, which marks the pages changed
+ *          and drops recompiled code built from them; a write-back the
+ *          CCE thread needs is handed to the CPU thread
+ *          (rage128_pm4_wb_handoff).
  *
  *          Relevant literature:
  *
@@ -227,9 +231,9 @@ rage128_pm4_reset(rage128_t *dev)
 }
 
 /* One dword of guest system RAM, read straight from the ram array.
-   Usable from any thread: unlike mem_read_phys and dma_bm_read it
-   touches no CPU-thread state (mem_readl_phys stores mem_logical_addr).
-   Returns 0 for an address past the end of RAM. */
+   Usable from any thread: it takes no mapping lookup and calls no read
+   handler, so it reads only installed RAM. Returns 0 for an address past
+   the end of RAM. */
 static inline int
 rage128_guest_ram_readl(uint32_t phys, uint32_t *val)
 {
