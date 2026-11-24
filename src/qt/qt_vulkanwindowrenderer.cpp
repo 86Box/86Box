@@ -670,7 +670,6 @@ VulkanWindowRenderer::render()
         finalize();
         return;
     }
-    m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
     /* Only the part of the image that lands inside the swapchain can be blitted, copied or used as a viewport. */
@@ -1205,6 +1204,7 @@ VulkanWindowRenderer::render()
     submitInfo.signalSemaphoreCount = 1;
 
     // Submit to the graphics queue passing a wait fence
+    m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto submit_res = m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
     if (submit_res != VK_SUCCESS) {
         QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(submit_res));
