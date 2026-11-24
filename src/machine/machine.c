@@ -44,6 +44,11 @@
 
 int bios_only = 0;
 int machine;
+
+static int   power_button_type = -1;
+static void (*power_button_press)(void *priv);
+static void *power_button_priv;
+
 // int AT, PCI;
 
 #ifdef ENABLE_MACHINE_LOG
@@ -64,12 +69,35 @@ machine_log(const char *fmt, ...)
 #    define machine_log(fmt, ...)
 #endif
 
+void
+machine_set_power_button(int type, void (*press)(void *priv), void *priv)
+{
+    power_button_type  = press ? type : -1;
+    power_button_press = press;
+    power_button_priv  = press ? priv : NULL;
+}
+
+int
+machine_power_button_type(void)
+{
+    return power_button_type;
+}
+
+void
+machine_power_button_press(void)
+{
+    if (power_button_press != NULL)
+        power_button_press(power_button_priv);
+}
+
 static int
 machine_init_ex(int m)
 {
     int ret = 0;
 
     is_pcjr = !!machine_has_bus(machine, MACHINE_BUS_SIDECAR);
+
+    machine_set_power_button(-1, NULL, NULL);
 
     if (!bios_only) {
         machine_log("Initializing as \"%s\"\n", machine_getname(machine));

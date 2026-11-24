@@ -120,7 +120,7 @@ startup), `frames` (frames rendered) and `held`.
 | `media remove <name>` | Delete a file received with `media put`. |
 | `log [<from> [<max>]]` | What 86Box has written to its log, from position `from` (bytes logged since startup; default 0) on, at most `max` bytes (default and limit 65536), as `text`: the last 64 KB are kept. With `from`, `next` (the `from` for the next read), `pos` (bytes logged so far) and `lost` (bytes asked for that were no longer kept). Includes warnings, which 86Box logs instead of showing them (see [Warnings](#warnings)); a release build logs little else. |
 | `reset hard` / `reset cad` | Hard reset, or send Ctrl+Alt+Del. |
-| `quit soft` | Soft power-off, like the GUI "Power off (soft)" button. Machine must not be held. |
+| `quit soft` | Press the machine's power button, like the GUI "ACPI shutdown" / "Suspend" action; a hard power-off on machines without one. Machine must not be held. |
 | `quit` | Power off and exit 86Box. |
 
 Numbers accept C syntax (`0x` hex, decimal).

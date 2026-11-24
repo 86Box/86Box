@@ -1882,10 +1882,10 @@ msgstr "Uitschakelen"
 msgid "Power &off"
 msgstr "&Uitschakelen"
 
-msgid "Softw&are shutdown"
+msgid "Suspen&d"
 msgstr ""
 
-msgid "Software shutdown"
+msgid "Suspend"
 msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
