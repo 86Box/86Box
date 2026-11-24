@@ -105,6 +105,13 @@ static int      pic_resampling = 0;
 
 static uint8_t pic_level_triggered(pic_t *dev, int irq);
 
+/* Have a level resampled before it is delivered. */
+void
+pic_resample_mark(int irq)
+{
+    pic_acked |= 1 << irq;
+}
+
 static void
 pic_resample(int irq)
 {
