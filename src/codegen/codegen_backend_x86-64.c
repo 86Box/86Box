@@ -1449,6 +1449,9 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 
 #    define LOAD_SEG_ENTRY(field) ((int32_t) offsetof(seg_load_cache_t, field))
 #    define LOAD_SEG_MAX_MISS     10
+
+_Static_assert((offsetof(x86seg, ar_high) == (offsetof(x86seg, access) + 1)) && (offsetof(x86seg, seg) == (offsetof(x86seg, access) + 2)),
+               "a null selector's access, ar_high and selector are stored as one dword");
 #    if _WIN64
 #        define LOAD_SEG_ARG0 REG_RCX
 #        define LOAD_SEG_ARG1 REG_RDX
@@ -1462,16 +1465,18 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
   seg_load_cache entry recorded is repeated when every input of it is the
   same (abort, PE, VM, the selector and CPL in the tag, the table's base and
   limit, a read lookup for the descriptor's page and the eight bytes read
-  through it), which leaves what that call would; any other load goes to
-  loadseg_pm_fast() with the caller's frame. Uses RAX, R8-R11 and the second
-  argument register, keeps the first to the end*/
+  through it), which leaves what that call would; a null selector in DS, ES,
+  FS or GS is loaded as loadseg() loads it; any other load goes to
+  loadseg_pm_fast() with the caller's frame. Uses RAX, R8-R11 and the
+  second argument register, keeps the first to the end*/
 static void
 build_load_seg_routine(codeblock_t *block, x86seg *seg)
 {
     static const uint8_t ret = 0xc3;
     const int32_t        seg_disp = rx_state(seg);
     int32_t             *miss[LOAD_SEG_MAX_MISS];
-    int                  nr_miss = 0;
+    int                  nr_miss  = 0;
+    int32_t             *null_sel = NULL;
 
     rx_rm(block, 0, 0, 0x0fb6, REG_RAX, REG_RBP, rx_state(&cpu_state.abrt));
     rx_rr(block, 0, 0, 0x85, REG_RAX, REG_RAX);
@@ -1482,6 +1487,10 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     rx_rm(block, 0, 0, 0x0fb7, REG_RAX, REG_RBP, rx_state(&cpu_state.eflags));
     rx_test_ri(block, REG_RAX, VM_FLAG);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    if (seg != &cpu_state.seg_ss) {
+        rx_test_ri(block, LOAD_SEG_ARG0, 0xfffc);
+        null_sel = rx_jcc(block, RX_CC_Z);
+    }
 
     /*The tag: selector, CPL, valid*/
     rx_rm(block, 0, 0, 0x0fb6, REG_RAX, REG_RBP, rx_state(&cpu_state.seg_cs.access));
@@ -1606,6 +1615,29 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     }
     rx_rr(block, 0, 0, 0x31, REG_RAX, REG_RAX);
     rx_bytes(block, &ret, 1);
+
+    if (null_sel) {
+        /*loadseg()'s null selector branch: the selector, access 80h, ar_high
+          10h and base FFFFFFFFh (the mark every access through it faults
+          on), checked = 0, the limits kept; DS and ES lose their flat and
+          wide bits. A null SS is #GP(0), from loadseg()*/
+        rx_patch(null_sel, rx_here());
+        rx_rr(block, 0, 0, 0x89, LOAD_SEG_ARG0, REG_RAX);
+        rx_shift_ri(block, 4, REG_RAX, 16);
+        rx_alu_ri(block, 0, 1, REG_RAX, 0x1080);
+        rx_rm(block, 0, 0, 0x89, REG_RAX, REG_RBP, seg_disp + (int32_t) offsetof(x86seg, access));
+        rx_mov_ri(block, REG_RAX, 0xffffffff);
+        rx_rm(block, 0, 0, 0x89, REG_RAX, REG_RBP, seg_disp + (int32_t) offsetof(x86seg, base));
+        rx_rr(block, 0, 0, 0x31, REG_RAX, REG_RAX);
+        rx_rm(block, 0, 0, 0x89, REG_RAX, REG_RBP, seg_disp + (int32_t) offsetof(x86seg, checked));
+        if ((seg == &cpu_state.seg_ds) || (seg == &cpu_state.seg_es)) {
+            rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) &cpu_cur_status);
+            rx_rm(block, 0, 0, 0x0fb7, REG_R10, REG_R9, 0);
+            rx_alu_ri(block, 0, 1, REG_R10, (seg == &cpu_state.seg_ds) ? (CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS) : CPU_STATUS_NOTFLATES);
+            rx_rm(block, 1, 0, 0x89, REG_R10, REG_R9, 0);
+        }
+        rx_bytes(block, &ret, 1);
+    }
 
     for (int c = 0; c < nr_miss; c++)
         rx_patch(miss[c], rx_here());

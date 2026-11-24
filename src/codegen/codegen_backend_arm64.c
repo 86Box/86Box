@@ -1195,11 +1195,15 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 #    define LOAD_SEG_ENTRY(field) ((int) offsetof(seg_load_cache_t, field))
 #    define LOAD_SEG_MAX_MISS     10
 
+_Static_assert((offsetof(x86seg, ar_high) == (offsetof(x86seg, access) + 1)) && (offsetof(x86seg, seg) == (offsetof(x86seg, access) + 2)),
+               "a null selector's access, ar_high and selector are stored as one word");
+
 /*loadseg_pm_fast() for one of DS, ES, FS, GS and SS, selector in W0, result
   in W0: the load its seg_load_cache entry recorded is repeated when every
   input of it is the same (abort, PE, VM, the selector and CPL in the tag,
   the table's base and limit, a read lookup for the descriptor's page and
-  the eight bytes read through it), which leaves what that call would; any
+  the eight bytes read through it), which leaves what that call would; a
+  null selector in DS, ES, FS or GS is loaded as loadseg() loads it; any
   other load goes to loadseg_pm_fast(). Uses X1-X8 and X16, keeps W0 to the
   end*/
 static void
@@ -1207,7 +1211,8 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
 {
     int       seg_offset = rep_state_offset(seg);
     uint32_t *miss[LOAD_SEG_MAX_MISS];
-    int       nr_miss = 0;
+    int       nr_miss  = 0;
+    uint32_t *null_sel = NULL;
 
     host_arm64_LDRB_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt));
     host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.w));
@@ -1215,6 +1220,10 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
     miss[nr_miss++] = host_arm64_TBZ_SHORT_(block, REG_W3, 0);
     miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W4, 1); /*VM_FLAG*/
+    if (seg != &cpu_state.seg_ss) {
+        host_arm64_AND_IMM(block, REG_W2, REG_W0, 0xfffc);
+        null_sel = host_arm64_CBZ_SHORT_(block, REG_W2);
+    }
 
     /*The tag: selector, CPL, valid*/
     host_arm64_LDRB_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.access));
@@ -1323,6 +1332,30 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     }
     host_arm64_MOVZ_IMM(block, REG_W0, 0);
     host_arm64_RET(block, REG_X30);
+
+    if (null_sel) {
+        /*loadseg()'s null selector branch: the selector, access 80h, ar_high
+          10h and base FFFFFFFFh (the mark every access through it faults
+          on), checked = 0, the limits kept; DS and ES lose their flat and
+          wide bits. A null SS is #GP(0), from loadseg()*/
+        host_arm64_short_branch_set_offset(null_sel, &block_write_data[block_pos]);
+        host_arm64_ADDX_IMM(block, REG_X5, REG_CPUSTATE, seg_offset);
+        host_arm64_MOVZ_IMM(block, REG_W2, 0x1080);
+        host_arm64_ORR_REG(block, REG_W2, REG_W2, REG_W0, 16);
+        host_arm64_STR_IMM_W(block, REG_W2, REG_X5, (int) offsetof(x86seg, access));
+        host_arm64_mov_imm(block, REG_W3, 0xffffffff);
+        host_arm64_STR_IMM_W(block, REG_W3, REG_X5, (int) offsetof(x86seg, base));
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X5, (int) offsetof(x86seg, checked));
+        if ((seg == &cpu_state.seg_ds) || (seg == &cpu_state.seg_es)) {
+            host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpu_cur_status);
+            host_arm64_LDRH_IMM(block, REG_W7, REG_X6, 0);
+            host_arm64_ORR_IMM(block, REG_W7, REG_W7,
+                               (seg == &cpu_state.seg_ds) ? (CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS) : CPU_STATUS_NOTFLATES);
+            host_arm64_STRH_IMM(block, REG_W7, REG_X6, 0);
+        }
+        host_arm64_MOVZ_IMM(block, REG_W0, 0);
+        host_arm64_RET(block, REG_X30);
+    }
 
     for (int c = 0; c < nr_miss; c++)
         host_arm64_short_branch_set_offset(miss[c], &block_write_data[block_pos]);
