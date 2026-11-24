@@ -461,7 +461,7 @@ main_thread_fn()
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
     plat_set_thread_name(nullptr, "main_thread");
-    runctl_run_loop(nullptr);
+    runctl_thread_run_loop(nullptr);
 
     cpu_thread_running = false;
     for (uint8_t i = 1; i < GFXCARD_MAX; i++) {

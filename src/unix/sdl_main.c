@@ -215,7 +215,7 @@ main_thread(UNUSED(void *param))
 #else
     SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 #endif
-    runctl_run_loop(main_thread_pass);
+    runctl_thread_run_loop(main_thread_pass);
 }
 
 thread_t *thMain = NULL;

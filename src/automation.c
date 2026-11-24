@@ -171,10 +171,14 @@ static char       req_line[REQ_MAX];
 static atomic_int req_pending;
 static strbuf_t   resp;
 
+static int is_held(void);
+
 /* CPU thread state. */
-static int      held;
 static int      cmd;          /* long-running command in progress */
 static int      cmd_was_held; /* hold again once the command finishes */
+static int      cmd_paced;    /* a step from held follows the shared mode instead of running fast */
+static uint32_t reasons_back; /* pause reasons that took effect again when the claim last ended */
+static atomic_int disconnect_pending; /* a disconnect's cleanup hasn't run on the CPU thread yet */
 static uint64_t cmd_deadline; /* emulated ms at which step/wait ends */
 static char     wait_text[REQ_MAX];
 static uint32_t wait_addr;
@@ -850,7 +854,7 @@ cmd_info(void)
     sb_printf(&resp, ",\"hard_resets\":%u,\"soft_resets\":%u,\"last_reset_ms\":%llu,\"speed_percent\":%d,"
                      "\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"w\":%d,\"h\":%d}",
               hard_resets, soft_resets, (unsigned long long) last_reset_ms, runctl_speed(),
-              (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
+              (unsigned long long) emu_ms, (unsigned long long) frame_count, is_held() ? "true" : "false",
               dopause ? "true" : "false", frame_w, frame_h);
 }
 
@@ -1661,12 +1665,85 @@ automation_frame(int x, int y, int w, int h, int monitor_index)
 
 /* ---- Request handling (CPU thread) ---- */
 
+/* The hold is RUN_PAUSE_HOLD, which runctl allows only under our claim. */
+static int
+is_held(void)
+{
+    return !!(runctl_pause_reasons() & RUN_PAUSE_HOLD);
+}
+
+static void
+sb_pause_reasons(strbuf_t *sb, uint32_t mask)
+{
+    static const struct {
+        uint32_t    flag;
+        const char *name;
+    } names[] = {
+        { RUN_PAUSE_USER,    "user"    },
+        { RUN_PAUSE_DIALOG,  "dialog"  },
+        { RUN_PAUSE_FOCUS,   "focus"   },
+        { RUN_PAUSE_REMOTE,  "remote"  },
+        { RUN_PAUSE_MESSAGE, "message" },
+        { RUN_PAUSE_FATAL,   "fatal"   },
+        { RUN_PAUSE_SYNC,    "sync"    },
+        { RUN_PAUSE_HOLD,    "hold"    },
+        { RUN_PAUSE_DEBUG,   "debug"   },
+        { RUN_PAUSE_SLEEP,   "sleep"   }
+    };
+    const char *sep = "";
+
+    sb_printf(sb, "[");
+    for (size_t i = 0; i < (sizeof(names) / sizeof(names[0])); i++) {
+        if (mask & names[i].flag) {
+            sb_printf(sb, "%s\"%s\"", sep, names[i].name);
+            sep = ",";
+        }
+    }
+    sb_printf(sb, "]");
+}
+
+static void
+hold(void)
+{
+    runctl_claim(RUN_CLAIM_AUTOMATION);
+    runctl_set_hold(1, 0);
+}
+
+/* Stop holding and hand the controls back. On the CPU thread. */
+static void
+release(void)
+{
+    reasons_back = runctl_unclaim(RUN_CLAIM_AUTOMATION);
+    if (reasons_back) {
+        strbuf_t sb = { 0 };
+        sb_pause_reasons(&sb, reasons_back);
+        pclog("Automation: released; paused again by %s\n", sb.buf);
+        free(sb.buf);
+    }
+}
+
+/* The client went away: abort what it left running. A held machine stays
+   held, with the controls still claimed, for the next client. */
+static void
+disconnected(UNUSED(void *priv))
+{
+    if (cmd != CMD_NONE) {
+        cmd = CMD_NONE;
+        if (cmd_was_held)
+            runctl_set_hold(1, 0);
+        cmd_was_held = 0;
+        if (aud_wait)
+            aud_wait_end();
+    }
+    atomic_store(&disconnect_pending, 0);
+}
+
 static void
 respond_ok_time(void)
 {
     resp.len = 0;
     sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"frames\":%llu,\"held\":%s}",
-              (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false");
+              (unsigned long long) emu_ms, (unsigned long long) frame_count, is_held() ? "true" : "false");
 }
 
 /* As respond_ok_time(), listing why files were left out of a folder or an archive that was mounted anyway. */
@@ -1701,9 +1778,13 @@ static void
 begin_timed(int which, uint64_t ms)
 {
     cmd          = which;
-    cmd_was_held = held;
+    cmd_was_held = is_held();
     cmd_deadline = emu_ms + ms;
-    held         = 0;
+    /* A command started from held runs as fast as the host allows, unless
+       it is a paced step. */
+    if (cmd_was_held)
+        runctl_set_hold(0, !cmd_paced);
+    cmd_paced = 0;
 }
 
 static void
@@ -1711,11 +1792,13 @@ end_timed_stopped(int matched, const char *stopped)
 {
     int which = cmd;
 
-    cmd      = CMD_NONE;
-    held     = cmd_was_held;
+    cmd = CMD_NONE;
+    if (cmd_was_held)
+        runctl_set_hold(1, 0);
+    cmd_was_held = 0;
     resp.len = 0;
     sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"frames\":%llu,\"held\":%s",
-              (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false");
+              (unsigned long long) emu_ms, (unsigned long long) frame_count, is_held() ? "true" : "false");
     if (matched >= 0)
         sb_printf(&resp, ",\"matched\":%s", matched ? "true" : "false");
     if (stopped)
@@ -2082,19 +2165,37 @@ handle_request(char *line)
         return;
     }
 
+    /* Commands that consume emulated time can't run while the guest sleeps. */
+    if ((!strcmp(argv[0], "step") || !strcmp(argv[0], "wait") || !strcmp(argv[0], "key")) &&
+        (runctl_pause_reasons() & RUN_PAUSE_SLEEP)) {
+        respond_error("the guest is asleep; send wake first");
+        complete();
+        return;
+    }
+
     if (!strcmp(argv[0], "status")) {
         int mode = peek_phys(0x449);
         resp.len = 0;
         sb_printf(&resp, "{\"ok\":true,\"protocol\":%d,\"version\":", AUTOMATION_PROTOCOL);
         sb_json_string(&resp, EMU_VERSION_FULL);
-        sb_printf(&resp, ",\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"ff\":%s,\"w\":%d,\"h\":%d,\"bios_mode\":%d,\"quantum_ms\":%d}",
-                  (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
+        sb_printf(&resp, ",\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"ff\":%s,\"w\":%d,\"h\":%d,\"bios_mode\":%d,\"quantum_ms\":%d,\"reasons_back\":",
+                  (unsigned long long) emu_ms, (unsigned long long) frame_count, is_held() ? "true" : "false",
                   dopause ? "true" : "false", (runctl_mode() == RUN_MODE_FAST) ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
+        sb_pause_reasons(&resp, reasons_back);
+        sb_printf(&resp, "}");
     } else if (!strcmp(argv[0], "hold")) {
-        held = 1;
+        hold();
         respond_ok_time();
     } else if (!strcmp(argv[0], "release")) {
-        held = 0;
+        release();
+        respond_ok_time();
+        resp.len--; /* reopen the object */
+        sb_printf(&resp, ",\"reasons_back\":");
+        sb_pause_reasons(&resp, reasons_back);
+        sb_printf(&resp, "}");
+    } else if (!strcmp(argv[0], "wake") && (argc == 1)) {
+        /* Wake a guest from an ACPI sleeping state, as the user's Resume does. */
+        runctl_resume(RUN_PAUSE_SLEEP);
         respond_ok_time();
     } else if (!strcmp(argv[0], "ff") && (argc <= 2)) {
         /* ff [on|off]: fast forward, as the menu's; with no argument, what
@@ -2107,13 +2208,15 @@ handle_request(char *line)
             resp.len = 0;
             sb_printf(&resp, "{\"ok\":true,\"ff\":%s,\"ms\":%llu,\"frames\":%llu,\"held\":%s}",
                       (runctl_mode() == RUN_MODE_FAST) ? "true" : "false", (unsigned long long) emu_ms,
-                      (unsigned long long) frame_count, held ? "true" : "false");
+                      (unsigned long long) frame_count, is_held() ? "true" : "false");
         }
-    } else if (!strcmp(argv[0], "step") && (argc == 2)) {
+    } else if (!strcmp(argv[0], "step") && ((argc == 2) || ((argc == 3) && !strcmp(argv[2], "paced")))) {
+        /* step <ms> [paced]: from held, unpaced unless paced, when it follows ff. */
         uint64_t ms = strtoull(argv[1], NULL, 0);
         if (!ms) {
             respond_ok_time();
         } else {
+            cmd_paced = (argc == 3);
             begin_timed(CMD_STEP, ms);
             return; /* completed by automation_quantum() */
         }
@@ -2733,14 +2836,11 @@ automation_poll(void)
     handle_request(req_line);
 }
 
-int
-automation_run_state(void)
+static int
+cmd_is_wait(void)
 {
-    if (!enabled)
-        return AUTOMATION_FREE;
-    if (cmd != CMD_NONE)
-        return cmd_was_held ? AUTOMATION_RUN : AUTOMATION_FREE;
-    return held ? AUTOMATION_HOLD : AUTOMATION_FREE;
+    return (cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SOUND) || (cmd == CMD_WAIT_SILENCE) ||
+           (cmd == CMD_WAIT_SERIAL);
 }
 
 void
@@ -2755,8 +2855,7 @@ automation_quantum(void)
     static uint64_t last_tsc;
     if ((gdbstub_step != GDBSTUB_EXEC) && (tsc == last_tsc)) {
         if (cmd != CMD_NONE)
-            end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SOUND) ||
-                               (cmd == CMD_WAIT_SILENCE) || (cmd == CMD_WAIT_SERIAL)) ? 0 : -1, "debugger");
+            end_timed_stopped(cmd_is_wait() ? 0 : -1, "debugger");
         return;
     }
     last_tsc = tsc;
@@ -2766,6 +2865,13 @@ automation_quantum(void)
 
     if (cmd == CMD_NONE)
         return;
+
+    /* The guest went to sleep: no emulated time passes until something
+       wakes it, so the command could never end. */
+    if (runctl_pause_reasons() & RUN_PAUSE_SLEEP) {
+        end_timed_stopped(cmd_is_wait() ? 0 : -1, "sleep");
+        return;
+    }
 
     if (cmd == CMD_KEYS) {
         if (emu_ms < key_next_ms)
@@ -2924,6 +3030,15 @@ disconnect:
             free(sb.buf);
         }
         automation_log("Automation: client disconnected\n");
+        /* Abort a command left running on the CPU thread, between quanta,
+           and wait for it before taking the next client, whose requests the
+           CPU thread could otherwise handle first. */
+        if (enabled) {
+            atomic_store(&disconnect_pending, 1);
+            runctl_call(disconnected, NULL);
+            while (enabled && atomic_load(&disconnect_pending))
+                plat_delay_ms(1);
+        }
         sock_close(client_fd);
         client_fd = SOCK_INVALID;
     }
@@ -3162,18 +3277,19 @@ automation_init(void)
     req_done    = thread_create_event();
     frame_mutex = thread_create_mutex();
     aud_mutex   = thread_create_mutex();
-    held        = automation_start_held;
     enabled     = 1;
+    if (automation_start_held)
+        hold();
 
     listen_thread = thread_create_named(automation_thread, NULL, "automation");
     if (use_tcp && automation_insecure)
         pclog("Automation: listening on tcp:%s:%s (insecure: no token)%s\n", tcp_host, tcp_port,
-              held ? " (held)" : "");
+              automation_start_held ? " (held)" : "");
     else if (use_tcp)
         pclog("Automation: listening on tcp:%s:%s (token %.8s..., in %s)%s\n", tcp_host, tcp_port, token,
-              automation_token_file, held ? " (held)" : "");
+              automation_token_file, automation_start_held ? " (held)" : "");
     else
-        pclog("Automation: listening on unix:%s%s\n", unix_path, held ? " (held)" : "");
+        pclog("Automation: listening on unix:%s%s\n", unix_path, automation_start_held ? " (held)" : "");
 }
 
 void

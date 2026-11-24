@@ -2258,7 +2258,7 @@ pc_run(void)
         acpi_sleep_run(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
     else
         debugger_cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
-    runctl_quantum_done(force_10ms ? 10000 : 1000);
+    runctl_thread_quantum_done(force_10ms ? 10000 : 1000);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
