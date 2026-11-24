@@ -169,7 +169,7 @@ openal_get_output_devices(void)
 static void
 openal_close(void *priv)
 {
-    const openal_t *dev = (openal_t *) priv;
+    openal_t *dev = (openal_t *) priv;
 
     if (dev != NULL) {
         if (dev->Context != NULL) {
