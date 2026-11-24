@@ -41,6 +41,7 @@
 #include <86box/scsi_aic6360.h>
 #include <86box/scsi_aic7xxx.h>
 #include <86box/scsi_buslogic.h>
+#include <86box/scsi_maynard.h>
 #include <86box/scsi_ncr5380.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/scsi_pcscsi.h>
@@ -85,6 +86,7 @@ static SCSI_CARD scsi_cards[] = {
     { &buslogic_542bh_device,    },
     { &buslogic_545s_device,     },
     { &buslogic_545c_device,     },
+    { &maynard_wd33c93_device,   },
     { &sb16_scsi_device,         },
     /* EISA */
     { &aha1740_device,           },
