@@ -1736,7 +1736,6 @@ static void
 vfio_irq_intx_service(void)
 {
     uint64_t buf;
-    uint8_t  line;
 
     for (vfio_group_t *group = first_group; group; group = group->next) {
         for (vfio_device_t *dev = group->first_device; dev; dev = dev->next) {
@@ -1751,13 +1750,11 @@ vfio_irq_intx_service(void)
                 vfio_log_op("VFIO %s: Raising IRQ on pin INT%c\n", dev->name,
                             '@' + dev->irq.intx.pin);
 
-                /* The trigger is up to a timer period old, and a shared handler may have
-                   serviced the device since, so have the level resampled before delivery. */
-                line = pci_get_irq_line(dev->vslot->pci_slot, dev->irq.intx.pin);
-                if (line != 0xff)
-                    pic_resample_mark((line == 2) ? 9 : line);
-
-                /* Mark it asserted first, as raising the line may resample it right away. */
+                /* Deliver the trigger without resampling it first, even though a shared
+                   handler may have serviced the device since: some devices look deasserted
+                   while VFIO has INTx masked (see vfio_irq_intx_sample), and a resample here
+                   would drop every interrupt from them. Mark it asserted first, as raising
+                   the line may resample it right away. */
                 dev->irq.intx.raised = 1;
                 intx_asserted++;
                 pci_set_irq(dev->vslot->pci_slot, dev->irq.intx.pin, &dev->irq.intx.state);
@@ -1768,7 +1765,10 @@ vfio_irq_intx_service(void)
 
 /* Check whether an asserted INTx source is still asserted, lowering its line if not.
    An unmask through the ioctl is synchronous: if the device is still asserting, VFIO
-   masks it again and signals the eventfd before returning. */
+   masks it again and signals the eventfd before returning. Some devices, such as the
+   GeForce 6200 TurboCache, clear the Interrupt Status bit while INTx is masked, so they
+   look deasserted here; their interrupt then fires again as soon as it is unmasked, and
+   the IRQ thread has the line raised once more. */
 static int
 vfio_irq_intx_sample(vfio_device_t *dev)
 {
