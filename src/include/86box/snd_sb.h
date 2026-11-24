@@ -264,10 +264,18 @@ typedef struct sb_t {
        not on ISA IRQ's (ess_solo1_legacy_irq_attach). */
     void  (*solo1_irq_update)(void *priv, int set);
     void   *solo1_irq_priv;
+
+    /* This card's own backend sources, one per stream class. */
+    void   *src_snd;
+    void   *src_cms;
+    void   *src_music;
+    void   *src_wt;
 } sb_t;
 
 typedef struct goldfinch_t {
     emu8k_t emu8k;
+
+    void   *src_wt;
 
     uint8_t pnp_rom[512];
 } goldfinch_t;

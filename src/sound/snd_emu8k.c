@@ -2767,12 +2767,12 @@ emu8k_pci_voice_tick(emu8k_voice_t *voice, emu8k_sample_read_t read_sample,
 }
 
 static void /* AWE32Emu: one chunk; emu8k_update() below splits at state dump frames */
-emu8k_update_chunk(emu8k_t *emu8k)
+emu8k_update_chunk(emu8k_t *emu8k, const int target)
 {
-    if (emu8k->pos >= wavetable_pos_global)
+    if (emu8k->pos >= target)
         return;
 
-    const int      num_samples = wavetable_pos_global - emu8k->pos;
+    const int      num_samples = target - emu8k->pos;
     int32_t       *buf;
     emu8k_voice_t *emu_voice;
     int            pos;
@@ -2787,7 +2787,7 @@ emu8k_update_chunk(emu8k_t *emu8k)
         if (emu_voice->env_engine_on || emu_voice->cvcf_curr_volume)
             num_active++;
 
-        for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
+        for (pos = emu8k->pos; pos < target; pos++) {
             if (emu_voice->cvcf_curr_volume) {
                 int32_t dat = emu8k_voice_sample(emu_voice, emu8k_ram_sample, emu8k, WT_FREQ);
                 if ((emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca))
@@ -2857,7 +2857,7 @@ emu8k_update_chunk(emu8k_t *emu8k)
     /* Update EMU clock. */
     emu8k->wc += num_samples;
 
-    emu8k->pos = wavetable_pos_global;
+    emu8k->pos = target;
 }
 
 /* AWE32Emu: local addition, not upstream. Layered state dump.
@@ -2921,28 +2921,27 @@ emu8k_state_dump_write(emu8k_t *emu8k)
 void
 emu8k_update(emu8k_t *emu8k)
 {
+    const int clk = (emu8k->clock != NULL) ? *emu8k->clock : wavetable_pos_global;
+
     if (!emu8k->state_dump) {
         const int before = emu8k->pos;
-        emu8k_update_chunk(emu8k);
+        emu8k_update_chunk(emu8k, clk);
         if (emu8k->pos > before)
             emu8k->state_frame += (uint64_t) (emu8k->pos - before);
         return;
     }
     /* Split the call at the dump frames. */
-    const int target = wavetable_pos_global;
-    while (emu8k->pos < target) {
+    while (emu8k->pos < clk) {
         const uint64_t to_dump = emu8k->state_step - (emu8k->state_frame % emu8k->state_step);
-        int            end     = target;
-        if ((uint64_t) (target - emu8k->pos) >= to_dump)
+        int            end     = clk;
+        if ((uint64_t) (clk - emu8k->pos) >= to_dump)
             end = emu8k->pos + (int) to_dump;
         const int before     = emu8k->pos;
-        wavetable_pos_global = end;
-        emu8k_update_chunk(emu8k);
+        emu8k_update_chunk(emu8k, end);
         emu8k->state_frame += (uint64_t) (emu8k->pos - before);
         if (emu8k->state_frame % emu8k->state_step == 0)
             emu8k_state_dump_write(emu8k);
     }
-    wavetable_pos_global = target;
 }
 
 void

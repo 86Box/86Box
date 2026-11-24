@@ -52,7 +52,9 @@ cms_log(const char *fmt, ...)
 void
 cms_update(cms_t *cms)
 {
-    for (; cms->pos < sound_pos_global; cms->pos++) {
+    const int clk = (cms->clock != NULL) ? *cms->clock : sound_pos_global;
+
+    for (; cms->pos < clk; cms->pos++) {
         int16_t out_l = 0;
         int16_t out_r = 0;
 

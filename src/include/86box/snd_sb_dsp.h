@@ -186,6 +186,8 @@ typedef struct sb_dsp_t {
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
+    const int *clock; /* NULL: the shared stream clock */
+
     uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
 
     uint8_t  ess_regs[256]; /* ESS registers. */
