@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-19 23:29+0000\n"
+"PO-Revision-Date: 2026-11-24 19:38+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -49,7 +49,7 @@ msgid "&Hide status bar"
 msgstr "&Statusbalk verbergen"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Toon US&B-activiteit"
 
 msgid "Hide &toolbar"
 msgstr "&Toolbar verbergen"
@@ -85,7 +85,7 @@ msgid "Force &4:3 display ratio"
 msgstr "Forceer &4:3 beeldverhouding"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "Forceer &machinebeeldverhouding"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Forceer &%1:%2 beeldverhouding"
@@ -355,10 +355,10 @@ msgid "New Image"
 msgstr "Nieuw imagebestand"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Verwijderbare schijftype:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "MO-type:"
 
 msgid "Settings"
 msgstr "Instellingen"
@@ -455,15 +455,19 @@ msgstr "FPU:"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr ""
+"Geheugengemapte floatingpoint-coprocessor op C0000000h. Compatibele "
+"programma's kunnen deze naast of in plaats van een 387 gebruiken."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 3167 coprocessor"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
 msgstr ""
+"Geheugengemapte floatingpoint-coprocessor op C0000000h voor compatibele 486 "
+"software."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 4167 coprocessor"
 
 msgid "Internal"
 msgstr "Geïntegreerd"
@@ -523,10 +527,10 @@ msgid "Dynamic recompiler"
 msgstr "Dynamische recompiler"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Dynamische recompiler is actief"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Dynamische recompiler is niet actief"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Nauwkeurige FPU-omgeving voor de dynamische recompiler"
@@ -766,28 +770,30 @@ msgid "Channel:"
 msgstr "Kanaal:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (Geïntegreerd)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(geen)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "Geïntegreerd"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: geen beschikbare kanalen"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: %2 kanalen in gebruik"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "IDE-conflict"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
+"Deze IDE-controllers hebben kanalen nodig die al door een ander apparaat "
+"worden gebruikt en zullen daarom niet werken:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Wilt u de configuratie toch opslaan?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -868,7 +874,7 @@ msgid "MO drives"
 msgstr "MO-schijven"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA-stations"
 
 msgid "MO:"
 msgstr "MO:"
@@ -911,24 +917,26 @@ msgstr "Generieke ISA ROM-kaart"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"Geen apparaten gevonden. Controleer of VT-d of IOMMU is ingeschakeld op uw "
+"systeem."
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "Aangepast ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "Groep"
 
 msgid "Location"
-msgstr ""
+msgstr "Locatie"
 
 msgid "Name"
-msgstr ""
+msgstr "Naam"
 
 msgid "ROM images"
-msgstr ""
+msgstr "ROM-images"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Onbekend apparaat"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Generieke dubbele ISA ROM-kaart"
@@ -1033,16 +1041,16 @@ msgid "Sound"
 msgstr "Geluid"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (niet gedetecteerd)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (de host past de samplefrequentie aan)"
 
 msgid "Network"
 msgstr "Netwerk"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "IPv4 en ARP ontvangen als 802.3 LLC/SNAP-frames"
 
 msgid "Ports (COM & LPT)"
 msgstr "Poorten (COM & LPT)"
@@ -1114,52 +1122,56 @@ msgid "Other peripherals"
 msgstr "Andere randapparatuur"
 
 msgid "empty"
-msgstr ""
+msgstr "leeg"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (Beveiligd tegen schrijven)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Leeg (neem de kaart uit)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Nieuwe CompactFlash-kaart…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Nieuwe CompactFlash-kaart"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "Plaats een CompactFlash-kaart"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "Ve&rwijder CompactFlash-kaart"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "Kan %1 niet gebruiken als CompactFlash-image."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "PC Card-controller (Cirrus Logic CL-PD6722, ISA, poorten 3E0h-3E1h)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
+"Een Intel 82365SL-compatibele PC Card-controller (PCMCIA) met twee sleuven, "
+"zoals aangetroffen in laptops en op PC Card-adapterkaarten.\n"
+"DOS Card and Socket Services, Windows 95/98 en Linux (i82365) herkennen deze "
+"controller."
 
 msgid "Network:"
-msgstr ""
+msgstr "Netwerk:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "Sleuf %1"
 
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "Sleuf %1: %2"
 
 msgid "Other devices"
 msgstr "Andere apparaten"
@@ -1329,13 +1341,13 @@ msgid "MO images"
 msgstr "MO-images"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "MD DATA-images"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MD DATA %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "Welkom bij 86Box!"
@@ -1344,7 +1356,7 @@ msgid "Internal device"
 msgstr "Intern apparaat"
 
 msgid "External"
-msgstr ""
+msgstr "Extern"
 
 msgid "&File"
 msgstr "&Bestand"
@@ -1368,94 +1380,108 @@ msgid "No ROMs found"
 msgstr "Geen ROMs gevonden"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Niet ondersteunde hardware"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"De hardware in dit machineprofiel wordt niet ondersteund door deze versie "
+"van 86Box."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(en %i anderen)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine vervangen en de "
+"bestaande configuratie overschreven."
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
 msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine verwijderd en de "
+"bestaande configuratie overschreven."
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
 msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine vervangen, worden "
+"de overige componenten verwijderd en wordt de bestaande configuratie "
+"overschreven."
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "Wilt u doorgaan?"
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "Machinetype \"%s\""
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "Videokaart \"%s\""
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "Toetsenbord \"%s\""
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "Muis \"%s\""
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "Tablet \"%s\""
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "Joystick \"%s\""
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "Geluidskaart \"%s\""
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "MIDI-uitvoerapparaat \"%s\""
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "MIDI-invoerapparaat \"%s\""
 
 msgid "Network card \"%s\""
-msgstr ""
+msgstr "Netwerkkaart \"%s\""
 
 msgid "Serial port device \"%s\""
-msgstr ""
+msgstr "Seriëlepoortapparaat \"%s\""
 
 msgid "Parallel port device \"%s\""
-msgstr ""
+msgstr "Parallelepoortapparaat \"%s\""
 
 msgid "Game port \"%s\""
-msgstr ""
+msgstr "Gamepoort \"%s\""
 
 msgid "SCSI card \"%s\""
-msgstr ""
+msgstr "SCSI-kaart \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr ""
+msgstr "Floppycontroller \"%s\""
 
 msgid "Disk controller \"%s\""
-msgstr ""
+msgstr "Schijfcontroller \"%s\""
 
 msgid "CD-ROM interface \"%s\""
-msgstr ""
+msgstr "Cd-rominterface \"%s\""
 
 msgid "Memory expansion card \"%s\""
-msgstr ""
+msgstr "Geheugenuitbreidingskaart \"%s\""
 
 msgid "ROM expansion card \"%s\""
-msgstr ""
+msgstr "ROM-uibreidingskaart \"%s\""
 
 msgid "RTC card \"%s\""
-msgstr ""
+msgstr "RTC-kaart \"%s\""
 
 msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
 msgstr ""
+"De schijfkopie \"%s\" overschrijdt de maximale capaciteit van dit station en "
+"wordt genegeerd."
 
 msgid "%s was not connected: every USB port of this machine is in use."
 msgstr ""
+"%s is niet aangesloten: alle USB-poorten van deze machine zijn in gebruik."
 
 msgid "%s was not connected: this machine has no USB controller that can take devices."
 msgstr ""
+"%s is niet aangesloten: deze machine heeft geen USB-controller waarop "
+"apparaten kunnen worden aangesloten."
 
 msgid "Do you want to save the settings?"
 msgstr "Wil je de instellingen opslaan?"
@@ -1482,22 +1508,22 @@ msgid "CD-ROM images"
 msgstr "CD-ROM-images"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "&Nieuwe CD-R-schijfkopie…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "Nieuwe CD-R-schijfkopie…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "&CD-RW-schijfkopie"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "CD-R-schijfkopie"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Aaru-schijfkopie"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "Kan de schijfkopie niet aanmaken"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Apparaatconfiguratie"
@@ -1883,10 +1909,10 @@ msgid "Power &off"
 msgstr "&Uitschakelen"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "On&derbreken"
 
 msgid "Suspend"
-msgstr ""
+msgstr "Onderbreken"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -2362,7 +2388,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 Toetsenbord"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "USB-toetsenbord"
 
 msgid "Keys"
 msgstr "Toetsen"
