@@ -541,13 +541,84 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 }
 #    endif
 
+/*A misaligned store that stays inside its page and has a write lookup: what
+  writememwl(), writememll() and writememql() do on their in-page branch,
+  high_page cleared, the timing_misaligned charge under the same Cyrix
+  alignment rule and the store through the lookup. The C functions store
+  through a valid write lookup on this branch before any page_lookup test
+  (a ring-3 held carry can have both), so nothing is marked dirty. A page
+  crossing or a missing lookup jumps back to the C path at c_path with EDI and
+  ECX unchanged; the lookup entry is loaded again, as the tracked entry is
+  called without it.
+  In - EDI = address, ECX or XMM_TEMP = data
+  Out - ESI = 0
+  Corrupts RSI, R8*/
+static void
+build_store_misaligned(codeblock_t *block, int size, int is_float, uint8_t *c_path)
+{
+    uint32_t *to_c[2];
+    uint8_t  *charge = NULL;
+    uint8_t  *skip   = NULL;
+
+    host_x86_MOV32_REG_REG(block, REG_R8, REG_EDI);
+    host_x86_AND32_REG_IMM(block, REG_R8, 0xfff);
+    host_x86_CMP32_REG_IMM(block, REG_R8, 0x1000 - size);
+    to_c[0] = host_x86_JNBE_long(block);
+    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EDI);
+    host_x86_SHR32_IMM(block, REG_ESI, 12);
+    host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) writelookup2);
+    host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_R8, REG_RSI, 3);
+    host_x86_CMP64_REG_IMM(block, REG_RSI, (uint32_t) -1);
+    to_c[1] = host_x86_JZ_long(block);
+
+    host_x86_MOV8_ABS_IMM(block, &high_page, 0);
+
+    if (size != 8) {
+        host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) &cpu_cyrix_alignment);
+        host_x86_MOV32_REG_BASE_OFFSET(block, REG_R8, REG_R8, 0);
+        host_x86_TEST32_REG(block, REG_R8, REG_R8);
+        charge = host_x86_JZ_short(block);
+        host_x86_MOV32_REG_REG(block, REG_R8, REG_EDI);
+        host_x86_AND32_REG_IMM(block, REG_R8, 7);
+        if (size == 2) {
+            host_x86_CMP32_REG_IMM(block, REG_R8, 7);
+            skip = host_x86_JNZ_short(block);
+        } else {
+            host_x86_CMP32_REG_IMM(block, REG_R8, 4);
+            skip = host_x86_JBE_short(block);
+        }
+        *charge = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) charge) - 1;
+    }
+    host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) &timing_misaligned);
+    host_x86_MOV32_REG_BASE_OFFSET(block, REG_R8, REG_R8, 0);
+    host_x86_SUB32_ABS_REG(block, &cpu_state._cycles, REG_R8);
+    if (skip)
+        *skip = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) skip) - 1;
+
+    if (size == 2)
+        host_x86_MOV16_BASE_INDEX_REG(block, REG_RSI, REG_RDI, REG_ECX);
+    else if (size == 4 && !is_float)
+        host_x86_MOV32_BASE_INDEX_REG(block, REG_RSI, REG_RDI, REG_ECX);
+    else if (size == 4 && is_float)
+        host_x86_MOVD_BASE_INDEX_XREG(block, REG_RSI, REG_RDI, REG_XMM_TEMP);
+    else
+        host_x86_MOVQ_BASE_INDEX_XREG(block, REG_RSI, REG_RDI, REG_XMM_TEMP);
+    host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
+    host_x86_RET(block);
+
+    for (int c = 0; c < 2; c++)
+        *to_c[c] = (uintptr_t) c_path - ((uintptr_t) to_c[c] + 4);
+}
+
 static void
 build_store_routine(codeblock_t *block, int size, int is_float)
 {
     uint8_t  *branch_offset;
     uint8_t  *misaligned_offset = NULL;
+    uint8_t  *c_path;
 #    if !defined(USE_GDBSTUB)
-    uint32_t *misaligned_long = NULL;
+    uint32_t *misaligned_long  = NULL;
+    uint32_t *misaligned_entry = NULL;
 #    endif
 
     /*In - ECX = data, ESI = address
@@ -605,7 +676,6 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 #    if !defined(USE_GDBSTUB)
     if (size <= 4 && !is_float) {
         uint32_t *to_c[6];
-        uint32_t *misaligned_entry = NULL;
         int       nr_to_c;
 
         /*The entry a block's store calls once its own writelookup2 test has
@@ -625,17 +695,10 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 
         for (int c = 0; c < nr_to_c; c++)
             jump_long_here(to_c[c]);
-        if (size != 1) {
-            jump_long_here(misaligned_long);
-            jump_long_here(misaligned_entry);
-        }
     } else
 #    endif
-    {
         *branch_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 1;
-        if (size != 1)
-            *misaligned_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) misaligned_offset) - 1;
-    }
+    c_path = &block_write_data[block_pos];
     host_x86_PUSH(block, REG_RAX);
     host_x86_PUSH(block, REG_RDX);
 #    if _WIN64
@@ -674,6 +737,19 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     host_x86_POP(block, REG_RAX);
     host_x86_MOVZX_REG_ABS_32_8(block, REG_ESI, &cpu_state.abrt);
     host_x86_RET(block);
+
+    if (size != 1) {
+#    if !defined(USE_GDBSTUB)
+        if (misaligned_long) {
+            /*At most 117 bytes, in one chunk for the short jumps*/
+            codegen_alloc(block, 0x90);
+            jump_long_here(misaligned_long);
+            jump_long_here(misaligned_entry);
+        } else
+#    endif
+            *misaligned_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) misaligned_offset) - 1;
+        build_store_misaligned(block, size, is_float, c_path);
+    }
 }
 
 /*The routines span more than one code chunk. Each routine starts in a chunk
@@ -681,7 +757,8 @@ build_store_routine(codeblock_t *block, int size, int is_float)
   since those cannot cross the jump that links two chunks, and its address
   is taken from the chunk being written, not from the first one. A load
   routine with the misaligned path jumps back to its C path from its end,
-  so all of it, at most 167 bytes, has to fit.*/
+  so all of it, at most 167 bytes, has to fit. So does a store routine whose
+  misaligned path is reached by a short jump, at most 192 bytes.*/
 static void *
 routine_start(codeblock_t *block, int size)
 {
@@ -711,15 +788,15 @@ build_loadstore_routines(codeblock_t *block)
 
     codegen_mem_store_byte = routine_start(block, 0x80);
     build_store_routine(block, 1, 0);
-    codegen_mem_store_word = routine_start(block, 0x80);
+    codegen_mem_store_word = routine_start(block, 0xe0);
     build_store_routine(block, 2, 0);
-    codegen_mem_store_long = routine_start(block, 0x80);
+    codegen_mem_store_long = routine_start(block, 0xe0);
     build_store_routine(block, 4, 0);
-    codegen_mem_store_quad = routine_start(block, 0x80);
+    codegen_mem_store_quad = routine_start(block, 0xe0);
     build_store_routine(block, 8, 0);
-    codegen_mem_store_single = routine_start(block, 0x80);
+    codegen_mem_store_single = routine_start(block, 0xe0);
     build_store_routine(block, 4, 1);
-    codegen_mem_store_double = routine_start(block, 0x80);
+    codegen_mem_store_double = routine_start(block, 0xe0);
     build_store_routine(block, 8, 1);
 }
 

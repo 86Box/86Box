@@ -483,11 +483,75 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 }
 #    endif
 
+/*A misaligned store that stays inside its page and has a write lookup: what
+  writememwl(), writememll() and writememql() do on their in-page branch,
+  high_page cleared, the timing_misaligned charge under the same Cyrix
+  alignment rule and the store through the lookup. The C functions store
+  through a valid write lookup on this branch before any page_lookup test
+  (a ring-3 held carry can have both), so nothing is marked dirty. A page
+  crossing or a missing lookup branches back to the C path at c_path.
+  In - W0 = address, X1 or V_TEMP = data, X3 = writelookup2[] entry*/
+static void
+build_store_misaligned(codeblock_t *block, int size, int is_float, uint32_t *misaligned_offset, void *c_path)
+{
+    uint32_t *skip   = NULL;
+    uint32_t *charge = NULL;
+
+    /*At most 32 instructions with every MOVX_IMM at four: one chunk, so the
+      short branches reach*/
+    codegen_alloc(block, 136);
+    host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
+
+    /*The last byte is in the next page when bit 12 differs*/
+    host_arm64_ADD_IMM(block, REG_W2, REG_W0, size - 1);
+    host_arm64_EOR_REG(block, REG_W2, REG_W2, REG_W0, 0);
+    host_arm64_branch_set_offset(host_arm64_TBNZ(block, REG_W2, 12), c_path);
+    host_arm64_CMPX_IMM(block, REG_X3, -1);
+    host_arm64_branch_set_offset(host_arm64_BEQ_(block), c_path);
+
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &high_page);
+    host_arm64_STRB_IMM(block, REG_WZR, REG_X2, 0);
+
+    if (size != 8) {
+        host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &cpu_cyrix_alignment);
+        host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+        charge = host_arm64_CBZ_SHORT_(block, REG_W2);
+        host_arm64_AND_IMM(block, REG_W2, REG_W0, 7);
+        if (size == 2) {
+            host_arm64_CMP_IMM(block, REG_W2, 7);
+            skip = host_arm64_BNE_SHORT_(block);
+        } else {
+            host_arm64_CMP_IMM(block, REG_W2, 4);
+            skip = host_arm64_BLE_SHORT_(block);
+        }
+        host_arm64_short_branch_set_offset(charge, &block_write_data[block_pos]);
+    }
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &timing_misaligned);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    codegen_direct_read_32(block, REG_W4, &cpu_state._cycles);
+    host_arm64_SUB_REG(block, REG_W4, REG_W4, REG_W2, 0);
+    codegen_direct_write_32(block, &cpu_state._cycles, REG_W4);
+    if (skip)
+        host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+
+    if (size == 2)
+        host_arm64_STRH_REG(block, REG_X1, REG_X3, REG_X0);
+    else if (size == 4 && !is_float)
+        host_arm64_STR_REG(block, REG_X1, REG_X3, REG_X0);
+    else if (size == 4 && is_float)
+        host_arm64_STR_REG_F32(block, REG_V_TEMP, REG_X3, REG_X0);
+    else
+        host_arm64_STR_REG_F64(block, REG_V_TEMP, REG_X3, REG_X0);
+    host_arm64_MOVZ_IMM(block, REG_X1, 0);
+    host_arm64_RET(block, REG_X30);
+}
+
 static void
 build_store_routine(codeblock_t *block, int size, int is_float)
 {
     uint32_t *branch_offset;
     uint32_t *misaligned_offset = NULL;
+    void     *c_path;
 
     /*In - R0 = address, R1 = data
       Out - R1 = abrt*/
@@ -538,8 +602,7 @@ build_store_routine(codeblock_t *block, int size, int is_float)
             host_arm64_branch_set_offset(to_c[c], &block_write_data[block_pos]);
     }
 #    endif
-    if (size != 1)
-        host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
+    c_path = &block_write_data[block_pos];
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
     if (size == 4 && is_float)
         host_arm64_FMOV_W_S(block, REG_W1, REG_V_TEMP);
@@ -558,6 +621,9 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     codegen_direct_read_8(block, REG_W1, &cpu_state.abrt);
     host_arm64_LDP_POSTIDX_X(block, REG_X29, REG_X30, REG_XSP, 16);
     host_arm64_RET(block, REG_X30);
+
+    if (size != 1)
+        build_store_misaligned(block, size, is_float, misaligned_offset, c_path);
 }
 
 static void
