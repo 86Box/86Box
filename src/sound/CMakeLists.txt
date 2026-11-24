@@ -158,9 +158,11 @@ set(SND_BACKEND_FOUND ON)
 
 if(WIN32)
     option(FAUDIO "Use FAudio instead of XAudio2" OFF)
-elseif(NOT SND_BACKEND_FOUND)
-    # Nothing else to play sound with, so FAudio it is.
-    set(FAUDIO ON)
+else()
+    # FAudio, a reimplementation of XAudio2, is offered wherever it is installed.
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(FAUDIO_PROBE QUIET FAudio)
+    option(FAUDIO "Use FAudio as the XAudio2 backend" ${FAUDIO_PROBE_FOUND})
 endif()
 
 if(WIN32 OR FAUDIO)
