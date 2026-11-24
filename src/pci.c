@@ -195,7 +195,7 @@ pci_set_irq_routing(int pci_int, int irq)
        the new one, on the same side pci_irq() drove it: where the board
        wires the PIRQ to an I/O APIC input of its own, only the 8259 side
        follows the steering, and the PIRQ's own input stays as it is. */
-    int wired = ioapic_pirq_intin(pci_int - 1) != PCI_APIC_INTIN_INVALID;
+    int wired = (ioapic_pirq_intin(pci_int - 1) != PCI_APIC_INTIN_INVALID) && !ioapic_pirq_steered_isa();
 
     for (int i = 0; i < pci_pirq_srcs[pci_int - 1]; i++) {
         uint8_t *irq_state = pci_pirq_src[pci_int - 1][i];
@@ -467,7 +467,7 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                         if (ioapic_pirq_intin(irq_routing) != PCI_APIC_INTIN_INVALID) {
                             intin              = ioapic_pirq_intin(irq_routing);
                             direct_intin_route = 1;
-                            pirq_wired         = 1;
+                            pirq_wired         = !ioapic_pirq_steered_isa();
                         }
 
                         irq_line = pci_irqs[irq_routing];
@@ -511,7 +511,7 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                 if (ioapic_pirq_intin(slot) != PCI_APIC_INTIN_INVALID) {
                     intin              = ioapic_pirq_intin(slot);
                     direct_intin_route = 1;
-                    pirq_wired         = 1;
+                    pirq_wired         = !ioapic_pirq_steered_isa();
                 }
 
                 irq_line    = pci_irqs[slot];
@@ -554,8 +554,9 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
        to (picint_steered); which of the two the operating system listens
        to is its choice, made in the redirection table and the 8259 masks,
        not ours. Where the I/O APIC's inputs are the IRQ lines themselves
-       (the ESC), or the board does not say how it is wired, the 8259 side
-       mirrors it there as well. */
+       (the ESC, or one inside the south bridge, ioapic_pirq_steered_isa),
+       or the board does not say how it is wired, the 8259 side mirrors it
+       there as well. */
     if (direct_intin_route)
         pci_apic_direct_intin(intin, irq_line, set, irq_state);
 
@@ -649,7 +650,7 @@ pci_get_irq_intins(uint8_t slot, uint8_t pci_int)
                 irq_routing = (irq_routing - PCI_INTA) & PCI_IRQ_MAX;
                 if (ioapic_pirq_intin(irq_routing) != PCI_APIC_INTIN_INVALID) {
                     intin      = ioapic_pirq_intin(irq_routing);
-                    pirq_wired = 1;
+                    pirq_wired = !ioapic_pirq_steered_isa();
                 }
                 irq_line = pci_irqs[irq_routing];
                 break;

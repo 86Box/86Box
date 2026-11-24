@@ -154,6 +154,10 @@ typedef struct ioapic_legacy_irq_routing_t {
     /* The input PIRQ A-D are wired to, where the board wires them to the
        I/O APIC; 0 where it does not (INTIN0 is the 8259's INTR). */
     uint8_t pirq_to_intin[4];
+    /* Whether a steered PIRQ also reaches the input of the IRQ it is
+       steered to, as on an I/O APIC inside the south bridge, where the ISA
+       inputs are the IRQ lines past the steering. */
+    uint8_t pirq_steered_isa;
 } ioapic_legacy_irq_routing_t;
 
 #define IOAPIC_TOPOLOGY_UP_APIC_DEFAULT   0x00000200
@@ -285,6 +289,7 @@ extern void           ioapic_retry_deliveries(void);
 extern void           ioapic_pic_intr(int active);
 extern int            ioapic_pci_intin_own_wire(uint8_t intin, uint8_t irq_line);
 extern uint8_t        ioapic_pirq_intin(uint8_t pirq);
+extern int            ioapic_pirq_steered_isa(void);
 extern void           ioapic_set_pin0_smi(void *ioapic, int smi);
 extern void           ioapic_intin_irq(uint8_t pin, int level, int set);
 extern void           ioapic_legacy_irq(uint16_t mask, int level, int set);

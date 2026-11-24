@@ -93,6 +93,7 @@ typedef struct ioapic_t {
     uint8_t       legacy_irq_default_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       legacy_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       pirq_to_intin[4]; /* the board's PIRQ wiring, 0xff for none */
+    uint8_t       pirq_steered_isa; /* steered PIRQs also reach the inputs of their IRQs */
     uint8_t       ioapic_masked_irq_log_count[24];
     uint8_t       ioapic_irq_log_count[24];
     uint8_t       ioapic_deliver_log_count[24];
@@ -917,6 +918,16 @@ ioapic_pirq_intin(uint8_t pirq)
     return dev->pirq_to_intin[pirq];
 }
 
+/* Whether a PIRQ wired to an input of its own also reaches the input of the
+   IRQ it is steered to. */
+int
+ioapic_pirq_steered_isa(void)
+{
+    const ioapic_t *dev = ioapic_global;
+
+    return (dev != NULL) && dev->uniprocessor_apic && dev->pirq_steered_isa;
+}
+
 /* Whether a PCI interrupt the MP table puts on intin reaches the I/O APIC
    on a wire of its own, apart from the IRQ line it is steered to
    (irq_line, 0xff for none). On the ESC the I/O APIC's inputs are the IRQ
@@ -1491,6 +1502,7 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
 
         dev->pirq_to_intin[pirq] = ((pin != 0) && (pin < dev->pins)) ? pin : IOAPIC_LEGACY_IRQ_NC;
     }
+    dev->pirq_steered_isa    = !!routing->pirq_steered_isa;
     dev->legacy_routes_set   = 1;
     dev->legacy_routes_wired = 1;
 }
