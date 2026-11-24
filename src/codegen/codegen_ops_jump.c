@@ -265,10 +265,28 @@ call_far_rm(codeblock_t *block, ir_data_t *ir, int is32, int sel_reg, uint16_t s
 #endif
 }
 
+/*What a CALL far that call_far_rm() leaves calls, with the selector and the
+  return address as its arguments and the target offset in the PC:
+  dynarec_call_far_w/l, or in protected mode outside V86 on the processors
+  whose far transfers fill cs_load_cache the routine that repeats a
+  call_far_pm_fast() call from it, which tests the mode again*/
+void *
+call_far_func(codeblock_t *block, int is32)
+{
+#ifdef CODEGEN_BACKEND_HAS_FAR_ROUT
+    if ((far_load_order == FAR_LOAD_ORDER_IA) && ((block->status & (CPU_STATUS_PMODE | CPU_STATUS_V86)) == CPU_STATUS_PMODE))
+        return codegen_call_far_rout[is32][stack32 ? 1 : 0];
+#else
+    (void) block;
+#endif
+    return is32 ? (void *) dynarec_call_far_l : (void *) dynarec_call_far_w;
+}
+
 /*CALL far ptr16:16 and ptr16:32 in every mode: dynarec_call_far_w/l run the
   interpreter's CALL_FAR (loadcscall or loadcs, the call and task gates, the
   pushes), with the target offset in the PC, unless call_far_rm() compiles
-  it. The instruction ends the block, after the routine*/
+  it or call_far_func()'s routine makes the call. The instruction ends the
+  block, after the routine*/
 uint32_t
 ropCALL_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
@@ -284,7 +302,7 @@ ropCALL_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         return -1;
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
-    uop_CALL_FUNC(ir, dynarec_call_far_w);
+    uop_CALL_FUNC(ir, call_far_func(block, 0));
 
     return -1;
 }
@@ -302,7 +320,7 @@ ropCALL_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         return -1;
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 6);
-    uop_CALL_FUNC(ir, dynarec_call_far_l);
+    uop_CALL_FUNC(ir, call_far_func(block, 1));
 
     return -1;
 }

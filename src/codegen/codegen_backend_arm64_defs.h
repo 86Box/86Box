@@ -147,3 +147,6 @@ extern void *codegen_load_seg_rout[5];
 /*Protected-mode RETF at the same level (cs_load_cache), indexed by
   [32-bit operand][32-bit stack]*/
 extern void *codegen_retf_rout[2][2];
+/*Protected-mode CALL far at the same level (cs_load_cache), indexed by
+  [32-bit operand][32-bit stack]*/
+extern void *codegen_call_far_rout[2][2];

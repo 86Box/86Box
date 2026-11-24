@@ -492,7 +492,7 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 return -1;
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
-            uop_CALL_FUNC(ir, dynarec_call_far_w);
+            uop_CALL_FUNC(ir, call_far_func(block, 0));
             return -1;
 
         case 0x20: /*JMP*/
@@ -618,7 +618,7 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 return -1;
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
-            uop_CALL_FUNC(ir, dynarec_call_far_l);
+            uop_CALL_FUNC(ir, call_far_func(block, 1));
             return -1;
 
         case 0x20: /*JMP*/

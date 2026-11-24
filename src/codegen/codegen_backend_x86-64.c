@@ -62,6 +62,7 @@ void *codegen_exit_rout;
 void *codegen_rep_rout[2][3][2];
 void *codegen_load_seg_rout[5];
 void *codegen_retf_rout[2][2];
+void *codegen_call_far_rout[2][2];
 
 /*Entries to the exit routines that take 1..n cycles off cycles first, one
   per routine and count, so an exit that charges them keeps its single
@@ -1880,6 +1881,160 @@ build_retf_routine(codeblock_t *block, int is32, int stack_32)
     host_x86_JMP(block, (void *) pmoderetf_pm_fast);
 }
 
+/*dynarec_call_far_w/l() for one operand size and stack width, the selector
+  (zero-extended) and the return address in the argument registers and the
+  target offset in cpu_state.pc: the call call_far_pm_fast() would make at
+  the same level is repeated when no debug register is in use, both pushes
+  lie within the SS limits and hit their write lookups, the selector's
+  cs_load_cache entry holds (build_far_cs_test), and the offset is within
+  the entry's limit; it leaves what that call would. Anything else goes to
+  dynarec_call_far_w/l() with the caller's frame and arguments. Uses RAX,
+  R8-R11 and the first argument register, and RBX, R12 and R13, which it
+  saves*/
+static void
+build_call_far_routine(codeblock_t *block, int is32, int stack_32)
+{
+    static const uint8_t ret   = 0xc3;
+    const int            width = is32 ? 4 : 2;
+    int32_t             *miss[FAR_MAX_MISS];
+    int                  nr_miss = 0;
+
+    rx_push(block, REG_RBX);
+    rx_push(block, REG_R12);
+    rx_push(block, REG_R13);
+    rx_rr(block, 0, 0, 0x89, LOAD_SEG_ARG0, REG_R12);
+
+    rx_rm(block, 0, 0, 0x0fb6, REG_RAX, REG_RBP, rx_state(&cpu_state.abrt));
+    rx_rr(block, 0, 0, 0x85, REG_RAX, REG_RAX);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_rm(block, 0, 0, 0x0fb7, REG_RAX, REG_RBP, rx_state(&cpu_state.CR0.w));
+    rx_test_ri(block, REG_RAX, 1);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    rx_rm(block, 0, 0, 0x0fb7, REG_RAX, REG_RBP, rx_state(&cpu_state.eflags));
+    rx_test_ri(block, REG_RAX, VM_FLAG);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_mov_ri64(block, REG_R8, (uint64_t) (uintptr_t) &cpu_debug_regs_486);
+    rx_alu_mi(block, 7, REG_R8, 0, 0);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_mov_ri64(block, REG_R8, (uint64_t) (uintptr_t) &stack32);
+    rx_alu_mi(block, 7, REG_R8, 0, 0);
+    miss[nr_miss++] = rx_jcc(block, stack_32 ? RX_CC_Z : RX_CC_NZ);
+
+    /*R8D = SS base, not the null selector's mark; R10D, R9D = the offsets of
+      the two pushes*/
+    rx_rm(block, 0, 0, 0x8b, REG_R8, REG_RBP, rx_state(&cpu_state.seg_ss.base));
+    rx_alu_ri(block, 0, 7, REG_R8, 0xffffffff);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    if (stack_32)
+        rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RBP, rx_state(&ESP));
+    else
+        rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&SP));
+    rx_rr(block, 0, 0, 0x89, REG_R9, REG_R10);
+    rx_alu_ri(block, 0, 5, REG_R10, width);
+    rx_alu_ri(block, 0, 5, REG_R9, 2 * width);
+    if (!stack_32) {
+        rx_rr(block, 0, 0, 0x0fb7, REG_R10, REG_R10); /*MOVZX R10D, R10W*/
+        rx_rr(block, 0, 0, 0x0fb7, REG_R9, REG_R9);   /*MOVZX R9D, R9W*/
+    }
+    build_far_item_in_limits(block, REG_R10, width, miss, &nr_miss);
+    build_far_item_in_limits(block, REG_R9, width, miss, &nr_miss);
+
+    /*RBX and R13 = where the writememw()/writememl() hits store the old CS
+      and the return address*/
+    rx_rr(block, 0, 0, 0x01, REG_R8, REG_R10); /*ADD R10D, R8D*/
+    rx_rr(block, 0, 0, 0x01, REG_R8, REG_R9);  /*ADD R9D, R8D*/
+    rx_rr(block, 0, 0, 0x89, REG_R10, REG_RAX);
+    rx_rr(block, 0, 0, 0x09, REG_R9, REG_RAX); /*OR EAX, R9D*/
+    rx_test_ri(block, REG_RAX, width - 1);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_mov_ri64(block, REG_R11, (uint64_t) (uintptr_t) writelookup2);
+    rx_rr(block, 0, 0, 0x89, REG_R10, REG_RAX);
+    rx_shift_ri(block, 5, REG_RAX, 12);
+    rx_rm_index(block, 0, 1, 0x8b, REG_RBX, REG_R11, REG_RAX, 3);
+    rx_alu_ri(block, 1, 7, REG_RBX, 0xffffffff); /*LOOKUP_INV*/
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    rx_rr(block, 0, 1, 0x01, REG_R10, REG_RBX); /*ADD RBX, R10*/
+    rx_rr(block, 0, 0, 0x89, REG_R9, REG_RAX);
+    rx_shift_ri(block, 5, REG_RAX, 12);
+    rx_rm_index(block, 0, 1, 0x8b, REG_R13, REG_R11, REG_RAX, 3);
+    rx_alu_ri(block, 1, 7, REG_R13, 0xffffffff); /*LOOKUP_INV*/
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    rx_rr(block, 0, 1, 0x01, REG_R9, REG_R13); /*ADD R13, R9*/
+
+    /*R9D = the target offset, in the operand size; EAX = CPL; R10D = the
+      selector*/
+    if (is32)
+        rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RBP, rx_state(&cpu_state.pc));
+    else
+        rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.pc));
+    rx_rm(block, 0, 0, 0x0fb6, REG_RAX, REG_RBP, rx_state(&cpu_state.seg_cs.access));
+    rx_shift_ri(block, 5, REG_RAX, 5);
+    rx_alu_ri(block, 0, 4, REG_RAX, 3);
+    rx_rr(block, 0, 0, 0x89, REG_R12, REG_R10);
+
+    build_far_cs_test(block, miss, &nr_miss);
+
+    /*The offset within the new CS limit*/
+    rx_rm(block, 0, 0, 0x3b, REG_R9, REG_R11, FAR_ENTRY(image) + (int32_t) offsetof(x86seg, limit));
+    miss[nr_miss++] = rx_jcc(block, RX_CC_A);
+
+    /*The pushes, the old CS zero-extended*/
+    rx_rm(block, 0, 0, 0x0fb7, REG_R10, REG_RBP, rx_state(&CS));
+    rx_rm(block, !is32, 0, 0x89, REG_R10, REG_RBX, 0);
+    rx_rm(block, !is32, 0, 0x89, LOAD_SEG_ARG1, REG_R13, 0);
+
+    rx_rm(block, 0, 0, 0x89, REG_R9, REG_RBP, rx_state(&cpu_state.pc));
+    rx_rr(block, 0, 0, 0x31, REG_R8, REG_R8);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &optype);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &cgate16);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &cgate32);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &cgate_task);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &call_gate_undo.active);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &call_far_a_pending);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_rm(block, 0, 0, 0x8b, REG_R8, REG_R11, FAR_ENTRY(addr));
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &call_far_a_addr);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    rx_rm(block, 0, 0, 0x0fb7, REG_R8, REG_R11, FAR_ENTRY(desc) + 4);
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &call_far_a_word);
+    rx_rm(block, 1, 0, 0x89, REG_R8, REG_R10, 0);
+    build_far_cs_load(block);
+    rx_mov_ri64(block, REG_R8, (uint64_t) (uintptr_t) &timing_call_pm);
+    rx_rm(block, 0, 0, 0x8b, REG_R8, REG_R8, 0);
+    rx_rm(block, 0, 0, 0x29, REG_R8, REG_RBP, rx_state(&cpu_state._cycles)); /*SUB cycles, R8D*/
+    rx_rm(block, 0, 0, 0x8b, REG_R8, REG_RBP, rx_state(&cpu_state.seg_ss.base));
+    rx_mov_ri64(block, REG_R10, (uint64_t) (uintptr_t) &oldss);
+    rx_rm(block, 0, 0, 0x89, REG_R8, REG_R10, 0);
+    if (stack_32) {
+        rx_rm(block, 0, 0, 0x8b, REG_R8, REG_RBP, rx_state(&ESP));
+        rx_alu_ri(block, 0, 5, REG_R8, 2 * width);
+        rx_rm(block, 0, 0, 0x89, REG_R8, REG_RBP, rx_state(&ESP));
+    } else {
+        rx_rm(block, 0, 0, 0x0fb7, REG_R8, REG_RBP, rx_state(&SP));
+        rx_alu_ri(block, 0, 5, REG_R8, 2 * width);
+        rx_rm(block, 1, 0, 0x89, REG_R8, REG_RBP, rx_state(&SP));
+    }
+    rx_pop(block, REG_R13);
+    rx_pop(block, REG_R12);
+    rx_pop(block, REG_RBX);
+    rx_bytes(block, &ret, 1);
+
+    if (nr_miss > FAR_MAX_MISS)
+        fatal("build_call_far_routine - too many miss branches\n");
+    for (int c = 0; c < nr_miss; c++)
+        rx_patch(miss[c], rx_here());
+    rx_rr(block, 0, 0, 0x89, REG_R12, LOAD_SEG_ARG0);
+    rx_pop(block, REG_R13);
+    rx_pop(block, REG_R12);
+    rx_pop(block, REG_RBX);
+    host_x86_JMP(block, (void *) (is32 ? dynarec_call_far_l : dynarec_call_far_w));
+}
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 #        define LINK_SLOT(field) ((int32_t) offsetof(codegen_link_slot_t, field))
 #        define LINK_BLOCK(field) ((int32_t) offsetof(codeblock_t, field))
@@ -2460,6 +2615,8 @@ codegen_backend_init(void)
         for (int stack_32 = 0; stack_32 < 2; stack_32++) {
             codegen_retf_rout[is32][stack_32] = routine_start(block, 0x400);
             build_retf_routine(block, is32, stack_32);
+            codegen_call_far_rout[is32][stack_32] = routine_start(block, 0x400);
+            build_call_far_routine(block, is32, stack_32);
         }
     }
 
