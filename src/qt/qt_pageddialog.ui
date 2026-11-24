@@ -103,7 +103,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QStackedWidget" name="stackedWidget">
+         <widget class="PagedDialogStack" name="stackedWidget">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -139,6 +139,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PagedDialogStack</class>
+   <extends>QStackedWidget</extends>
+   <header>qt_pageddialog.hpp</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
