@@ -163,7 +163,6 @@ voodoo_generate_filter_v1(voodoo_t *voodoo)
     float thiscol;
     float thiscolg;
     float thiscolb;
-    float lined;
     float fcr;
     float fcg;
     float fcb;
@@ -228,17 +227,6 @@ voodoo_generate_filter_v1(voodoo_t *voodoo)
             voodoo->thefilterg[g][h] = thiscolg;
             voodoo->thefilterb[g][h] = thiscolb;
         }
-
-        lined = g + 4;
-        if (lined > 255)
-            lined = 255;
-        voodoo->purpleline[g][0] = lined;
-        voodoo->purpleline[g][2] = lined;
-
-        lined = g + 0;
-        if (lined > 255)
-            lined = 255;
-        voodoo->purpleline[g][1] = lined;
     }
 }
 
@@ -385,7 +373,7 @@ voodoo_threshold_check(voodoo_t *voodoo)
 }
 
 static void
-voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, int line)
+voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src)
 {
     // Scratchpad for avoiding feedback streaks
     uint8_t fil3[4096 * 3];
@@ -401,16 +389,6 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
         fil3[x * 3 + 0] = fil[x * 3 + 0];
         fil3[x * 3 + 1] = fil[x * 3 + 1];
         fil3[x * 3 + 2] = fil[x * 3 + 2];
-    }
-
-    /* lines */
-
-    if (line & 1) {
-        for (int x = 0; x < column; x++) {
-            fil[x * 3]     = voodoo->purpleline[fil[x * 3]][0];
-            fil[x * 3 + 1] = voodoo->purpleline[fil[x * 3 + 1]][1];
-            fil[x * 3 + 2] = voodoo->purpleline[fil[x * 3 + 2]][2];
-        }
     }
 
     /* filtering time */
@@ -586,7 +564,7 @@ voodoo_callback(void *priv)
                     if (voodoo->type == VOODOO_2)
                         voodoo_filterline_v2(voodoo, fil, voodoo->h_disp, src, voodoo->line);
                     else
-                        voodoo_filterline_v1(voodoo, fil, voodoo->h_disp, src, voodoo->line);
+                        voodoo_filterline_v1(voodoo, fil, voodoo->h_disp, src);
 
                     for (x = 0; x < voodoo->h_disp; x++) {
                         p[x] = (voodoo->clutData256[fil[x * 3]].b << 0 | voodoo->clutData256[fil[x * 3 + 1]].g << 8 | voodoo->clutData256[fil[x * 3 + 2]].r << 16);
