@@ -36,6 +36,7 @@
 #include <86box/rom.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/ppi.h>
 #include <86box/video.h>
 #include <86box/sound.h>
 #include <86box/serial.h>
@@ -50,17 +51,6 @@
 #define TANDY2K_SER_IRQ  (1 << 2)
 #define TANDY2K_LPT_IRQ  (1 << 11)
 #define TANDY2K_FPU_IRQ  (1 << 14)
-
-/* 8255A-5 ports plus the Mode 1 handshake state of the printer port. */
-typedef struct ppi_t {
-    int     mode; /* group A mode from the last control word */
-    int     inte;
-    int     intr;
-    int     obf;
-    uint8_t pa;
-    uint8_t pc;
-    uint8_t ctrl;
-} ppi_t;
 
 /* Character RAM sits in the low byte lane of the upper memory
    window, the BIOS writes it with one byte every two addresses. */
@@ -77,7 +67,11 @@ typedef struct tandy2k_t {
     int           uart_div;  /* 8253 channel 1 reload for the 2 MHz clock */
     uint8_t       uart_gate;
 
-    ppi_t         ppi;
+    i8255_t      *ppi;     /* 8255A-5: printer port, port B mux */
+    uint8_t       ppi_pc;  /* port C pins as the 8255 drives them */
+    int           lpt_intr;  /* INTR A (PC3), LPRINT13 */
+    int           lpt_acked; /* the guest read the PPI since INTR rose */
+    int           lpt_irq;   /* level presented to the interrupt controller */
     int           lpt_ack;
     int           lpt_busy;
     int           lpt_phase;
@@ -678,13 +672,18 @@ tandy2k_spkr_out(int new_out, UNUSED(int old_out), UNUSED(void *priv))
     speakon = ((count ? count : 0x10000) < 25) ? 0 : new_out;
 }
 
+/* PC3 (INTR A) drives LPRINT13. The board also acknowledges the printer
+   interrupt on any read of the PPI, which an 8255 does not do by itself, so
+   that read masks the line here until the chip drops INTR. */
 static void
-tandy2k_lpt_intr(int state)
+tandy2k_lpt_irq_update(void)
 {
-    if (tandy2k.ppi.intr == state)
+    const int state = tandy2k.lpt_intr && !tandy2k.lpt_acked;
+
+    if (tandy2k.lpt_irq == state)
         return;
 
-    tandy2k.ppi.intr = state;
+    tandy2k.lpt_irq = state;
     if (state)
         picint(TANDY2K_LPT_IRQ);
     else
@@ -692,25 +691,22 @@ tandy2k_lpt_intr(int state)
 }
 
 /* No printer is attached to the port, so it is modelled as one that always
-   accepts the byte: BUSY for the transfer, then an ACK* pulse. */
+   accepts the byte: BUSY for the transfer, then an ACK* pulse into PC6. */
 static void
-tandy2k_lpt_timer(void *priv)
+tandy2k_lpt_timer(UNUSED(void *priv))
 {
     switch (tandy2k.lpt_phase) {
         case 1:
             tandy2k.lpt_ack   = 0;
             tandy2k.lpt_phase = 2;
+            i8255_pc6_w(tandy2k.ppi, 0);
             timer_set_delay_u64(&tandy2k.lpt_timer, 2 * TIMER_USEC);
             break;
         case 2:
             tandy2k.lpt_ack   = 1;
             tandy2k.lpt_busy  = 0;
             tandy2k.lpt_phase = 0;
-            if (tandy2k.ppi.mode == 1) {
-                tandy2k.ppi.obf = 1;
-                if (tandy2k.ppi.inte)
-                    tandy2k_lpt_intr(1);
-            }
+            i8255_pc6_w(tandy2k.ppi, 1);
             break;
         default:
             break;
@@ -772,10 +768,10 @@ tandy2k_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ppi_pb_read(void)
+ppi_in_pb(UNUSED(void *priv))
 {
     /* Port C bits 2-1 select what port B reads back. */
-    switch ((tandy2k.ppi.pc >> 1) & 0x03) {
+    switch ((tandy2k.ppi_pc >> 1) & 0x03) {
         case 0x01:
             /* KBDINEN: reading port B acknowledges the keyboard interrupt. */
             if (tandy2k.kbd_busy) {
@@ -795,108 +791,62 @@ ppi_pb_read(void)
     }
 }
 
+/* Nothing drives port A when it is turned around to input. */
 static uint8_t
-ppi_read(uint16_t addr, void *priv)
+ppi_in_pa(UNUSED(void *priv))
 {
-    uint8_t ret = 0xff;
+    return 0xff;
+}
 
-    switch (addr & 0x0006) {
-        case 0x00:
-            ret = (tandy2k.ppi.ctrl & 0x10) ? 0xff : tandy2k.ppi.pa;
-            break;
-        case 0x02:
-            ret = ppi_pb_read();
-            break;
-        case 0x04:
-            if ((tandy2k.ppi.mode == 1) && !(tandy2k.ppi.ctrl & 0x10))
-                ret = (tandy2k.ppi.pc & 0x37) |
-                      (tandy2k.ppi.intr ? 0x08 : 0x00) |
-                      (tandy2k.ppi.inte ? 0x40 : 0x00) |
-                      (tandy2k.ppi.obf ? 0x80 : 0x00);
-            else
-                ret = tandy2k.ppi.pc;
-            break;
-        case 0x06:
-            ret = tandy2k.ppi.ctrl;
-            break;
-        default:
-            break;
+/* Undriven port C pins read low, as the board left them before. */
+static uint8_t
+ppi_tri_pc(UNUSED(void *priv))
+{
+    return 0x00;
+}
+
+/* Port C: bit 0 port A direction, bits 2-1 port B select, bit 3 printer
+   interrupt, bit 6 _LPRACK in, bit 7 _LPRDATSTB (OBF A). */
+static void
+ppi_out_pc(uint8_t val, UNUSED(void *priv))
+{
+    const uint8_t old = tandy2k.ppi_pc;
+
+    tandy2k.ppi_pc = val;
+
+    /* A falling strobe sends the byte on port A to the printer. */
+    if ((old & 0x80) && !(val & 0x80) && !tandy2k.lpt_phase) {
+        tandy2k.lpt_busy  = 1;
+        tandy2k.lpt_phase = 1;
+        timer_set_delay_u64(&tandy2k.lpt_timer, 100 * TIMER_USEC);
     }
 
+    if (!!(val & 0x08) != tandy2k.lpt_intr) {
+        tandy2k.lpt_intr = !!(val & 0x08);
+        if (!tandy2k.lpt_intr)
+            tandy2k.lpt_acked = 0;
+        tandy2k_lpt_irq_update();
+    }
+}
+
+static uint8_t
+ppi_read(uint16_t addr, UNUSED(void *priv))
+{
+    const uint8_t ret = i8255_read(tandy2k.ppi, (addr >> 1) & 0x03);
+
     /* The printer interrupt is acknowledged by any read of the PPI. */
-    if (tandy2k.ppi.mode == 1)
-        tandy2k_lpt_intr(0);
+    if (((tandy2k.ppi->control >> 5) & 0x03) == 1) {
+        tandy2k.lpt_acked = 1;
+        tandy2k_lpt_irq_update();
+    }
 
     return ret;
 }
 
 static void
-ppi_write(uint16_t addr, uint8_t val, void *priv)
+ppi_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
-    uint8_t bit;
-
-    switch (addr & 0x0006) {
-        case 0x00:
-            tandy2k.ppi.pa = val;
-            if ((tandy2k.ppi.mode == 1) && !(tandy2k.ppi.ctrl & 0x10)) {
-                /* OBF* falls, which pulses STROBE and clears INTR. */
-                tandy2k.ppi.obf   = 0;
-                tandy2k.lpt_busy  = 1;
-                tandy2k.lpt_phase = 1;
-                tandy2k_lpt_intr(0);
-                timer_set_delay_u64(&tandy2k.lpt_timer, 100 * TIMER_USEC);
-            }
-            break;
-        case 0x04:
-            if (tandy2k.ppi.mode == 1)
-                /* PC3, PC6 and PC7 are driven by the PPI in mode 1. */
-                tandy2k.ppi.pc = (tandy2k.ppi.pc & 0xf8) | (val & 0x07);
-            else
-                tandy2k.ppi.pc = val;
-            break;
-        case 0x06:
-            if (val & 0x80) {
-                tandy2k.ppi.ctrl = val;
-                tandy2k.ppi.mode = (val >> 5) & 0x03;
-                if ((tandy2k.ppi.mode == 1) && !(val & 0x10)) {
-                    tandy2k.ppi.obf  = 1;
-                    tandy2k.ppi.inte = 0;
-                    tandy2k_lpt_intr(0);
-                }
-            } else {
-                bit = (uint8_t) (1u << ((val >> 1) & 0x07));
-                if (tandy2k.ppi.mode == 1) {
-                    switch ((val >> 1) & 0x07) {
-                        case 3:
-                            tandy2k_lpt_intr(val & 0x01);
-                            break;
-                        case 6:
-                            tandy2k.ppi.inte = val & 0x01;
-                            if (tandy2k.ppi.inte && tandy2k.ppi.obf)
-                                tandy2k_lpt_intr(1);
-                            break;
-                        case 7:
-                            /* OBF* is an output pin in mode 1. */
-                            break;
-                        default:
-                            /* PC4 and PC5 are inputs in mode 1. */
-                            if (((val >> 1) & 0x07) <= 2) {
-                                if (val & 0x01)
-                                    tandy2k.ppi.pc |= bit;
-                                else
-                                    tandy2k.ppi.pc &= (uint8_t) ~bit;
-                            }
-                            break;
-                    }
-                } else if (val & 0x01)
-                    tandy2k.ppi.pc |= bit;
-                else
-                    tandy2k.ppi.pc &= (uint8_t) ~bit;
-            }
-            break;
-        default:
-            break;
-    }
+    i8255_write(tandy2k.ppi, (addr >> 1) & 0x03, val);
 }
 
 /* The chip's cascade ack returns the vector the external 8259 puts on the bus. */
@@ -1028,19 +978,16 @@ machine_tandy2000_init(const machine_t *model)
        guest can see back to their power-on values; a stale FDCRESET* level
        would otherwise pulse the controller during POST. */
     tandy2k.port0  = 0x00;
-    tandy2k.ppi.pa = 0x00;
-    tandy2k.ppi.pc = 0x00;
+    tandy2k.ppi_pc = 0x00;
     tandy2k.dmamux = 0x00;
 
     tandy2k.uart_gate = 1;   /* the 8253 leaves reset with its gates high */
     tandy2k.uart_div = 13;
 
-    tandy2k.ppi.ctrl = 0x9b; /* all ports input, mode 0 */
-    tandy2k.ppi.mode = 0;
-    tandy2k.ppi.inte = 0;
-    tandy2k.ppi.intr = 0;
-    tandy2k.ppi.obf  = 1;
-    tandy2k.lpt_ack  = 1;
+    tandy2k.lpt_intr  = 0;
+    tandy2k.lpt_acked = 0;
+    tandy2k.lpt_irq   = 0;
+    tandy2k.lpt_ack   = 1;
     tandy2k.lpt_busy = 0;
     tandy2k.lpt_phase = 0;
     picintc(TANDY2K_LPT_IRQ);
@@ -1106,6 +1053,12 @@ machine_tandy2000_init(const machine_t *model)
                   i8251_write, NULL, NULL, tandy2k.uart);
     tandy2k_uart_clock();
 
+    tandy2k.ppi = device_add(&i8255_device);
+    i8255_set_in(tandy2k.ppi, I8255_PORT_A, ppi_in_pa);
+    i8255_set_in(tandy2k.ppi, I8255_PORT_B, ppi_in_pb);
+    i8255_set_out(tandy2k.ppi, I8255_PORT_C, ppi_out_pc);
+    i8255_set_tri(tandy2k.ppi, I8255_PORT_C, ppi_tri_pc);
+    i8255_reset(tandy2k.ppi);
     io_sethandler(0x0050, 0x0008, ppi_read, NULL, NULL,
                   ppi_write, NULL, NULL, NULL);
 

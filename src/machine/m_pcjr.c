@@ -33,6 +33,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/ppi.h>
 #include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
@@ -583,6 +584,92 @@ const scancode scancode_pcjr[512] = {
     // clang-format on
 };
 
+/* 8255 port B: speaker gate and data, cassette motor, sound mux. */
+static void
+kbd_ppi_out_pb(uint8_t val, void *priv)
+{
+    pcjr_t *pcjr = (pcjr_t *) priv;
+
+    pcjr->pb = val;
+
+    if (cassette != NULL)
+        pc_cas_set_motor(cassette, (pcjr->pb & 0x08) == 0);
+
+    speaker_update();
+    speaker_gated  = val & 1;
+    speaker_enable = val & 2;
+    if (speaker_enable)
+        was_speaker_enable = 1;
+    pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
+    sn76489_mute = speaker_mute = 1;
+    switch (val & 0x60) {
+        case 0x00:
+            speaker_mute = 0;
+            break;
+
+        case 0x60:
+            sn76489_mute = 0;
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* 8255 port A is a plain latch on the PCjr. */
+static void
+kbd_ppi_out_pa(uint8_t val, void *priv)
+{
+    pcjr_t *pcjr = (pcjr_t *) priv;
+
+    pcjr->pa = val;
+}
+
+static uint8_t
+kbd_ppi_in_pa(void *priv)
+{
+    const pcjr_t *pcjr = (pcjr_t *) priv;
+
+    return pcjr->pa;
+}
+
+/* 8255 port C: keyboard latch, option cards, cassette in, timer 2 out,
+   keyboard data. */
+static uint8_t
+kbd_ppi_in_pc(void *priv)
+{
+    const pcjr_t *pcjr = (pcjr_t *) priv;
+    uint8_t       ret;
+
+    ret = (pcjr->latched ? 1 : 0);
+    if (!pcjr->option_modem)
+        ret |= 0x02; /* Modem card not installed */
+    if (!pcjr->option_fdc)
+        ret |= 0x04; /* Diskette card not installed */
+    if (mem_size < 128)
+        ret |= 0x08; /* 64k expansion card not installed */
+    if ((pcjr->pb & 0x08) || (cassette == NULL))
+        ret |= (ppispeakon ? 0x10 : 0);
+    else
+        ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
+    ret |= (ppispeakon ? 0x10 : 0);
+    ret |= (ppispeakon ? 0x20 : 0);
+    ret |= (pcjr->data ? 0x40 : 0);
+    if (pcjr->data)
+        ret |= 0x40;
+    if (pcjr->option_ir)
+        ret |= 0x80; /* Keyboard cable not connected */
+
+    return ret;
+}
+
+/* Undriven port pins read low, as the board left them before. */
+static uint8_t
+kbd_ppi_tri(UNUSED(void *priv))
+{
+    return 0x00;
+}
+
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -592,35 +679,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
         port = 0xa0;
 
     switch (port) {
-        case 0x60:
-            pcjr->pa = val;
-            break;
-
-        case 0x61:
-            pcjr->pb = val;
-
-            if (cassette != NULL)
-                pc_cas_set_motor(cassette, (pcjr->pb & 0x08) == 0);
-
-            speaker_update();
-            speaker_gated  = val & 1;
-            speaker_enable = val & 2;
-            if (speaker_enable)
-                was_speaker_enable = 1;
-            pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
-            sn76489_mute = speaker_mute = 1;
-            switch (val & 0x60) {
-                case 0x00:
-                    speaker_mute = 0;
-                    break;
-
-                case 0x60:
-                    sn76489_mute = 0;
-                    break;
-
-                default:
-                    break;
-            }
+        case 0x60 ... 0x63:
+            i8255_write(pcjr->ppi, port & 3, val);
             break;
 
         case 0xa0:
@@ -645,33 +705,9 @@ kbd_read(uint16_t port, void *priv)
         port = 0xa0;
 
     switch (port) {
-        case 0x60:
-            ret = pcjr->pa;
-            break;
-
-        case 0x61:
-            ret = pcjr->pb;
-            break;
-
-        case 0x62:
-            ret = (pcjr->latched ? 1 : 0);
-            if (!pcjr->option_modem)
-                ret |= 0x02; /* Modem card not installed */
-            if (!pcjr->option_fdc)
-                ret |= 0x04; /* Diskette card not installed */
-            if (mem_size < 128)
-                ret |= 0x08; /* 64k expansion card not installed */
-            if ((pcjr->pb & 0x08) || (cassette == NULL))
-                ret |= (ppispeakon ? 0x10 : 0);
-            else
-                ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
-            ret |= (ppispeakon ? 0x10 : 0);
-            ret |= (ppispeakon ? 0x20 : 0);
-            ret |= (pcjr->data ? 0x40 : 0);
-            if (pcjr->data)
-                ret |= 0x40;
-            if (pcjr->option_ir)
-                ret |= 0x80; /* Keyboard cable not connected */
+        case 0x60 ... 0x62:
+            /* The 8255 control word cannot be read back. */
+            ret = i8255_read(pcjr->ppi, port & 3);
             break;
 
         case 0xa0:
@@ -929,6 +965,17 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     pcjr_vid_init(pcjr);
     device_context_restore();
     device_add_ex(&pcjr_device, pcjr);
+
+    /* Initialize the 8255. */
+    pcjr->ppi = device_add(&i8255_device);
+    i8255_set_priv(pcjr->ppi, pcjr);
+    i8255_set_in(pcjr->ppi, I8255_PORT_A, kbd_ppi_in_pa);
+    i8255_set_in(pcjr->ppi, I8255_PORT_C, kbd_ppi_in_pc);
+    i8255_set_out(pcjr->ppi, I8255_PORT_A, kbd_ppi_out_pa);
+    i8255_set_out(pcjr->ppi, I8255_PORT_B, kbd_ppi_out_pb);
+    i8255_set_tri(pcjr->ppi, I8255_PORT_A, kbd_ppi_tri);
+    i8255_set_tri(pcjr->ppi, I8255_PORT_B, kbd_ppi_tri);
+    i8255_reset(pcjr->ppi);
 
     /* Initialize the keyboard. */
     keyboard_scan   = 1;
