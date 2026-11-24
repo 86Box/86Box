@@ -64,7 +64,7 @@ sound_source_give_buffer(void *priv, const void *buf)
 {
     const sound_source_t *src = (sound_source_t *) priv;
 
-    sound_backend_give_buffer(src->src, buf, src->buffer_size, src->gain);
+    sound_backend_give_buffer(src->src, buf, src->buffer_size * 2, src->gain);
 }
 
 static void
@@ -127,7 +127,7 @@ sound_source_do_close(sound_source_t *src)
 static void
 sound_source_do_init(sound_source_t *src)
 {
-    src->src = sound_backend_init_source(src->sample_rate, src->buffer_size);
+    src->src = sound_backend_init_source(src->sample_rate, src->buffer_size * 2);
 }
 
 void
@@ -275,7 +275,9 @@ sound_source_init(const device_t *info)
 
     src->prev               = last_sound_source;
 
-    last_sound_source->next = src;
+    if (last_sound_source != NULL)
+        last_sound_source->next = src;
+
     last_sound_source       = src;
 
     return src;

@@ -25,36 +25,58 @@ typedef struct _sound_backend_ {
     const char *name;
     const char *internal_name;
 
+    /* Output. Sizes are in values (2 per stereo frame). */
     void        (*give_buffer)(void *priv, void *src, const void *buf, int size, int gain);
     void *      (*init_source)(void *priv, int sample_rate, int buffer_size);
     void        (*close_source)(void *priv, void *src);
     const char *(*get_output_devices)(void);
     void       *(*init)(void);
     void        (*close)(void *priv);
+
+    /* Input. Captured data is always interleaved 16-bit stereo. */
+    const char *(*get_input_devices)(void);
+    void *      (*init_input)(void *priv, int sample_rate);
+    void        (*close_input)(void *priv, void *in);
+    void        (*start_input)(void *priv, void *in);
+    void        (*stop_input)(void *priv, void *in);
+    int         (*get_input_rate)(void *priv, void *in);
+    void        (*get_input_data)(void *priv, void *in, int16_t *buf, size_t *len);
+
+    /* Probes which of the candidate rates a device supports; returns count. */
+    int         (*get_device_supported_rates)(const char *device_name, int *rates_out, int max);
 } sound_backend_t;
 
-extern sound_backend_t       sound_cur_backend;
-
-#ifdef AUDIO4
 extern const sound_backend_t sound_backend_audio4;
-#endif
-#if !defined(AUDIO4) && !defined(SNDIO)
 extern const sound_backend_t sound_backend_openal;
-#endif
-#if !defined(AUDIO4) && !defined(SNDIO)
 extern const sound_backend_t sound_backend_xaudio2;
-#endif
-#ifdef SNDIO
 extern const sound_backend_t sound_backend_sndio;
-#endif
+
+extern int                   sound_backend_current;
+
+extern int                   sound_backend_get_count(void);
+extern const char *          sound_backend_get_name(int backend);
+extern const char *          sound_backend_get_internal_name(int backend);
+extern int                   sound_backend_get_from_internal_name(const char *s);
+extern int                   sound_backend_get_default(void);
+extern const char *          sound_backend_get_output_devices_of(int backend);
+extern const char *          sound_backend_get_input_devices_of(int backend);
+extern int                   sound_backend_get_supported_rates_of(int backend, const char *device_name,
+                                                                  int *rates_out, int max_rates);
 
 extern void                  sound_backend_give_buffer(void *src, const void *buf,
                                                        int size, int gain);
 extern void                  sound_backend_close_source(void *src);
 extern void *                sound_backend_init_source(int sample_rate, int buffer_size);
-extern const char *          sound_backend_get_output_devices(void);
 extern void                  sound_backend_close(void);
 extern void                  sound_backend_init(void);
+
+extern void                  sound_backend_input_open(void);
+extern void                  sound_backend_input_close(void);
+extern int                   sound_backend_input_available(void);
+extern void                  sound_backend_input_start(void);
+extern void                  sound_backend_input_stop(void);
+extern int                   sound_backend_input_get_rate(void);
+extern void                  sound_backend_input_get_data(int16_t *buf, size_t *len);
 
 extern void            sound_source_close_all(void);
 extern void            sound_source_reopen_all(void);
@@ -192,26 +214,14 @@ extern void sound_fdd_thread_end(void);
 extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
-extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
-extern const char *sound_get_input_devices(void);  /* returns double-null-terminated list, or NULL */
-extern void        al_capture_open(void);
-extern void        al_capture_close(void);
-extern int         al_capture_get_rate(void);
-extern int         sound_get_device_sample_rate(const char *device_name);   /* probe native rate, 0 = unknown */
-extern int         sound_get_device_supported_rates(const char *device_name, /* probe supported rates into rates_out; returns count */
-                                                    int *rates_out, int max_rates);
-extern void        closeal(void);
-extern void        inital(void);
+extern void        sound_output_init(void);
+extern void        sound_output_close(void);
+extern void        al_set_midi(int freq, int buf_size);
 extern void        sound_reopen_input(void);
 extern void        sound_reopen_output(void);
-extern int         al_capture_available(void);
-extern void        al_capture_start(void);
-extern void        al_capture_stop(void);
-extern void        al_capture_get_data(int16_t *buf, size_t *len);
 
 extern unsigned long long src_freqs[I_MAX];
 
-extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);
 /* Hands a block to the host backend, and first to the automation socket's
    audio capture when it is built in. size counts values (2 per frame). */
 extern void        sound_give(const void *buf, const uint8_t src, const int size);

@@ -669,7 +669,7 @@ cs423x_put_buffer(int16_t *buffer, int len, void *priv)
     cs423x_t *cs423x = (cs423x_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     int rate = 0;
     if (cs423x->ad1848.regs[9] & 0x02)

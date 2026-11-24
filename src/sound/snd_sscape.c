@@ -1761,7 +1761,7 @@ sscape_capture(int16_t *buffer, int len, void *priv)
 {
     sscape_t *dev       = (sscape_t *) priv;
     ad1848_t *codec     = &dev->ad1848;
-    const int host_rate = al_capture_get_rate();
+    const int host_rate = sound_backend_input_get_rate();
     const int rate      = host_rate > 0 ? host_rate : SOUND_FREQ;
     const int freq      = codec->freq;
     double    gain[2];

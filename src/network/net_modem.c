@@ -794,7 +794,7 @@ modem_voice_capture_set(modem_t *modem, bool enabled)
     modem->voice_capture_started = enabled;
     if (enabled) {
         sound_in_start_input();
-        int rate = al_capture_get_rate();
+        int rate = sound_backend_input_get_rate();
         if (rate <= 0)
             rate = SOUND_FREQ;
         voice_resampler_init(&modem->voice_capture_resample,

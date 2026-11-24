@@ -40,6 +40,7 @@ private slots:
 
 private:
     void updateSoundInputEnabled();
+    void populateAudioDevices(int backend);
 
 private slots:
 
@@ -49,6 +50,7 @@ private slots:
     void on_comboBoxMidiIn_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiIn_clicked();
 
+    void on_comboBoxSoundBackend_currentIndexChanged(int index);
     void on_comboBoxAudioOutputDevice_currentIndexChanged(int index);
 
     void on_checkBoxMPU401_stateChanged(int arg1);
@@ -74,6 +76,7 @@ private:
     int midiInCurrent;
 
     bool inMachineChange;
+    bool populatingBackend = false;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

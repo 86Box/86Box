@@ -167,7 +167,7 @@ static void
 ps1snd_put_buffer(int16_t *buffer, int len, void *priv)
 {
     ps1snd_t *ps1snd   = (ps1snd_t *) priv;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
 
     if (!ps1snd->in_started)
         return;

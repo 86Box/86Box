@@ -17,6 +17,8 @@
 
 add_library(snd OBJECT
     sound.c
+    snd_backend.c
+    snd_source.c
     snd_opl.c
     snd_opl2_nuked.c
     snd_opl3_nuked.c
@@ -97,11 +99,20 @@ set_source_files_properties(
     PROPERTIES COMPILE_OPTIONS "$<IF:$<C_COMPILER_ID:MSVC>,/w,-w>"
 )
 
-# TODO: Should platform-specific audio driver be here?
+# Sound backends: every backend that is available on the platform is built,
+# and the one to use is selected in the Preferences dialog.
+set(SND_BACKEND_FOUND OFF)
+
 if(AUDIO4)
-    target_sources(snd PRIVATE audio4.c)
-elseif(SNDIO)
-    target_sources(snd PRIVATE sndio.c)
+    target_sources(snd PRIVATE snd_backend_audio4.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_AUDIO4)
+    set(SND_BACKEND_FOUND ON)
+endif()
+
+if(SNDIO)
+    target_sources(snd PRIVATE snd_backend_sndio.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_SNDIO)
+    set(SND_BACKEND_FOUND ON)
     find_package(PkgConfig REQUIRED)
 
     pkg_check_modules(SNDIO IMPORTED_TARGET sndio)
@@ -115,7 +126,9 @@ elseif(SNDIO)
     endif()
 
     include_directories(${SNDIO_INCLUDE_DIRS})
-elseif(OPENAL)
+endif()
+
+if(OPENAL)
     if(VCPKG_TOOLCHAIN)
         find_package(OpenAL CONFIG REQUIRED)
     elseif(MINGW)
@@ -140,13 +153,21 @@ elseif(OPENAL)
 
     include_directories(${OPENAL_INCLUDE_DIR})
 
-    target_sources(snd PRIVATE openal.c)
-else()
-    if(WIN32)
-        option(FAUDIO "Use FAudio instead of XAudio2" OFF)
-    endif()
+    target_sources(snd PRIVATE snd_backend_openal.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_OPENAL)
+    set(SND_BACKEND_FOUND ON)
+endif()
 
-    target_sources(snd PRIVATE xaudio2.c)
+if(WIN32)
+    option(FAUDIO "Use FAudio instead of XAudio2" OFF)
+elseif(NOT SND_BACKEND_FOUND)
+    # Nothing else to play sound with, so FAudio it is.
+    set(FAUDIO ON)
+endif()
+
+if(WIN32 OR FAUDIO)
+    target_sources(snd PRIVATE snd_backend_xaudio2.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_XAUDIO2)
 
     if(NOT WIN32 OR FAUDIO)
         find_package(PkgConfig REQUIRED)
@@ -164,7 +185,7 @@ else()
 
         include_directories(${FAUDIO_INCLUDE_DIRS})
 
-        set_property(SOURCE xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
+        set_property(SOURCE snd_backend_xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
     endif()
 endif()
 

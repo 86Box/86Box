@@ -1423,7 +1423,7 @@ static void
 cmi8x38_put_buffer(int16_t *buffer, int len, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const uint32_t keep = ((cap_rate > 0) ? cap_rate : SOUND_FREQ) / 4;
 
     if (!dev->in_started)

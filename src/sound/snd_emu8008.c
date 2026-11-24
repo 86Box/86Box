@@ -241,7 +241,7 @@ emu8008_put_buffer(int16_t *buffer, int len, void *priv)
     if (!dev->cap_active)
         return;
 
-    const int      host_rate = al_capture_get_rate();
+    const int      host_rate = sound_backend_input_get_rate();
     const uint32_t rate      = (host_rate > 0) ? host_rate : SOUND_FREQ;
 
     if (dev->cap_input_rate != rate) {

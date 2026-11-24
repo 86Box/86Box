@@ -175,7 +175,7 @@ mozart_put_buffer(int16_t *buffer, int len, void *priv)
     mozart_t *dev      = (mozart_t *) priv;
     ad1848_t *ad1848   = &dev->ad1848;
     sb_dsp_t *dsp      = &dev->sb->dsp;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = (ad1848->regs[9] & 0x02) ? ad1848->freq : dsp->sb_freq;
 

@@ -663,7 +663,7 @@ ad1816_put_buffer(int16_t *buffer, int len, void *priv)
     ad1816_t                *ad1816 = (ad1816_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ad1816->rec_freq;
 

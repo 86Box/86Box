@@ -1927,7 +1927,7 @@ pc_reset_hard_close(void)
 
     scsi_disk_close();
 
-    closeal();
+    sound_output_close();
 
     video_reset_close();
 

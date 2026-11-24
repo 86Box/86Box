@@ -2782,7 +2782,7 @@ pas16_put_buffer(int16_t *buffer, int len, void *priv)
     mv508_mixer_t *mv508_mixer = &pas16->mv508_mixer;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ((pas16->type) ? 882000 : 1193180) / (pas16->rate_div ? pas16->rate_div : 54);
 

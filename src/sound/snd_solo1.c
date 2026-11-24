@@ -794,7 +794,7 @@ static void
 solo1_put_buffer(int16_t *buffer, int len, void *priv)
 {
     solo1_t  *dev      = (solo1_t *) priv;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     uint32_t  keep;
 
     if (!dev->in_started)

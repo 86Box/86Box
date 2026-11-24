@@ -2661,7 +2661,7 @@ static void
 es137x_put_buffer(int16_t *buffer, int len, void *priv)
 {
     es137x_t *dev      = (es137x_t *) priv;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
 
     if (!dev->in_started)
         return;

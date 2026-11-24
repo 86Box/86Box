@@ -637,7 +637,7 @@ ess_put_buffer_esx488(int16_t *buffer, int len, void *priv)
     sb_t                    *ess   = (sb_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ess->dsp.sb_freq;
 
@@ -744,7 +744,7 @@ ess_put_buffer(int16_t *buffer, int len, void *priv)
     const ess_mixer_t       *mixer = &ess->mixer_ess;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ess->dsp.sb_freq;
 
@@ -857,7 +857,7 @@ sb_put_buffer_sb(int16_t *buffer, int len, void *priv)
     sb_t                    *sb    = (sb_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = sb->dsp.sb_freq;
 
@@ -961,7 +961,7 @@ sb_put_buffer_sbpro(int16_t *buffer, int len, void *priv)
     const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = sb->dsp.sb_freq;
 
@@ -1082,7 +1082,7 @@ sb_put_buffer_sb16_awe32(int16_t *buffer, int len, void *priv)
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = sb->dsp.sb_freq;
 

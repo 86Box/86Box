@@ -39,6 +39,7 @@
 #include <86box/mem.h>
 #include <86box/usb.h>
 #include <86box/automation.h>
+#include <86box/runctl.h>
 
 typedef struct {
     const device_t *device;
@@ -62,6 +63,14 @@ int  ym2151_pos_global                  = 0;
 int  wavetable_pos_global               = 0;
 int  sound_gain                         = 0;
 char sound_output_device[512]           = { 0 };
+
+static void *sound_streams[I_MAX]                = { NULL };
+static unsigned long long sound_stream_buf_sizes[I_MAX] = {
+    0, (MUSICBUFLEN << 1), (WTBUFLEN << 1),     (CD_BUFLEN << 1),
+    0, 0,                  (YM2151BUFLEN << 1), 0
+};
+static int   sound_output_initialized            = 0;
+static int   sound_output_atexit_registered      = 0;
 
 int  midi_freq                          = 44100;
 int  midi_buf_size                      = 4410;
@@ -657,10 +666,77 @@ sound_init(void)
 }
 
 void
+al_set_midi(const int freq, const int buf_size)
+{
+    midi_freq     = freq;
+    midi_buf_size = buf_size;
+}
+
+/* Opens the backend and one source per stream. */
+void
+sound_output_init(void)
+{
+    int init_midi = 0;
+
+    if (sound_output_initialized)
+        return;
+
+    sound_backend_init();
+
+    if (!sound_output_atexit_registered) {
+        atexit(sound_output_close);
+        sound_output_atexit_registered = 1;
+    }
+
+    const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
+    if ((strcmp(mdn, "none") != 0) && (strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME) != 0))
+        init_midi = 1; /* If the device is neither none, nor system MIDI, initialize the
+                          MIDI buffer and source, otherwise, do not. */
+
+    const int pcm_buf_len = sound_sample_rate / 50;
+
+    sound_stream_buf_sizes[I_NORMAL] = sound_stream_buf_sizes[I_FDD] = sound_stream_buf_sizes[I_HDD] = (pcm_buf_len << 1);
+    src_freqs[I_NORMAL] = src_freqs[I_FDD] = src_freqs[I_HDD] = sound_sample_rate;
+
+    if (init_midi) {
+        sound_stream_buf_sizes[I_MIDI] = midi_buf_size;
+        src_freqs[I_MIDI]              = midi_freq;
+    }
+
+    /* Streams: 0=main, 1=music, 2=wt, 3=cd, 4=fdd, 5=hdd, 6=ym2151, 7=midi (optional) */
+    const int streams = I_MIDI + !!init_midi;
+
+    for (int i = 0; i < streams; i++)
+        sound_streams[i] = sound_backend_init_source((int) src_freqs[i], (int) sound_stream_buf_sizes[i]);
+
+    sound_output_initialized = 1;
+}
+
+void
+sound_output_close(void)
+{
+    if (!sound_output_initialized)
+        return;
+
+    for (int i = 0; i < I_MAX; i++) {
+        if (sound_streams[i] != NULL) {
+            sound_backend_close_source(sound_streams[i]);
+            sound_streams[i] = NULL;
+        }
+    }
+
+    sound_backend_close();
+
+    sound_output_initialized = 0;
+}
+
+void
 sound_give(const void *buf, const uint8_t src, const int size)
 {
     automation_audio(src, buf, size, sound_is_float);
-    givealbuffer_common(buf, src, size);
+
+    if ((src < I_MAX) && (sound_streams[src] != NULL) && (runctl_mode() != RUN_MODE_FAST))
+        sound_backend_give_buffer(sound_streams[src], buf, size, 0);
 }
 
 /* Frames a stream has ticked since its last block: the start of its next
@@ -801,11 +877,11 @@ sound_in_start_input(void)
     const uint8_t old = sound_in_started_input;
 
     if (!old)
-        al_capture_open();
+        sound_backend_input_open();
 
     sound_in_started_input++;
-    if (!old && al_capture_available())
-        al_capture_start();
+    if (!old && sound_backend_input_available())
+        sound_backend_input_start();
 }
 
 
@@ -814,9 +890,9 @@ sound_capture_suspend(void)
 {
     const int was_capturing = (sound_in_started_input > 0);
 
-    if (al_capture_available())
-        al_capture_stop();
-    al_capture_close();
+    if (sound_backend_input_available())
+        sound_backend_input_stop();
+    sound_backend_input_close();
 
     return was_capturing;
 }
@@ -826,9 +902,9 @@ sound_capture_resume(const int was_capturing)
 {
     if (was_capturing && sound_input_enabled) {
         sound_in_had_data = 0;
-        al_capture_open();
-        if (al_capture_available())
-            al_capture_start();
+        sound_backend_input_open();
+        if (sound_backend_input_available())
+            sound_backend_input_start();
         else
             /* recovery retry on next tick */
             sound_in_reopen_ticks = SNDIN_REOPEN_TICKS;
@@ -838,7 +914,7 @@ sound_capture_resume(const int was_capturing)
 void
 sound_reopen_input(void)
 {
-    /* al_capture_open()/al_capture_close() mutex-guarded in sound_poll()*/
+    /* sound_backend_input_open()/sound_backend_input_close() mutex-guarded in sound_poll()*/
     sound_capture_resume(sound_capture_suspend());
 }
 
@@ -847,8 +923,8 @@ sound_reopen_output(void)
 {
     const int was_capturing = sound_capture_suspend();
 
-    closeal();
-    inital();
+    sound_output_close();
+    sound_output_init();
 
     sound_capture_resume(was_capturing);
 }
@@ -871,8 +947,8 @@ sound_in_stop_input(void)
 
     if (sound_in_started_input)
         sound_in_started_input--;
-    if (old && !sound_in_started_input && al_capture_available())
-        al_capture_stop();
+    if (old && !sound_in_started_input && sound_backend_input_available())
+        sound_backend_input_stop();
 }
 
 void
@@ -965,7 +1041,7 @@ sound_poll(UNUSED(void *priv))
 
             /* recover a failed device capture */
             if (sound_input_enabled) {
-                const int dead = !al_capture_available();
+                const int dead = !sound_backend_input_available();
                 const int wedged = !dead && sound_in_had_data
                                 && (sound_in_wedge_attempts < SNDIN_MAX_WEDGE_ATTEMPTS)
                                 && (sound_in_empty_reads >= SNDIN_WEDGED_TICKS);
@@ -983,13 +1059,13 @@ sound_poll(UNUSED(void *priv))
 
                         if (wedged) {
                             sound_in_wedge_attempts++;
-                            al_capture_stop();
-                            al_capture_close();
+                            sound_backend_input_stop();
+                            sound_backend_input_close();
                         }
 
-                        al_capture_open();
-                        if (al_capture_available())
-                            al_capture_start();
+                        sound_backend_input_open();
+                        if (sound_backend_input_available())
+                            sound_backend_input_start();
                     }
                 } else {
                     sound_in_reopen_ticks = 0;
@@ -997,14 +1073,14 @@ sound_poll(UNUSED(void *priv))
             }
 
             /* use SOUND_FREQ when device not open */
-            const int cap_rate = al_capture_get_rate();
+            const int cap_rate = sound_backend_input_get_rate();
             const int fill_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
             size_t    want      = (size_t) fill_rate / 50;
 
             if (want > (size_t) SOUNDBUFLEN)
                 want = (size_t) SOUNDBUFLEN;
 
-            al_capture_get_data(sound_input_buffer, &in_len);
+            sound_backend_input_get_data(sound_input_buffer, &in_len);
 
             if (in_len == 0) {
                 sound_in_empty_reads++;
@@ -1215,7 +1291,7 @@ sound_reset(void)
     midi_out_device_init();
     midi_in_device_init();
 
-    inital();
+    sound_output_init();
 
     memset(&midi_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&midi_poll_timer, midi_poll_ex, NULL, 1);
@@ -1227,7 +1303,7 @@ sound_reset(void)
     sound_in_handlers_num = 0;
     sound_in_started_input = 0;
     memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
-    al_capture_close();
+    sound_backend_input_close();
 
     memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);
