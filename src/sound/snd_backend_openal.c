@@ -65,15 +65,17 @@ openal_give_buffer(void *priv, void *src, const void *buf, const int size, UNUSE
 
         alGetSourcei(source->source, AL_SOURCE_STATE, &state);
 
-        if (state == 0x1014)
+        /* Restart a source that ran dry or was left idle, e.g. because the
+           emulation thread was held up while an input device was swapped. */
+        if (state != AL_PLAYING)
             alSourcePlay(source->source);
+
+        const double master_gain = (sound_muted) ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
+        alListenerf(AL_GAIN, (float) master_gain);
 
         alGetSourcei(source->source, AL_BUFFERS_PROCESSED, &processed);
 
         if (processed >= 1) {
-            const double master_gain = (sound_muted) ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
-            alListenerf(AL_GAIN, (float) master_gain);
-
             alSourceUnqueueBuffers(source->source, 1, &buffer);
 
             if (sound_is_float)

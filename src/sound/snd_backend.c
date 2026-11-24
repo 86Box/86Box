@@ -230,13 +230,24 @@ sound_backend_input_unlock(void)
 void
 sound_backend_input_open(void)
 {
+    /* Opening a capture device can take a while, so do it without holding
+       the lock the emulation thread needs to poll the input. */
     sound_backend_input_lock();
+    const int need = (cur_input == NULL) && sound_input_enabled && (CUR_BACKEND != NULL) &&
+                     (CUR_BACKEND->init_input != NULL);
+    const sound_backend_t *be = CUR_BACKEND;
+    sound_backend_input_unlock();
 
-    if ((cur_input == NULL) && sound_input_enabled && (CUR_BACKEND != NULL) &&
-        (CUR_BACKEND->init_input != NULL))
-        cur_input = CUR_BACKEND->init_input(cur_backend,
-                                            (sb_input_rate == FREQ_48000) ? FREQ_48000 : FREQ_44100);
+    if (!need)
+        return;
 
+    void *in = be->init_input(cur_backend, (sb_input_rate == FREQ_48000) ? FREQ_48000 : FREQ_44100);
+
+    sound_backend_input_lock();
+    if ((in != NULL) && (cur_input == NULL) && (CUR_BACKEND == be))
+        cur_input = in;
+    else if ((in != NULL) && (be->close_input != NULL))
+        be->close_input(cur_backend, in);
     sound_backend_input_unlock();
 }
 
