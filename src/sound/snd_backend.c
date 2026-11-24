@@ -54,7 +54,11 @@ static void * cur_backend           = NULL;
 static void * cur_input             = NULL;
 static mutex_t *input_mutex         = NULL;
 
-#define CUR_BACKEND (sound_backends[sound_backend_current].backend)
+/* The backend the current handles belong to; sound_backend_current may already
+   point at a newly selected one while the old one is still open. */
+static int    active_backend        = 0;
+
+#define CUR_BACKEND (sound_backends[active_backend].backend)
 
 int
 sound_backend_get_count(void)
@@ -148,18 +152,18 @@ void
 sound_backend_give_buffer(void *src, const void *buf, const int size, const int gain)
 {
     if ((src != NULL) && (cur_backend != NULL) &&
-        (sound_backends[sound_backend_current].backend) &&
-        (sound_backends[sound_backend_current].backend->give_buffer != NULL))
-        sound_backends[sound_backend_current].backend->give_buffer(cur_backend, src, buf, size, gain);
+        (CUR_BACKEND) &&
+        (CUR_BACKEND->give_buffer != NULL))
+        CUR_BACKEND->give_buffer(cur_backend, src, buf, size, gain);
 }
 
 void
 sound_backend_close_source(void *src)
 {
     if ((src != NULL) && (cur_backend != NULL) &&
-        (sound_backends[sound_backend_current].backend) &&
-        (sound_backends[sound_backend_current].backend->close_source != NULL))
-        sound_backends[sound_backend_current].backend->close_source(cur_backend, src);
+        (CUR_BACKEND) &&
+        (CUR_BACKEND->close_source != NULL))
+        CUR_BACKEND->close_source(cur_backend, src);
 }
 
 void *
@@ -168,9 +172,9 @@ sound_backend_init_source(const int sample_rate, const int buffer_size)
     void *new_src = NULL;
 
     if ((cur_backend != NULL) &&
-        (sound_backends[sound_backend_current].backend) &&
-        (sound_backends[sound_backend_current].backend->init_source != NULL))
-        new_src = sound_backends[sound_backend_current].backend->init_source(cur_backend, sample_rate, buffer_size);
+        (CUR_BACKEND) &&
+        (CUR_BACKEND->init_source != NULL))
+        new_src = CUR_BACKEND->init_source(cur_backend, sample_rate, buffer_size);
 
     return new_src;
 }
@@ -183,9 +187,9 @@ sound_backend_close(void)
     sound_backend_input_close();
 
     if ((cur_backend != NULL) &&
-        (sound_backends[sound_backend_current].backend) &&
-        (sound_backends[sound_backend_current].backend->close != NULL))
-        sound_backends[sound_backend_current].backend->close(cur_backend);
+        (CUR_BACKEND) &&
+        (CUR_BACKEND->close != NULL))
+        CUR_BACKEND->close(cur_backend);
 
     cur_backend = NULL;
 }
@@ -198,6 +202,8 @@ sound_backend_init(void)
 
     if (input_mutex == NULL)
         input_mutex = thread_create_mutex();
+
+    active_backend = sound_backend_current;
 
     if ((CUR_BACKEND != NULL) && (CUR_BACKEND->init != NULL))
         cur_backend = CUR_BACKEND->init();
@@ -226,7 +232,7 @@ sound_backend_input_open(void)
 {
     sound_backend_input_lock();
 
-    if ((cur_input == NULL) && sound_input_enabled && sound_backend_valid(sound_backend_current) &&
+    if ((cur_input == NULL) && sound_input_enabled && (CUR_BACKEND != NULL) &&
         (CUR_BACKEND->init_input != NULL))
         cur_input = CUR_BACKEND->init_input(cur_backend,
                                             (sb_input_rate == FREQ_48000) ? FREQ_48000 : FREQ_44100);

@@ -719,10 +719,11 @@ sound_output_close(void)
         return;
 
     for (int i = 0; i < I_MAX; i++) {
-        if (sound_streams[i] != NULL) {
-            sound_backend_close_source(sound_streams[i]);
-            sound_streams[i] = NULL;
-        }
+        void *src = sound_streams[i];
+
+        sound_streams[i] = NULL;
+        if (src != NULL)
+            sound_backend_close_source(src);
     }
 
     sound_backend_close();
