@@ -59,6 +59,8 @@ public:
                                  const QModelIndex          &index) const override;
 
 private:
+    [[nodiscard]] int contentShift(const QStyleOptionViewItem &option) const;
+
     VMManagerListViewDelegateStyle *m_ptr;
 
     QIcon default_icon;
