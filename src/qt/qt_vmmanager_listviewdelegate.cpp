@@ -108,14 +108,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     panelOpt.features &= ~(QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration);
     style->drawControl(QStyle::CE_ItemViewItem, &panelOpt, painter, opt.widget);
 
-    // Styles can move the contents of list view items to make room for a selection
-    // indicator of their own (windows11), so move ours by the same amount. They don't
-    // know the view without the widget, so the difference is that shift.
-    QStyleOptionViewItem decorationOpt(panelOpt);
-    decorationOpt.features |= QStyleOptionViewItem::HasDecoration;
-    decorationOpt.decorationSize = m_ptr->iconSize;
-    const int contentShift = style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, opt.widget).left()
-                           - style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, nullptr).left();
+    const int shift = contentShift(opt);
 
     // Styles that fill the selection with the highlight color draw its text in the
     // highlighted text color, the others keep the regular text color
@@ -123,14 +116,15 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     // Draw system icon
     if (hasIcon) {
-        painter->drawPixmap(contentRect.left() + contentShift, contentRect.top(),
+        painter->drawPixmap(contentRect.left() + shift, contentRect.top(),
                             opt.icon.pixmap(m_ptr->iconSize));
     }
 
     // System name
     QRect systemNameRect(m_ptr->systemNameBox(opt, index));
 
-    systemNameRect.moveTo(m_ptr->margins.left() + contentShift + m_ptr->iconSize.width()
+    // Place it relative to the item, so it scrolls along with the icon
+    systemNameRect.moveTo(contentRect.left() + shift + m_ptr->iconSize.width()
                               + m_ptr->spacingHorizontal,
                           contentRect.top());
     // If desired, font can be changed here
@@ -213,10 +207,36 @@ VMManagerListViewDelegate::sizeHint(const QStyleOptionViewItem &option,
     const int iconHeight = m_ptr->iconSize.height();
     const int h          = textHeight > iconHeight ? textHeight : iconHeight;
 
-    // return the same width
+    // The width of the contents, the list view stretches the items to its own width.
+    // Asking for the view's width here would keep the items as wide as the view was
+    // when they were laid out, so a narrower view would get a horizontal scroll bar.
+    // Note: the status line is the status icon followed by the status text
+    const int textWidth = qMax(m_ptr->systemNameBox(opt, index).width(),
+                               m_ptr->margins.left() + m_ptr->smallIconSize.width() + m_ptr->statusBox(opt, index).width());
+    const int w         = m_ptr->margins.left() + contentShift(opt) + m_ptr->iconSize.width()
+        + m_ptr->spacingHorizontal + textWidth + m_ptr->margins.right();
+
     // for height, add margins on top and bottom *plus* either the text or icon height, whichever is greater
     // Note: text height is the combined value of the system name and the status just below the name
-    return { opt.rect.width(), m_ptr->margins.top() + h + m_ptr->margins.bottom() };
+    return { w, m_ptr->margins.top() + h + m_ptr->margins.bottom() };
+}
+
+int
+VMManagerListViewDelegate::contentShift(const QStyleOptionViewItem &option) const
+{
+    // Styles can move the contents of list view items to make room for a selection
+    // indicator of their own (windows11), so move ours by the same amount. They don't
+    // know the view without the widget, so the difference is that shift.
+    const QStyle        *style = option.widget ? option.widget->style() : QApplication::style();
+    QStyleOptionViewItem decorationOpt(option);
+    decorationOpt.text.clear();
+    decorationOpt.icon = QIcon();
+    decorationOpt.features &= ~QStyleOptionViewItem::HasDisplay;
+    decorationOpt.features |= QStyleOptionViewItem::HasDecoration;
+    decorationOpt.decorationSize = m_ptr->iconSize;
+
+    return style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, option.widget).left()
+        - style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, nullptr).left();
 }
 
 VMManagerListViewDelegateStyle::VMManagerListViewDelegateStyle()

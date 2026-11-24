@@ -24,6 +24,7 @@
 
 #include <cstdio>
 
+#include <atomic>
 #include <mutex>
 #include <chrono>
 #include <thread>
@@ -794,10 +795,17 @@ gamemode_session_bus_available(void)
 }
 #endif
 
+/* Set while a run state update is queued for the GUI thread, so a burst of
+   changes (automation steps) collapses into one update with the latest state. */
+static std::atomic_flag run_state_queued = ATOMIC_FLAG_INIT;
+
 /* Host-side reactions to a run state change (runctl.h), on the GUI thread. */
 static void
 run_state_changed(void)
 {
+    /* Clear first: a change after this point queues another update. */
+    run_state_queued.clear();
+
     static bool was_paused = false;
     const bool  paused     = (runctl_state() == RUN_PAUSED);
 
@@ -848,6 +856,8 @@ ui_notify(int what)
 
     switch (what) {
         case UI_NOTIFY_RUN_STATE:
+            if (run_state_queued.test_and_set())
+                break;
             QMetaObject::invokeMethod(main_window, [] { run_state_changed(); }, Qt::QueuedConnection);
             break;
         case UI_NOTIFY_SPEED:

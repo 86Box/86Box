@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-11-22 19:16+0100\n"
+"PO-Revision-Date: 2026-11-24 02:00+0100\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it_IT\n"
@@ -51,7 +51,7 @@ msgid "&Hide status bar"
 msgstr "Nascondi ba&rra di stato"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Mostra attività US&B"
 
 msgid "Hide &toolbar"
 msgstr "Nascondi &barra degli strumenti"
@@ -87,7 +87,7 @@ msgid "Force &4:3 display ratio"
 msgstr "Forza rapporto d'aspetto &4:3"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "Forza rapporto schermo della &macchina"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Forza rapporto d'aspetto &%1:%2"
@@ -312,7 +312,7 @@ msgid "&Existing image…"
 msgstr "&Immagine esistente…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "Immagine esistente (&protezione contro scrittura)…"
+msgstr "Immagine esistente (&protetto da scrittura)…"
 
 msgid "&Record"
 msgstr "&Registra"
@@ -357,10 +357,10 @@ msgid "New Image"
 msgstr "Nuova immagine"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Tipo di disco rimovibile:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "Tipo di disco MO:"
 
 msgid "Settings"
 msgstr "Impostazioni"
@@ -456,16 +456,16 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
-msgstr ""
+msgstr "Coprocessore a virgola mobile mappato in memoria all'indirizzo C0000000h. I programmi compatibili possono utilizzarlo insieme a un 387, oppure al suo posto."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Coprocessore Weitek WTL 3167"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
-msgstr ""
+msgstr "Coprocessore a virgola mobile mappato in memoria all'indirizzo C0000000h per software compatibile con 486."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Coprocessore Weitek WTL 4167"
 
 msgid "Internal"
 msgstr "Interno"
@@ -525,10 +525,10 @@ msgid "Dynamic recompiler"
 msgstr "Ricompilatore dinamico"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Il ricompilatore dinamico è attivato"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Il ricompilatore dinamico è disattivato"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Ambiente FPU accurato con il ricompilatore dinamico"
@@ -594,16 +594,16 @@ msgid "&Mouse"
 msgstr "&Mouse"
 
 msgid "Tablet:"
-msgstr "Tavoletta:"
+msgstr "Tavoletta grafica:"
 
 msgid "Tablet"
-msgstr "Tavoletta"
+msgstr "Tavoletta grafica"
 
 msgid "&Tablet"
-msgstr "&Tavoletta"
+msgstr "&Tavoletta grafica"
 
 msgid "Tablet (&Crosshair)"
-msgstr "Tavoletta (&cursore a croce)"
+msgstr "Tavoletta grafica (&cursore a croce)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -765,28 +765,28 @@ msgid "Channel:"
 msgstr "Canale:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (Integrato)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(nessuno)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "Integrato"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: nessun canale disponibile"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: canali %2 in uso"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "Conflitto IDE"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
-msgstr ""
+msgstr "Questi controller IDE richiedono canali già occupati da un altro dispositivo e, di conseguenza, non funzioneranno:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Vuoi salvare comunque la configurazione?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -867,7 +867,7 @@ msgid "MO drives"
 msgstr "Unità magneto-ottiche"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "Unità MiniDisc Data"
 
 msgid "MO:"
 msgstr "Magneto-ottiche:"
@@ -909,25 +909,25 @@ msgid "Generic ISA ROM Board"
 msgstr "Scheda ROM ISA generica"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
-msgstr ""
+msgstr "Nessun dispositivo trovato. Assicurati che VT-d o IOMMU siano abilitati sul tuo sistema."
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "ROM personalizzata:"
 
 msgid "Group"
-msgstr ""
+msgstr "Gruppo"
 
 msgid "Location"
-msgstr ""
+msgstr "Posizione"
 
 msgid "Name"
-msgstr ""
+msgstr "Nome"
 
 msgid "ROM images"
-msgstr ""
+msgstr "Immagini ROM"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Dispositivo sconosciuto"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Scheda Dual ROM ISA generica"
@@ -1035,16 +1035,16 @@ msgid "Sound"
 msgstr "Audio"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (non rilevato)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (sarà ricampionato dal sistema)"
 
 msgid "Network"
 msgstr "Rete"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "Ricevi IPv4 e ARP come 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "Porte (COM e LPT)"
@@ -1116,52 +1116,56 @@ msgid "Other peripherals"
 msgstr "Altre periferiche"
 
 msgid "empty"
-msgstr ""
+msgstr "vuoto"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (protetto da scrittura)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Vuoto (estrarre la scheda)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Nuova scheda CompactFlash…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Nuova scheda CompactFlash"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "Inserisci scheda CompactFlash"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "&Rimuovi scheda CompactFlash"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "Impossibile utilizzare %1 come immagine CompactFlash."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "Controller per PC Card (Cirrus Logic CL-PD6722, ISA, porte 3E0h-3E1h)"
 
-msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgid ""
+"An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\n"
+"DOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
+"Controller per PC Card (PCMCIA) compatibile con Intel 82365SL, dotato di due slot, presente nei computer portatili e nelle schede adattatrici per PC Card.\n"
+"I servizi di scheda e socket in ambiente DOS, Windows 95/98 e Linux (i82365) sono in grado di rilevarlo."
 
 msgid "Network:"
-msgstr ""
+msgstr "Rete:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "Slot %1"
 
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "Slot %1: %2"
 
 msgid "Other devices"
 msgstr "Altri dispositivi"
@@ -1343,13 +1347,13 @@ msgid "MO images"
 msgstr "Immagini magneto-ottiche"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "Immagini MiniDisc Data"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MiniDisc Data %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MiniDisc Data %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "Benvenuti in 86Box!"
@@ -1358,7 +1362,7 @@ msgid "Internal device"
 msgstr "Dispositivo integrato"
 
 msgid "External"
-msgstr ""
+msgstr "Esterno"
 
 msgid "&File"
 msgstr "&File"
@@ -1382,94 +1386,94 @@ msgid "No ROMs found"
 msgstr "Nessuna ROM trovata"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Hardware non supportato"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
-msgstr ""
+msgstr "L'hardware presente in questo profilo macchina non è supportato dall'attuale versione di 86Box."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(e altri %i)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
-msgstr ""
+msgstr "Il caricamento della configurazione comporterà la sostituzione della macchina e la sovrascrittura della configurazione esistente."
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
-msgstr ""
+msgstr "Il caricamento della configurazione comporterà la rimozione di questi componenti e la sovrascrittura della configurazione esistente."
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
-msgstr ""
+msgstr "Il caricamento della configurazione comporterà la sostituzione della macchina, la rimozione degli altri componenti e la sovrascrittura della configurazione esistente."
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "Vuoi continuare?"
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "Tipo di macchina \"%s\""
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "Scheda grafica \"%s\""
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "Tastiera \"%s\""
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "Mouse \"%s\""
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "Tavoletta grafica \"%s\""
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "Joystick \"%s\""
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "Scheda audio \"%s\""
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "Dispositivo di uscita MIDI \"%s\""
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "Dispositivo di ingresso MIDI \"%s\""
 
 msgid "Network card \"%s\""
-msgstr ""
+msgstr "Scheda di rete \"%s\""
 
 msgid "Serial port device \"%s\""
-msgstr ""
+msgstr "Dispositivo porta seriale \"%s\""
 
 msgid "Parallel port device \"%s\""
-msgstr ""
+msgstr "Dispositivo porta parallela \"%s\""
 
 msgid "Game port \"%s\""
-msgstr ""
+msgstr "Porta giochi \"%s\""
 
 msgid "SCSI card \"%s\""
-msgstr ""
+msgstr "Scheda SCSI \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr ""
+msgstr "Controller floppy \"%s\""
 
 msgid "Disk controller \"%s\""
-msgstr ""
+msgstr "Controller dischi rigidi \"%s\""
 
 msgid "CD-ROM interface \"%s\""
-msgstr ""
+msgstr "Interfaccia CD-ROM \"%s\""
 
 msgid "Memory expansion card \"%s\""
-msgstr ""
+msgstr "Scheda di espansione memoria \"%s\""
 
 msgid "ROM expansion card \"%s\""
-msgstr ""
+msgstr "Scheda di espansione ROM \"%s\""
 
 msgid "RTC card \"%s\""
-msgstr ""
+msgstr "Scheda RTC \"%s\""
 
 msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
-msgstr ""
+msgstr "L'immagine \"%s\" supera la capacità massima di questa unità e verrà ignorata."
 
 msgid "%s was not connected: every USB port of this machine is in use."
-msgstr ""
+msgstr "%s non è stato collegato: tutte le porte USB di questa macchina sono in uso."
 
 msgid "%s was not connected: this machine has no USB controller that can take devices."
-msgstr ""
+msgstr "%s non è stato collegato: questa macchina non dispone di alcun controller USB."
 
 msgid "Do you want to save the settings?"
 msgstr "Vuoi salvare le impostazioni?"
@@ -1510,22 +1514,22 @@ msgid "CD-ROM images"
 msgstr "Immagini CD-ROM"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "&Nuova immagine CD-R…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "Nuova immagine CD-R&W…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "Immagine CD-RW"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "Immagine CD-R"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Immagini Aaru"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "Impossibile creare l'immagine"
 
 msgid "%1 Device Configuration"
 msgstr "Configurazione del dispositivo %1"
@@ -2444,7 +2448,7 @@ msgid "PS/55 Keyboard"
 msgstr "Tastiera PS/55"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "Tastiera USB"
 
 msgid "Keys"
 msgstr "Tasti"
@@ -2477,13 +2481,13 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "Mouse PS/2 QuickPort"
 
 msgid "USB Mouse"
-msgstr ""
+msgstr "Mouse USB"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (seriale)"
 
 msgid "USB Tablet"
-msgstr ""
+msgstr "Tavoletta grafica USB"
 
 msgid "Default Baud rate"
 msgstr "Velocità di trasmissione predefinita"
@@ -2510,7 +2514,7 @@ msgid "System MIDI"
 msgstr "MIDI di sistema"
 
 msgid "USB Speaker"
-msgstr ""
+msgstr "Altoparlante USB"
 
 msgid "MIDI Input Device"
 msgstr "Dispositivo di ingresso MIDI"
@@ -3830,16 +3834,16 @@ msgid "Dark"
 msgstr "Scura"
 
 msgid "Style:"
-msgstr ""
+msgstr "Stile:"
 
 msgid "Windows 11"
-msgstr ""
+msgstr "Windows 11"
 
 msgid "Windows Native"
-msgstr ""
+msgstr "Windows Nativo"
 
 msgid "Windows Classic"
-msgstr ""
+msgstr "Windows Classico"
 
 msgid "Force interpretation"
 msgstr "Forza interpretazione"
@@ -4367,7 +4371,7 @@ msgid "Inaccessible"
 msgstr "Inaccessibile"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
-msgstr "Inaccessibile: in questa posizione rispondono solo i gestori di dispositivo (la lettura potrebbe avere effetti collaterali), oppure la pagina lineare non è presente."
+msgstr "Inaccessibile: quest'area di memoria è riservata ai gestori di dispositivo (la lettura potrebbe provocare errori), oppure la pagina lineare non è presente."
 
 msgid "Linear address, register or seg:off"
 msgstr "Indirizzo lineare, registro o segmento:scostamento"
@@ -4866,16 +4870,16 @@ msgid "USB port"
 msgstr "Porta USB"
 
 msgid "%1 (write-protected)"
-msgstr ""
+msgstr "%1 (protetto da scrittura)"
 
 msgid "USB flash drive"
-msgstr ""
+msgstr "Unità flash USB"
 
 msgid "%1 is not a disk image."
-msgstr ""
+msgstr "%1 non è un'immagine disco."
 
 msgid "Flash drive images"
-msgstr ""
+msgstr "Immagini unità flash"
 
 msgid "PCI card"
 msgstr "Scheda PCI"

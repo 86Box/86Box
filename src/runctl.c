@@ -39,12 +39,43 @@
 static atomic_flag lock = ATOMIC_FLAG_INIT;
 
 static run_state_t state = RUN_STOPPED; /* lifecycle, without RUN_PAUSED */
-static uint32_t    reasons;
+static uint32_t    reasons;              /* raw, including ignored ones */
+static uint32_t    claims;
+static int         user_mode = RUN_MODE_REALTIME; /* shared by the user and automation's ff */
+static int         step_fast;                     /* automation's step override */
 static uint32_t    epoch;
 static uint64_t    emu_us;
 static uint64_t    host_us;
 
-static atomic_int mode = RUN_MODE_REALTIME; /* written under the lock */
+static atomic_int mode = RUN_MODE_REALTIME; /* effective; written under the lock */
+
+/* What each claim ignores and owns (see runctl.h). */
+#define AUTOMATION_IGNORES (RUN_PAUSE_USER | RUN_PAUSE_FOCUS | RUN_PAUSE_REMOTE | RUN_PAUSE_DIALOG | RUN_PAUSE_MESSAGE)
+#define AUTOMATION_OWNS    (RUN_PAUSE_HOLD)
+
+static uint32_t
+ignored_by(uint32_t c)
+{
+    return (c & RUN_CLAIM_AUTOMATION) ? AUTOMATION_IGNORES : 0;
+}
+
+static uint32_t
+effective(uint32_t r, uint32_t c)
+{
+    return r & ~ignored_by(c);
+}
+
+static int
+can_toggle_pause(uint32_t r, uint32_t c)
+{
+    return !c && !(r & RUN_PAUSE_BLOCKING);
+}
+
+static int
+can_toggle_mode(uint32_t c)
+{
+    return !c;
+}
 
 /* Requests for the CPU thread, oldest first; guarded by the lock. */
 typedef struct request_t {
@@ -151,40 +182,96 @@ write_end(void)
     atomic_fetch_add_explicit(&seq, 1, memory_order_release);
 }
 
-static int
-running_locked(void)
-{
-    return (state == RUN_RUNNING) && !reasons;
-}
+/* One change to the run state, applied atomically. Fields left at KEEP
+   (or 0 for the masks) don't change. */
+#define KEEP (-1)
 
-/* Apply a change to the lifecycle state or the pause reasons, keep the
-   compatibility globals in sync and announce the change. */
-static void
-change(uint32_t set, uint32_t clear, int new_state)
+typedef struct {
+    uint32_t set;          /* pause reasons */
+    uint32_t clear;
+    int      state;        /* lifecycle, or KEEP */
+    uint32_t claim_set;
+    uint32_t claim_clear;
+    int      user_mode;    /* or KEEP */
+    int      step_fast;    /* or KEEP */
+    int      toggle_pause; /* the user's Pause/Resume, decided under the lock */
+    int      toggle_mode;  /* the user's fast forward, decided under the lock */
+} change_t;
+
+/* Apply a change, keep the compatibility globals in sync and announce it.
+   Returns the pause reasons that took effect. */
+static uint32_t
+change(change_t c)
 {
     lock_acquire();
 
-    const uint32_t old_reasons = reasons;
-    const int      old_state   = state;
-    const int      was_running = running_locked();
-
-    const uint32_t new_reasons = (reasons | set) & ~clear;
-    const int      next_state  = (new_state >= 0) ? new_state : old_state;
-    const int      will_run    = (next_state == RUN_RUNNING) && !new_reasons;
-
-    if ((new_reasons == old_reasons) && (next_state == old_state)) {
-        lock_release();
-        return;
+    if (c.toggle_pause) {
+        if (!can_toggle_pause(reasons, claims)) {
+            lock_release();
+            return 0;
+        }
+        if (effective(reasons, claims))
+            c.clear |= RUN_PAUSE_USER_CLEARABLE;
+        else
+            c.set |= RUN_PAUSE_USER;
+    }
+    if (c.toggle_mode) {
+        if (!can_toggle_mode(claims)) {
+            lock_release();
+            return 0;
+        }
+        c.user_mode = (user_mode == RUN_MODE_FAST) ? RUN_MODE_REALTIME : RUN_MODE_FAST;
     }
 
+    const uint32_t new_claims = (claims | c.claim_set) & ~c.claim_clear;
+
+    /* Ending a claim clears what it owns. */
+    if (claims & ~new_claims & RUN_CLAIM_AUTOMATION) {
+        c.clear |= AUTOMATION_OWNS;
+        c.step_fast = 0;
+    }
+
+    const uint32_t new_reasons   = (reasons | c.set) & ~c.clear;
+    const int      next_state    = (c.state != KEEP) ? c.state : (int) state;
+    const int      new_user_mode = (c.user_mode != KEEP) ? c.user_mode : user_mode;
+    const int      new_step_fast = (c.step_fast != KEEP) ? c.step_fast : step_fast;
+
+    const uint32_t old_eff = effective(reasons, claims);
+    const uint32_t new_eff = effective(new_reasons, new_claims);
+
+    const int was_running = (state == RUN_RUNNING) && !old_eff;
+    const int will_run    = (next_state == RUN_RUNNING) && !new_eff;
+
+    const int old_mode = step_fast ? RUN_MODE_FAST : user_mode;
+    const int new_mode = new_step_fast ? RUN_MODE_FAST : new_user_mode;
+
+    if ((new_reasons == reasons) && (next_state == (int) state) && (new_claims == claims) &&
+        (new_user_mode == user_mode) && (new_step_fast == step_fast)) {
+        lock_release();
+        return 0;
+    }
+
+    /* Automation holds only while it has its claim. */
+    assert(!(new_reasons & RUN_PAUSE_HOLD) || (new_claims & RUN_CLAIM_AUTOMATION));
+    assert(!new_step_fast || (new_claims & RUN_CLAIM_AUTOMATION));
+
+    /* A user mode change hidden by the step override isn't visible. */
+    const int visible = (new_reasons != reasons) || (next_state != (int) state) ||
+                        (new_claims != claims) || (new_mode != old_mode);
+
     /* Resync the guest clock before the CPU thread can run again. */
-    if (!was_running && will_run && (old_state == RUN_RUNNING) && (time_sync & TIME_SYNC_ENABLED))
+    if (!was_running && will_run && (state == RUN_RUNNING) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
     write_begin();
-    reasons = new_reasons;
-    state   = next_state;
-    epoch++;
+    reasons   = new_reasons;
+    state     = next_state;
+    claims    = new_claims;
+    user_mode = new_user_mode;
+    step_fast = new_step_fast;
+    atomic_store_explicit(&mode, new_mode, memory_order_relaxed);
+    if (visible)
+        epoch++;
     write_end();
 
     if (was_running && !will_run)
@@ -193,19 +280,22 @@ change(uint32_t set, uint32_t clear, int new_state)
 
     lock_release();
 
-    ui_notify(UI_NOTIFY_RUN_STATE);
+    if (visible)
+        ui_notify(UI_NOTIFY_RUN_STATE);
+
+    return new_eff & ~old_eff;
 }
 
 void
 runctl_pause(run_pause_t reason)
 {
-    change(reason, 0, -1);
+    change((change_t) { .set = reason, .state = KEEP, .user_mode = KEEP, .step_fast = KEEP });
 }
 
 void
 runctl_pause_wait(run_pause_t reason)
 {
-    change(reason, 0, -1);
+    runctl_pause(reason);
 
     if (is_cpu_thread)
         return;
@@ -218,51 +308,66 @@ runctl_pause_wait(run_pause_t reason)
 void
 runctl_resume(run_pause_t reason)
 {
-    change(0, reason, -1);
-}
-
-void
-runctl_pause_user_toggle(void)
-{
-    if (runctl_paused())
-        runctl_resume(RUN_PAUSE_USER_RESUMABLE);
-    else
-        runctl_pause(RUN_PAUSE_USER);
+    change((change_t) { .clear = reason, .state = KEEP, .user_mode = KEEP, .step_fast = KEEP });
 }
 
 void
 runctl_set_mode(run_mode_t new_mode)
 {
-    /* This is the user's mode. Unpaced will be a separate override owned by
-       automation, so a step never overwrites (or restores) the user's mode. */
     assert((new_mode == RUN_MODE_REALTIME) || (new_mode == RUN_MODE_FAST));
+    change((change_t) { .state = KEEP, .user_mode = new_mode, .step_fast = KEEP });
+}
 
-    lock_acquire();
-    if (atomic_load_explicit(&mode, memory_order_relaxed) == (int) new_mode) {
-        lock_release();
-        return;
-    }
+void
+runctl_claim(run_claim_t owner)
+{
+    change((change_t) { .claim_set = owner, .state = KEEP, .user_mode = KEEP, .step_fast = KEEP });
+}
 
-    /* A new epoch, so no speed sample spans two modes. */
-    write_begin();
-    atomic_store_explicit(&mode, new_mode, memory_order_relaxed);
-    epoch++;
-    write_end();
-    lock_release();
+uint32_t
+runctl_unclaim(run_claim_t owner)
+{
+    return change((change_t) { .claim_clear = owner, .state = KEEP, .user_mode = KEEP, .step_fast = KEEP });
+}
 
-    ui_notify(UI_NOTIFY_RUN_STATE);
+void
+runctl_set_hold(int hold, int fast)
+{
+    change((change_t) { .set       = hold ? RUN_PAUSE_HOLD : 0,
+                        .clear     = hold ? 0 : RUN_PAUSE_HOLD,
+                        .state     = KEEP,
+                        .user_mode = KEEP,
+                        .step_fast = !!fast });
+}
+
+void
+runctl_toggle_pause(void)
+{
+    change((change_t) { .state = KEEP, .user_mode = KEEP, .step_fast = KEEP, .toggle_pause = 1 });
+}
+
+void
+runctl_toggle_fast_forward(void)
+{
+    change((change_t) { .state = KEEP, .user_mode = KEEP, .step_fast = KEEP, .toggle_mode = 1 });
+}
+
+int
+runctl_can_toggle_pause(const run_status_t *st)
+{
+    return can_toggle_pause(st->pause_reasons, st->claims);
+}
+
+int
+runctl_can_toggle_fast_forward(const run_status_t *st)
+{
+    return can_toggle_mode(st->claims);
 }
 
 run_mode_t
 runctl_mode(void)
 {
     return (run_mode_t) atomic_load_explicit(&mode, memory_order_relaxed);
-}
-
-void
-runctl_fast_forward_toggle(void)
-{
-    runctl_set_mode((runctl_mode() == RUN_MODE_FAST) ? RUN_MODE_REALTIME : RUN_MODE_FAST);
 }
 
 uint32_t
@@ -277,14 +382,17 @@ runctl_pause_reasons(void)
 int
 runctl_paused(void)
 {
-    return runctl_pause_reasons() != 0;
+    lock_acquire();
+    const int ret = effective(reasons, claims) != 0;
+    lock_release();
+    return ret;
 }
 
 run_state_t
 runctl_state(void)
 {
     lock_acquire();
-    const run_state_t ret = ((state == RUN_RUNNING) && reasons) ? RUN_PAUSED : state;
+    const run_state_t ret = ((state == RUN_RUNNING) && effective(reasons, claims)) ? RUN_PAUSED : state;
     lock_release();
     return ret;
 }
@@ -299,7 +407,7 @@ runctl_request_stop(void)
     lock_release();
 
     if (active)
-        change(0, 0, RUN_STOPPING);
+        change((change_t) { .state = RUN_STOPPING, .user_mode = KEEP, .step_fast = KEEP });
 }
 
 void
@@ -309,7 +417,7 @@ runctl_thread_starting(void)
     req_closed = 0;
     lock_release();
 
-    change(0, 0, RUN_STARTING);
+    change((change_t) { .state = RUN_STARTING, .user_mode = KEEP, .step_fast = KEEP });
 }
 
 void
@@ -321,7 +429,7 @@ runctl_thread_started(void)
 
     /* A stop may have been requested before the thread got going. */
     if (!stopping)
-        change(0, 0, RUN_RUNNING);
+        change((change_t) { .state = RUN_RUNNING, .user_mode = KEEP, .step_fast = KEEP });
 }
 
 void
@@ -341,11 +449,11 @@ runctl_thread_exiting(void)
         queue_run(list);
     } while (list);
 
-    change(0, 0, RUN_STOPPED);
+    change((change_t) { .state = RUN_STOPPED, .user_mode = KEEP, .step_fast = KEEP });
 }
 
 void
-runctl_safe_point(void)
+runctl_thread_safe_point(void)
 {
     if (dopause && !atomic_load(&acked))
         atomic_store(&acked, 1);
@@ -388,7 +496,7 @@ runctl_call_wait(void (*fn)(void *arg), void *arg)
 }
 
 void
-runctl_quantum_done(uint32_t us)
+runctl_thread_quantum_done(uint32_t us)
 {
     lock_acquire();
     write_begin();
@@ -417,7 +525,7 @@ idle_hard_reset(void)
 }
 
 void
-runctl_run_loop(void (*pass)(void))
+runctl_thread_run_loop(void (*pass)(void))
 {
     const int64_t quantum_ns = QUANTUM_NS;
     int64_t       old_ns     = (int64_t) plat_get_ns();
@@ -440,8 +548,7 @@ runctl_run_loop(void (*pass)(void))
             debt_ns = quantum_ns;
 
         automation_poll();
-        const int automation = automation_run_state();
-        if (((debt_ns >= quantum_ns) || (runctl_mode() == RUN_MODE_FAST) || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
+        if (((debt_ns >= quantum_ns) || (runctl_mode() == RUN_MODE_FAST)) && !dopause) {
             /* One pc_run() per pass. No burst catch-up (a loop of quanta): it
                overshoots after dips and amplifies <100/>100 speed oscillation. */
 #ifdef USE_INSTRUMENT
@@ -449,7 +556,7 @@ runctl_run_loop(void (*pass)(void))
 #endif
             pc_run();
             automation_quantum();
-            runctl_safe_point(); /* fast forward never idles */
+            runctl_thread_safe_point(); /* fast forward never idles */
 
 #ifdef USE_INSTRUMENT
             if (instru_enabled) {
@@ -467,12 +574,10 @@ runctl_run_loop(void (*pass)(void))
                 frames     = 0;
             }
 
-            if (automation == AUTOMATION_RUN)
-                debt_ns = 0; /* unpaced automation steps must not cause catch-up later */
-            else if ((runctl_mode() != RUN_MODE_FAST) && (debt_ns >= quantum_ns))
+            if ((runctl_mode() != RUN_MODE_FAST) && (debt_ns >= quantum_ns))
                 debt_ns -= quantum_ns;
             else
-                debt_ns = 0;
+                debt_ns = 0; /* fast forward, including unpaced automation steps, must not cause catch-up later */
 
             /* Drop the Turbo IDE string-I/O shortcut while the host is behind, and bring it
                back only after it has kept up for a while, so it cannot flap every frame. */
@@ -485,7 +590,7 @@ runctl_run_loop(void (*pass)(void))
             }
         } else {
             idle_hard_reset();
-            runctl_safe_point();
+            runctl_thread_safe_point();
 
             /* Keep answering a GDB client while the machine isn't running. */
             gdbstub_poll();
@@ -503,15 +608,16 @@ runctl_run_loop(void (*pass)(void))
 }
 
 void
-runctl_get_status(run_status_t *out)
+runctl_status(run_status_t *out)
 {
     uint32_t s;
 
     do {
         while ((s = atomic_load_explicit(&seq, memory_order_acquire)) & 1)
             ;
-        out->state         = ((state == RUN_RUNNING) && reasons) ? RUN_PAUSED : state;
+        out->state         = ((state == RUN_RUNNING) && effective(reasons, claims)) ? RUN_PAUSED : state;
         out->pause_reasons = reasons;
+        out->claims        = claims;
         out->mode          = (run_mode_t) atomic_load_explicit(&mode, memory_order_relaxed);
         out->epoch         = epoch;
         out->emu_us        = emu_us;
@@ -550,7 +656,7 @@ runctl_speed_update(void)
     run_status_t now;
     int          pct = -1;
 
-    runctl_get_status(&now);
+    runctl_status(&now);
     if (speed_base_valid)
         pct = runctl_speed_between(&speed_base, &now);
     speed_base       = now;

@@ -3,6 +3,7 @@
 
 /* All these defines are in samples, not in bytes. */
 #define EMU8K_MEM_ADDRESS_MASK  0xFFFFFF
+#define EMU8K_VOICE_COUNT       32
 #define EMU8K_RAM_MEM_START     0x200000
 #define EMU8K_FM_MEM_ADDRESS    0xFFFFE0
 #define EMU8K_RAM_POINTERS_MASK 0x3F
@@ -368,7 +369,8 @@ typedef struct emu8k_voice_t {
 } emu8k_voice_t;
 
 typedef struct emu8k_t {
-    emu8k_voice_t voice[32];
+    emu8k_voice_t voice[EMU8K_VOICE_COUNT];
+    uint32_t      pci_voices;  /* Voices clocked by the PCI controller. */
 
     uint16_t hwcf1;
     uint16_t hwcf2;
@@ -472,6 +474,35 @@ void emu8k_close(emu8k_t *emu8k);
 void emu8k_reset_buffer(emu8k_t *emu8k);
 
 void emu8k_update(emu8k_t *emu8k);
+
+enum {
+    EMU8K_VOICE_CPF,
+    EMU8K_VOICE_PTRX,
+    EMU8K_VOICE_CVCF,
+    EMU8K_VOICE_VTFT,
+    EMU8K_VOICE_Z2,
+    EMU8K_VOICE_Z1,
+    EMU8K_VOICE_PSST,
+    EMU8K_VOICE_CSL,
+    EMU8K_VOICE_CCCA
+};
+
+enum {
+    EMU8K_LOOP_START = 1,
+    EMU8K_LOOP_END = 2
+};
+
+uint32_t emu8k_voice_read(emu8k_voice_t *voice, unsigned reg);
+void     emu8k_voice_write(emu8k_voice_t *voice, unsigned reg, uint32_t val);
+typedef int16_t (*emu8k_sample_read_t)(const void *context, uint32_t addr);
+typedef struct {
+    int32_t reverb;
+    int32_t chorus;
+} emu8k_effect_sends_t;
+
+unsigned emu8k_pci_voice_tick(emu8k_voice_t *voice, emu8k_sample_read_t read_sample,
+                              const void *context, int32_t *mix, emu8k_effect_sends_t *sends);
+void     emu8k_reset_pci_voices(emu8k_t *emu8k);
 
 uint8_t  emu8k_inb(uint16_t addr, void *priv);
 uint16_t emu8k_inw(uint16_t addr, void *priv);
