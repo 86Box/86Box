@@ -86,3 +86,6 @@ void codegen_mem_slow_emit(codeblock_t *block);
 extern void *codegen_rep_rout[2][3][2];
 /*Protected-mode loads of DS, ES, FS, GS and SS (seg_load_cache), in that order*/
 extern void *codegen_load_seg_rout[5];
+/*Protected-mode RETF at the same level (cs_load_cache), indexed by
+  [32-bit operand][32-bit stack]*/
+extern void *codegen_retf_rout[2][2];

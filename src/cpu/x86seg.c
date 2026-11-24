@@ -2143,6 +2143,46 @@ far_pm_fast_load_cs(uint16_t seg, const uint16_t *segdat)
     cpl_override = 0;
 }
 
+cs_load_cache_t cs_load_cache[CS_LOAD_CACHE_SIZE] __attribute__((aligned(64)));
+
+_Static_assert(sizeof(cs_load_cache_t) == 64, "cs_load_cache_t is indexed as 64 bytes");
+_Static_assert((offsetof(cs_load_cache_t, dt_limit) == offsetof(cs_load_cache_t, dt_base) + 4) &&
+                   (offsetof(cs_load_cache_t, desc) == offsetof(cs_load_cache_t, lookup) + 8),
+               "the routines load these pairs together");
+
+void
+cs_load_cache_flush(void)
+{
+    memset(cs_load_cache, 0, sizeof(cs_load_cache));
+}
+
+/* The entry for the CS load far_pm_fast_load_cs() has just made from the
+   descriptor at addr, when far_pm_fast_desc() read it through the table's
+   own read lookup and not through an entry held. The routines test the
+   target offset against the image's limit, which seg_load_fields() sets to
+   what desc_limit() returns */
+static void
+cs_load_cache_fill(uint16_t seg, uint32_t addr, const uint16_t *segdat)
+{
+    cs_load_cache_t *e  = &cs_load_cache[(seg >> 2) & (CS_LOAD_CACHE_SIZE - 1)];
+    const x86seg    *dt = (seg & 0x0004) ? &ldt : &gdt;
+
+    if (readlookup2[addr >> 12] == (uintptr_t) LOOKUP_INV)
+        return;
+    e->tag      = seg | (CPL << 16) | SEG_LOAD_CACHE_VALID;
+    e->addr     = addr;
+    e->dt       = dt;
+    e->dt_base  = dt->base;
+    e->dt_limit = dt->limit;
+    e->lookup   = &readlookup2[addr >> 12];
+    e->desc     = segdat[0] | ((uint32_t) segdat[1] << 16) | ((uint64_t) segdat[2] << 32) | ((uint64_t) segdat[3] << 48);
+    memcpy(e->image, &cpu_state.seg_cs, sizeof(e->image));
+    e->status = cpu_64k_status(&cpu_state.seg_cs, 0);
+    if (use32)
+        e->status |= CPU_STATUS_USE32;
+    e->use32 = use32;
+}
+
 /* Where the aligned push of width bytes at a goes: the writememw() /
    writememl() hit, or on a page holding code (page_lookup) a 64-byte chunk
    where mem_write_ramw_page() / mem_write_raml_page() would store the data
@@ -2243,6 +2283,7 @@ call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int is32)
     call_far_a_word       = segdat[2];
     call_far_a_pending    = 0;
     far_pm_fast_load_cs(seg, segdat);
+    cs_load_cache_fill(seg, addr, segdat);
     cycles -= timing_call_pm;
     oldss = ss;
     if (t1)
@@ -2312,6 +2353,7 @@ pmoderetf_pm_fast(int is32, uint16_t off)
         SP += 2 * width + off;
     cpu_state.pc = newpc;
     far_pm_fast_load_cs(seg, segdat);
+    cs_load_cache_fill(seg, addr, segdat);
     cycles -= timing_retf_pm;
 }
 
@@ -2330,6 +2372,7 @@ loadcsjmp_pm_fast(uint16_t seg, uint32_t old_pc)
     }
 
     far_pm_fast_load_cs(seg, segdat);
+    cs_load_cache_fill(seg, addr, segdat);
     cycles -= timing_jmp_pm;
 }
 #endif

@@ -442,7 +442,15 @@ retf_pm(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32, int has_imm
     codegen_accumulate_flush(ir);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, is32);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, offset);
-    uop_CALL_FUNC(ir, pmoderetf_pm_fast);
+#ifdef CODEGEN_BACKEND_HAS_FAR_ROUT
+    /*cs_load_cache is filled only on the processors far_load_order marks as
+      following the Intel Architecture manuals; the routine tests the stack
+      width again*/
+    if (far_load_order == FAR_LOAD_ORDER_IA)
+        uop_CALL_FUNC(ir, codegen_retf_rout[is32][stack32 ? 1 : 0]);
+    else
+#endif
+        uop_CALL_FUNC(ir, pmoderetf_pm_fast);
 
     return -1;
 }

@@ -43,6 +43,9 @@
    flat or wide 32-bit stack with the carry of its end. A backend without
    them makes those tests with an add and a compare (CHECK_STACK_LIMITS). */
 #define CODEGEN_BACKEND_HAS_STACK_LIMIT_UOPS
+/* codegen_retf_rout, the protected-mode RETF at the same level on
+   cs_load_cache. A backend without it calls pmoderetf_pm_fast(). */
+#define CODEGEN_BACKEND_HAS_FAR_ROUT
 /* CALL far in real and virtual 8086 mode compiled in the IR (call_far_rm(),
    codegen_ops_jump.c). A backend without it calls dynarec_call_far_w/l. */
 #define CODEGEN_BACKEND_HAS_CALL_FAR_RM

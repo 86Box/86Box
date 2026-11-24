@@ -86,6 +86,31 @@ typedef struct seg_load_cache_t {
 extern seg_load_cache_t seg_load_cache[SEG_LOAD_CACHE_SIZE];
 
 extern void seg_load_cache_flush(void);
+
+/* A CS load that the far CALL, RETF or far JMP short path completed, which
+   the recompiler's far transfer routines repeat while every input of the
+   descriptor's checks is unchanged: the same tag, table, lookup and
+   descriptor tests as seg_load_cache. The image is CS as
+   far_pm_fast_load_cs() loads it, its limit the one the target offset is
+   tested against */
+#    define CS_LOAD_CACHE_SIZE 256
+
+typedef struct cs_load_cache_t {
+    uint32_t      tag;      /* selector | CPL << 16 | SEG_LOAD_CACHE_VALID */
+    uint32_t      addr;     /* linear address of the descriptor */
+    const x86seg *dt;       /* &gdt or &ldt */
+    uint32_t      dt_base;  /* its base and limit at the load, compared */
+    uint32_t      dt_limit; /* as one 64-bit word with its first two */
+    uintptr_t    *lookup;   /* &readlookup2[addr >> 12] */
+    uint64_t      desc;     /* the descriptor read */
+    uint32_t      image[5]; /* the first 20 bytes of cpu_state.seg_cs */
+    uint16_t      status;   /* its NOT64K and USE32 bits of cpu_cur_status */
+    uint16_t      use32;    /* use32 after the load */
+} cs_load_cache_t;
+
+extern cs_load_cache_t cs_load_cache[CS_LOAD_CACHE_SIZE];
+
+extern void cs_load_cache_flush(void);
 #endif
 /* The prototype of loadcs_2386() is needed here for reset. */
 extern void loadcs_2386(uint16_t seg);

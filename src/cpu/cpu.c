@@ -1007,8 +1007,9 @@ cpu_set(void)
             break;
     }
 #ifdef USE_DYNAREC
-    /* Its entries hold loads made under the previous CPU class and bus */
+    /* Their entries hold loads made under the previous CPU class and bus */
     seg_load_cache_flush();
+    cs_load_cache_flush();
 #endif
 
     /* Whether a task switch that faults after marking the new TSS busy
