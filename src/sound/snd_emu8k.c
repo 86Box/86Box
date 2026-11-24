@@ -785,24 +785,150 @@ emu8k_log(const char *fmt, ...)
 #    define emu8k_log(fmt, ...)
 #endif
 
+static uint32_t *
+emu8k_voice_dword(emu8k_voice_t *voice, unsigned reg)
+{
+    switch (reg) {
+        case EMU8K_VOICE_CPF:  return &voice->cpf;
+        case EMU8K_VOICE_PTRX: return &voice->ptrx;
+        case EMU8K_VOICE_CVCF: return &voice->cvcf;
+        case EMU8K_VOICE_VTFT: return &voice->vtft;
+        case EMU8K_VOICE_Z2:   return &voice->z2;
+        case EMU8K_VOICE_Z1:   return &voice->z1;
+        case EMU8K_VOICE_PSST: return &voice->psst;
+        case EMU8K_VOICE_CSL:  return &voice->csl;
+        case EMU8K_VOICE_CCCA: return &voice->ccca;
+        default:              return NULL;
+    }
+}
+
+uint32_t
+emu8k_voice_read(emu8k_voice_t *voice, unsigned reg)
+{
+    const uint32_t *value = emu8k_voice_dword(voice, reg);
+    return value ? *value : UINT32_MAX;
+}
+
+static void
+emu8k_voice_sync(emu8k_voice_t *voice, unsigned reg, int high)
+{
+    switch (reg) {
+        case EMU8K_VOICE_PSST:
+            voice->loop_start.int_address = voice->psst & EMU8K_MEM_ADDRESS_MASK;
+            if (high) {
+                voice->vol_l = voice->psst_pan;
+                voice->vol_r = 255 - voice->psst_pan;
+            }
+            break;
+        case EMU8K_VOICE_CSL:
+            voice->loop_end.int_address = voice->csl & EMU8K_MEM_ADDRESS_MASK;
+            break;
+        case EMU8K_VOICE_CCCA:
+            voice->addr.int_address = voice->ccca & EMU8K_MEM_ADDRESS_MASK;
+            voice->filterq_idx = CCCA_FILTQ_GET(voice->ccca);
+            voice->filt_att = filter_atten[voice->filterq_idx];
+            break;
+        default:
+            break;
+    }
+}
+
+void
+emu8k_voice_write(emu8k_voice_t *voice, unsigned reg, uint32_t val)
+{
+    uint32_t *value = emu8k_voice_dword(voice, reg);
+    if (value) {
+        *value = val;
+        emu8k_voice_sync(voice, reg, 1);
+    }
+}
+
+static void
+emu8k_voice_set_ip(emu8k_voice_t *voice, uint16_t val)
+{
+    voice->ip              = val;
+    voice->ptrx_pit_target = freqtable[val] >> 18;
+}
+
+static void
+emu8k_voice_set_ifatn(emu8k_voice_t *voice, uint16_t val)
+{
+    voice->ifatn              = val;
+    voice->initial_att        = ((int32_t) voice->ifatn_attenuation << 21) / 0xFF;
+    voice->vtft_vol_target    = attentable[voice->ifatn_attenuation];
+    voice->initial_filter     = ((int32_t) voice->ifatn_init_filter << 21) / 0xFF;
+    voice->vtft_filter_target = voice->ifatn_init_filter == 0xFF ? 0xFFFF : voice->initial_filter >> 5;
+}
+
+static inline void
+emu8k_update_voice_address(emu8k_voice_t *voice)
+{
+    voice->ccca               = ((uint32_t) voice->ccca_qcontrol << 24) | voice->addr.int_address;
+    voice->cpf_curr_frac_addr = voice->addr.fract_address;
+}
+
+/* The PCI host uses both loop crossings and can advance past a short loop
+   more than once in a tick. Preserve the ISA oscillator's single-wrap rule. */
+static inline unsigned
+emu8k_advance_voice(emu8k_voice_t *voice, uint64_t step, int pci)
+{
+    const uint64_t previous = voice->addr.addr;
+    voice->addr.addr += step;
+    voice->cpf_curr_pitch = voice->ptrx_pit_target;
+    if (!pci) {
+        if (voice->addr.addr >= voice->loop_end.addr) {
+            voice->addr.int_address -= voice->loop_end.int_address - voice->loop_start.int_address;
+            voice->addr.int_address &= EMU8K_MEM_ADDRESS_MASK;
+        }
+        return 0;
+    }
+
+    unsigned crossed = 0;
+    if (previous < voice->loop_start.addr && voice->addr.addr >= voice->loop_start.addr)
+        crossed |= EMU8K_LOOP_START;
+    if (voice->addr.addr >= voice->loop_end.addr) {
+        crossed |= EMU8K_LOOP_END;
+        voice->addr.int_address = voice->loop_start.int_address +
+            (voice->addr.int_address - voice->loop_end.int_address) %
+            (voice->loop_end.int_address - voice->loop_start.int_address);
+    }
+    return crossed;
+}
+
+void
+emu8k_reset_pci_voices(emu8k_t *emu8k)
+{
+    for (unsigned i = 0; i < EMU8K_VOICE_COUNT; i++) {
+        if (emu8k->pci_voices & (1u << i))
+            memset(&emu8k->voice[i], 0, sizeof(emu8k->voice[i]));
+    }
+    emu8k->pci_voices = 0;
+}
+
 static inline int16_t
-EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
+EMU8K_READ(const emu8k_t *emu8k, uint32_t addr)
 {
     register const emu8k_mem_pointers_t addrmem = { { addr } };
     return emu8k->ram_pointers[addrmem.hb_address][addrmem.lw_address];
 }
 
-#if NOTUSED
 static inline int16_t
-EMU8K_READ_INTERP_LINEAR(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
+emu8k_ram_sample(const void *context, uint32_t addr)
+{
+    return EMU8K_READ(context, addr);
+}
+
+#ifdef RESAMPLER_LINEAR
+static inline int16_t
+EMU8K_READ_INTERP_LINEAR(emu8k_sample_read_t read_sample, const void *context, uint32_t int_addr, uint16_t fract)
 {
     /* The interpolation in AWE32 used a so-called patented 3-point interpolation
      * ( I guess some sort of spline having one point before and one point after).
      * Also, it has the consequence that the playback is delayed by one sample.
      * I simulate the "one sample later" than the address with addr+1 and addr+2
      * instead of +0 and +1 */
-    int16_t dat1 = EMU8K_READ(emu8k, int_addr + 1);
-    int32_t dat2 = EMU8K_READ(emu8k, int_addr + 2);
+    int16_t dat1 = read_sample(context, int_addr + 1);
+    int32_t dat2 = read_sample(context, int_addr + 2);
     dat1 += ((dat2 - (int32_t) dat1) * fract) >> 16;
     return dat1;
 }
@@ -818,12 +944,12 @@ EMU8K_READ_INTERP_LINEAR(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
  * in LINEAR and CUBIC above ("actual audio location is the point 1 word
  * higher due to interpolation offset"). */
 static inline int32_t
-EMU8K_READ_INTERP_POINT3(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
+EMU8K_READ_INTERP_POINT3(emu8k_sample_read_t read_sample, const void *context, uint32_t int_addr, uint16_t fract)
 {
     const float  g    = (float) fract / 65536.0f;
-    const int32_t a0  = EMU8K_READ(emu8k, int_addr + 1);
-    const int32_t a1  = EMU8K_READ(emu8k, int_addr + 2);
-    const int32_t a2  = EMU8K_READ(emu8k, int_addr + 3);
+    const int32_t a0  = read_sample(context, int_addr + 1);
+    const int32_t a1  = read_sample(context, int_addr + 2);
+    const int32_t a2  = read_sample(context, int_addr + 3);
     const float  l0   = 0.5f * (g - 1.0f) * (g - 2.0f);
     const float  l1   = -g * (g - 2.0f);
     const float  l2   = 0.5f * g * (g - 1.0f);
@@ -837,7 +963,7 @@ EMU8K_READ_INTERP_POINT3(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
  * one word, see the note "actual audio location is the point 1 word
  * higher"), so eight samples are taken symmetrically around it: -2 to 5. */
 static inline int32_t
-EMU8K_READ_INTERP_SINC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
+EMU8K_READ_INTERP_SINC(emu8k_sample_read_t read_sample, const void *context, uint32_t int_addr, uint16_t fract)
 {
     const double x = 1.0 + (double) fract / 65536.0;
     double       acc = 0.0;
@@ -856,7 +982,7 @@ EMU8K_READ_INTERP_SINC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
                             + 0.08 * cos(4.0 * M_PI * t);
             w = sin(pd) / pd * bw;
         }
-        acc  += (double) EMU8K_READ(emu8k, int_addr + 1 + i) * w;
+        acc  += (double) read_sample(context, int_addr + 1 + i) * w;
         norm += w;
     }
     return (int32_t) (norm > 1e-9 ? acc / norm : acc);
@@ -875,22 +1001,22 @@ EMU8K_READ_INTERP_SINC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
  * sample position lies between p1 and p2 (the interpolator offset of one
  * word). */
 static inline int32_t
-EMU8K_READ_INTERP_BSPLINE4(emu8k_t *emu8k, uint32_t a, uint16_t fract)
+EMU8K_READ_INTERP_BSPLINE4(emu8k_sample_read_t read_sample, const void *context, uint32_t a, uint16_t fract)
 {
     const float g  = (float) fract / 65536.0f;
     const float g2 = g * g;
     const float g3 = g2 * g;
     const float u  = 1.0f - g;
-    const float p0 = (float) EMU8K_READ(emu8k, a + 0);
-    const float p1 = (float) EMU8K_READ(emu8k, a + 1);
-    const float p2 = (float) EMU8K_READ(emu8k, a + 2);
-    const float p3 = (float) EMU8K_READ(emu8k, a + 3);
+    const float p0 = (float) read_sample(context, a + 0);
+    const float p1 = (float) read_sample(context, a + 1);
+    const float p2 = (float) read_sample(context, a + 2);
+    const float p3 = (float) read_sample(context, a + 3);
     return (int32_t) ((u * u * u * p0 + (3.0f * g3 - 6.0f * g2 + 4.0f) * p1
                        + (-3.0f * g3 + 3.0f * g2 + 3.0f * g + 1.0f) * p2 + g3 * p3) / 6.0f);
 }
 
 static inline int32_t
-EMU8K_READ_INTERP_CUBIC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
+EMU8K_READ_INTERP_CUBIC(emu8k_sample_read_t read_sample, const void *context, uint32_t int_addr, uint16_t fract)
 {
     /*Since there are four floats in the table for each fraction, the position is 16byte aligned. */
     fract >>= 16 - CUBIC_RESOLUTION_LOG;
@@ -910,11 +1036,11 @@ EMU8K_READ_INTERP_CUBIC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
      * Also, it takes into account the "Note that the actual audio location is the point
      * 1 word higher than this value due to interpolation offset".
      * That's why the pointers are 0, 1, 2, 3 and not -1, 0, 1, 2 */
-    int32_t       dat2  = EMU8K_READ(emu8k, int_addr + 1);
+    int32_t       dat2  = read_sample(context, int_addr + 1);
     const float  *table = &cubic_table[fract];
-    const int32_t dat1  = EMU8K_READ(emu8k, int_addr);
-    const int32_t dat3  = EMU8K_READ(emu8k, int_addr + 2);
-    const int32_t dat4  = EMU8K_READ(emu8k, int_addr + 3);
+    const int32_t dat1  = read_sample(context, int_addr);
+    const int32_t dat3  = read_sample(context, int_addr + 2);
+    const int32_t dat4  = read_sample(context, int_addr + 3);
     /* Note: I've ended using float for the table values to avoid some cases of integer overflow. */
     dat2 = dat1 * table[0] + dat2 * table[1] + dat3 * table[2] + dat4 * table[3];
     return dat2;
@@ -1079,43 +1205,8 @@ emu8k_inw_untraced(uint16_t addr, void *priv)
     switch (addr & 0xF02) {
         case 0x600:
         case 0x602: /*Data0. also known as BLASTER+0x400 and EMU+0x000 */
-            switch (emu8k->cur_reg) {
-                case 0:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].cpf);
-                    return ret;
-
-                case 1:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].ptrx);
-                    return ret;
-
-                case 2:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].cvcf);
-                    return ret;
-
-                case 3:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].vtft);
-                    return ret;
-
-                case 4:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].z2);
-                    return ret;
-
-                case 5:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].z1);
-                    return ret;
-
-                case 6:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].psst);
-                    return ret;
-
-                case 7:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].csl);
-                    return ret;
-
-                default:
-                    break;
-            }
-            break;
+            READ16(addr, emu8k_voice_read(&emu8k->voice[emu8k->cur_voice], emu8k->cur_reg));
+            return ret;
 
         case 0xA00: /*Data1. also known as BLASTER+0x800 and EMU+0x400 */
             switch (emu8k->cur_reg) {
@@ -1422,56 +1513,13 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
     switch (addr & 0xF02) {
         case 0x600:
         case 0x602: /*Data0. also known as BLASTER+0x400 and EMU+0x000 */
-            switch (emu8k->cur_reg) {
-                case 0:
-                    /* The docs says that this value is constantly updating, and it should have no actual effect. Actions should be done over ptrx */
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].cpf, val);
-                    return;
-
-                case 1:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].ptrx, val);
-                    return;
-
-                case 2:
-                    /* The docs says that this value is constantly updating, and it should have no actual effect. Actions should be done over vtft */
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].cvcf, val);
-                    return;
-
-                case 3:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].vtft, val);
-                    return;
-
-                case 4:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].z2, val);
-                    return;
-
-                case 5:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].z1, val);
-                    return;
-
-                case 6:
-                    {
-                        emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
-                        WRITE16(addr, emu_voice->psst, val);
-                        /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
-                        emu_voice->loop_start.int_address = emu_voice->psst & EMU8K_MEM_ADDRESS_MASK;
-                        if (addr & 2) {
-                            emu_voice->vol_l = emu_voice->psst_pan;
-                            emu_voice->vol_r = 255 - (emu_voice->psst_pan);
-                        }
-                    }
-                    return;
-
-                case 7:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].csl, val);
-                    /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
-                    emu8k->voice[emu8k->cur_voice].loop_end.int_address = emu8k->voice[emu8k->cur_voice].csl & EMU8K_MEM_ADDRESS_MASK;
-                    return;
-
-                default:
-                    break;
-            }
-            break;
+        {
+            emu8k_voice_t *voice = &emu8k->voice[emu8k->cur_voice];
+            uint32_t *reg = emu8k_voice_dword(voice, emu8k->cur_reg);
+            WRITE16(addr, *reg, val);
+            emu8k_voice_sync(voice, emu8k->cur_reg, addr & 2);
+            return;
+        }
 
         case 0xA00: /*Data1. also known as BLASTER+0x800 and EMU+0x400 */
             switch (emu8k->cur_reg) {
@@ -1733,10 +1781,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                     {
                         emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
                         WRITE16(addr, emu_voice->ccca, val);
-                        emu_voice->addr.int_address = emu_voice->ccca & EMU8K_MEM_ADDRESS_MASK;
-                        uint32_t paramq             = CCCA_FILTQ_GET(emu_voice->ccca);
-                        emu_voice->filt_att         = filter_atten[paramq];
-                        emu_voice->filterq_idx      = paramq;
+                        emu8k_voice_sync(emu_voice, EMU8K_VOICE_CCCA, addr & 2);
                     }
                     return;
 
@@ -1991,28 +2036,11 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
         case 0xE00: /*Data3. also known as BLASTER+0xC00 and EMU+0x800 */
             switch (emu8k->cur_reg) {
                 case 0:
-                    emu8k->voice[emu8k->cur_voice].ip              = val;
-                    emu8k->voice[emu8k->cur_voice].ptrx_pit_target = freqtable[val] >> 18;
+                    emu8k_voice_set_ip(&emu8k->voice[emu8k->cur_voice], val);
                     return;
 
                 case 1:
-                    {
-                        emu8k_voice_t *const the_voice = &emu8k->voice[emu8k->cur_voice];
-                        // 86Box dropped this write on a silent voice when the low byte was 0 (an Impulse
-                        // Tracker click workaround). The card stores it: the VXD reads IFATN back and
-                        // keeps the high byte (read-modify-write 0xC0FFC47F), so the dropped init value
-                        // FF00 turned into 00FF instead of FFFF on the free voices.
-                        the_voice->ifatn           = val;
-                        the_voice->initial_att     = (((int32_t) the_voice->ifatn_attenuation << 21) / 0xFF);
-                        the_voice->vtft_vol_target = attentable[the_voice->ifatn_attenuation];
-
-                        the_voice->initial_filter = (((int32_t) the_voice->ifatn_init_filter << 21) / 0xFF);
-                        if (the_voice->ifatn_init_filter == 0xFF) {
-                            the_voice->vtft_filter_target = 0xFFFF;
-                        } else {
-                            the_voice->vtft_filter_target = the_voice->initial_filter >> 5;
-                        }
-                    }
+                    emu8k_voice_set_ifatn(&emu8k->voice[emu8k->cur_voice], val);
                     return;
 
                 case 2:
@@ -2353,6 +2381,391 @@ int32_t old_pitch[32] = { 0 };
 int32_t old_cut[32]   = { 0 };
 int32_t old_vol[32]   = { 0 };
 #endif
+static inline int32_t
+emu8k_voice_sample(emu8k_voice_t *emu_voice, emu8k_sample_read_t read_sample,
+                  const void *context, double sample_rate)
+{
+    const uint32_t addr     = emu_voice->addr.int_address;
+    const uint16_t fraction = emu_voice->addr.fract_address;
+    int32_t        dat;
+
+    /* Waveform oscillator */
+#ifdef RESAMPLER_LINEAR
+    dat = EMU8K_READ_INTERP_LINEAR(read_sample, context, addr, fraction);
+
+#elif defined RESAMPLER_CUBIC
+    dat = EMU8K_READ_INTERP_CUBIC(read_sample, context, addr, fraction);
+
+#elif defined RESAMPLER_SINC
+    dat = EMU8K_READ_INTERP_SINC(read_sample, context, addr, fraction);
+#elif defined RESAMPLER_POINT3
+    dat = EMU8K_READ_INTERP_POINT3(read_sample, context, addr, fraction);
+#elif defined RESAMPLER_BSPLINE4
+    dat = EMU8K_READ_INTERP_BSPLINE4(read_sample, context, addr, fraction);
+#endif
+
+#ifdef FILTER_CHAMBERLIN
+    /* AWE32Emu: Chamberlin SVF, see FILTER_CHAMBERLIN above. Bypassed
+     * only at Q 0 with the cutoff register at 0xFF and no downward
+     * modulation ("the filter does not alter the signal" [PG]). */
+    if (emu_voice->filterq_idx || emu_voice->ifatn_init_filter != 0xFF || emu_voice->filt_oct_curr < 0.0) {
+        double fc = EMU8K_CHAM_BASE_HZ
+            * pow(2.0, emu_voice->ifatn_init_filter * EMU8K_CHAM_CENTS / 1200.0 + emu_voice->filt_oct_curr);
+        if (fc < EMU8K_CHAM_BASE_HZ)
+            fc = EMU8K_CHAM_BASE_HZ;
+        if (fc > sample_rate / 6.0)
+            fc = sample_rate / 6.0;
+        const double F  = 2.0 * sin(M_PI * fc / sample_rate);
+        const double qd = 1.0 / (EMU8K_CHAM_Q0 * pow(10.0, emu8k_cham_q_db(emu_voice->filterq_idx, fc) / 20.0));
+        const double in = (double) dat * emu_voice->filt_att / 65536.0;
+        emu_voice->cham_lp += F * emu_voice->cham_bp;
+        const double hp = in - emu_voice->cham_lp - qd * emu_voice->cham_bp;
+        emu_voice->cham_bp += F * hp;
+        double out = emu_voice->cham_lp;
+        if (out > 32767.0)
+            out = 32767.0;
+        else if (out < -32768.0)
+            out = -32768.0;
+        dat = (int32_t) out;
+    }
+#else
+    (void) sample_rate;
+    if (emu_voice->filterq_idx || emu_voice->cvcf_curr_filt_ctoff != 0xFFFF) {
+        int           cutoff = emu_voice->cvcf_curr_filt_ctoff >> 8;
+        const int64_t coef0  = filt_coeffs[emu_voice->filterq_idx][cutoff][0];
+        const int64_t coef1  = filt_coeffs[emu_voice->filterq_idx][cutoff][1];
+        const int64_t coef2  = filt_coeffs[emu_voice->filterq_idx][cutoff][2];
+/* clip at twice the range */
+#define ClipBuffer(buf) (buf < -16777216) ? -16777216 : (buf > 16777216) ? 16777216 \
+                                                             : buf
+
+#ifdef FILTER_INITIAL
+#    define NOOP(x) (void) x;
+        NOOP(coef1)
+        /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one doesn't).
+         * Work in 24bits. */
+        dat = (dat * emu_voice->filt_att) >> 8;
+
+        int64_t vhp = ((-emu_voice->filt_buffer[0] * coef2) >> 24) - emu_voice->filt_buffer[1] - dat;
+        emu_voice->filt_buffer[1] += (emu_voice->filt_buffer[0] * coef0) >> 24;
+        emu_voice->filt_buffer[0] += (vhp * coef0) >> 24;
+        dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
+        if (dat > 32767)
+            dat = 32767;
+        else if (dat < -32768)
+            dat = -32768;
+
+#elif defined FILTER_MOOG
+
+        /*move to 24bits*/
+        dat <<= 8;
+
+        dat -= (coef2 * emu_voice->filt_buffer[4]) >> 24; /*feedback*/
+        int64_t t1                = emu_voice->filt_buffer[1];
+        emu_voice->filt_buffer[1] = ((dat + emu_voice->filt_buffer[0]) * coef0 - emu_voice->filt_buffer[1] * coef1) >> 24;
+        emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
+
+        int64_t t2                = emu_voice->filt_buffer[2];
+        emu_voice->filt_buffer[2] = ((emu_voice->filt_buffer[1] + t1) * coef0 - emu_voice->filt_buffer[2] * coef1) >> 24;
+        emu_voice->filt_buffer[2] = ClipBuffer(emu_voice->filt_buffer[2]);
+
+        int64_t t3                = emu_voice->filt_buffer[3];
+        emu_voice->filt_buffer[3] = ((emu_voice->filt_buffer[2] + t2) * coef0 - emu_voice->filt_buffer[3] * coef1) >> 24;
+        emu_voice->filt_buffer[3] = ClipBuffer(emu_voice->filt_buffer[3]);
+
+        emu_voice->filt_buffer[4] = ((emu_voice->filt_buffer[3] + t3) * coef0 - emu_voice->filt_buffer[4] * coef1) >> 24;
+        emu_voice->filt_buffer[4] = ClipBuffer(emu_voice->filt_buffer[4]);
+
+        emu_voice->filt_buffer[0] = ClipBuffer(dat);
+
+        dat = (int32_t) (emu_voice->filt_buffer[4] >> 8);
+        if (dat > 32767)
+            dat = 32767;
+        else if (dat < -32768)
+            dat = -32768;
+
+#elif defined FILTER_CONSTANT
+
+        /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one is constant gain).
+         * Also stay at 24bits.*/
+        dat = (dat * emu_voice->filt_att) >> 8;
+
+        emu_voice->filt_buffer[0] = (coef1 * emu_voice->filt_buffer[0]
+                                     + coef0 * (dat + ((coef2 * (emu_voice->filt_buffer[0] - emu_voice->filt_buffer[1])) >> 24)))
+            >> 24;
+        emu_voice->filt_buffer[1] = (coef1 * emu_voice->filt_buffer[1]
+                                     + coef0 * emu_voice->filt_buffer[0])
+            >> 24;
+
+        emu_voice->filt_buffer[0] = ClipBuffer(emu_voice->filt_buffer[0]);
+        emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
+
+        dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
+        if (dat > 32767)
+            dat = 32767;
+        else if (dat < -32768)
+            dat = -32768;
+
+#endif
+    }
+#endif /* FILTER_CHAMBERLIN */
+    return dat;
+}
+
+static inline void
+emu8k_voice_mix(emu8k_voice_t *emu_voice, int32_t dat, int32_t *mix,
+                int32_t *reverb, int32_t *chorus)
+{
+    /* Apply the current volume before panning and effects sends. */
+    dat = (dat * emu_voice->cvcf_curr_volume) >> 16;
+    if (emu_voice->overshoot_samples >= 0) { /* AWE32Emu: see emu8k_overshoot */
+        dat = (int32_t) (((int64_t) dat * emu8k_overshoot_q12(emu_voice->overshoot_samples)) >> 12);
+        if (++emu_voice->overshoot_samples >= 8 * EMU8K_OVERSHOOT_STEP)
+            emu_voice->overshoot_samples = -1;
+    }
+    mix[0] += (dat * emu_voice->vol_l) >> 8;
+    mix[1] += (dat * emu_voice->vol_r) >> 8;
+    *reverb += (dat * emu_voice->ptrx_revb_send) >> 8;
+    *chorus += (dat * emu_voice->csl_chor_send) >> 8;
+}
+
+static inline uint64_t
+emu8k_voice_envelope_tick(emu8k_voice_t *emu_voice)
+{
+    if (!emu_voice->env_engine_on)
+        return freqtable[emu_voice->ip];
+
+    int32_t attenuation  = emu_voice->initial_att;
+    int32_t filtercut    = emu_voice->initial_filter;
+    int32_t currentpitch = emu_voice->ip;
+
+    /* run envelopes */
+    emu8k_envelope_t *volenv = &emu_voice->vol_envelope;
+    switch (volenv->state) {
+        case ENV_DELAY:
+            volenv->delay_samples--;
+            if (volenv->delay_samples <= 0) {
+                volenv->state         = ENV_ATTACK;
+                volenv->delay_samples = 0;
+            }
+            attenuation = 0x1FFFFF;
+            break;
+
+        case ENV_ATTACK:
+            /* Attack amount is in linear amplitude */
+            volenv->value_amp_hz += volenv->attack_amount_amp_hz;
+            if (volenv->value_amp_hz >= (1 << 21)) {
+                volenv->value_amp_hz = 1 << 21;
+                emu_voice->overshoot_samples = 0; /* AWE32Emu */
+                volenv->value_db_oct = 0;
+                if (volenv->hold_samples) {
+                    volenv->state = ENV_HOLD;
+                } else {
+                    /* RAMP_UP since db value is inverted and it is 0 at this point. */
+                    volenv->state = ENV_RAMP_UP;
+                }
+            }
+            /* AWE32Emu: attack shape measured on the card. Upstream: value_amp_hz >> 5. */
+            attenuation += env_vol_amplitude_to_db[emu8k_attack_amp_index(volenv->value_amp_hz)] << 5;
+            break;
+
+        case ENV_HOLD:
+            volenv->hold_samples--;
+            if (volenv->hold_samples <= 0) {
+                volenv->state = ENV_RAMP_UP;
+            }
+            attenuation += volenv->value_db_oct;
+            break;
+
+        case ENV_RAMP_DOWN:
+            /* Decay/release amount is in fraction of dBs and is always positive */
+            volenv->value_db_oct -= emu8k_ramp_step(volenv); /* AWE32Emu: Q16 step */
+            if (volenv->value_db_oct <= volenv->sustain_value_db_oct) {
+                volenv->value_db_oct = volenv->sustain_value_db_oct;
+                volenv->state        = ENV_SUSTAIN;
+            }
+            attenuation += volenv->value_db_oct;
+            break;
+
+        case ENV_RAMP_UP:
+            /* Decay/release amount is in fraction of dBs and is always positive */
+            volenv->value_db_oct += emu8k_ramp_step(volenv); /* AWE32Emu: Q16 step */
+            if (volenv->value_db_oct >= volenv->sustain_value_db_oct) {
+                volenv->value_db_oct = volenv->sustain_value_db_oct;
+                volenv->state        = ENV_SUSTAIN;
+            }
+            attenuation += volenv->value_db_oct;
+            break;
+
+        case ENV_SUSTAIN:
+            attenuation += volenv->value_db_oct;
+            break;
+
+        case ENV_STOPPED:
+            attenuation = 0x1FFFFF;
+            break;
+
+        default:
+            break;
+    }
+
+    emu8k_envelope_t *modenv = &emu_voice->mod_envelope;
+    switch (modenv->state) {
+        case ENV_DELAY:
+            modenv->delay_samples--;
+            if (modenv->delay_samples <= 0) {
+                modenv->state         = ENV_ATTACK;
+                modenv->delay_samples = 0;
+            }
+            break;
+
+        case ENV_ATTACK:
+            /* Attack amount is in linear amplitude */
+            modenv->value_amp_hz += modenv->attack_amount_amp_hz;
+            modenv->value_db_oct = emu8k_mod_attack_value(modenv->value_amp_hz); /* AWE32Emu: convex attack */
+            if (modenv->value_amp_hz >= (1 << 21)) {
+                modenv->value_amp_hz = 1 << 21;
+                modenv->value_db_oct = 1 << 21;
+                if (modenv->hold_samples) {
+                    modenv->state = ENV_HOLD;
+                } else {
+                    modenv->state = ENV_RAMP_DOWN;
+                }
+            }
+            break;
+
+        case ENV_HOLD:
+            modenv->hold_samples--;
+            if (modenv->hold_samples <= 0) {
+                modenv->state = ENV_RAMP_DOWN; /* AWE32Emu: upstream ramps UP here, which jumps straight to the sustain level instead of decaying */
+            }
+            break;
+
+        case ENV_RAMP_DOWN:
+            /* Decay/release amount is in fraction of octave and is always positive */
+            modenv->value_db_oct -= emu8k_ramp_step(modenv); /* AWE32Emu: Q16 step */
+            if (modenv->value_db_oct <= modenv->sustain_value_db_oct) {
+                modenv->value_db_oct = modenv->sustain_value_db_oct;
+                modenv->state        = ENV_SUSTAIN;
+            }
+            break;
+
+        case ENV_RAMP_UP:
+            /* Decay/release amount is in fraction of octave and is always positive */
+            modenv->value_db_oct += emu8k_ramp_step(modenv); /* AWE32Emu: Q16 step */
+            if (modenv->value_db_oct >= modenv->sustain_value_db_oct) {
+                modenv->value_db_oct = modenv->sustain_value_db_oct;
+                modenv->state        = ENV_SUSTAIN;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    /* run lfos */
+    if (emu_voice->lfo1_delay_samples) {
+        emu_voice->lfo1_delay_samples--;
+    } else {
+        emu_voice->lfo1_count.addr += emu_voice->lfo1_speed;
+        emu_voice->lfo1_count.int_address &= 0xFFFF;
+    }
+    if (emu_voice->lfo2_delay_samples) {
+        emu_voice->lfo2_delay_samples--;
+    } else {
+        emu_voice->lfo2_count.addr += emu_voice->lfo2_speed;
+        emu_voice->lfo2_count.int_address &= 0xFFFF;
+    }
+
+    if (emu_voice->fixed_modenv_pitch_height) {
+        /* modenv range 1<<21, pitch height range 1<<14 desired range 0x1000 (+/-one octave) */
+        currentpitch += ((modenv->value_db_oct >> 9) * emu_voice->fixed_modenv_pitch_height) >> 14;
+    }
+
+    if (emu_voice->fixed_lfo1_vibrato) {
+        /* table range 1<<15, pitch mod range 1<<14 desired range 0x1000 (+/-one octave) */
+        int32_t lfo1_vibrato = (lfotable[emu_voice->lfo1_count.int_address] * emu_voice->fixed_lfo1_vibrato) >> 17;
+        currentpitch += lfo1_vibrato;
+    }
+    if (emu_voice->fixed_lfo2_vibrato) {
+        /* table range 1<<15, pitch mod range 1<<14 desired range 0x1000 (+/-one octave) */
+        int32_t lfo2_vibrato = (lfotable[emu_voice->lfo2_count.int_address] * emu_voice->fixed_lfo2_vibrato) >> 17;
+        currentpitch += lfo2_vibrato;
+    }
+
+    if (emu_voice->fixed_modenv_filter_height) {
+        /* modenv range 1<<21, pitch height range 1<<14 desired range 0x200000 (+/-full filter range) */
+        filtercut += ((modenv->value_db_oct >> 9) * emu_voice->fixed_modenv_filter_height) >> 5;
+    }
+
+    if (emu_voice->fixed_lfo1_filt_mod) {
+        /* table range 1<<15, pitch mod range 1<<14 desired range 0x100000 (+/-three octaves) */
+        int32_t lfo1_filtmod = (lfotable[emu_voice->lfo1_count.int_address] * emu_voice->fixed_lfo1_filt_mod) >> 9;
+        filtercut += lfo1_filtmod;
+    }
+
+    if (emu_voice->fixed_lfo1_tremolo) {
+        /* table range 1<<15, pitch mod range 1<<14 desired range 0x40000 (+/-12dBs). */
+        int32_t lfo1_tremolo = (lfotable[emu_voice->lfo1_count.int_address] * emu_voice->fixed_lfo1_tremolo) >> 11;
+        /* AWE32Emu: the card only attenuates (block 17), upstream adds both ways */
+        if (lfo1_tremolo < 0)
+            attenuation -= lfo1_tremolo;
+    }
+
+    /* AWE32Emu: filter modulation in octaves for the Chamberlin filter */
+    emu_voice->filt_oct_target = (double) modenv->value_db_oct / (double) (1 << 21) * emu_voice->pefe_modenv_filter_height / 127.0 * 6.0
+        + lfotable[emu_voice->lfo1_count.int_address] / 32768.0 * emu_voice->fmmod_lfo1_filt_mod / 127.0 * 3.0;
+
+    if (currentpitch > 0xFFFF)
+        currentpitch = 0xFFFF;
+    if (currentpitch < 0)
+        currentpitch = 0;
+    if (attenuation > 0x1FFFFF)
+        attenuation = 0x1FFFFF;
+    if (attenuation < 0)
+        attenuation = 0;
+    if (filtercut > 0x1FFFFF)
+        filtercut = 0x1FFFFF;
+    if (filtercut < 0)
+        filtercut = 0;
+
+    emu_voice->vtft_vol_target    = env_vol_db_to_vol_target[attenuation >> 5];
+    emu_voice->vtft_filter_target = filtercut >> 5;
+    emu_voice->ptrx_pit_target    = freqtable[currentpitch] >> 18;
+    return freqtable[currentpitch];
+}
+
+static inline void
+emu8k_voice_latch(emu8k_voice_t *emu_voice)
+{
+    emu_voice->cvcf_curr_volume     = emu8k_vol_slide(&emu_voice->volumeslide, emu_voice->vtft_vol_target);
+    emu_voice->cvcf_curr_filt_ctoff = emu_voice->vtft_filter_target;
+    emu_voice->filt_oct_curr        = emu_voice->filt_oct_target; /* AWE32Emu */
+}
+
+unsigned
+emu8k_pci_voice_tick(emu8k_voice_t *voice, emu8k_sample_read_t read_sample,
+                    const void *context, int32_t *mix, emu8k_effect_sends_t *sends)
+{
+    if (voice->loop_end.addr <= voice->loop_start.addr)
+        return 0;
+
+    if (voice->cvcf_curr_volume) {
+        const int32_t dat = emu8k_voice_sample(voice, read_sample, context, SOUND_FREQ);
+        emu8k_voice_mix(voice, dat, mix, &sends->reverb, &sends->chorus);
+    }
+
+    const uint64_t target = emu8k_voice_envelope_tick(voice);
+    /* Keep the full precision of IP once the current pitch reaches its target. */
+    const uint64_t step = voice->cpf_curr_pitch == voice->ptrx_pit_target
+        ? target
+        : (uint64_t) voice->cpf_curr_pitch << 18;
+    const unsigned crossed = emu8k_advance_voice(voice, step, 1);
+    emu8k_voice_latch(voice);
+    emu8k_update_voice_address(voice);
+    return crossed;
+}
+
 static void /* AWE32Emu: one chunk; emu8k_update() below splits at state dump frames */
 emu8k_update_chunk(emu8k_t *emu8k)
 {
@@ -2366,366 +2779,23 @@ emu8k_update_chunk(emu8k_t *emu8k)
     int            num_active = 0;
 
     /* Voices section  */
-    for (uint8_t c = 0; c < 32; c++) {
+    for (uint8_t c = 0; c < EMU8K_VOICE_COUNT; c++) {
+        if (emu8k->pci_voices & (1u << c))
+            continue;
         emu_voice = &emu8k->voice[c];
-        buf       = &emu8k->buffer[emu8k->pos * 2];
 
         if (emu_voice->env_engine_on || emu_voice->cvcf_curr_volume)
             num_active++;
 
         for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
-            int32_t dat;
-
             if (emu_voice->cvcf_curr_volume) {
-                /* Waveform oscillator */
-#ifdef RESAMPLER_LINEAR
-                dat = EMU8K_READ_INTERP_LINEAR(emu8k, emu_voice->addr.int_address,
-                                               emu_voice->addr.fract_address);
-
-#elif defined RESAMPLER_CUBIC
-                dat = EMU8K_READ_INTERP_CUBIC(emu8k, emu_voice->addr.int_address,
-                                              emu_voice->addr.fract_address);
-
-#elif defined RESAMPLER_SINC
-                dat = EMU8K_READ_INTERP_SINC(emu8k, emu_voice->addr.int_address,
-                                             emu_voice->addr.fract_address);
-#elif defined RESAMPLER_POINT3
-                dat = EMU8K_READ_INTERP_POINT3(emu8k, emu_voice->addr.int_address,
-                                               emu_voice->addr.fract_address);
-#elif defined RESAMPLER_BSPLINE4
-                dat = EMU8K_READ_INTERP_BSPLINE4(emu8k, emu_voice->addr.int_address,
-                                                 emu_voice->addr.fract_address);
-#endif
-
-                /* Filter section */
-#ifdef FILTER_CHAMBERLIN
-                /* AWE32Emu: Chamberlin SVF, see FILTER_CHAMBERLIN above. Bypassed
-                 * only at Q 0 with the cutoff register at 0xFF and no downward
-                 * modulation ("the filter does not alter the signal" [PG]). */
-                if (emu_voice->filterq_idx || emu_voice->ifatn_init_filter != 0xFF || emu_voice->filt_oct_curr < 0.0) {
-                    double fc = EMU8K_CHAM_BASE_HZ
-                        * pow(2.0, emu_voice->ifatn_init_filter * EMU8K_CHAM_CENTS / 1200.0 + emu_voice->filt_oct_curr);
-                    if (fc < EMU8K_CHAM_BASE_HZ)
-                        fc = EMU8K_CHAM_BASE_HZ;
-                    if (fc > 44100.0 / 6.0)
-                        fc = 44100.0 / 6.0;
-                    const double F  = 2.0 * sin(M_PI * fc / 44100.0);
-                    const double qd = 1.0 / (EMU8K_CHAM_Q0 * pow(10.0, emu8k_cham_q_db(emu_voice->filterq_idx, fc) / 20.0));
-                    const double in = (double) dat * emu_voice->filt_att / 65536.0;
-                    emu_voice->cham_lp += F * emu_voice->cham_bp;
-                    const double hp = in - emu_voice->cham_lp - qd * emu_voice->cham_bp;
-                    emu_voice->cham_bp += F * hp;
-                    double out = emu_voice->cham_lp;
-                    if (out > 32767.0)
-                        out = 32767.0;
-                    else if (out < -32768.0)
-                        out = -32768.0;
-                    dat = (int32_t) out;
-                }
-#else
-                if (emu_voice->filterq_idx || emu_voice->cvcf_curr_filt_ctoff != 0xFFFF) {
-                    int           cutoff = emu_voice->cvcf_curr_filt_ctoff >> 8;
-                    const int64_t coef0  = filt_coeffs[emu_voice->filterq_idx][cutoff][0];
-                    const int64_t coef1  = filt_coeffs[emu_voice->filterq_idx][cutoff][1];
-                    const int64_t coef2  = filt_coeffs[emu_voice->filterq_idx][cutoff][2];
-/* clip at twice the range */
-#define ClipBuffer(buf) (buf < -16777216) ? -16777216 : (buf > 16777216) ? 16777216 \
-                                                                         : buf
-
-#ifdef FILTER_INITIAL
-#    define NOOP(x) (void) x;
-                    NOOP(coef1)
-                    /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one doesn't).
-                     * Work in 24bits. */
-                    dat = (dat * emu_voice->filt_att) >> 8;
-
-                    int64_t vhp = ((-emu_voice->filt_buffer[0] * coef2) >> 24) - emu_voice->filt_buffer[1] - dat;
-                    emu_voice->filt_buffer[1] += (emu_voice->filt_buffer[0] * coef0) >> 24;
-                    emu_voice->filt_buffer[0] += (vhp * coef0) >> 24;
-                    dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
-                    if (dat > 32767)
-                        dat = 32767;
-                    else if (dat < -32768)
-                        dat = -32768;
-
-#elif defined FILTER_MOOG
-
-                    /*move to 24bits*/
-                    dat <<= 8;
-
-                    dat -= (coef2 * emu_voice->filt_buffer[4]) >> 24; /*feedback*/
-                    int64_t t1                = emu_voice->filt_buffer[1];
-                    emu_voice->filt_buffer[1] = ((dat + emu_voice->filt_buffer[0]) * coef0 - emu_voice->filt_buffer[1] * coef1) >> 24;
-                    emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
-
-                    int64_t t2                = emu_voice->filt_buffer[2];
-                    emu_voice->filt_buffer[2] = ((emu_voice->filt_buffer[1] + t1) * coef0 - emu_voice->filt_buffer[2] * coef1) >> 24;
-                    emu_voice->filt_buffer[2] = ClipBuffer(emu_voice->filt_buffer[2]);
-
-                    int64_t t3                = emu_voice->filt_buffer[3];
-                    emu_voice->filt_buffer[3] = ((emu_voice->filt_buffer[2] + t2) * coef0 - emu_voice->filt_buffer[3] * coef1) >> 24;
-                    emu_voice->filt_buffer[3] = ClipBuffer(emu_voice->filt_buffer[3]);
-
-                    emu_voice->filt_buffer[4] = ((emu_voice->filt_buffer[3] + t3) * coef0 - emu_voice->filt_buffer[4] * coef1) >> 24;
-                    emu_voice->filt_buffer[4] = ClipBuffer(emu_voice->filt_buffer[4]);
-
-                    emu_voice->filt_buffer[0] = ClipBuffer(dat);
-
-                    dat = (int32_t) (emu_voice->filt_buffer[4] >> 8);
-                    if (dat > 32767)
-                        dat = 32767;
-                    else if (dat < -32768)
-                        dat = -32768;
-
-#elif defined FILTER_CONSTANT
-
-                    /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one is constant gain).
-                     * Also stay at 24bits.*/
-                    dat = (dat * emu_voice->filt_att) >> 8;
-
-                    emu_voice->filt_buffer[0] = (coef1 * emu_voice->filt_buffer[0]
-                                                 + coef0 * (dat + ((coef2 * (emu_voice->filt_buffer[0] - emu_voice->filt_buffer[1])) >> 24)))
-                        >> 24;
-                    emu_voice->filt_buffer[1] = (coef1 * emu_voice->filt_buffer[1]
-                                                 + coef0 * emu_voice->filt_buffer[0])
-                        >> 24;
-
-                    emu_voice->filt_buffer[0] = ClipBuffer(emu_voice->filt_buffer[0]);
-                    emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
-
-                    dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
-                    if (dat > 32767)
-                        dat = 32767;
-                    else if (dat < -32768)
-                        dat = -32768;
-
-#endif
-                }
-#endif /* FILTER_CHAMBERLIN */
-                if ((emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca)) {
-                    /*volume and pan*/
-                    dat = (dat * emu_voice->cvcf_curr_volume) >> 16;
-                    if (emu_voice->overshoot_samples >= 0) { /* AWE32Emu: see emu8k_overshoot */
-                        dat = (int32_t) (((int64_t) dat * emu8k_overshoot_q12(emu_voice->overshoot_samples)) >> 12);
-                        if (++emu_voice->overshoot_samples >= 8 * EMU8K_OVERSHOOT_STEP)
-                            emu_voice->overshoot_samples = -1;
-                    }
-
-                    /* AWE32Emu: indexed by pos. Upstream advances buf only for
-                     * samples where the voice has volume, so after a silent
-                     * sample the rest of the voice lands earlier in the buffer
-                     * and the output depends on how the update is split. */
-                    emu8k->buffer[pos * 2] += (dat * emu_voice->vol_l) >> 8;
-                    emu8k->buffer[pos * 2 + 1] += (dat * emu_voice->vol_r) >> 8;
-
-                    /* Effects section */
-                    if (emu_voice->ptrx_revb_send > 0) {
-                        emu8k->reverb_in_buffer[pos] += (dat * emu_voice->ptrx_revb_send) >> 8;
-                    }
-                    if (emu_voice->csl_chor_send > 0) {
-                        emu8k->chorus_in_buffer[pos] += (dat * emu_voice->csl_chor_send) >> 8;
-                    }
-                }
+                int32_t dat = emu8k_voice_sample(emu_voice, emu8k_ram_sample, emu8k, WT_FREQ);
+                if ((emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca))
+                    emu8k_voice_mix(emu_voice, dat, &emu8k->buffer[pos * 2],
+                                    &emu8k->reverb_in_buffer[pos], &emu8k->chorus_in_buffer[pos]);
             }
 
-            if (emu_voice->env_engine_on) {
-                int32_t attenuation  = emu_voice->initial_att;
-                int32_t filtercut    = emu_voice->initial_filter;
-                int32_t currentpitch = emu_voice->ip;
-                /* run envelopes */
-                emu8k_envelope_t *volenv = &emu_voice->vol_envelope;
-                switch (volenv->state) {
-                    case ENV_DELAY:
-                        volenv->delay_samples--;
-                        if (volenv->delay_samples <= 0) {
-                            volenv->state         = ENV_ATTACK;
-                            volenv->delay_samples = 0;
-                        }
-                        attenuation = 0x1FFFFF;
-                        break;
-
-                    case ENV_ATTACK:
-                        /* Attack amount is in linear amplitude */
-                        volenv->value_amp_hz += volenv->attack_amount_amp_hz;
-                        if (volenv->value_amp_hz >= (1 << 21)) {
-                            volenv->value_amp_hz = 1 << 21;
-                            emu_voice->overshoot_samples = 0; /* AWE32Emu */
-                            volenv->value_db_oct = 0;
-                            if (volenv->hold_samples) {
-                                volenv->state = ENV_HOLD;
-                            } else {
-                                /* RAMP_UP since db value is inverted and it is 0 at this point. */
-                                volenv->state = ENV_RAMP_UP;
-                            }
-                        }
-                        /* AWE32Emu: attack shape measured on the card. Upstream: value_amp_hz >> 5. */
-                        attenuation += env_vol_amplitude_to_db[emu8k_attack_amp_index(volenv->value_amp_hz)] << 5;
-                        break;
-
-                    case ENV_HOLD:
-                        volenv->hold_samples--;
-                        if (volenv->hold_samples <= 0) {
-                            volenv->state = ENV_RAMP_UP;
-                        }
-                        attenuation += volenv->value_db_oct;
-                        break;
-
-                    case ENV_RAMP_DOWN:
-                        /* Decay/release amount is in fraction of dBs and is always positive */
-                        volenv->value_db_oct -= emu8k_ramp_step(volenv); /* AWE32Emu: Q16 step */
-                        if (volenv->value_db_oct <= volenv->sustain_value_db_oct) {
-                            volenv->value_db_oct = volenv->sustain_value_db_oct;
-                            volenv->state        = ENV_SUSTAIN;
-                        }
-                        attenuation += volenv->value_db_oct;
-                        break;
-
-                    case ENV_RAMP_UP:
-                        /* Decay/release amount is in fraction of dBs and is always positive */
-                        volenv->value_db_oct += emu8k_ramp_step(volenv); /* AWE32Emu: Q16 step */
-                        if (volenv->value_db_oct >= volenv->sustain_value_db_oct) {
-                            volenv->value_db_oct = volenv->sustain_value_db_oct;
-                            volenv->state        = ENV_SUSTAIN;
-                        }
-                        attenuation += volenv->value_db_oct;
-                        break;
-
-                    case ENV_SUSTAIN:
-                        attenuation += volenv->value_db_oct;
-                        break;
-
-                    case ENV_STOPPED:
-                        attenuation = 0x1FFFFF;
-                        break;
-
-                    default:
-                        break;
-                }
-
-                emu8k_envelope_t *modenv = &emu_voice->mod_envelope;
-                switch (modenv->state) {
-                    case ENV_DELAY:
-                        modenv->delay_samples--;
-                        if (modenv->delay_samples <= 0) {
-                            modenv->state         = ENV_ATTACK;
-                            modenv->delay_samples = 0;
-                        }
-                        break;
-
-                    case ENV_ATTACK:
-                        /* Attack amount is in linear amplitude */
-                        modenv->value_amp_hz += modenv->attack_amount_amp_hz;
-                        modenv->value_db_oct = emu8k_mod_attack_value(modenv->value_amp_hz); /* AWE32Emu: convex attack */
-                        if (modenv->value_amp_hz >= (1 << 21)) {
-                            modenv->value_amp_hz = 1 << 21;
-                            modenv->value_db_oct = 1 << 21;
-                            if (modenv->hold_samples) {
-                                modenv->state = ENV_HOLD;
-                            } else {
-                                modenv->state = ENV_RAMP_DOWN;
-                            }
-                        }
-                        break;
-
-                    case ENV_HOLD:
-                        modenv->hold_samples--;
-                        if (modenv->hold_samples <= 0) {
-                            modenv->state = ENV_RAMP_DOWN; /* AWE32Emu: upstream ramps UP here, which jumps straight to the sustain level instead of decaying */
-                        }
-                        break;
-
-                    case ENV_RAMP_DOWN:
-                        /* Decay/release amount is in fraction of octave and is always positive */
-                        modenv->value_db_oct -= emu8k_ramp_step(modenv); /* AWE32Emu: Q16 step */
-                        if (modenv->value_db_oct <= modenv->sustain_value_db_oct) {
-                            modenv->value_db_oct = modenv->sustain_value_db_oct;
-                            modenv->state        = ENV_SUSTAIN;
-                        }
-                        break;
-
-                    case ENV_RAMP_UP:
-                        /* Decay/release amount is in fraction of octave and is always positive */
-                        modenv->value_db_oct += emu8k_ramp_step(modenv); /* AWE32Emu: Q16 step */
-                        if (modenv->value_db_oct >= modenv->sustain_value_db_oct) {
-                            modenv->value_db_oct = modenv->sustain_value_db_oct;
-                            modenv->state        = ENV_SUSTAIN;
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-
-                /* run lfos */
-                if (emu_voice->lfo1_delay_samples) {
-                    emu_voice->lfo1_delay_samples--;
-                } else {
-                    emu_voice->lfo1_count.addr += emu_voice->lfo1_speed;
-                    emu_voice->lfo1_count.int_address &= 0xFFFF;
-                }
-                if (emu_voice->lfo2_delay_samples) {
-                    emu_voice->lfo2_delay_samples--;
-                } else {
-                    emu_voice->lfo2_count.addr += emu_voice->lfo2_speed;
-                    emu_voice->lfo2_count.int_address &= 0xFFFF;
-                }
-
-                if (emu_voice->fixed_modenv_pitch_height) {
-                    /* modenv range 1<<21, pitch height range 1<<14 desired range 0x1000 (+/-one octave) */
-                    currentpitch += ((modenv->value_db_oct >> 9) * emu_voice->fixed_modenv_pitch_height) >> 14;
-                }
-
-                if (emu_voice->fixed_lfo1_vibrato) {
-                    /* table range 1<<15, pitch mod range 1<<14 desired range 0x1000 (+/-one octave) */
-                    int32_t lfo1_vibrato = (lfotable[emu_voice->lfo1_count.int_address] * emu_voice->fixed_lfo1_vibrato) >> 17;
-                    currentpitch += lfo1_vibrato;
-                }
-                if (emu_voice->fixed_lfo2_vibrato) {
-                    /* table range 1<<15, pitch mod range 1<<14 desired range 0x1000 (+/-one octave) */
-                    int32_t lfo2_vibrato = (lfotable[emu_voice->lfo2_count.int_address] * emu_voice->fixed_lfo2_vibrato) >> 17;
-                    currentpitch += lfo2_vibrato;
-                }
-
-                if (emu_voice->fixed_modenv_filter_height) {
-                    /* modenv range 1<<21, pitch height range 1<<14 desired range 0x200000 (+/-full filter range) */
-                    filtercut += ((modenv->value_db_oct >> 9) * emu_voice->fixed_modenv_filter_height) >> 5;
-                }
-
-                if (emu_voice->fixed_lfo1_filt_mod) {
-                    /* table range 1<<15, pitch mod range 1<<14 desired range 0x100000 (+/-three octaves) */
-                    int32_t lfo1_filtmod = (lfotable[emu_voice->lfo1_count.int_address] * emu_voice->fixed_lfo1_filt_mod) >> 9;
-                    filtercut += lfo1_filtmod;
-                }
-
-                if (emu_voice->fixed_lfo1_tremolo) {
-                    /* table range 1<<15, pitch mod range 1<<14 desired range 0x40000 (+/-12dBs). */
-                    int32_t lfo1_tremolo = (lfotable[emu_voice->lfo1_count.int_address] * emu_voice->fixed_lfo1_tremolo) >> 11;
-                    /* AWE32Emu: the card only attenuates (block 17), upstream adds both ways */
-                    if (lfo1_tremolo < 0)
-                        attenuation -= lfo1_tremolo;
-                }
-
-                /* AWE32Emu: filter modulation in octaves for the Chamberlin filter */
-                emu_voice->filt_oct_target = (double) modenv->value_db_oct / (double) (1 << 21) * emu_voice->pefe_modenv_filter_height / 127.0 * 6.0
-                    + lfotable[emu_voice->lfo1_count.int_address] / 32768.0 * emu_voice->fmmod_lfo1_filt_mod / 127.0 * 3.0;
-
-                if (currentpitch > 0xFFFF)
-                    currentpitch = 0xFFFF;
-                if (currentpitch < 0)
-                    currentpitch = 0;
-                if (attenuation > 0x1FFFFF)
-                    attenuation = 0x1FFFFF;
-                if (attenuation < 0)
-                    attenuation = 0;
-                if (filtercut > 0x1FFFFF)
-                    filtercut = 0x1FFFFF;
-                if (filtercut < 0)
-                    filtercut = 0;
-
-                emu_voice->vtft_vol_target    = env_vol_db_to_vol_target[attenuation >> 5];
-                emu_voice->vtft_filter_target = filtercut >> 5;
-                emu_voice->ptrx_pit_target    = freqtable[currentpitch] >> 18;
-            }
+            emu8k_voice_envelope_tick(emu_voice);
             /*
             I've recopilated these sentences to get an idea of how to loop
 
@@ -2741,22 +2811,13 @@ emu8k_update_chunk(emu8k_t *emu8k)
             -In programs that use the awe, they generally set the loop address as "loopaddress -1" to compensate for the above.
             (Note: I am already using address+1 in the interpolators so these things are already as they should.)
             */
-            emu_voice->addr.addr += ((uint64_t) emu_voice->cpf_curr_pitch) << 18;
-            if (emu_voice->addr.addr >= emu_voice->loop_end.addr) {
-                emu_voice->addr.int_address -= (emu_voice->loop_end.int_address - emu_voice->loop_start.int_address);
-                emu_voice->addr.int_address &= EMU8K_MEM_ADDRESS_MASK;
-            }
+            emu8k_advance_voice(emu_voice, (uint64_t) emu_voice->cpf_curr_pitch << 18, 0);
 
-            /* TODO: How and when are the target and current values updated */
-            emu_voice->cpf_curr_pitch       = emu_voice->ptrx_pit_target;
-            emu_voice->cvcf_curr_volume     = emu8k_vol_slide(&emu_voice->volumeslide, emu_voice->vtft_vol_target);
-            emu_voice->cvcf_curr_filt_ctoff = emu_voice->vtft_filter_target;
-            emu_voice->filt_oct_curr        = emu_voice->filt_oct_target; /* AWE32Emu */
+            emu8k_voice_latch(emu_voice);
         }
 
         /* Update EMU voice registers. */
-        emu_voice->ccca               = (((uint32_t) emu_voice->ccca_qcontrol) << 24) | emu_voice->addr.int_address;
-        emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
+        emu8k_update_voice_address(emu_voice);
 
 #if 0
         if (emu_voice->cvcf_curr_volume != old_vol[c]) {
