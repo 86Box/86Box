@@ -4874,10 +4874,59 @@ enum {
 };
 
 static void
-ragepro_parallel_diffusion_tests(void)
+ragepro_point_coord_tests(void)
+{
+    static const int edges[] = { -1000000000, -131073, -131072, -103, -1, 0, 1, 103, 131072, 131073, 1000000000 };
+
+    for (unsigned i = 0; i < sizeof(edges) / sizeof(edges[0]); i++) {
+        for (int step = -64; step <= 64; step++) {
+            double coord = edges[i] + step / 262144.0;
+            int expected = 0;
+
+            if (fabs(coord) <= 1.0e9) {
+                double fixed = floor(coord * 65536.0 + 0.5) / 65536.0;
+
+                expected = (int) floor(fixed * (1.0 - 1.0 / (1 << 20)));
+            }
+            CHECK(mach64_rp_point_coord(coord) == expected);
+        }
+    }
+}
+
+static void
+ragepro_edge_step_tests(void)
+{
+    static const int terms[] = { -262140, -17, -4, 0, 5, 20, 262144 };
+
+    for (unsigned i = 0; i < sizeof(terms) / sizeof(terms[0]); i++) {
+        for (unsigned j = 0; j < sizeof(terms) / sizeof(terms[0]); j++) {
+            for (unsigned k = 0; k < sizeof(terms) / sizeof(terms[0]); k++) {
+                int64_t a = terms[i];
+                int64_t b = terms[j];
+                int64_t db = terms[k];
+                mach64_rp_edge_t edge;
+
+                mach64_rp_edge_init(&edge, a, b, db);
+                for (int y = 0; y < 32; y++, b += db) {
+                    int64_t expected = b;
+
+                    if (a > 0)
+                        expected = -b / a + ((b < 0) && (b % a != 0));
+                    else if (a < 0)
+                        expected = b / -a - ((b < 0) && (b % a != 0));
+                    CHECK(edge.bound == expected);
+                    mach64_rp_edge_advance(&edge);
+                }
+            }
+        }
+    }
+}
+
+static void
+ragepro_parallel_dither_tests(void)
 {
     for (int threads = 2; threads <= 4; threads += 2) {
-        for (int scenario = 0; scenario < 12; scenario++) {
+        for (int scenario = 0; scenario < 13; scenario++) {
             mach64_t *m = card_create();
             mach64_3d_t *ctx = m->gt3d;
             mach64_rp_tri_t tri = { 0 };
@@ -4885,10 +4934,12 @@ ragepro_parallel_diffusion_tests(void)
             mach64_3d_dither_t expected;
             uint8_t reference[4096];
 
+            m->ragepro = 1;
             tri.dst.pitch = 64;
             tri.dst.bpp = 2;
             tri.dst.format = 4;
             tri.cntl = DITHER_EN | DITHER_INIT;
+            tri.shade_rgb = 1;
             tri.pl[RPP_R].c = 103.2;
             tri.pl[RPP_G].c = 127.8;
             tri.pl[RPP_B].c = 58.9;
@@ -4900,7 +4951,7 @@ ragepro_parallel_diffusion_tests(void)
                 tri.z_on = 1;
                 tri.z_pitch = 64;
                 tri.z_base = 8192;
-                tri.z_cntl = 1 << Z_TEST_SHIFT; /* less than */
+                tri.z_test = 1; /* less than */
                 tri.pl[RPP_Z].c = 10;
                 for (int y = 0; y < 32; y++) {
                     for (int x = 0; x < 64; x++)
@@ -4917,6 +4968,8 @@ ragepro_parallel_diffusion_tests(void)
                 initial.y = 5; /* incoming error inside batch */
             } else if (scenario == 6) {
                 tri.cntl &= ~DITHER_INIT; /* cross-row carry: serial */
+            } else if (scenario == 12) {
+                tri.cntl = DITHER_EN | SCALE_DITHER;
             } else if (scenario >= 7) {
                 initial.y = 40; /* incoming state past the batch */
                 if (scenario == 8)
@@ -4943,12 +4996,19 @@ ragepro_parallel_diffusion_tests(void)
             ctx->rp_nspans = 32;
             for (int y = 0; y < 32; y++)
                 ctx->rp_spans[y] = (mach64_rp_span_t) { y, 0, 63 };
+#ifdef MACH64_RAGEPRO_ERROR_DIFFUSION
             CHECK(mach64_rp_spans_shared(ctx, &tri, 2048) == (scenario != 6));
+#else
+            CHECK(mach64_rp_spans_shared(ctx, &tri, 2048));
+            if (!(tri.cntl & SCALE_DITHER))
+                ctx->regs[SCALE_3D_CNTL >> 2] &= ~DITHER_EN;
+#endif
             mach64_rp_draw_spans(ctx, &tri, 0, 1, &ctx->dither, &ctx->agp);
             memcpy(reference, m->svga.vram, sizeof(reference));
             expected = ctx->dither;
             memset(m->svga.vram, 0, sizeof(reference));
             ctx->dither = initial;
+            ctx->regs[SCALE_3D_CNTL >> 2] = tri.cntl;
             mach64_rp_draw_batch(ctx, &tri, 2048);
             CHECK(memcmp(reference, m->svga.vram, sizeof(reference)) == 0);
             CHECK(ctx->dither.valid == expected.valid);
@@ -5009,7 +5069,7 @@ main(int argc, char **argv)
             ragepro_mip_chain_tests();
         }
         if (selected & MODE_DITHER) {
-            ragepro_parallel_diffusion_tests();
+            ragepro_parallel_dither_tests();
             ragepro_dither_tests();
             dither_bayer_tests();
             ragepro_blend_tests();
@@ -5049,7 +5109,9 @@ main(int argc, char **argv)
     }
     /* The Rage Pro's own paths are on the GT-B core. */
     card_type = MACH64_GTB;
-    ragepro_parallel_diffusion_tests();
+    ragepro_point_coord_tests();
+    ragepro_edge_step_tests();
+    ragepro_parallel_dither_tests();
     ragepro_palette_upload_tests();
     ragepro_scaler_offset_acc_tests();
     ragepro_ci8_tiling_tests();
