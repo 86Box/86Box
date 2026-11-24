@@ -1453,6 +1453,8 @@ sound_speed_changed(void)
 void
 sound_reset(void)
 {
+    sound_source_remove_all();
+
     sound_realloc_buffers();
 
     music_realloc_buffers();

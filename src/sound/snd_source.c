@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include <86box/86box.h>
+#include <86box/runctl.h>
 #include <86box/device.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
@@ -64,7 +65,8 @@ sound_source_give_buffer(void *priv, const void *buf)
 {
     const sound_source_t *src = (sound_source_t *) priv;
 
-    sound_backend_give_buffer(src->src, buf, src->buffer_size * 2, src->gain);
+    if ((src->src != NULL) && (runctl_mode() != RUN_MODE_FAST))
+        sound_backend_give_buffer(src->src, buf, src->buffer_size * 2, src->gain);
 }
 
 static void
@@ -188,9 +190,13 @@ sound_source_close_all(void)
 {
     sound_source_t *src = first_sound_source;
 
+    /* The timer and the position keep running, so that whoever reads the
+       position is not disturbed by a backend change. */
     while (src != NULL) {
-        sound_source_do_close(src);
-        sound_source_clear_buffers(src);
+        void *old = src->src;
+
+        src->src = NULL;
+        sound_backend_close_source(old);
 
         src = src->next;
     }
@@ -202,8 +208,8 @@ sound_source_reopen_all(void)
     sound_source_t *src = first_sound_source;
 
     while (src != NULL) {
-        sound_source_do_init(src);
-        timer_set_delay_u64(&src->timer, src->latch);
+        if (src->src == NULL)
+            sound_source_do_init(src);
 
         src = src->next;
     }
@@ -238,6 +244,8 @@ sound_source_close(void *priv)
 {
     sound_source_t *src = (sound_source_t *) priv;
 
+    sound_source_do_close(src);
+
     if (src->prev != NULL)
         src->prev->next    = src->next;
 
@@ -262,6 +270,7 @@ sound_source_init(const device_t *info)
 
     src->sample_rate        = info->local;
     src->buffer_size        = src->sample_rate / 50;
+    src->latch              = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) src->sample_rate));
 
     timer_add(&src->timer, sound_source_poll, src, 1);
 
@@ -281,6 +290,93 @@ sound_source_init(const device_t *info)
     last_sound_source       = src;
 
     return src;
+}
+
+/* A source owned by a sound card: it has its own clock, which the card (and the
+   FM chip drivers) read through sound_source_get_pos_ptr(), and its own timer,
+   which calls get_buffer once per block. */
+static void
+sound_source_link(sound_source_t *src)
+{
+    if (first_sound_source == NULL)
+        first_sound_source = src;
+
+    src->prev = last_sound_source;
+
+    if (last_sound_source != NULL)
+        last_sound_source->next = src;
+
+    last_sound_source = src;
+}
+
+void *
+sound_source_add(const int sample_rate, const int frames,
+                 void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    sound_source_t *src = (sound_source_t *) calloc(1, sizeof(sound_source_t));
+
+    if (src == NULL)
+        return NULL;
+
+    src->sample_rate = sample_rate;
+    src->buffer_size = frames;
+    src->latch       = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sample_rate));
+    src->get_buffer  = get_buffer;
+    src->priv        = priv;
+
+    sound_source_alloc_buffers(src);
+    sound_source_do_init(src);
+    sound_source_link(src);
+
+    timer_add(&src->timer, sound_source_poll, src, 1);
+
+    return src;
+}
+
+void *
+sound_source_add_stream(const uint8_t stream,
+                        void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    switch (stream) {
+        case I_NORMAL:
+            return sound_source_add(sound_sample_rate, sound_sample_rate / 50, get_buffer, priv);
+        case I_MUSIC:
+            return sound_source_add(MUSIC_FREQ, MUSICBUFLEN, get_buffer, priv);
+        case I_YM2151:
+            return sound_source_add(YM2151_FREQ, YM2151BUFLEN, get_buffer, priv);
+        case I_WT:
+            return sound_source_add(WT_FREQ, WTBUFLEN, get_buffer, priv);
+        default:
+            return NULL;
+    }
+}
+
+const int *
+sound_source_get_pos_ptr(void *priv)
+{
+    const sound_source_t *src = (sound_source_t *) priv;
+
+    return (src == NULL) ? NULL : &src->pos;
+}
+
+/* Safe to call on a source that has already been removed. */
+void
+sound_source_remove(void *priv)
+{
+    for (sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
+        if (src == (sound_source_t *) priv) {
+            sound_source_close(src);
+            return;
+        }
+    }
+}
+
+/* For when the cards are gone: whatever they have left behind. */
+void
+sound_source_remove_all(void)
+{
+    while (first_sound_source != NULL)
+        sound_source_remove(first_sound_source);
 }
 
 const device_t sound_source_device = {

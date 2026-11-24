@@ -66,6 +66,7 @@ typedef struct fm_drv_t {
     int32_t *(*update)(void *priv);
     void     (*reset_buffer)(void *priv);
     void     (*set_do_cycles)(void *priv, int8_t do_cycles);
+    void     (*set_clock)(void *priv, const int *clock); /* NULL: the shared stream clock */
     void      *priv;
     void     (*generate)(void *priv, int32_t *data, uint32_t num_samples); /* daughterboard only. */
 } fm_drv_t;

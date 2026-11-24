@@ -78,6 +78,18 @@ extern void                  sound_backend_input_stop(void);
 extern int                   sound_backend_input_get_rate(void);
 extern void                  sound_backend_input_get_data(int16_t *buf, size_t *len);
 
+/* Sources owned by sound cards: each has its own clock and timer. get_buffer
+   is called once per block, when the clock reaches the block's length. */
+extern void *          sound_source_add(int sample_rate, int frames,
+                                        void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
+                                        void *priv);
+extern void *          sound_source_add_stream(uint8_t stream,
+                                               void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
+                                               void *priv);
+extern const int *     sound_source_get_pos_ptr(void *src);
+extern void            sound_source_remove(void *src);
+extern void            sound_source_remove_all(void);
+
 extern void            sound_source_close_all(void);
 extern void            sound_source_reopen_all(void);
 
