@@ -1668,11 +1668,7 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
 
-    /*Target not freed or changed since the slot was filled. RDI = it.
-      Whether codeblock_hash[] still points to it is not checked: if not, the
-      C loop would take another block compiled for the same cs:pc and status,
-      or find this one in the tree, and either runs the same code. A flush
-      that would keep the loop from looking changes link_gen.*/
+    /*Target not freed or changed since the slot was filled. RDI = it*/
     rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
     rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RDI, LINK_BLOCK(link_gen));
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
@@ -1771,6 +1767,15 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDX, 0);
     rx_rr(block, 0, 1, 0x85, REG_RDX, REG_RDX);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+
+    /*The block lookup: codeblock_hash[] must still name the target. A block
+      that takes the hash slot does not change the target's link_gen, and
+      the C loop would run that block, or the first one the tree walk
+      finds, which may differ in status and code, or compile one*/
+    rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RBX, LINK_SLOT(hash));
+    rx_rm(block, 0, 0, 0x8b, REG_RDX, REG_RDX, 0);
+    rx_rm(block, 0, 0, 0x3b, REG_RDX, REG_RBX, LINK_SLOT(block_nr));
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
     /*The checks made before running the block*/
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RBX, LINK_SLOT(dirty_mask));
