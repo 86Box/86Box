@@ -31,9 +31,8 @@ if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
-if(NOT DEFINED OPENAL OR OPENAL)
-    list(APPEND VCPKG_MANIFEST_FEATURES "openal")
-endif()
+# OpenAL is always built; the old OPENAL option is obsolete and ignored.
+list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 
 if(MUNT_EXTERNAL)
     list(APPEND VCPKG_MANIFEST_FEATURES "munt")
@@ -122,10 +121,6 @@ if(STATIC_BUILD AND MINGW)
     endif()
 endif()
 
-if(HAIKU)
-    set(OPENAL ON)
-endif()
-
 include(DetectTargetArch)
 include(CompilerFlags)
 
@@ -135,7 +130,6 @@ include(CompilerFlags)
 #      ------       -----------                                                  ----
 option(RELEASE      "Release build"                                              OFF)
 option(DYNAREC      "Dynamic recompiler"                                         ON)
-option(OPENAL       "OpenAL"                                                     ON)
 option(RTMIDI       "RtMidi"                                                     ON)
 option(FLUIDSYNTH   "FluidSynth"                                                 ON)
 option(MUNT         "MUNT"                                                       ON)
