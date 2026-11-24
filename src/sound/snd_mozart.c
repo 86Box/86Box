@@ -121,6 +121,8 @@ static double mozart_input_gain_vols[16];
 
 typedef struct mozart_t {
     int     chip;
+    void   *src_snd;
+    void   *src_music;
     uint8_t regs[10];
     uint8_t unlocked;
     uint8_t wss_config;
@@ -539,8 +541,12 @@ mozart_init(UNUSED(const device_t *info))
 
     io_sethandler(0xf8d, 10, mozart_reg_read, NULL, NULL, mozart_reg_write, NULL, NULL, dev);
 
-    sound_add_handler(mozart_get_buffer, dev);
-    music_add_handler(mozart_get_music_buffer, dev);
+    dev->src_snd      = sound_source_add_stream(I_NORMAL, mozart_get_buffer, dev);
+    dev->ad1848.clock = sound_source_get_pos_ptr(dev->src_snd);
+    sb->dsp.clock     = dev->ad1848.clock;
+    dev->src_music    = sound_source_add_stream(I_MUSIC, mozart_get_music_buffer, dev);
+    if (sb->opl.set_clock != NULL)
+        sb->opl.set_clock(sb->opl.priv, sound_source_get_pos_ptr(dev->src_music));
     sound_in_add_handler(mozart_put_buffer, dev);
     sound_in_start_input();
 
@@ -566,6 +572,8 @@ mozart_close(void *priv)
 {
     mozart_t *dev = (mozart_t *) priv;
 
+    sound_source_remove(dev->src_snd);
+    sound_source_remove(dev->src_music);
     sb_close(dev->sb);
     free(dev->mpu);
     free(dev);

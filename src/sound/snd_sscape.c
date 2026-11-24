@@ -222,6 +222,7 @@ typedef struct sscape_t {
     double  ring_pos;
 
     ad1848_t ad1848;
+    void    *src_snd;
     void    *gameport;
     int      capture_rate;
     int      capture_freq;
@@ -1921,7 +1922,8 @@ sscape_init(UNUSED(const device_t *info))
     timer_add(&dev->tick_timer, sscape_tick, dev, 0);
     timer_set_delay_u64(&dev->tick_timer, dev->tick_period);
 
-    sound_add_handler(sscape_get_buffer, dev);
+    dev->src_snd      = sound_source_add_stream(I_NORMAL, sscape_get_buffer, dev);
+    dev->ad1848.clock = sound_source_get_pos_ptr(dev->src_snd);
     sound_in_add_handler(sscape_capture, dev);
 
     if (dev->midi_in)
@@ -1938,6 +1940,7 @@ sscape_close(void *priv)
     if (sscape_cur == dev)
         sscape_cur = NULL;
 
+    sound_source_remove(dev->src_snd);
     sound_in_remove_handler(sscape_capture, dev);
     if (dev->ad1848.rec_enable)
         sound_in_stop_input();

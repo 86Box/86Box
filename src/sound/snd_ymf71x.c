@@ -93,6 +93,8 @@ static const double ymf71x_bass_treble_3bits[] = {
 typedef struct ymf71x_t {
     uint8_t type;
 
+    void *src_wss;
+
     uint16_t cur_sb_addr;
     uint16_t cur_wss_addr;
     uint16_t cur_mpu401_addr;
@@ -932,11 +934,15 @@ ymf71x_init(const device_t *info)
 
     fm_driver_get_cs(FM_YMF289B, &ymf71x->sb->opl);
 
-    sound_add_handler(ymf71x_get_buffer, ymf71x);
-    sound_add_handler(ymf71x_get_sbpro_buffer, ymf71x);
+    ymf71x->src_wss      = sound_source_add_stream(I_NORMAL, ymf71x_get_buffer, ymf71x);
+    ymf71x->ad1848.clock = sound_source_get_pos_ptr(ymf71x->src_wss);
+    ymf71x->sb->src_snd   = sound_source_add_stream(I_NORMAL, ymf71x_get_sbpro_buffer, ymf71x);
+    ymf71x->sb->dsp.clock = sound_source_get_pos_ptr(ymf71x->sb->src_snd);
     sound_in_add_handler(ymf71x_put_buffer, ymf71x);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sbpro, ymf71x->sb);
+    ymf71x->sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, ymf71x->sb);
+    if (ymf71x->sb->opl.set_clock != NULL)
+        ymf71x->sb->opl.set_clock(ymf71x->sb->opl.priv, sound_source_get_pos_ptr(ymf71x->sb->src_music));
     ad1848_set_cd_audio_channel(&ymf71x->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
     sound_set_cd_audio_filter(ymf71x_filter_cd_audio, ymf71x);
@@ -1013,6 +1019,7 @@ ymf71x_close(void *priv)
         ymf71x->log = NULL;
     }
 
+    sound_source_remove(ymf71x->src_wss);
     sb_close(ymf71x->sb);
     free(ymf71x->mpu);
     free(priv);

@@ -134,6 +134,9 @@ typedef struct vortex2_t {
 
     int32_t buffer[SOUNDBUFLEN * 2];
     int     pos;
+
+    const int *clock;
+    void      *src_snd;
 } vortex2_t;
 
 #ifdef ENABLE_VORTEX2_LOG
@@ -907,7 +910,9 @@ to_s16(float v)
 static void
 vortex2_update(vortex2_t *dev)
 {
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    const int clk = SOUND_CLOCK(dev->clock, sound_pos_global);
+
+    for (; dev->pos < clk; dev->pos++) {
         if (dev->ring_n > 0) {
             dev->last[0] = dev->ring[dev->ring_rd * 2];
             dev->last[1] = dev->ring[dev->ring_rd * 2 + 1];
@@ -1391,7 +1396,8 @@ vortex2_init(UNUSED(const device_t *info))
     ac97_codec_id    = 0;
     device_add(&stac9708_device);
 
-    sound_add_handler(vortex2_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, vortex2_get_buffer, dev);
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
 
     /* Legacy MIDI and game port, mapped when the driver enables them. */
     dev->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -1421,6 +1427,7 @@ vortex2_close(void *priv)
 {
     vortex2_t *dev = (vortex2_t *) priv;
 
+    sound_source_remove(dev->src_snd);
     sound_in_remove_handler(vortex2_in_put_buffer, dev);
     if (dev->in_started)
         sound_in_stop_input();

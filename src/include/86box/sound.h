@@ -19,6 +19,8 @@
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
 
+#include <86box/timer.h>
+
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
 typedef struct _sound_backend_ {
@@ -87,6 +89,12 @@ extern void *          sound_source_add_stream(uint8_t stream,
                                                void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
                                                void *priv);
 extern const int *     sound_source_get_pos_ptr(void *src);
+extern int             sound_source_class_pending(uint8_t stream);
+extern uint64_t        sound_source_offset_delay(pc_timer_t *timer, uint64_t latch);
+
+/* The position of a card-owned source's clock, or fallback (a shared clock)
+   for a card that has none. */
+#define SOUND_CLOCK(clk, fallback) (((clk) != NULL) ? *(clk) : (fallback))
 extern void            sound_source_remove(void *src);
 extern void            sound_source_remove_all(void);
 
@@ -148,12 +156,6 @@ extern int wavetable_pos_global;
 
 extern int sound_card_current[SOUND_CARD_MAX];
 
-extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 uint16_t len, void *priv),
-                              void *priv);
-extern void sound_remove_handler(void (*get_buffer)(int32_t *buffer,
-                                                     uint16_t len, void *priv),
-                                 void *priv);
 
 extern void sound_in_add_handler(void (*put_buffer)(int16_t *buffer,
                                                      int len, void *priv),
@@ -169,17 +171,8 @@ extern void sound_in_start_input(void);
 extern void sound_in_stop_input(void);
 extern void sound_in_set_test_tone(double hz, double dbfs); /* automation "audio tone" */
 
-extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 uint16_t len, void *priv),
-                              void *priv);
 
-extern void ym2151_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                  uint16_t len, void *priv),
-                               void *priv);
 
-extern void wavetable_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                     uint16_t len, void *priv),
-                                  void *priv);
 
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
                                                      double *buffer, void *priv),

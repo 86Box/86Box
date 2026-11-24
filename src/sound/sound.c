@@ -46,23 +46,13 @@ typedef struct {
 } SOUND_CARD;
 
 typedef struct {
-    void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv);
-    void *priv;
-
-    /* Every handler (card) has a backend source of its own. */
-    void    *src;
-    int32_t *buf;
-    float   *buff;
-    int16_t *buf16;
-    int      buf_len;
-} sound_handler_t;
-
-typedef struct {
     void (*put_buffer)(int16_t *buffer, int len, void *priv);
     void *priv;
 } sound_in_handler_t;
 
 int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
+/* No longer advanced: the sources of the cards carry their own clocks.
+   Only kept as the fallback of components without one. */
 int  sound_pos_global                   = 0;
 static int sound_buf_len                = SOUNDBUFLEN;
 int  music_pos_global                   = 0;
@@ -97,47 +87,21 @@ unsigned long long src_freqs[I_MAX] = {
 #define SNDIN_HEALTHY_TICKS 250
 #define SNDIN_MAX_WEDGE_ATTEMPTS 3
 
-static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS] = { 0 };
 static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS] = { 0 };
-static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS] = { 0 };
-static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS] = { 0 };
-static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS] = { 0 };
 
 static double     cd_audio_volume_lut[256] = { 0.0 };
 
 static thread_t  *sound_cd_thread_h = NULL;
 static event_t   *sound_cd_event = NULL;
 static event_t   *sound_cd_start_event = NULL;
-static int32_t   *outbuffer = NULL;
-static float     *outbuffer_ex = NULL;
-static int16_t   *outbuffer_ex_int16 = NULL;
-static int32_t   *outbuffer_m = NULL;
-static float     *outbuffer_m_ex = NULL;
-static int16_t   *outbuffer_m_ex_int16 = NULL;
-static int32_t   *outbuffer_y = NULL;
-static float     *outbuffer_y_ex = NULL;
-static int16_t   *outbuffer_y_ex_int16 = NULL;
-static int32_t   *outbuffer_w = NULL;
-static float     *outbuffer_w_ex = NULL;
-static int16_t   *outbuffer_w_ex_int16 = NULL;
-static uint8_t    sound_handlers_num = 0;
 static uint8_t    sound_in_handlers_num = 0;
 static uint8_t    sound_in_started_input = 0;
-static uint8_t    music_handlers_num = 0;
-static uint8_t    ym2151_handlers_num = 0;
-static uint8_t    wavetable_handlers_num = 0;
 static pc_timer_t cd_poll_timer = { 0 };
 static uint64_t   cd_poll_latch = 0ULL;
+static pc_timer_t sound_in_poll_timer = { 0 };
+static uint64_t   sound_in_poll_latch = 0ULL;
 static pc_timer_t midi_poll_timer = { 0 };
 static uint64_t   midi_poll_latch = 0ULL;
-static pc_timer_t sound_poll_timer = { 0 };
-static uint64_t   sound_poll_latch = 0ULL;
-static pc_timer_t music_poll_timer = { 0 };
-static uint64_t   music_poll_latch = 0ULL;
-static pc_timer_t ym2151_poll_timer = { 0 };
-static uint64_t   ym2151_poll_latch = 0ULL;
-static pc_timer_t wavetable_poll_timer = { 0 };
-static uint64_t   wavetable_poll_latch = 0ULL;
 
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
@@ -511,130 +475,10 @@ sound_cd_thread(UNUSED(void *param))
     }
 }
 
-static void
-sound_realloc_buffers(void)
-{
-    if (outbuffer_ex != NULL) {
-        free(outbuffer_ex);
-        outbuffer_ex = NULL;
-    }
-
-    if (outbuffer_ex_int16 != NULL) {
-        free(outbuffer_ex_int16);
-        outbuffer_ex_int16 = NULL;
-    }
-
-    const int buf_len = sound_sample_rate / 50;
-
-    if (sound_is_float) {
-        outbuffer_ex = calloc(buf_len * 2, sizeof(float));
-        memset(outbuffer_ex, 0x00, buf_len * 2 * sizeof(float));
-    } else {
-        outbuffer_ex_int16 = calloc(buf_len * 2, sizeof(int16_t));
-        memset(outbuffer_ex_int16, 0x00, buf_len * 2 * sizeof(int16_t));
-    }
-}
-
-static void
-music_realloc_buffers(void)
-{
-    if (outbuffer_m_ex != NULL) {
-        free(outbuffer_m_ex);
-        outbuffer_m_ex = NULL;
-    }
-
-    if (outbuffer_m_ex_int16 != NULL) {
-        free(outbuffer_m_ex_int16);
-        outbuffer_m_ex_int16 = NULL;
-    }
-
-    if (sound_is_float) {
-        outbuffer_m_ex = calloc(MUSICBUFLEN * 2, sizeof(float));
-        memset(outbuffer_m_ex, 0x00, MUSICBUFLEN * 2 * sizeof(float));
-    } else {
-        outbuffer_m_ex_int16 = calloc(MUSICBUFLEN * 2, sizeof(int16_t));
-        memset(outbuffer_m_ex_int16, 0x00, MUSICBUFLEN * 2 * sizeof(int16_t));
-    }
-}
-
-static void
-ym2151_realloc_buffers(void)
-{
-    if (outbuffer_y_ex != NULL) {
-        free(outbuffer_y_ex);
-        outbuffer_y_ex = NULL;
-    }
-
-    if (outbuffer_y_ex_int16 != NULL) {
-        free(outbuffer_y_ex_int16);
-        outbuffer_y_ex_int16 = NULL;
-    }
-
-    if (sound_is_float) {
-        outbuffer_y_ex = calloc(YM2151BUFLEN * 2, sizeof(float));
-        memset(outbuffer_y_ex, 0x00, YM2151BUFLEN * 2 * sizeof(float));
-    } else {
-        outbuffer_y_ex_int16 = calloc(YM2151BUFLEN * 2, sizeof(int16_t));
-        memset(outbuffer_y_ex_int16, 0x00, YM2151BUFLEN * 2 * sizeof(int16_t));
-    }
-}
-
-static void
-wavetable_realloc_buffers(void)
-{
-    if (outbuffer_w_ex != NULL) {
-        free(outbuffer_w_ex);
-        outbuffer_w_ex = NULL;
-    }
-
-    if (outbuffer_w_ex_int16 != NULL) {
-        free(outbuffer_w_ex_int16);
-        outbuffer_w_ex_int16 = NULL;
-    }
-
-    if (sound_is_float) {
-        outbuffer_w_ex = calloc(WTBUFLEN * 2, sizeof(float));
-        memset(outbuffer_w_ex, 0x00, WTBUFLEN * 2 * sizeof(float));
-    } else {
-        outbuffer_w_ex_int16 = calloc(WTBUFLEN * 2, sizeof(int16_t));
-        memset(outbuffer_w_ex_int16, 0x00, WTBUFLEN * 2 * sizeof(int16_t));
-    }
-}
-
 void
 sound_init(void)
 {
     int available_cdrom_drives = 0;
-
-    outbuffer_ex       = NULL;
-    outbuffer_ex_int16 = NULL;
-
-    outbuffer_m_ex       = NULL;
-    outbuffer_m_ex_int16 = NULL;
-
-    outbuffer_y_ex       = NULL;
-    outbuffer_y_ex_int16 = NULL;
-
-    outbuffer_w_ex       = NULL;
-    outbuffer_w_ex_int16 = NULL;
-
-    const int init_buf_len = sound_sample_rate / 50;
-
-    outbuffer = NULL;
-    outbuffer = calloc(init_buf_len * 2, sizeof(int32_t));
-    memset(outbuffer, 0x00, init_buf_len * 2 * sizeof(int32_t));
-
-    outbuffer_m = NULL;
-    outbuffer_m = calloc(MUSICBUFLEN * 2, sizeof(int32_t));
-    memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
-
-    outbuffer_y = NULL;
-    outbuffer_y = calloc(YM2151BUFLEN * 2, sizeof(int32_t));
-    memset(outbuffer_y, 0x00, YM2151BUFLEN * 2 * sizeof(int32_t));
-
-    outbuffer_w = NULL;
-    outbuffer_w = calloc(WTBUFLEN * 2, sizeof(int32_t));
-    memset(outbuffer_w, 0x00, WTBUFLEN * 2 * sizeof(int32_t));
 
     for (uint16_t i = 0; i < 256; i++) {
         double di = (double) i;
@@ -680,8 +524,6 @@ al_set_midi(const int freq, const int buf_size)
 }
 
 /* Opens the backend and one source per stream. */
-static void sound_handlers_open_sources(sound_handler_t *table, uint8_t num, uint8_t cls);
-static void sound_handlers_close_sources(sound_handler_t *table, uint8_t num);
 
 void
 sound_output_init(void)
@@ -717,17 +559,13 @@ sound_output_init(void)
     const int streams = I_MIDI + !!init_midi;
 
     for (int i = 0; i < streams; i++) {
-        /* Cards' streams get their sources through their handlers. */
+        /* Cards' streams get their sources from the cards. */
         if ((i == I_NORMAL) || (i == I_MUSIC) || (i == I_WT) || (i == I_YM2151))
             continue;
 
         sound_streams[i] = sound_backend_init_source((int) src_freqs[i], (int) sound_stream_buf_sizes[i]);
     }
 
-    sound_handlers_open_sources(sound_handlers, sound_handlers_num, I_NORMAL);
-    sound_handlers_open_sources(music_handlers, music_handlers_num, I_MUSIC);
-    sound_handlers_open_sources(ym2151_handlers, ym2151_handlers_num, I_YM2151);
-    sound_handlers_open_sources(wavetable_handlers, wavetable_handlers_num, I_WT);
 
     sound_output_initialized = 1;
 }
@@ -738,10 +576,6 @@ sound_output_close(void)
     if (!sound_output_initialized)
         return;
 
-    sound_handlers_close_sources(sound_handlers, sound_handlers_num);
-    sound_handlers_close_sources(music_handlers, music_handlers_num);
-    sound_handlers_close_sources(ym2151_handlers, ym2151_handlers_num);
-    sound_handlers_close_sources(wavetable_handlers, wavetable_handlers_num);
 
     for (int i = 0; i < I_MAX; i++) {
         void *src = sound_streams[i];
@@ -770,18 +604,7 @@ sound_give(const void *buf, const uint8_t src, const int size)
 int
 sound_pending_frames(const uint8_t src)
 {
-    switch (src) {
-        case I_NORMAL:
-            return sound_pos_global;
-        case I_MUSIC:
-            return music_pos_global;
-        case I_YM2151:
-            return ym2151_pos_global;
-        case I_WT:
-            return wavetable_pos_global;
-        default:
-            return 0;
-    }
+    return sound_source_class_pending(src);
 }
 
 /* The sample rate a stream is generated at. */
@@ -798,229 +621,6 @@ sound_stream_rate(const uint8_t src)
         default:
             return (int) src_freqs[src];
     }
-}
-
-/* Per-class parameters of the handler streams. */
-static int
-sound_handler_rate(const uint8_t cls)
-{
-    switch (cls) {
-        case I_NORMAL:
-            return sound_sample_rate;
-        case I_MUSIC:
-            return MUSIC_FREQ;
-        case I_YM2151:
-            return YM2151_FREQ;
-        case I_WT:
-            return WT_FREQ;
-        default:
-            return 0;
-    }
-}
-
-static int
-sound_handler_frames(const uint8_t cls)
-{
-    switch (cls) {
-        case I_NORMAL:
-            return sound_sample_rate / 50;
-        case I_MUSIC:
-            return MUSICBUFLEN;
-        case I_YM2151:
-            return YM2151BUFLEN;
-        case I_WT:
-            return WTBUFLEN;
-        default:
-            return 0;
-    }
-}
-
-static void
-sound_handler_free_buffers(sound_handler_t *h)
-{
-    free(h->buf);
-    free(h->buff);
-    free(h->buf16);
-    h->buf     = NULL;
-    h->buff    = NULL;
-    h->buf16   = NULL;
-    h->buf_len = 0;
-}
-
-static void
-sound_handler_open_source(sound_handler_t *h, const uint8_t cls)
-{
-    if (sound_output_initialized && (h->src == NULL))
-        h->src = sound_backend_init_source(sound_handler_rate(cls), sound_handler_frames(cls) << 1);
-}
-
-static void
-sound_handler_close_source(sound_handler_t *h)
-{
-    void *src = h->src;
-
-    h->src = NULL;
-    if (src != NULL)
-        sound_backend_close_source(src);
-}
-
-static void
-sound_handlers_open_sources(sound_handler_t *table, const uint8_t num, const uint8_t cls)
-{
-    for (uint8_t c = 0; c < num; c++)
-        sound_handler_open_source(&table[c], cls);
-}
-
-static void
-sound_handlers_close_sources(sound_handler_t *table, const uint8_t num)
-{
-    for (uint8_t c = 0; c < num; c++)
-        sound_handler_close_source(&table[c]);
-}
-
-static void
-sound_handlers_clear(sound_handler_t *table, uint8_t *num, const int max)
-{
-    sound_handlers_close_sources(table, *num);
-
-    for (uint8_t c = 0; c < *num; c++)
-        sound_handler_free_buffers(&table[c]);
-
-    *num = 0;
-    memset(table, 0x00, max * sizeof(sound_handler_t));
-}
-
-/* Generates one block from every handler of a class: each handler's output
-   goes to its own backend source, and is also added to the class' sum. */
-static void
-sound_handlers_poll(sound_handler_t *table, const uint8_t num, const uint8_t cls,
-                    const int frames, int32_t *sum)
-{
-    const int values = frames << 1;
-
-    for (uint8_t c = 0; c < num; c++) {
-        sound_handler_t *h = &table[c];
-
-        if (h->get_buffer == NULL)
-            continue;
-
-        if ((h->buf == NULL) || (h->buf_len != frames)) {
-            sound_handler_free_buffers(h);
-            h->buf = (int32_t *) calloc(values, sizeof(int32_t));
-            if (sound_is_float)
-                h->buff = (float *) calloc(values, sizeof(float));
-            else
-                h->buf16 = (int16_t *) calloc(values, sizeof(int16_t));
-            if ((h->buf == NULL) || ((h->buff == NULL) && (h->buf16 == NULL))) {
-                sound_handler_free_buffers(h);
-                continue;
-            }
-            h->buf_len = frames;
-        }
-
-        memset(h->buf, 0x00, values * sizeof(int32_t));
-        h->get_buffer(h->buf, frames, h->priv);
-
-        for (int i = 0; i < values; i++) {
-            sum[i] += h->buf[i];
-
-            if (sound_is_float)
-                h->buff[i] = ((float) h->buf[i]) / (float) 32768.0;
-            else {
-                int32_t v = h->buf[i];
-
-                if (v > 32767)
-                    v = 32767;
-                if (v < -32768)
-                    v = -32768;
-
-                h->buf16[i] = (int16_t) v;
-            }
-        }
-
-        if ((h->src != NULL) && (runctl_mode() != RUN_MODE_FAST)) {
-            if (sound_is_float)
-                sound_backend_give_buffer(h->src, h->buff, values, 0);
-            else
-                sound_backend_give_buffer(h->src, h->buf16, values, 0);
-        }
-    }
-
-    (void) cls;
-}
-
-void
-sound_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
-{
-    if (sound_handlers_num >= NUM_SOUND_HANDLERS) {
-        sound_log("sound_add_handler: handler table full, dropping registration\n");
-        return;
-    }
-
-    sound_handlers[sound_handlers_num].get_buffer = get_buffer;
-    sound_handlers[sound_handlers_num].priv       = priv;
-    sound_handler_open_source(&sound_handlers[sound_handlers_num], I_NORMAL);
-    sound_handlers_num++;
-}
-
-void
-sound_remove_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
-{
-    for (uint8_t c = 0; c < sound_handlers_num; c++) {
-        if (sound_handlers[c].get_buffer == get_buffer
-            && sound_handlers[c].priv == priv) {
-            sound_handler_close_source(&sound_handlers[c]);
-            sound_handler_free_buffers(&sound_handlers[c]);
-            for (uint8_t i = c; i + 1 < sound_handlers_num; i++)
-                sound_handlers[i] = sound_handlers[i + 1];
-            sound_handlers_num--;
-            memset(&sound_handlers[sound_handlers_num], 0,
-                   sizeof(sound_handlers[sound_handlers_num]));
-            return;
-        }
-    }
-}
-
-void
-music_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
-{
-    if (music_handlers_num >= NUM_MUSIC_HANDLERS) {
-        sound_log("music_add_handler: handler table full, dropping registration\n");
-        return;
-    }
-
-    music_handlers[music_handlers_num].get_buffer = get_buffer;
-    music_handlers[music_handlers_num].priv       = priv;
-    sound_handler_open_source(&music_handlers[music_handlers_num], I_MUSIC);
-    music_handlers_num++;
-}
-
-void
-ym2151_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
-{
-    if (ym2151_handlers_num >= NUM_YM2151_HANDLERS) {
-        sound_log("ym2151_add_handler: handler table full, dropping registration\n");
-        return;
-    }
-
-    ym2151_handlers[ym2151_handlers_num].get_buffer = get_buffer;
-    ym2151_handlers[ym2151_handlers_num].priv       = priv;
-    sound_handler_open_source(&ym2151_handlers[ym2151_handlers_num], I_YM2151);
-    ym2151_handlers_num++;
-}
-
-void
-wavetable_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
-{
-    if (wavetable_handlers_num >= NUM_WAVETABLE_HANDLERS) {
-        sound_log("wavetable_add_handler: handler table full, dropping registration\n");
-        return;
-    }
-
-    wavetable_handlers[wavetable_handlers_num].get_buffer = get_buffer;
-    wavetable_handlers[wavetable_handlers_num].priv       = priv;
-    sound_handler_open_source(&wavetable_handlers[wavetable_handlers_num], I_WT);
-    wavetable_handlers_num++;
 }
 
 void
@@ -1179,42 +779,19 @@ midi_poll_ex(UNUSED(void *priv))
    poll ticks, between half and one and a half output samples away. Timers due
    on the same integer timestamp swap order every time they are re-armed, so a
    timer running at the output rate in step with the sound poll timer makes its
-   card write two samples, then none. Returns latch if the sound poll timer is
-   not running. */
+   card write two samples, then none. Returns latch if there is no such source. */
 uint64_t
 sound_poll_offset_delay(pc_timer_t *timer, uint64_t latch)
 {
-    int64_t period = (int64_t) sound_poll_latch;
-    int64_t diff;
-
-    if (!period || !timer_is_enabled(&sound_poll_timer))
-        return latch;
-
-    /* The two timestamps are at most a few samples apart. */
-    diff = (int64_t) ((sound_poll_timer.ts_integer - timer->ts_integer) << 32) +
-           (int64_t) sound_poll_timer.ts_frac - (int64_t) timer->ts_frac;
-    diff = (diff + (period / 2)) % period;
-    if (diff < 0)
-        diff += period;
-    if (diff < (period / 2))
-        diff += period;
-
-    return (uint64_t) diff;
+    return sound_source_offset_delay(timer, latch);
 }
 
 void
-sound_poll(UNUSED(void *priv))
+sound_in_poll(UNUSED(void *priv))
 {
-    const uint8_t handler_count = (sound_handlers_num < NUM_SOUND_HANDLERS) ? sound_handlers_num : NUM_SOUND_HANDLERS;
+    timer_advance_u64(&sound_in_poll_timer, sound_in_poll_latch * (uint64_t) sound_buf_len);
 
-    timer_advance_u64(&sound_poll_timer, sound_poll_latch);
-
-    sound_pos_global++;
-    if (sound_pos_global == sound_buf_len) {
-        memset(outbuffer, 0x00, sound_buf_len * 2 * sizeof(int32_t));
-
-        sound_handlers_poll(sound_handlers, handler_count, I_NORMAL, sound_buf_len, outbuffer);
-
+    {
         if (sound_in_started_input) {
             size_t in_len = (size_t) SOUNDBUFLEN;
 
@@ -1304,131 +881,6 @@ sound_poll(UNUSED(void *priv))
                         sound_in_handlers[c].put_buffer(sound_input_buffer, (int) in_len, sound_in_handlers[c].priv);
             }
         }
-
-        for (uint32_t c = 0; c < (uint32_t) (sound_buf_len * 2); c++) {
-            if (sound_is_float)
-                outbuffer_ex[c] = ((float) outbuffer[c]) / (float) 32768.0;
-            else {
-                if (outbuffer[c] > 32767)
-                    outbuffer[c] = 32767;
-                if (outbuffer[c] < -32768)
-                    outbuffer[c] = -32768;
-
-                outbuffer_ex_int16[c] = (int16_t) outbuffer[c];
-            }
-        }
-
-        if (sound_is_float)
-            givealbuffer(outbuffer_ex);
-        else
-            givealbuffer(outbuffer_ex_int16);
-
-        sound_pos_global = 0;
-    }
-}
-
-void
-music_poll(UNUSED(void *priv))
-{
-    const uint8_t handler_count = (music_handlers_num < NUM_MUSIC_HANDLERS) ? music_handlers_num : NUM_MUSIC_HANDLERS;
-
-    timer_advance_u64(&music_poll_timer, music_poll_latch);
-
-    music_pos_global++;
-    if (music_pos_global == MUSICBUFLEN) {
-        memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
-
-        sound_handlers_poll(music_handlers, handler_count, I_MUSIC, MUSICBUFLEN, outbuffer_m);
-
-        for (uint32_t c = 0; c < MUSICBUFLEN * 2; c++) {
-            if (sound_is_float)
-                outbuffer_m_ex[c] = ((float) outbuffer_m[c]) / (float) 32768.0;
-            else {
-                if (outbuffer_m[c] > 32767)
-                    outbuffer_m[c] = 32767;
-                if (outbuffer_m[c] < -32768)
-                    outbuffer_m[c] = -32768;
-
-                outbuffer_m_ex_int16[c] = (int16_t) outbuffer_m[c];
-            }
-        }
-
-        if (sound_is_float)
-            givealbuffer_music(outbuffer_m_ex);
-        else
-            givealbuffer_music(outbuffer_m_ex_int16);
-
-        music_pos_global = 0;
-    }
-}
-
-void
-ym2151_poll(UNUSED(void *priv))
-{
-    const uint8_t handler_count = (ym2151_handlers_num < NUM_YM2151_HANDLERS) ? ym2151_handlers_num : NUM_YM2151_HANDLERS;
-
-    timer_advance_u64(&ym2151_poll_timer, ym2151_poll_latch);
-
-    ym2151_pos_global++;
-    if (ym2151_pos_global == YM2151BUFLEN) {
-        memset(outbuffer_y, 0x00, YM2151BUFLEN * 2 * sizeof(int32_t));
-
-        sound_handlers_poll(ym2151_handlers, handler_count, I_YM2151, YM2151BUFLEN, outbuffer_y);
-
-        for (uint32_t c = 0; c < YM2151BUFLEN * 2; c++) {
-            if (sound_is_float)
-                outbuffer_y_ex[c] = ((float) outbuffer_y[c]) / (float) 32768.0;
-            else {
-                if (outbuffer_y[c] > 32767)
-                    outbuffer_y[c] = 32767;
-                if (outbuffer_y[c] < -32768)
-                    outbuffer_y[c] = -32768;
-
-                outbuffer_y_ex_int16[c] = (int16_t) outbuffer_y[c];
-            }
-        }
-
-        if (sound_is_float)
-            givealbuffer_ym2151(outbuffer_y_ex);
-        else
-            givealbuffer_ym2151(outbuffer_y_ex_int16);
-
-        ym2151_pos_global = 0;
-    }
-}
-
-void
-wavetable_poll(UNUSED(void *priv))
-{
-    const uint8_t handler_count = (wavetable_handlers_num < NUM_WAVETABLE_HANDLERS) ? wavetable_handlers_num : NUM_WAVETABLE_HANDLERS;
-
-    timer_advance_u64(&wavetable_poll_timer, wavetable_poll_latch);
-
-    wavetable_pos_global++;
-    if (wavetable_pos_global == WTBUFLEN) {
-        memset(outbuffer_w, 0x00, WTBUFLEN * 2 * sizeof(int32_t));
-
-        sound_handlers_poll(wavetable_handlers, handler_count, I_WT, WTBUFLEN, outbuffer_w);
-
-        for (uint32_t c = 0; c < WTBUFLEN * 2; c++) {
-            if (sound_is_float)
-                outbuffer_w_ex[c] = ((float) outbuffer_w[c]) / (float) 32768.0;
-            else {
-                if (outbuffer_w[c] > 32767)
-                    outbuffer_w[c] = 32767;
-                if (outbuffer_w[c] < -32768)
-                    outbuffer_w[c] = -32768;
-
-                outbuffer_w_ex_int16[c] = (int16_t) outbuffer_w[c];
-            }
-        }
-
-        if (sound_is_float)
-            givealbuffer_wt(outbuffer_w_ex);
-        else
-            givealbuffer_wt(outbuffer_w_ex_int16);
-
-        wavetable_pos_global = 0;
     }
 }
 
@@ -1441,13 +893,8 @@ sound_speed_changed(void)
 
     midi_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_48000));
 
-    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
+    sound_in_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
 
-    music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
-
-    ym2151_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) YM2151_FREQ));
-
-    wavetable_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) WT_FREQ));
 }
 
 void
@@ -1455,13 +902,9 @@ sound_reset(void)
 {
     sound_source_remove_all();
 
-    sound_realloc_buffers();
 
-    music_realloc_buffers();
 
-    ym2151_realloc_buffers();
 
-    wavetable_realloc_buffers();
 
     midi_out_device_init();
     midi_in_device_init();
@@ -1471,25 +914,12 @@ sound_reset(void)
     memset(&midi_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&midi_poll_timer, midi_poll_ex, NULL, 1);
 
-    memset(&sound_poll_timer, 0x00, sizeof(pc_timer_t));
-    timer_add(&sound_poll_timer, sound_poll, NULL, 1);
-    sound_handlers_clear(sound_handlers, &sound_handlers_num, NUM_SOUND_HANDLERS);
+    memset(&sound_in_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&sound_in_poll_timer, sound_in_poll, NULL, 1);
     sound_in_handlers_num = 0;
     sound_in_started_input = 0;
     memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
     sound_backend_input_close();
-
-    memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
-    timer_add(&music_poll_timer, music_poll, NULL, 1);
-    sound_handlers_clear(music_handlers, &music_handlers_num, NUM_MUSIC_HANDLERS);
-
-    memset(&ym2151_poll_timer, 0x00, sizeof(pc_timer_t));
-    timer_add(&ym2151_poll_timer, ym2151_poll, NULL, 1);
-    sound_handlers_clear(ym2151_handlers, &ym2151_handlers_num, NUM_YM2151_HANDLERS);
-
-    memset(&wavetable_poll_timer, 0x00, sizeof(pc_timer_t));
-    timer_add(&wavetable_poll_timer, wavetable_poll, NULL, 1);
-    sound_handlers_clear(wavetable_handlers, &wavetable_handlers_num, NUM_WAVETABLE_HANDLERS);
 
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;
@@ -1730,14 +1160,6 @@ sound_hdd_thread_end(void)
 void
 sound_recalc_timers(void)
 {
-    if (music_handlers_num == 0)
-        timer_disable(&music_poll_timer);
-
-    if (ym2151_handlers_num == 0)
-        timer_disable(&ym2151_poll_timer);
-
-    if (wavetable_handlers_num == 0)
-        timer_disable(&wavetable_poll_timer);
 }
 
 void
@@ -1747,20 +1169,11 @@ sound_close(void)
 
     timer_disable(&midi_poll_timer);
 
-    timer_disable(&sound_poll_timer);
-    sound_handlers_clear(sound_handlers, &sound_handlers_num, NUM_SOUND_HANDLERS);
+    timer_disable(&sound_in_poll_timer);
+    sound_source_remove_all();
     sound_in_handlers_num = 0;
     sound_in_started_input = 0;
     memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
-
-    timer_disable(&music_poll_timer);
-    sound_handlers_clear(music_handlers, &music_handlers_num, NUM_MUSIC_HANDLERS);
-
-    timer_disable(&ym2151_poll_timer);
-    sound_handlers_clear(ym2151_handlers, &ym2151_handlers_num, NUM_YM2151_HANDLERS);
-
-    timer_disable(&wavetable_poll_timer);
-    sound_handlers_clear(wavetable_handlers, &wavetable_handlers_num, NUM_WAVETABLE_HANDLERS);
 
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;

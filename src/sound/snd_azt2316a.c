@@ -236,6 +236,8 @@ typedef struct azt2316a_t {
 
     sb_t *sb;
 
+    void *src_wss;
+
     void * log; /* New logging system */
 } azt2316a_t;
 
@@ -1631,6 +1633,16 @@ azt2316a_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
     sb_get_buffer_sbpro(buffer, len, azt2316a->sb);
 }
 
+static void
+azt2316a_add_music_source(azt2316a_t *azt2316a)
+{
+    sb_t *sb = azt2316a->sb;
+
+    sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, sb);
+    if (sb->opl.set_clock != NULL)
+        sb->opl.set_clock(sb->opl.priv, sound_source_get_pos_ptr(sb->src_music));
+}
+
 static void *
 azt_init(const device_t *info)
 {
@@ -2071,20 +2083,22 @@ azt_init(const device_t *info)
     io_sethandler(azt2316a->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2316a->sb);
 
     azt2316a_create_config_word(azt2316a);
-    sound_add_handler(azt2316a_get_buffer, azt2316a);
-    sound_add_handler(azt2316a_get_sbpro_buffer, azt2316a);
+    azt2316a->src_wss        = sound_source_add_stream(I_NORMAL, azt2316a_get_buffer, azt2316a);
+    azt2316a->ad1848.clock   = sound_source_get_pos_ptr(azt2316a->src_wss);
+    azt2316a->sb->src_snd    = sound_source_add_stream(I_NORMAL, azt2316a_get_sbpro_buffer, azt2316a);
+    azt2316a->sb->dsp.clock  = sound_source_get_pos_ptr(azt2316a->sb->src_snd);
     sound_in_add_handler(azt2316a_put_buffer, azt2316a);
     sound_in_start_input();
 
     if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12)) {
         if (azt2316a->sb->opl_enabled)
-            music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+            azt2316a_add_music_source(azt2316a);
     }
     else {
         if (azt2316a->sb->opl_enabled) {
             azt2316a->sb->opl_mixer = azt2316a;
             azt2316a->sb->opl_mix = azt1605_filter_opl;
-            music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+            azt2316a_add_music_source(azt2316a);
         }
     }
 
@@ -2282,6 +2296,7 @@ azt_close(void *priv)
         }
     }
 
+    sound_source_remove(azt2316a->src_wss);
     sb_close(azt2316a->sb);
 
     free(azt2316a->mpu);

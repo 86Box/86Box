@@ -21,6 +21,7 @@
 #include <86box/device.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/automation.h>
 
 typedef struct sound_source_t {
     const char *           name;
@@ -31,6 +32,7 @@ typedef struct sound_source_t {
     float *                buff;
     int16_t *              buf16;
 
+    int                    cls;        /* Stream class + 1, 0 for none. */
     int                    pos;
     int                    gain;
     int                    sample_rate;
@@ -51,6 +53,116 @@ typedef struct sound_source_t {
 /* Needed for recalculation on backend change. */
 static sound_source_t *first_sound_source = NULL;
 static sound_source_t *last_sound_source  = NULL;
+
+/* What the sources of a stream class have produced together, for automation.
+   The sources of a class run in lockstep, so a block is complete when all of
+   them have delivered theirs. */
+typedef struct sound_class_mix_t {
+    int32_t *buf;
+    void *   out;
+    int      len;
+    int      done;
+} sound_class_mix_t;
+
+static sound_class_mix_t class_mix[I_MAX] = { 0 };
+
+static int
+sound_source_class_count(const int cls)
+{
+    int count = 0;
+
+    for (const sound_source_t *src = first_sound_source; src != NULL; src = src->next)
+        count += (src->cls == cls);
+
+    return count;
+}
+
+static sound_source_t *
+sound_source_class_first(const int cls)
+{
+    for (sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
+        if (src->cls == cls)
+            return src;
+    }
+
+    return NULL;
+}
+
+static void
+sound_source_class_tap(const sound_source_t *src)
+{
+    const uint8_t      stream = (uint8_t) (src->cls - 1);
+    sound_class_mix_t *mix    = &class_mix[stream];
+    const int          len    = src->buffer_size * 2;
+
+    if (mix->len != len) {
+        free(mix->buf);
+        free(mix->out);
+        mix->buf  = (int32_t *) calloc(len, sizeof(int32_t));
+        mix->out  = calloc(len, sizeof(float));
+        mix->len  = len;
+        mix->done = 0;
+    }
+
+    for (int c = 0; c < len; c++)
+        mix->buf[c] += src->buf[c];
+
+    if (++mix->done < sound_source_class_count(src->cls))
+        return;
+
+    if (sound_is_float) {
+        float *out = (float *) mix->out;
+
+        for (int c = 0; c < len; c++)
+            out[c] = ((float) mix->buf[c]) / (float) 32768.0;
+    } else {
+        int16_t *out = (int16_t *) mix->out;
+
+        for (int c = 0; c < len; c++) {
+            int32_t v = mix->buf[c];
+
+            out[c] = (int16_t) ((v > 32767) ? 32767 : ((v < -32768) ? -32768 : v));
+        }
+    }
+
+    automation_audio(stream, mix->out, len, sound_is_float);
+
+    memset(mix->buf, 0x00, len * sizeof(int32_t));
+    mix->done = 0;
+}
+
+/* Samples a stream class has ticked since its last block. */
+int
+sound_source_class_pending(const uint8_t stream)
+{
+    const sound_source_t *src = sound_source_class_first(stream + 1);
+
+    return (src != NULL) ? src->pos : 0;
+}
+
+/* See sound_poll_offset_delay(): the phase of the main stream's sources. */
+uint64_t
+sound_source_offset_delay(pc_timer_t *timer, uint64_t latch)
+{
+    const sound_source_t *ref = sound_source_class_first(I_NORMAL + 1);
+    int64_t               period;
+    int64_t               diff;
+
+    if ((ref == NULL) || !ref->latch || !timer_is_enabled((pc_timer_t *) &ref->timer))
+        return latch;
+
+    period = (int64_t) ref->latch;
+
+    diff = (int64_t) ((ref->timer.ts_integer - timer->ts_integer) << 32) +
+           (int64_t) ref->timer.ts_frac - (int64_t) timer->ts_frac;
+    diff = (diff + (period / 2)) % period;
+    if (diff < 0)
+        diff += period;
+    if (diff < (period / 2))
+        diff += period;
+
+    return (uint64_t) diff;
+}
 
 int
 sound_source_get_pos(void *priv)
@@ -162,6 +274,9 @@ sound_source_poll(void *priv)
 
         if (src->get_buffer != NULL)
             src->get_buffer(src->buf, src->buffer_size, src->priv);
+
+        if (src->cls != 0)
+            sound_source_class_tap(src);
 
         for (uint32_t c = 0; c < (uint32_t) (src->buffer_size * 2); c++) {
             if (sound_is_float)
@@ -337,18 +452,37 @@ void *
 sound_source_add_stream(const uint8_t stream,
                         void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
+    sound_source_t *peer = sound_source_class_first(stream + 1);
+    sound_source_t *src  = NULL;
+
     switch (stream) {
         case I_NORMAL:
-            return sound_source_add(sound_sample_rate, sound_sample_rate / 50, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add(sound_sample_rate, sound_sample_rate / 50, get_buffer, priv);
+            break;
         case I_MUSIC:
-            return sound_source_add(MUSIC_FREQ, MUSICBUFLEN, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add(MUSIC_FREQ, MUSICBUFLEN, get_buffer, priv);
+            break;
         case I_YM2151:
-            return sound_source_add(YM2151_FREQ, YM2151BUFLEN, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add(YM2151_FREQ, YM2151BUFLEN, get_buffer, priv);
+            break;
         case I_WT:
-            return sound_source_add(WT_FREQ, WTBUFLEN, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add(WT_FREQ, WTBUFLEN, get_buffer, priv);
+            break;
         default:
-            return NULL;
+            break;
     }
+
+    if (src != NULL) {
+        src->cls = stream + 1;
+
+        /* Join the phase of the class, so that its blocks complete together. */
+        if ((peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
+            src->pos = peer->pos;
+            timer_set_delay_u64(&src->timer, timer_get_remaining_u64(&peer->timer));
+        }
+    }
+
+    return src;
 }
 
 const int *

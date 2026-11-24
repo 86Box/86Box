@@ -151,7 +151,7 @@ struct modem_sound_t {
     atomic_int off;
     atomic_int standard;
     int in_use;
-    int handler_registered;
+    void *source;
     int phase;
     int rate;
     int pulse;
@@ -1054,10 +1054,8 @@ modem_sound_init(void)
             sound->pending_event = -1;
             sound->pending_arg = 0;
             atomic_store(&sound->read_index, atomic_load(&sound->write_index));
-            if (!sound->handler_registered) {
-                sound_add_handler(modem_sound_get_buffer, sound);
-                sound->handler_registered = 1;
-            }
+            if (sound->source == NULL)
+                sound->source = sound_source_add_stream(I_NORMAL, modem_sound_get_buffer, sound);
             return sound;
         }
     }
@@ -1070,5 +1068,7 @@ modem_sound_close(modem_sound_t *sound)
     if (sound) {
         modem_sound_event(sound, MODEM_SOUND_HANGUP, NULL, 0);
         sound->in_use = 0;
+        sound_source_remove(sound->source);
+        sound->source = NULL;
     }
 }

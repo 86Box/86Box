@@ -68,6 +68,9 @@ typedef struct dss_s {
     uint16_t pos;
 
     void *log;
+
+    void      *source;
+    const int *clock;
 } dss_t;
 
 #ifdef ENABLE_LPT_DSS_LOG
@@ -81,7 +84,7 @@ dss_fifo_level(const dss_t *dss)
 static void
 dss_update(dss_t *const dss)
 {
-    for (; dss->pos < sound_pos_global; dss->pos++)
+    for (; dss->pos < SOUND_CLOCK(dss->clock, sound_pos_global); dss->pos++)
         dss->buffer[dss->pos] = (int8_t) (dss->dac_val ^ 0x80) * 0x40;
 }
 
@@ -192,7 +195,8 @@ dss_init(UNUSED(const device_t *info))
                           NULL,
                           dss);
 
-    sound_add_handler(dss_get_buffer, dss);
+    dss->source = sound_source_add_stream(I_NORMAL, dss_get_buffer, dss);
+    dss->clock  = sound_source_get_pos_ptr(dss->source);
     timer_add(&dss->timer, dss_callback, dss, 1);
     fifo8_create(&dss->dss_fifo, 16);
 
@@ -211,6 +215,7 @@ dss_close(void *priv)
     if (dss->log)
         log_close(dss->log);
 
+    sound_source_remove(dss->source);
     free(dss);
 }
 

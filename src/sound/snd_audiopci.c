@@ -157,6 +157,9 @@ typedef struct es137x_t {
     uint8_t pci_slot;
 
     int     pos;
+
+    const int *clock;
+    void      *src_snd;
     int16_t buffer[WTBUFLEN * 2];
 
     uint32_t type;
@@ -2398,7 +2401,9 @@ es137x_update(es137x_t *dev)
     else if (r > 32767)
         r = 32767;
 
-    for (; dev->pos < ((dev->type == AUDIOPCI_ES1370) ? wavetable_pos_global : sound_pos_global); dev->pos++) {
+    const int clk = SOUND_CLOCK(dev->clock, (dev->type == AUDIOPCI_ES1370) ? wavetable_pos_global : sound_pos_global);
+
+    for (; dev->pos < clk; dev->pos++) {
         dev->buffer[dev->pos * 2]     = l;
         dev->buffer[dev->pos * 2 + 1] = r;
     }
@@ -2866,7 +2871,8 @@ es1370_init(const device_t *info)
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     sound_in_add_handler(es137x_put_buffer, dev);
-    wavetable_add_handler(es137x_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_WT, es137x_get_buffer, dev);
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
     sound_set_cd_audio_filter(es1370_filter_cd_audio, dev);
 
     dev->gameport = gameport_add(&gameport_pnp_device);
@@ -2915,7 +2921,8 @@ es1371_init(const device_t *info)
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     sound_in_add_handler(es137x_put_buffer, dev);
-    sound_add_handler(es137x_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, es137x_get_buffer, dev);
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
     sound_set_cd_audio_filter(es1371_filter_cd_audio, dev);
 
     dev->gameport = gameport_add(&gameport_pnp_device);
@@ -2956,6 +2963,7 @@ es137x_close(void *priv)
     es137x_t *dev = (es137x_t *) priv;
 
     es137x_adc_input(dev, 0);
+    sound_source_remove(dev->src_snd);
 
     free(dev);
 }

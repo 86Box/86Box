@@ -64,6 +64,7 @@ typedef struct solo1_t {
     uint8_t onboard;
 
     void   *legacy;
+    void   *src_snd;
 
     uint16_t io_base_mapped;
     uint16_t sb_base_mapped;
@@ -1620,6 +1621,7 @@ solo1_reset(void *priv)
     dev->a1_irq_pending = 0;
     dev->a1_halted      = 0;
     solo1_a1_fifo_reset(dev);
+    sound_source_remove(dev->src_snd);
     timer_disable(&dev->a1_timer);
     solo1_stop_input(dev);
     solo1_update_irq(dev);
@@ -1636,7 +1638,7 @@ solo1_init(const device_t *info)
     dev->onboard = (uint8_t) (info->local != 0);
 
     dev->legacy = ess_solo1_legacy_init();
-    sound_add_handler(solo1_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, solo1_get_buffer, dev);
     sound_in_add_handler(solo1_put_buffer, dev); /* Audio 1 record */
     timer_add(&dev->a1_timer, solo1_a1_timer, dev, 0);
     timer_add(&dev->input_stop_timer, solo1_stop_input, dev, 0);

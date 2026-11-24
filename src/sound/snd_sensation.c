@@ -141,6 +141,8 @@ typedef struct sensation_t {
 
     int16_t visdac_buffer[SOUNDBUFLEN * 2];
     int visdac_pos;
+    void       *src_snd;
+    const int  *clock;
     int visdac_irq_status;
     uint8_t visdac_dma_nodata;
 
@@ -187,7 +189,7 @@ sensation_filter_cd_audio(int channel, double *buffer, void *priv)
 void
 sensation_visdac_update(sensation_t *dev)
 {
-    for (; dev->visdac_pos < sound_pos_global; dev->visdac_pos++) {
+    for (; dev->visdac_pos < SOUND_CLOCK(dev->clock, sound_pos_global); dev->visdac_pos++) {
         dev->visdac_buffer[dev->visdac_pos * 2]     = dev->visdac_out_l;
         dev->visdac_buffer[dev->visdac_pos * 2 + 1] = dev->visdac_out_r;
     }
@@ -1147,7 +1149,7 @@ sensation_mma_read(uint16_t addr, void *priv)
 void
 sensation_mma_update(sensation_t *dev)
 {
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < SOUND_CLOCK(dev->clock, sound_pos_global); dev->pos++) {
         dev->mma_buffer[0][dev->pos] = dev->mma_buffer[1][dev->pos] = 0;
 
         if (dev->sensation_mma_regs[0][9] & 0x20)
@@ -1425,7 +1427,10 @@ sensation_init(const device_t *info)
     timer_add(&dev->sensation_mma_timer_count, sensation_mma_timer_poll, dev, 1);
     timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);
 
-    sound_add_handler(sensation_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, sensation_get_buffer, dev);
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
+    if (dev->opl.set_clock != NULL)
+        dev->opl.set_clock(dev->opl.priv, dev->clock);
     dev->rec.offset8 = 1;
     sound_in_add_handler(mma_rec_put_buffer, &dev->rec);
 
@@ -1486,6 +1491,8 @@ sensation_close(void *priv)
     sensation_t *dev = (sensation_t *) priv;
 
     mma_rec_input(&dev->rec, 0); /* */
+
+    sound_source_remove(dev->src_snd);
 
     if (dev->log != NULL) {
         log_close(dev->log);

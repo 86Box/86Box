@@ -50,7 +50,7 @@ mmb_log(const char *fmt, ...)
 void
 mmb_update(mmb_t *mmb)
 {
-    for (; mmb->pos < sound_pos_global; mmb->pos++) {
+    for (; mmb->pos < SOUND_CLOCK(mmb->clock, sound_pos_global); mmb->pos++) {
         ayumi_process(&mmb->first.chip);
         ayumi_process(&mmb->second.chip);
 
@@ -228,7 +228,8 @@ mmb_init(UNUSED(const device_t *info))
     uint16_t addr = 0x300;
 
 #endif
-    sound_add_handler(mmb_get_buffer, mmb);
+    mmb->source = sound_source_add_stream(I_NORMAL, mmb_get_buffer, mmb);
+    mmb->clock  = sound_source_get_pos_ptr(mmb->source);
 
     ayumi_configure(&mmb->first.chip, 0, MMB_CLOCK, MMB_FREQ);
     ayumi_configure(&mmb->second.chip, 0, MMB_CLOCK, MMB_FREQ);
@@ -251,6 +252,7 @@ mmb_close(void *priv)
 {
     mmb_t *mmb = (mmb_t *) priv;
 
+    sound_source_remove(mmb->source);
     free(mmb);
 }
 

@@ -113,6 +113,8 @@ typedef struct acpa_t {
     int      in_primed;
     int16_t  in_l;
     int16_t  in_r;
+
+    void *source;
 } acpa_t;
 
 static const uint16_t acpa_bases[4] = { 0xfdc0, 0xfdc8, 0xfdd0, 0xfdd8 };
@@ -581,7 +583,7 @@ acpa_init(UNUSED(const device_t *info))
 
     mca_add(acpa_mca_read, acpa_mca_write, acpa_mca_feedb, acpa_mca_reset, dev);
 
-    sound_add_handler(acpa_get_buffer, dev);
+    dev->source = sound_source_add_stream(I_NORMAL, acpa_get_buffer, dev);
     sound_in_add_handler(acpa_put_buffer, dev);
 
     return dev;
@@ -593,6 +595,7 @@ acpa_close(void *priv)
     acpa_t *dev = (acpa_t *) priv;
 
     acpa_adc_input(dev, 0);
+    sound_source_remove(dev->source);
     free(dev);
 }
 

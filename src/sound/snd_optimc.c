@@ -82,6 +82,8 @@ enum optimc_local_flags {
 
 typedef struct optimc_t {
     uint8_t type;
+
+    void *src_wss;
     uint8_t fm_type;
 
     uint8_t wss_config;
@@ -1198,6 +1200,7 @@ optimc_init(const device_t *info)
 {
     optimc_t *optimc = calloc(1, sizeof(optimc_t));
     double  attenuation;
+    const int *opl_clock;
 
     optimc->type = info->local & 0xFF;
 
@@ -1324,19 +1327,26 @@ optimc_init(const device_t *info)
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
     if (optimc->type == OPTI_930) {
-        sound_add_handler(opti930_get_buffer, optimc);
-        sound_add_handler(opti930_get_sbpro_buffer, optimc);
+        optimc->src_wss = sound_source_add_stream(I_NORMAL, opti930_get_buffer, optimc);
+        optimc->sb->src_snd = sound_source_add_stream(I_NORMAL, opti930_get_sbpro_buffer, optimc);
     } else {
-        sound_add_handler(optimc_get_buffer, optimc);
-        sound_add_handler(optimc_get_sbpro_buffer, optimc);
+        optimc->src_wss = sound_source_add_stream(I_NORMAL, optimc_get_buffer, optimc);
+        optimc->sb->src_snd = sound_source_add_stream(I_NORMAL, optimc_get_sbpro_buffer, optimc);
     }
+    optimc->ad1848.clock   = sound_source_get_pos_ptr(optimc->src_wss);
+    optimc->sb->dsp.clock = sound_source_get_pos_ptr(optimc->sb->src_snd);
     sound_in_add_handler(optimc_put_buffer, optimc);
     sound_in_start_input();
 
-    if (optimc->fm_type == FM_YMF278B)
-        wavetable_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
-    else
-        music_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
+    if (optimc->fm_type == FM_YMF278B) {
+        optimc->sb->src_wt = sound_source_add_stream(I_WT, sb_get_music_buffer_sbpro, optimc->sb);
+        opl_clock          = sound_source_get_pos_ptr(optimc->sb->src_wt);
+    } else {
+        optimc->sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, optimc->sb);
+        opl_clock             = sound_source_get_pos_ptr(optimc->sb->src_music);
+    }
+    if (optimc->sb->opl.set_clock != NULL)
+        optimc->sb->opl.set_clock(optimc->sb->opl.priv, opl_clock);
     if (optimc->type == OPTI_930)
         ad1848_set_cd_audio_channel(&optimc->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
@@ -1434,6 +1444,7 @@ optimc_close(void *priv)
         optimc->log = NULL;
     }
 
+    sound_source_remove(optimc->src_wss);
     sb_close(optimc->sb);
     free(optimc->mpu);
     free(priv);

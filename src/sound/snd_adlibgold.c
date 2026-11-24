@@ -92,6 +92,9 @@ typedef struct adgold_t {
 
     int pos;
 
+    const int *clock;
+    void      *src_snd;
+
     int gameport_enabled;
 
     int surround_enabled;
@@ -868,7 +871,9 @@ adgold_read(uint16_t addr, void *priv)
 void
 adgold_update(adgold_t *adgold)
 {
-    for (; adgold->pos < sound_pos_global; adgold->pos++) {
+    const int clk = SOUND_CLOCK(adgold->clock, sound_pos_global);
+
+    for (; adgold->pos < clk; adgold->pos++) {
         adgold->mma_buffer[0][adgold->pos] = adgold->mma_buffer[1][adgold->pos] = 0;
 
         if (adgold->adgold_mma_regs[0][9] & 0x20)
@@ -1314,7 +1319,10 @@ adgold_init(UNUSED(const device_t *info))
 
     timer_add(&adgold->adgold_mma_timer_count, adgold_timer_poll, adgold, 1);
 
-    sound_add_handler(adgold_get_buffer, adgold);
+    adgold->src_snd = sound_source_add_stream(I_NORMAL, adgold_get_buffer, adgold);
+    adgold->clock   = sound_source_get_pos_ptr(adgold->src_snd);
+    if (adgold->opl.set_clock != NULL)
+        adgold->opl.set_clock(adgold->opl.priv, adgold->clock);
     sound_in_add_handler(mma_rec_put_buffer, &adgold->rec); /* */
 
     sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
@@ -1335,6 +1343,7 @@ adgold_close(void *priv)
     adgold_t *adgold = (adgold_t *) priv;
 
     mma_rec_input(&adgold->rec, 0); /* */
+    sound_source_remove(adgold->src_snd);
 
     fp = nvr_fopen("adgold.bin", "wb");
     if (fp) {

@@ -37,9 +37,9 @@
 #include <86box/nmi.h>
 #include <86box/gameport.h>
 #include <86box/pic.h>
+#include <86box/timer.h>
 #include <86box/sound.h>
 #include "cpu.h"
-#include <86box/timer.h>
 #include <86box/snd_ad1848.h>
 #include <86box/snd_sb.h>
 #include <86box/snd_sb_dsp.h>
@@ -142,6 +142,9 @@ typedef struct ics2101_t {
 
 typedef struct gus_t {
     int reset;
+
+    void       *src_snd;
+    const int  *clock;
 
     int      global;
     uint32_t addr;
@@ -2299,7 +2302,7 @@ gus_poll_timer_2(void *priv)
 static void
 gus_update(gus_t *gus)
 {
-    for (; gus->pos < sound_pos_global; gus->pos++) {
+    for (; gus->pos < SOUND_CLOCK(gus->clock, sound_pos_global); gus->pos++) {
         if (gus->out_l < -32768)
             gus->buffer[0][gus->pos] = -32768;
         else if (gus->out_l > 32767)
@@ -3762,7 +3765,9 @@ gus_init(UNUSED(const device_t *info))
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
 
-    sound_add_handler(gus_get_buffer, gus);
+    gus->src_snd   = sound_source_add_stream(I_NORMAL, gus_get_buffer, gus);
+    gus->clock     = sound_source_get_pos_ptr(gus->src_snd);
+    gus->ad1848.clock = gus->clock;
     if (gus->type == GUS_MAX) {
         sound_in_add_handler(iw_put_buffer, gus);
         sound_in_start_input();
@@ -3834,8 +3839,11 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     gus->ess->mixer_enabled = 1;
     gus->ess->mixer_ess.regs[0x40] = 0x02;
-    sound_add_handler(sb_get_buffer_ess, gus->ess);
-    music_add_handler(sb_get_music_buffer_ess, gus->ess);
+    gus->ess->src_snd   = sound_source_add_stream(I_NORMAL, sb_get_buffer_ess, gus->ess);
+    gus->ess->dsp.clock = sound_source_get_pos_ptr(gus->ess->src_snd);
+    gus->ess->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_ess, gus->ess);
+    if (gus->ess->opl.set_clock != NULL)
+        gus->ess->opl.set_clock(gus->ess->opl.priv, sound_source_get_pos_ptr(gus->ess->src_music));
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
 
     /* Filter is always enabled on ES1688 */
@@ -3894,7 +3902,8 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     ess_calc_input_gains();
 
-    sound_add_handler(gus_extreme_get_buffer, gus);
+    gus->src_snd = sound_source_add_stream(I_NORMAL, gus_extreme_get_buffer, gus);
+    gus->clock   = sound_source_get_pos_ptr(gus->src_snd);
     sound_in_add_handler(ess_put_buffer, gus->ess);
     sound_in_start_input();
 
@@ -4068,7 +4077,9 @@ gus_pnp_init(const device_t *info)
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
 
-    sound_add_handler(gus_get_buffer, gus);
+    gus->src_snd   = sound_source_add_stream(I_NORMAL, gus_get_buffer, gus);
+    gus->clock     = sound_source_get_pos_ptr(gus->src_snd);
+    gus->ad1848.clock = gus->clock;
     sound_in_add_handler(iw_put_buffer, gus);
     sound_in_start_input();
 
@@ -4153,6 +4164,12 @@ void
 gus_close(void *priv)
 {
     gus_t *gus = (gus_t *) priv;
+
+    sound_source_remove(gus->src_snd);
+    if (gus->ess != NULL) {
+        sound_source_remove(gus->ess->src_snd);
+        sound_source_remove(gus->ess->src_music);
+    }
 
     if (gus->log != NULL) {
         log_close(gus->log);

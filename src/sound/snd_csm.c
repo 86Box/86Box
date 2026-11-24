@@ -62,6 +62,9 @@ typedef struct csm_s {
     int16_t buffer[SOUNDBUFLEN * 10];
     int     pos;
     void *  log; /* New logging system */
+
+    void      *source;
+    const int *clock;
 } csm_t;
 
 #ifdef ENABLE_CSM_LOG
@@ -84,7 +87,7 @@ csm_log(void *priv, const char *fmt, ...)
 void
 csm_update(csm_t *csm)
 {
-    for (; csm->pos < sound_pos_global; csm->pos++) {
+    for (; csm->pos < SOUND_CLOCK(csm->clock, sound_pos_global); csm->pos++) {
         ayumi_process(&csm->psg.chip);
 
         ayumi_remove_dc(&csm->psg.chip);
@@ -525,7 +528,8 @@ csm_device_init(UNUSED(const device_t *info))
     csm->psg.regs[15] = 0xe0;
     csm_mode_bits_changed(csm);
 
-    sound_add_handler(csm_get_buffer, csm);
+    csm->source = sound_source_add_stream(I_NORMAL, csm_get_buffer, csm);
+    csm->clock  = sound_source_get_pos_ptr(csm->source);
 
     io_sethandler(base_addr, 0x20,
                   csm_read, NULL, NULL,
@@ -547,6 +551,7 @@ csm_device_close(void *priv)
         csm->log = NULL;
     }
 
+    sound_source_remove(csm->source);
     free(csm);
 }
 

@@ -105,6 +105,9 @@ typedef struct ibm_speech_t {
 
     int16_t buffer[SOUNDBUFLEN];
     int     pos;
+
+    void      *source;
+    const int *clock;
 } ibm_speech_t;
 
 /******************************************************************************
@@ -115,7 +118,7 @@ typedef struct ibm_speech_t {
 static void
 ibm_speech_update(ibm_speech_t *dev)
 {
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < SOUND_CLOCK(dev->clock, sound_pos_global); dev->pos++) {
         /* Run the CVSD output every sample so its idle timeout keeps time. */
         const int16_t cvsd = mc3417_get_sample(&dev->cvsd);
 
@@ -528,7 +531,8 @@ ibm_speech_init(UNUSED(const device_t *info))
     io_sethandler(0xff9f, 0x0001,
                   ibm_speech_acl_r, NULL, NULL, ibm_speech_acl_w, NULL, NULL, dev);
 
-    sound_add_handler(ibm_speech_get_buffer, dev);
+    dev->source = sound_source_add_stream(I_NORMAL, ibm_speech_get_buffer, dev);
+    dev->clock  = sound_source_get_pos_ptr(dev->source);
 
     ibm_speech_reset(dev);
 
@@ -541,6 +545,7 @@ ibm_speech_close(void *priv)
     ibm_speech_t *dev = (ibm_speech_t *) priv;
 
     tms5220_close(dev->lpc);
+    sound_source_remove(dev->source);
     free(dev);
 }
 

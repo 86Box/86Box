@@ -19,6 +19,9 @@ typedef struct ssi2001_t {
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
     int     gameport_enabled;
+
+    void      *source;
+    const int *clock;
 } ssi2001_t;
 
 typedef struct entertainer_t {
@@ -28,11 +31,13 @@ typedef struct entertainer_t {
 static void
 ssi2001_update(ssi2001_t *ssi2001)
 {
-    if (ssi2001->pos >= sound_pos_global)
+    const int clk = SOUND_CLOCK(ssi2001->clock, sound_pos_global);
+
+    if (ssi2001->pos >= clk)
         return;
 
-    sid_fillbuf(&ssi2001->buffer[ssi2001->pos], sound_pos_global - ssi2001->pos, ssi2001->psid);
-    ssi2001->pos = sound_pos_global;
+    sid_fillbuf(&ssi2001->buffer[ssi2001->pos], clk - ssi2001->pos, ssi2001->psid);
+    ssi2001->pos = clk;
 }
 
 static void
@@ -79,7 +84,8 @@ ssi2001_init(UNUSED(const device_t *info))
     io_sethandler(addr, 0x0020, ssi2001_read, NULL, NULL, ssi2001_write, NULL, NULL, ssi2001);
     if (ssi2001->gameport_enabled)
         gameport_remap(gameport_add(&gameport_201_device), 0x201);
-    sound_add_handler(ssi2001_get_buffer, ssi2001);
+    ssi2001->source = sound_source_add_stream(I_NORMAL, ssi2001_get_buffer, ssi2001);
+    ssi2001->clock  = sound_source_get_pos_ptr(ssi2001->source);
     return ssi2001;
 }
 
@@ -88,6 +94,7 @@ ssi2001_close(void *priv)
 {
     ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
+    sound_source_remove(ssi2001->source);
     sid_close(ssi2001->psid);
 
     free(ssi2001);
@@ -119,7 +126,8 @@ entertainer_init(UNUSED(const device_t *info))
     io_sethandler(0x280, 0x0020, ssi2001_read, NULL, NULL, ssi2001_write, NULL, NULL, ssi2001);
     if (ssi2001->gameport_enabled)
         gameport_remap(gameport_add(&gameport_201_device), 0x201);
-    sound_add_handler(ssi2001_get_buffer, ssi2001);
+    ssi2001->source = sound_source_add_stream(I_NORMAL, ssi2001_get_buffer, ssi2001);
+    ssi2001->clock  = sound_source_get_pos_ptr(ssi2001->source);
     return ssi2001;
 }
 
@@ -128,6 +136,7 @@ entertainer_close(void *priv)
 {
     ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
+    sound_source_remove(ssi2001->source);
     sid_close(ssi2001->psid);
 
     free(ssi2001);

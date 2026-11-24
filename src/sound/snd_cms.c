@@ -238,7 +238,8 @@ cms_init(UNUSED(const device_t *info))
                   cms_write, NULL, NULL,
                   cms);
 
-    sound_add_handler(cms_get_buffer, cms);
+    cms->source = sound_source_add_stream(I_NORMAL, cms_get_buffer, cms);
+    cms->clock  = sound_source_get_pos_ptr(cms->source);
 
     return cms;
 }
@@ -249,6 +250,8 @@ cms_close(void *priv)
     cms_t *const cms = (cms_t *) priv;
 
     cms_log("cms_close\n");
+
+    sound_source_remove(cms->source);
 
     free(cms);
 }

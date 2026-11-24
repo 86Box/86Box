@@ -127,6 +127,8 @@ typedef struct cs423x_t {
     void    *pnp_card;
     ad1848_t ad1848;
     sb_t    *sb;
+    void    *src_snd;
+    void    *src_music;
     void    *gameport;
     void    *i2c;
     void    *eeprom;
@@ -1238,12 +1240,16 @@ cs423x_init(const device_t *info)
     /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
     dev->sb = device_add_inst(&sb_pro_compat_device, 1);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
-    music_add_handler(sb_get_music_buffer_sbpro, dev->sb); /* Init the SBPro OPL3 since sb_pro_compat_init does not */
+    /* Init the SBPro OPL3 since sb_pro_compat_init does not */
+    dev->sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, dev->sb);
+    if (dev->sb->opl.set_clock != NULL)
+        dev->sb->opl.set_clock(dev->sb->opl.priv, sound_source_get_pos_ptr(dev->sb->src_music));
 
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
-    sound_add_handler(cs423x_get_buffer, dev);
-    music_add_handler(cs423x_get_music_buffer, dev);
+    dev->src_snd      = sound_source_add_stream(I_NORMAL, cs423x_get_buffer, dev);
+    dev->ad1848.clock = sound_source_get_pos_ptr(dev->src_snd);
+    dev->src_music    = sound_source_add_stream(I_MUSIC, cs423x_get_music_buffer, dev);
     sound_in_add_handler(cs423x_put_buffer, dev);
     sound_in_start_input();
 
@@ -1290,6 +1296,9 @@ cs423x_close(void *priv)
     }
 
     i2c_gpio_close(dev->i2c);
+
+    sound_source_remove(dev->src_snd);
+    sound_source_remove(dev->src_music);
 
     free(dev);
 }

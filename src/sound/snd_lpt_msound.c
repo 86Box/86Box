@@ -98,6 +98,9 @@ typedef struct msound_s {
     uint16_t pos;
 
     void *log;
+
+    void      *source;
+    const int *clock;
 } msound_t;
 
 static void
@@ -106,7 +109,7 @@ msound_update(msound_t *const msound)
     const int16_t sample_l = (int16_t) ((int8_t) (msound->dac_val_l ^ 0x80) * 0x40);
     const int16_t sample_r = (int16_t) ((int8_t) (msound->dac_val_r ^ 0x80) * 0x40);
 
-    for (; msound->pos < sound_pos_global; msound->pos++) {
+    for (; msound->pos < SOUND_CLOCK(msound->clock, sound_pos_global); msound->pos++) {
         msound->buffer[0][msound->pos] = sample_l;
         msound->buffer[1][msound->pos] = sample_r;
     }
@@ -430,7 +433,8 @@ msound_init(UNUSED(const device_t *info))
                              NULL,
                              msound);
 
-    sound_add_handler(msound_get_buffer, msound);
+    msound->source = sound_source_add_stream(I_NORMAL, msound_get_buffer, msound);
+    msound->clock  = sound_source_get_pos_ptr(msound->source);
     fifo8_create(&msound->fifo, 128);
 
     msound->dac_val_l       = 0x80;
@@ -459,6 +463,7 @@ msound_close(void *priv)
 
     timer_disable(&msound->sample_timer);
     fifo8_destroy(&msound->fifo);
+    sound_source_remove(msound->source);
     free(msound);
 }
 

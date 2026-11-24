@@ -269,6 +269,11 @@ typedef struct pas16_t {
     fm_drv_t opl2;
     sb_dsp_t dsp;
 
+    void       *src_snd;
+    void       *src_sb;
+    void       *src_music;
+    const int  *clock;
+
     mpu_t *  mpu;
 
     void *gameport;
@@ -2721,15 +2726,29 @@ pas16_input_remain(void *priv)
 }
 
 static void
+pas16_add_music_source(pas16_t *pas16, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
+{
+    const int *clock;
+
+    pas16->src_music = sound_source_add_stream(I_MUSIC, get_buffer, pas16);
+    clock            = sound_source_get_pos_ptr(pas16->src_music);
+
+    if (pas16->opl.set_clock != NULL)
+        pas16->opl.set_clock(pas16->opl.priv, clock);
+    if (pas16->opl2.set_clock != NULL)
+        pas16->opl2.set_clock(pas16->opl2.priv, clock);
+}
+
+static void
 pas16_update(pas16_t *pas16)
 {
     if (!(pas16->audiofilt & PAS16_FILT_MUTE)) {
-        for (; pas16->pos < sound_pos_global; pas16->pos++) {
+        for (; pas16->pos < SOUND_CLOCK(pas16->clock, sound_pos_global); pas16->pos++) {
             pas16->pcm_buffer[0][pas16->pos] = 0;
             pas16->pcm_buffer[1][pas16->pos] = 0;
         }
     } else {
-        for (; pas16->pos < sound_pos_global; pas16->pos++) {
+        for (; pas16->pos < SOUND_CLOCK(pas16->clock, sound_pos_global); pas16->pos++) {
             pas16->pcm_buffer[0][pas16->pos] = (int16_t) pas16->pcm_dat_l;
             pas16->pcm_buffer[1][pas16->pos] = (int16_t) pas16->pcm_dat_r;
         }
@@ -3532,10 +3551,11 @@ pas_init(UNUSED(const device_t *info))
     pitf_ctr_set_using_timer(pas16->pit, 1, 0);
     pitf_ctr_set_using_timer(pas16->pit, 2, 0);
 
-    sound_add_handler(pas_get_buffer, pas16);
+    pas16->src_snd = sound_source_add_stream(I_NORMAL, pas_get_buffer, pas16);
+    pas16->clock   = sound_source_get_pos_ptr(pas16->src_snd);
     sound_in_add_handler(pas16_put_buffer, pas16);
     sound_in_start_input();
-    music_add_handler(pas_get_music_buffer, pas16);
+    pas16_add_music_source(pas16, pas_get_music_buffer);
     sound_set_cd_audio_filter(pasplus_filter_cd_audio, pas16);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(pasplus_filter_pc_speaker, pas16);
@@ -3619,20 +3639,24 @@ pas16_init(const device_t *info)
     pitf_ctr_set_using_timer(pas16->pit, 2, 0);
 
     if (pas16->type) {
-        sound_add_handler(pas16_get_buffer, pas16);
-        sound_add_handler(pas16_get_sb_buffer, pas16);
+        pas16->src_snd   = sound_source_add_stream(I_NORMAL, pas16_get_buffer, pas16);
+        pas16->clock     = sound_source_get_pos_ptr(pas16->src_snd);
+        pas16->src_sb    = sound_source_add_stream(I_NORMAL, pas16_get_sb_buffer, pas16);
+        pas16->dsp.clock = sound_source_get_pos_ptr(pas16->src_sb);
         sound_in_add_handler(pas16_put_buffer, pas16);
         sound_in_start_input();
-        music_add_handler(pas16_get_music_buffer, pas16);
+        pas16_add_music_source(pas16, pas16_get_music_buffer);
         sound_set_cd_audio_filter(pas16_filter_cd_audio, pas16);
         if (device_get_config_int("control_pc_speaker"))
             sound_set_pc_speaker_filter(pas16_filter_pc_speaker, pas16);
     } else {
-        sound_add_handler(pasplus_get_buffer, pas16);
-        sound_add_handler(pasplus_get_sb_buffer, pas16);
+        pas16->src_snd   = sound_source_add_stream(I_NORMAL, pasplus_get_buffer, pas16);
+        pas16->clock     = sound_source_get_pos_ptr(pas16->src_snd);
+        pas16->src_sb    = sound_source_add_stream(I_NORMAL, pasplus_get_sb_buffer, pas16);
+        pas16->dsp.clock = sound_source_get_pos_ptr(pas16->src_sb);
         sound_in_add_handler(pas16_put_buffer, pas16);
         sound_in_start_input();
-        music_add_handler(pasplus_get_music_buffer, pas16);
+        pas16_add_music_source(pas16, pasplus_get_music_buffer);
         sound_set_cd_audio_filter(pasplus_filter_cd_audio, pas16);
         if (device_get_config_int("control_pc_speaker"))
             sound_set_pc_speaker_filter(pasplus_filter_pc_speaker, pas16);
@@ -3665,6 +3689,10 @@ static void
 pas16_close(void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
+
+    sound_source_remove(pas16->src_snd);
+    sound_source_remove(pas16->src_sb);
+    sound_source_remove(pas16->src_music);
 
     free(pas16);
 

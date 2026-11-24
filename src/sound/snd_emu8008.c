@@ -181,6 +181,7 @@ typedef struct emu8008_t {
 
     /* Sub-devices */
     emu8k_t  *emu8k;
+    void     *src_wt;
     mpu_t    *mpu;
     sb_t     *sb_legacy;
     void     *gameport;
@@ -420,7 +421,7 @@ static void
 emu8008_update_audio(emu8008_t *dev)
 {
     const int pos = dev->emu8k->pos;
-    emu8008_playback_fill(dev, wavetable_pos_global);
+    emu8008_playback_fill(dev, SOUND_CLOCK(dev->emu8k->clock, wavetable_pos_global));
     emu8k_update(dev->emu8k);
     for (int i = pos * 2; i < dev->emu8k->pos * 2; i++)
         dev->playback_buffer[i] += emu8008_scale_playback(dev->emu8k->buffer[i],
@@ -478,7 +479,7 @@ emu8008_playback_tick(emu8008_t *dev)
     emu8k_effect_sends_t sends = { 0 };
     const uint32_t table = dev->bank0_regs[EMU8008_PAGE_TABLE] & ~0xFFFu;
 
-    emu8008_playback_fill(dev, wavetable_pos_global);
+    emu8008_playback_fill(dev, SOUND_CLOCK(dev->emu8k->clock, wavetable_pos_global));
     if (dev->active_voices && table && (dev->pci_conf[0x04] & PCI_COMMAND_L_BM)) {
         for (unsigned i = 0; i < EMU8K_VOICE_COUNT; i++) {
             const uint32_t bit = 1u << i;
@@ -1022,7 +1023,8 @@ emu8008_init(const device_t *info)
     /* EMU8000 wavetable core (ROM-less PCI mode) */
     emu8k_init(dev->emu8k, 0, device_get_config_int("onboard_ram"));
 
-    wavetable_add_handler(emu8008_get_wt_buffer, dev);
+    dev->src_wt       = sound_source_add_stream(I_WT, emu8008_get_wt_buffer, dev);
+    dev->emu8k->clock = sound_source_get_pos_ptr(dev->src_wt);
     sound_in_add_handler(emu8008_put_buffer, dev);
 
     /* Creative Gameport Joystick (VIRTUAL\*CTL7009) */
@@ -1045,6 +1047,7 @@ emu8008_close(void *priv)
         return;
 
     timer_disable(&dev->clock_timer);
+    sound_source_remove(dev->src_wt);
     emu8008_capture_enable(dev, 0);
     sound_in_remove_handler(emu8008_put_buffer, dev);
     emu8008_io_remap(dev, 0);

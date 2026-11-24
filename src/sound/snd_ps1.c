@@ -60,6 +60,9 @@ typedef struct ps1snd_t {
     double     in_last;
     double     adc_counter;
     uint8_t    adc_latch;
+
+    void      *source;
+    const int *clock;
 } ps1snd_t;
 
 /* ADC Data Ready (status bit 4) interrupts "at all times" (the
@@ -302,7 +305,7 @@ ps1snd_write(uint16_t port, uint8_t val, void *priv)
 static void
 ps1snd_update(ps1snd_t *ps1snd)
 {
-    for (; ps1snd->pos < sound_pos_global; ps1snd->pos++)
+    for (; ps1snd->pos < SOUND_CLOCK(ps1snd->clock, sound_pos_global); ps1snd->pos++)
         ps1snd->buffer[ps1snd->pos] = (int8_t) (ps1snd->dac_val ^ 0x80) * 0x20;
 }
 
@@ -361,7 +364,8 @@ ps1snd_init(UNUSED(const device_t *info))
 
     timer_add(&ps1snd->timer_count, ps1snd_callback, ps1snd, 0);
 
-    sound_add_handler(ps1snd_get_buffer, ps1snd);
+    ps1snd->source = sound_source_add_stream(I_NORMAL, ps1snd_get_buffer, ps1snd);
+    ps1snd->clock  = sound_source_get_pos_ptr(ps1snd->source);
     sound_in_add_handler(ps1snd_put_buffer, ps1snd); /* the ADC */
 
     ps1snd->adc_latch = 0x80;
@@ -378,6 +382,8 @@ ps1snd_close(void *priv)
 
     ps1snd_adc_input(ps1snd, 0);
 
+    sound_source_remove(ps1snd->source);
+    sn76489_close(&ps1snd->sn76489);
     free(ps1snd);
 }
 

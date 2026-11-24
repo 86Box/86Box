@@ -86,13 +86,17 @@ typedef struct covox_s {
     int      in_primed;
     int      in_idle;
     uint64_t in_tsc;
+
+    void      *source;
+    void      *music_source;
+    const int *clock;
 } covox_t;
 
 // TODO: Can this be rolled into covox_get_buffer?
 static void
 covox_update(covox_t *covox)
 {
-    for (; covox->pos < sound_pos_global; covox->pos++) {
+    for (; covox->pos < SOUND_CLOCK(covox->clock, sound_pos_global); covox->pos++) {
         covox->buffer[0][covox->pos] = (int8_t) (covox->dac_val ^ 0x80) * 0x40;
         covox->buffer[1][covox->pos] = (int8_t) (covox->dac_val ^ 0x80) * 0x40;
     }
@@ -345,7 +349,8 @@ covox_init(UNUSED(const device_t *info))
         if (has_stereo)
             IO_SETHANDLER_COVOX_DAC(device_get_config_hex16("base2"), 0x0002);
     }
-    sound_add_handler(covox_get_buffer, covox);
+    covox->source = sound_source_add_stream(I_NORMAL, covox_get_buffer, covox);
+    covox->clock  = sound_source_get_pos_ptr(covox->source);
 
     /* the Voice Master Key's digitizer. */
     covox->adc_val = 0x80;
@@ -364,7 +369,9 @@ covox_init(UNUSED(const device_t *info))
         } else
             IO_SETHANDLER_COVOX_ADLIB(device_get_config_hex16("adlibbase"), 0x0002);
 
-        music_add_handler(covox_get_music_buffer, covox);
+        covox->music_source = sound_source_add_stream(I_MUSIC, covox_get_music_buffer, covox);
+        if (covox->opl.set_clock != NULL)
+            covox->opl.set_clock(covox->opl.priv, sound_source_get_pos_ptr(covox->music_source));
     }
 
     return covox;
@@ -377,6 +384,8 @@ covox_close(void *priv)
 
     if (covox) {
         covox_adc_input(covox, 0); /* */
+        sound_source_remove(covox->music_source);
+        sound_source_remove(covox->source);
         free(covox);
     }
 }
