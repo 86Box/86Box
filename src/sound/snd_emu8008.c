@@ -1011,7 +1011,7 @@ emu8008_init(const device_t *info)
     ac97_codec       = &dev->ac97_codec;
     ac97_codec_count = 1;
     ac97_codec_id    = 0;
-    device_add(&stac9708_device);
+    device_add(&ct1297_device);
     dev->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     if (dev->mpu)
         mpu401_init(dev->mpu, 0, 0, M_UART, 1);
