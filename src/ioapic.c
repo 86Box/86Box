@@ -33,6 +33,9 @@
 #include "apic_platform.h"
 #include "ioapic_82093aa.h"
 #include "lapic.h"
+#ifdef USE_VFIO
+#    include <86box/vfio.h>
+#endif
 
 typedef struct ioapic_t {
     /* Config/state gates stay here; apic_platform owns LAPIC topology effects. */
@@ -953,6 +956,37 @@ ioapic_legacy_irq_enabled(void)
     return (dev != NULL) && dev->uniprocessor_apic;
 }
 
+/* The input an ISA IRQ line is wired to, 0xff for none. */
+uint8_t
+ioapic_legacy_irq_intin(uint8_t irq)
+{
+    ioapic_t *dev = ioapic_global;
+    uint8_t   pin;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic || (irq >= IOAPIC_LEGACY_IRQ_COUNT))
+        return IOAPIC_LEGACY_IRQ_NC;
+
+    pin = ioapic_legacy_irq_to_pin(dev, irq);
+    return (pin < dev->pins) ? pin : IOAPIC_LEGACY_IRQ_NC;
+}
+
+/* Whether any of the inputs in the mask has its redirection entry unmasked. */
+int
+ioapic_intins_unmasked(uint32_t intins)
+{
+    ioapic_t *dev = ioapic_global;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic)
+        return 0;
+
+    for (uint8_t pin = 0; pin < dev->pins; pin++) {
+        if ((intins & ioapic_82093aa_pin_bit(pin)) && !ioapic_redir_masked(dev->ioapic_redir[pin * 2]))
+            return 1;
+    }
+
+    return 0;
+}
+
 static void
 ioapic_sanitize_loaded_redir(ioapic_t *dev)
 {
@@ -1115,6 +1149,11 @@ ioapic_eoi(ioapic_t *dev, uint8_t vector)
             continue;
 
         *lowp &= ~IOAPIC_REDIR_REMOTEIRR;
+#ifdef USE_VFIO
+        /* VFIO cannot report a passed-through device deasserting INTx, so
+           resample the level before relying on it again. */
+        vfio_irq_intx_resample_intin(pin);
+#endif
         if (ioapic_log_first(&dev->ioapic_eoi_log_count[pin], 8))
             ioapic_log("IOAPIC: EOI pin=%u vector=%02x line=%u count=%u\n",
                        pin, vector, ioapic_pin_asserted(dev, pin),

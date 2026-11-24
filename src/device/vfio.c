@@ -43,6 +43,7 @@
 #include <86box/mem.h>
 #include <86box/path.h>
 #include <86box/pci.h>
+#include <86box/chipset.h>
 #include <86box/pic.h>
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
@@ -1732,6 +1733,35 @@ vfio_slot_config_writeb(int func, int addr, UNUSED(int len), uint8_t val, void *
         vfio_dev_config_writeb(slot->funcs[func & 7], addr, val);
 }
 
+/* Unmask INTx through VFIO, and return whether the device is still asserting. The
+   unmask is synchronous: if the device is still asserting, VFIO masks it again and
+   signals the eventfd before returning. */
+static int
+vfio_irq_intx_unmask(vfio_device_t *dev)
+{
+    struct vfio_irq_set irq_set = {
+        .argsz = sizeof(irq_set),
+        .flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_UNMASK,
+        .index = VFIO_PCI_INTX_IRQ_INDEX,
+        .start = 0,
+        .count = 1
+    };
+    uint64_t buf;
+
+    ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
+    return read(dev->irq.vectors[0].fd, &buf, sizeof(buf)) == sizeof(buf);
+}
+
+/* Let the IRQ thread see the next trigger of a deasserted source. */
+static void
+vfio_irq_intx_rearm(vfio_device_t *dev)
+{
+    struct epoll_event event = { .events = EPOLLIN | EPOLLONESHOT };
+
+    event.data.ptr = &dev->irq.vectors[0];
+    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, dev->irq.vectors[0].fd, &event);
+}
+
 /* Raise the lines of INTx sources which triggered. VFIO masks INTx as it triggers,
    so a source stays asserted until vfio_irq_intx_sample finds it deasserted. */
 static void
@@ -1758,6 +1788,14 @@ vfio_irq_intx_service(void)
                    A device which hides its Interrupt Status while masked would always be
                    found deasserted, which would drop every one of its interrupts. */
                 if (!atomic_load(&dev->irq.intx.status_hidden)) {
+                    /* The I/O APIC delivers as soon as the line goes up. */
+                    if (ioapic_intins_unmasked(pci_get_irq_intins(dev->vslot->pci_slot, dev->irq.intx.pin)) &&
+                        !vfio_irq_intx_unmask(dev)) {
+                        vfio_log_op("VFIO %s: IRQ deasserted before delivery\n", dev->name);
+                        vfio_irq_intx_rearm(dev);
+                        continue;
+                    }
+
                     line = pci_get_irq_line(dev->vslot->pci_slot, dev->irq.intx.pin);
                     if (line != 0xff)
                         pic_resample_mark((line == 2) ? 9 : line);
@@ -1773,26 +1811,14 @@ vfio_irq_intx_service(void)
 }
 
 /* Check whether an asserted INTx source is still asserted, lowering its line if not.
-   An unmask through the ioctl is synchronous: if the device is still asserting, VFIO
-   masks it again and signals the eventfd before returning. Some devices, such as the
-   GeForce 6200 TurboCache, clear the Interrupt Status bit while INTx is masked, so they
-   look deasserted here; their interrupt then fires again as soon as it is unmasked, and
-   the IRQ thread has the line raised once more (see vfio_irq_intx_check_status). */
+   Some devices, such as the GeForce 6200 TurboCache, clear the Interrupt Status bit
+   while INTx is masked, so they look deasserted here; their interrupt then fires again
+   as soon as it is unmasked, and the IRQ thread has the line raised once more (see
+   vfio_irq_intx_check_status). */
 static int
 vfio_irq_intx_sample(vfio_device_t *dev)
 {
-    struct vfio_irq_set irq_set = {
-        .argsz = sizeof(irq_set),
-        .flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_UNMASK,
-        .index = VFIO_PCI_INTX_IRQ_INDEX,
-        .start = 0,
-        .count = 1
-    };
-    struct epoll_event event = { .events = EPOLLIN | EPOLLONESHOT };
-    uint64_t           buf;
-
-    ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
-    if (read(dev->irq.vectors[0].fd, &buf, sizeof(buf)) == sizeof(buf)) {
+    if (vfio_irq_intx_unmask(dev)) {
         vfio_log_op("VFIO %s: IRQ still asserted\n", dev->name);
         return 1;
     }
@@ -1803,10 +1829,7 @@ vfio_irq_intx_sample(vfio_device_t *dev)
     dev->irq.intx.raised = 0;
     intx_asserted--;
     timer_stop(&dev->irq.intx.retry_timer);
-
-    /* Let the IRQ thread see the next trigger. */
-    event.data.ptr = &dev->irq.vectors[0];
-    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, dev->irq.vectors[0].fd, &event);
+    vfio_irq_intx_rearm(dev);
     return 0;
 }
 
@@ -1875,6 +1898,23 @@ vfio_irq_intx_check_status(vfio_device_t *dev)
     else if (++dev->irq.intx.status_misses >= 4) {
         vfio_log("VFIO %s: Interrupt Status is hidden while INTx is masked\n", dev->name);
         atomic_store(&dev->irq.intx.status_hidden, 1);
+    }
+}
+
+/* Called by the I/O APIC before it relies on the level of an input which was
+   already delivered. */
+void
+vfio_irq_intx_resample_intin(uint8_t intin)
+{
+    if (!intx_asserted || (intin >= 32))
+        return;
+
+    for (vfio_group_t *group = first_group; group; group = group->next) {
+        for (vfio_device_t *dev = group->first_device; dev; dev = dev->next) {
+            if (dev->irq.intx.raised && (dev->irq.type == VFIO_PCI_INTX_IRQ_INDEX) && dev->irq.vectors &&
+                (pci_get_irq_intins(dev->vslot->pci_slot, dev->irq.intx.pin) & (1u << intin)))
+                (void) vfio_irq_intx_sample(dev);
+        }
     }
 }
 
