@@ -972,7 +972,7 @@ emu8008_reset(void *priv)
 }
 
 static void *
-emu8008_init(const device_t *info)
+emu8008_init(UNUSED(const device_t *info))
 {
     emu8008_t *dev = calloc(1, sizeof(emu8008_t));
     if (!dev)
@@ -983,7 +983,7 @@ emu8008_init(const device_t *info)
         return NULL;
     }
 
-    dev->subsys_id = (uint16_t) info->local;
+    dev->subsys_id = (uint16_t) device_get_config_int("model");
 
     dev->log = log_open("EMU8008");
     emu8008_log(dev->log, "EMU8008: init subsys=%04X\n", dev->subsys_id);
@@ -1062,6 +1062,18 @@ emu8008_close(void *priv)
 
 static const device_config_t emu8008_config[] = {
     {
+        .name        = "model",
+        .description = "Model",
+        .type        = CONFIG_SELECTION,
+        .default_int = EMU8008_SUBSYS_CT4650,
+        .selection   = {
+            { .description = "CT4600", .value = EMU8008_SUBSYS_CT4600 },
+            { .description = "CT4650", .value = EMU8008_SUBSYS_CT4650 },
+            { .description = "CT4655", .value = EMU8008_SUBSYS_CT4655 },
+            { .description = ""                                       }
+        }
+    },
+    {
         .name        = "onboard_ram",
         .description = "Onboard RAM",
         .type        = CONFIG_SELECTION,
@@ -1078,39 +1090,11 @@ static const device_config_t emu8008_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-const device_t emu8008_ct4600_device = {
-    .name          = "Sound Blaster AWE64D (CT4600)",
-    .internal_name = "emu8008_ct4600",
+const device_t sb_awe64d_device = {
+    .name          = "Sound Blaster AWE64D",
+    .internal_name = "sb_awe64d",
     .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
-    .local         = EMU8008_SUBSYS_CT4600,
-    .init          = emu8008_init,
-    .close         = emu8008_close,
-    .reset         = emu8008_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = emu8008_config
-};
-
-const device_t emu8008_ct4650_device = {
-    .name          = "Sound Blaster AWE64D (CT4650)",
-    .internal_name = "emu8008_ct4650",
-    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
-    .local         = EMU8008_SUBSYS_CT4650,
-    .init          = emu8008_init,
-    .close         = emu8008_close,
-    .reset         = emu8008_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = emu8008_config
-};
-
-const device_t emu8008_ct4655_device = {
-    .name          = "Sound Blaster AWE64D (CT4655)",
-    .internal_name = "emu8008_ct4655",
-    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
-    .local         = EMU8008_SUBSYS_CT4655,
+    .local         = 0,
     .init          = emu8008_init,
     .close         = emu8008_close,
     .reset         = emu8008_reset,
