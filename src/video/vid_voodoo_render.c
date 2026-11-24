@@ -1525,15 +1525,26 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         ALPHA_TEST(src_a);
 
                     if (params->alphaMode & (1 << 4)) {
-                        if (dithersub && !dither2x2 && voodoo->dithersub_enabled) {
-                            dest_r = dithersub_rb[dest_r][real_y & 3][x & 3];
-                            dest_g = dithersub_g[dest_g][real_y & 3][x & 3];
-                            dest_b = dithersub_rb[dest_b][real_y & 3][x & 3];
-                        }
-                        if (dithersub && dither2x2 && voodoo->dithersub_enabled) {
-                            dest_r = dithersub_rb2x2[dest_r][real_y & 1][x & 1];
-                            dest_g = dithersub_g2x2[dest_g][real_y & 1][x & 1];
-                            dest_b = dithersub_rb2x2[dest_b][real_y & 1][x & 1];
+                        if (dithersub && voodoo->dithersub_enabled) {
+                            if (voodoo->type < VOODOO_BANSHEE) {
+                                if (dither2x2) {
+                                    dest_r = dithersubv1_rb2x2[dest_r][real_y & 1][x & 1];
+                                    dest_g = dithersubv1_g2x2[dest_g][real_y & 1][x & 1];
+                                    dest_b = dithersubv1_rb2x2[dest_b][real_y & 1][x & 1];
+                                } else {
+                                    dest_r = dithersubv1_rb[dest_r][real_y & 3][x & 3];
+                                    dest_g = dithersubv1_g[dest_g][real_y & 3][x & 3];
+                                    dest_b = dithersubv1_rb[dest_b][real_y & 3][x & 3];
+                                }
+                            } else if (dither2x2) {
+                                dest_r = dithersub_rb2x2[dest_r][real_y & 1][x & 1];
+                                dest_g = dithersub_g2x2[dest_g][real_y & 1][x & 1];
+                                dest_b = dithersub_rb2x2[dest_b][real_y & 1][x & 1];
+                            } else {
+                                dest_r = dithersub_rb[dest_r][real_y & 3][x & 3];
+                                dest_g = dithersub_g[dest_g][real_y & 3][x & 3];
+                                dest_b = dithersub_rb[dest_b][real_y & 3][x & 3];
+                            }
                         }
                         ALPHA_BLEND(src_r, src_g, src_b, src_a);
 
@@ -1543,7 +1554,17 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
 
                     if (update) {
                         if (dither) {
-                            if (dither2x2) {
+                            if (voodoo->type < VOODOO_BANSHEE) {
+                                if (dither2x2) {
+                                    src_r = ditherv1_rb2x2[src_r][real_y & 1][x & 1];
+                                    src_g = ditherv1_g2x2[src_g][real_y & 1][x & 1];
+                                    src_b = ditherv1_rb2x2[src_b][real_y & 1][x & 1];
+                                } else {
+                                    src_r = ditherv1_rb[src_r][real_y & 3][x & 3];
+                                    src_g = ditherv1_g[src_g][real_y & 3][x & 3];
+                                    src_b = ditherv1_rb[src_b][real_y & 3][x & 3];
+                                }
+                            } else if (dither2x2) {
                                 src_r = dither_rb2x2[src_r][real_y & 1][x & 1];
                                 src_g = dither_g2x2[src_g][real_y & 1][x & 1];
                                 src_b = dither_rb2x2[src_b][real_y & 1][x & 1];

@@ -2757,6 +2757,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 #endif
 
         if (dither) {
+            const int v1 = voodoo->type < VOODOO_BANSHEE;
             addbyte(0x8b); /*MOV ESI, real_y (ESP+16)*/
             addbyte(0x74);
             addbyte(0x24);
@@ -2826,17 +2827,17 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addbyte(0xb6);
             addbyte(0x9c);
             addbyte(0x33);
-            addlong(dither2x2 ? (uint32_t) dither_g2x2 : (uint32_t) dither_g);
+            addlong(dither2x2 ? (uint32_t) (v1 ? ditherv1_g2x2 : dither_g2x2) : (uint32_t) (v1 ? ditherv1_g : dither_g));
             addbyte(0x0f); /*MOVZX ECX, dither_rb[ECX+ESI]*/
             addbyte(0xb6);
             addbyte(0x8c);
             addbyte(0x31);
-            addlong(dither2x2 ? (uint32_t) dither_rb2x2 : (uint32_t) dither_rb);
+            addlong(dither2x2 ? (uint32_t) (v1 ? ditherv1_rb2x2 : dither_rb2x2) : (uint32_t) (v1 ? ditherv1_rb : dither_rb));
             addbyte(0x0f); /*MOVZX EAX, dither_rb[EAX+ESI]*/
             addbyte(0xb6);
             addbyte(0x84);
             addbyte(0x30);
-            addlong(dither2x2 ? (uint32_t) dither_rb2x2 : (uint32_t) dither_rb);
+            addlong(dither2x2 ? (uint32_t) (v1 ? ditherv1_rb2x2 : dither_rb2x2) : (uint32_t) (v1 ? ditherv1_rb : dither_rb));
             addbyte(0xc1); /*SHL EBX, 5*/
             addbyte(0xe3);
             addbyte(5);

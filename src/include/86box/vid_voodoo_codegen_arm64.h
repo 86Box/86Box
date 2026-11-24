@@ -4054,10 +4054,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 
     if (params->fbzMode & FBZ_RGB_WMASK) {
         if (dither) {
+            const int v1 = voodoo->type < VOODOO_BANSHEE;
             /* ---- Dither path ---- */
             /* Load dither table base pointer into x7 (skip zero halfwords) */
             {
-                uintptr_t dither_rb_addr = dither2x2 ? (uintptr_t) dither_rb2x2 : (uintptr_t) dither_rb;
+                uintptr_t dither_rb_addr = dither2x2 ? (uintptr_t) (v1 ? ditherv1_rb2x2 : dither_rb2x2) : (uintptr_t) (v1 ? ditherv1_rb : dither_rb);
                 uint16_t _dh0 = dither_rb_addr & 0xFFFF;
                 uint16_t _dh1 = (dither_rb_addr >> 16) & 0xFFFF;
                 uint16_t _dh2 = (dither_rb_addr >> 32) & 0xFFFF;
@@ -4132,8 +4133,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             /* Load G from dither_g table:
              * dither_g is at a fixed offset from dither_rb */
             {
-                uintptr_t g_offset = dither2x2 ? ((uintptr_t) dither_g2x2 - (uintptr_t) dither_rb2x2) :
-                                                   ((uintptr_t) dither_g - (uintptr_t) dither_rb);
+                uintptr_t g_offset = dither2x2 ? (v1 ? ((uintptr_t) ditherv1_g2x2 - (uintptr_t) ditherv1_rb2x2) : ((uintptr_t) dither_g2x2 - (uintptr_t) dither_rb2x2)) :
+                                                   (v1 ? ((uintptr_t) ditherv1_g - (uintptr_t) ditherv1_rb) : ((uintptr_t) dither_g - (uintptr_t) dither_rb));
                 /* w11 = G value offset, add g_offset to get dither_g entry */
                 addlong(ARM64_ADD_REG_X(11, 7, 11));
                 /* x16 = g_offset */
