@@ -706,14 +706,17 @@ seg_load_cache_fill(uint16_t seg, const x86seg *dt, uint32_t addr, uint32_t lo, 
     e->status_es = (flat ? 0 : CPU_STATUS_NOTFLATES) | n64;
 }
 
-/* loadseg() for DS, ES, FS or GS, called from recompiled code. The common
-   protected-mode load is done here: a non-null selector inside its table,
-   an aligned descriptor whose page is in the read lookup, a data or
-   readable code segment that passes the privilege check, present, with
-   the Accessed bit already set on a 486 or later. That is the path on
-   which loadseg() raises no fault, walks no page table, writes no memory
-   and charges no cycles, and this leaves the same state it does. Any other
-   load goes to loadseg() before anything is written. */
+/* loadseg() for DS, ES, FS or GS, and for SS on the processors
+   far_load_order marks as following the Intel Architecture manuals, called
+   from recompiled code. The common protected-mode load is done here: a
+   non-null selector inside its table, an aligned descriptor whose page is
+   in the read lookup, a data or readable code segment that passes the
+   privilege check (for SS a writable data segment with RPL and DPL equal
+   to CPL), present, with the Accessed bit already set on a 486 or later.
+   That is the path on which loadseg() raises no fault, walks no page
+   table, writes no memory and charges no cycles, and this leaves the same
+   state it does. Any other load goes to loadseg() before anything is
+   written. */
 int
 loadseg_pm_fast(uint16_t seg, x86seg *s)
 {
@@ -728,7 +731,8 @@ loadseg_pm_fast(uint16_t seg, x86seg *s)
     /* read_descriptor() reads in words on a 16-bit bus; x86seg_set_accessed()
        always writes on a 386 and the RapidCAD */
     if (!(msw & 1) || (cpu_state.eflags & VM_FLAG) || cpu_state.abrt || !(seg & 0xfffc) || cpu_16bitbus || !is486 ||
-        israpidcad || ((addr + 7) > dt->limit) || (s == &cpu_state.seg_ss) || (s == &cpu_state.seg_cs))
+        israpidcad || ((addr + 7) > dt->limit) || ((s == &cpu_state.seg_ss) && (far_load_order != FAR_LOAD_ORDER_IA)) ||
+        (s == &cpu_state.seg_cs))
         return loadseg(seg, s);
     addr += dt->base;
 
@@ -751,8 +755,14 @@ loadseg_pm_fast(uint16_t seg, x86seg *s)
        present, and Accessed set so x86seg_set_accessed() writes nothing. */
     type = (hi >> 8) & 0x1f;
     dpl  = (int) ((hi >> 13) & 3);
-    if (!((0xccff0000u >> type) & 1) || (((0x0cff0000u >> type) & 1) && (((seg & 0x0003) > dpl) || ((CPL) > dpl))) ||
-        ((hi & 0x8100) != 0x8100))
+    if (s == &cpu_state.seg_ss) {
+        /* Types 0x13 and 0x17 (writable data, Accessed set), DPL == CPL,
+           present: the descriptor's P, DPL, S, code, W and A bits, with the
+           expand-down bit free */
+        if (((seg & 0x0003) != CPL) || ((hi & 0xfb00) != (0x9300 | (CPL << 13))))
+            return loadseg(seg, s);
+    } else if (!((0xccff0000u >> type) & 1) || (((0x0cff0000u >> type) & 1) && (((seg & 0x0003) > dpl) || ((CPL) > dpl))) ||
+               ((hi & 0x8100) != 0x8100))
         return loadseg(seg, s);
 
     x86seg_log("Seg data %04X %04X %04X %04X\n", lo & 0xffff, lo >> 16, hi & 0xffff, hi >> 16);
@@ -768,6 +778,10 @@ loadseg_pm_fast(uint16_t seg, x86seg *s)
         codegen_flat_ds = codegen_wide_ds = 0;
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
+    if (s == &cpu_state.seg_ss) {
+        set_stack32((hi >> 22) & 1);
+        codegen_flat_ss = codegen_wide_ss = 0;
+    }
     /* Only on the processors whose manuals give these loads one text (1999
        vol. 2: LDS/LES p. 3-350, MOV p. 3-404, POP p. 3-533; the 1997 one
        and the Pentium Pro's say the same), and only for a read that the

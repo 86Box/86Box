@@ -62,7 +62,7 @@ extern int  call_far_pm_fast(uint16_t seg, uint32_t new_pc, uint32_t ret_pc, int
 extern void pmoderetf_pm_fast(int is32, uint16_t off);
 extern void loadcsjmp_pm_fast(uint16_t seg, uint32_t old_pc);
 
-/* A DS, ES, FS or GS load that loadseg_pm_fast() completed, which the
+/* A DS, ES, FS, GS or SS load that loadseg_pm_fast() completed, which the
    recompiler's load routines repeat without the call while every input of
    that load is unchanged: the selector and CPL (tag), the GDTR or LDTR
    base and limit, a valid read lookup for the descriptor's page and the

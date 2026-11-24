@@ -61,7 +61,7 @@ void *codegen_gpf_rout;
 void *codegen_ss_rout;
 void *codegen_exit_rout;
 void *codegen_rep_rout[2][3][2];
-void *codegen_load_seg_rout[4];
+void *codegen_load_seg_rout[5];
 
 /*Entries to the exit routines that take 1..n cycles off cycles first, one
   per routine and count, so an exit that charges them keeps its single
@@ -1193,10 +1193,10 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 }
 
 #    define LOAD_SEG_ENTRY(field) ((int) offsetof(seg_load_cache_t, field))
-#    define LOAD_SEG_MAX_MISS     8
+#    define LOAD_SEG_MAX_MISS     10
 
-/*loadseg_pm_fast() for one of DS, ES, FS and GS, selector in W0, result in
-  W0: the load its seg_load_cache entry recorded is repeated when every
+/*loadseg_pm_fast() for one of DS, ES, FS, GS and SS, selector in W0, result
+  in W0: the load its seg_load_cache entry recorded is repeated when every
   input of it is the same (abort, PE, VM, the selector and CPL in the tag,
   the table's base and limit, a read lookup for the descriptor's page and
   the eight bytes read through it), which leaves what that call would; any
@@ -1232,6 +1232,22 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     host_arm64_CMP_REG(block, REG_W3, REG_W2);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
 
+    if (seg == &cpu_state.seg_ss) {
+        /*An entry any load filled: loadseg_pm_fast()'s SS test on the
+          recorded bytes, which are compared with memory below. RPL == CPL;
+          P, DPL == CPL, S, data, W and A set, expand-down free*/
+        host_arm64_UBFX(block, REG_W3, REG_W2, 16, 2);
+        host_arm64_EOR_REG(block, REG_W4, REG_W0, REG_W3, 0);
+        host_arm64_AND_IMM(block, REG_W4, REG_W4, 3);
+        miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W4);
+        host_arm64_LDR_IMM_W(block, REG_W4, REG_X1, LOAD_SEG_ENTRY(desc) + 4);
+        host_arm64_AND_IMM(block, REG_W4, REG_W4, 0xfb00);
+        host_arm64_MOVZ_IMM(block, REG_W5, 0x9300);
+        host_arm64_ORR_REG(block, REG_W5, REG_W5, REG_W3, 13);
+        host_arm64_CMP_REG(block, REG_W4, REG_W5);
+        miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    }
+
     /*The table's base and limit*/
     host_arm64_LDP_IMM_X(block, REG_X2, REG_X3, REG_X1, LOAD_SEG_ENTRY(dt));
     host_arm64_LDR_IMM_X(block, REG_X2, REG_X2, 0);
@@ -1259,7 +1275,24 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     /*cpu_cur_status as seg_load_status() leaves it*/
     host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpu_cur_status);
     host_arm64_LDRH_IMM(block, REG_W7, REG_X6, 0);
-    if (seg == &cpu_state.seg_ds) {
+    if (seg == &cpu_state.seg_ss) {
+        /*NOTFLATSS from the entry's NOTFLATES, NOT64K, NOTWIDESS from
+          limit_high, then set_stack32() from the B bit*/
+        host_arm64_LDRH_IMM(block, REG_W8, REG_X1, LOAD_SEG_ENTRY(status_es));
+        host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff & ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS | CPU_STATUS_STACK32));
+        host_arm64_UBFX(block, REG_W5, REG_W8, 10, 1);
+        host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W5, 9);
+        host_arm64_LDR_IMM_W(block, REG_W5, REG_X1, LOAD_SEG_ENTRY(image) + (int) offsetof(x86seg, limit_high));
+        host_arm64_CMN_IMM(block, REG_W5, 1);
+        host_arm64_CSET_NE(block, REG_W5);
+        host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W5, 12);
+        host_arm64_LDR_IMM_W(block, REG_W5, REG_X1, LOAD_SEG_ENTRY(desc) + 4);
+        host_arm64_UBFX(block, REG_W5, REG_W5, 22, 1);
+        host_arm64_MOVX_IMM(block, REG_X4, (uint64_t) &stack32);
+        host_arm64_STR_IMM_W(block, REG_W5, REG_X4, 0);
+        host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W5, 1);
+        host_arm64_AND_IMM(block, REG_W8, REG_W8, CPU_STATUS_NOT64K);
+    } else if (seg == &cpu_state.seg_ds) {
         host_arm64_LDRH_IMM(block, REG_W8, REG_X1, LOAD_SEG_ENTRY(status_ds));
         host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff & ~(CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS));
     } else {
@@ -1281,6 +1314,11 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
         host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
     } else if (seg == &cpu_state.seg_es) {
         host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_flat_es);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+    } else if (seg == &cpu_state.seg_ss) {
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_flat_ss);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_wide_ss);
         host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
     }
     host_arm64_MOVZ_IMM(block, REG_W0, 0);
@@ -2063,10 +2101,10 @@ codegen_backend_init(void)
     }
 
     {
-        x86seg *load_seg[4] = { &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
+        x86seg *load_seg[5] = { &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs, &cpu_state.seg_ss };
 
-        for (int c = 0; c < 4; c++) {
-            codegen_alloc(block, 400);
+        for (int c = 0; c < 5; c++) {
+            codegen_alloc(block, (load_seg[c] == &cpu_state.seg_ss) ? 512 : 400);
             codegen_load_seg_rout[c] = &block_write_data[block_pos];
             build_load_seg_routine(block, load_seg[c]);
         }

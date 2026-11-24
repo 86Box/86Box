@@ -60,7 +60,7 @@ void *codegen_gpf_rout;
 void *codegen_ss_rout;
 void *codegen_exit_rout;
 void *codegen_rep_rout[2][3][2];
-void *codegen_load_seg_rout[4];
+void *codegen_load_seg_rout[5];
 
 /*Entries to the exit routines that take 1..n cycles off cycles first, one
   per routine and count, so an exit that charges them keeps its single
@@ -1448,7 +1448,7 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 }
 
 #    define LOAD_SEG_ENTRY(field) ((int32_t) offsetof(seg_load_cache_t, field))
-#    define LOAD_SEG_MAX_MISS     8
+#    define LOAD_SEG_MAX_MISS     10
 #    if _WIN64
 #        define LOAD_SEG_ARG0 REG_RCX
 #        define LOAD_SEG_ARG1 REG_RDX
@@ -1457,7 +1457,7 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 #        define LOAD_SEG_ARG1 REG_RSI
 #    endif
 
-/*loadseg_pm_fast() for one of DS, ES, FS and GS, selector (zero-extended)
+/*loadseg_pm_fast() for one of DS, ES, FS, GS and SS, selector (zero-extended)
   in the first argument register, result in EAX: the load its
   seg_load_cache entry recorded is repeated when every input of it is the
   same (abort, PE, VM, the selector and CPL in the tag, the table's base and
@@ -1501,6 +1501,25 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     rx_rm(block, 0, 0, 0x3b, REG_RAX, REG_R8, LOAD_SEG_ENTRY(tag));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
+    if (seg == &cpu_state.seg_ss) {
+        /*An entry any load filled: loadseg_pm_fast()'s SS test on the
+          recorded bytes, which are compared with memory below. RPL == CPL;
+          P, DPL == CPL, S, data, W and A set, expand-down free*/
+        rx_rr(block, 0, 0, 0x89, REG_RAX, REG_R10);
+        rx_shift_ri(block, 5, REG_R10, 16);
+        rx_alu_ri(block, 0, 4, REG_R10, 3);
+        rx_rr(block, 0, 0, 0x89, LOAD_SEG_ARG0, REG_R11);
+        rx_rr(block, 0, 0, 0x31, REG_R10, REG_R11); /*XOR R11D, R10D*/
+        rx_test_ri(block, REG_R11, 3);
+        miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+        rx_rm(block, 0, 0, 0x8b, REG_R11, REG_R8, LOAD_SEG_ENTRY(desc) + 4);
+        rx_alu_ri(block, 0, 4, REG_R11, 0xfb00);
+        rx_shift_ri(block, 4, REG_R10, 13);
+        rx_alu_ri(block, 0, 1, REG_R10, 0x9300);
+        rx_rr(block, 0, 0, 0x39, REG_R10, REG_R11); /*CMP R11D, R10D*/
+        miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    }
+
     /*The table's base and limit*/
     rx_rm(block, 0, 1, 0x8b, REG_R9, REG_R8, LOAD_SEG_ENTRY(dt));
     rx_rm(block, 0, 1, 0x8b, REG_R9, REG_R9, 0);
@@ -1531,7 +1550,31 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
     /*cpu_cur_status as seg_load_status() leaves it*/
     rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) &cpu_cur_status);
     rx_rm(block, 0, 0, 0x0fb7, REG_R10, REG_R9, 0);
-    if (seg == &cpu_state.seg_ds) {
+    if (seg == &cpu_state.seg_ss) {
+        int32_t *wide;
+
+        /*NOTFLATSS from the entry's NOTFLATES, NOTWIDESS from limit_high,
+          then set_stack32() from the B bit; NOT64K below*/
+        rx_alu_ri(block, 0, 4, REG_R10, 0xffff & ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS | CPU_STATUS_STACK32));
+        rx_rm(block, 0, 0, 0x0fb7, REG_R11, REG_R8, LOAD_SEG_ENTRY(status_es));
+        rx_rr(block, 0, 0, 0x89, REG_R11, REG_RAX);
+        rx_alu_ri(block, 0, 4, REG_RAX, CPU_STATUS_NOTFLATES);
+        rx_shift_ri(block, 5, REG_RAX, 1);
+        rx_rr(block, 0, 0, 0x09, REG_RAX, REG_R10); /*OR R10D, EAX*/
+        rx_alu_ri(block, 0, 4, REG_R11, CPU_STATUS_NOT64K);
+        rx_rm(block, 0, 0, 0x8b, REG_RAX, REG_R8, LOAD_SEG_ENTRY(image) + (int32_t) offsetof(x86seg, limit_high));
+        rx_alu_ri(block, 0, 7, REG_RAX, 0xffffffff);
+        wide = rx_jcc(block, RX_CC_Z);
+        rx_alu_ri(block, 0, 1, REG_R10, CPU_STATUS_NOTWIDESS);
+        rx_patch(wide, rx_here());
+        rx_rm(block, 0, 0, 0x8b, REG_RAX, REG_R8, LOAD_SEG_ENTRY(desc) + 4);
+        rx_shift_ri(block, 5, REG_RAX, 22);
+        rx_alu_ri(block, 0, 4, REG_RAX, 1);
+        rx_mov_ri64(block, LOAD_SEG_ARG1, (uint64_t) (uintptr_t) &stack32);
+        rx_rm(block, 0, 0, 0x89, REG_RAX, LOAD_SEG_ARG1, 0);
+        rx_shift_ri(block, 4, REG_RAX, 1);
+        rx_rr(block, 0, 0, 0x09, REG_RAX, REG_R10); /*OR R10D, EAX*/
+    } else if (seg == &cpu_state.seg_ds) {
         rx_rm(block, 0, 0, 0x0fb7, REG_R11, REG_R8, LOAD_SEG_ENTRY(status_ds));
         rx_alu_ri(block, 0, 4, REG_R10, 0xffff & ~(CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS));
     } else {
@@ -1554,6 +1597,11 @@ build_load_seg_routine(codeblock_t *block, x86seg *seg)
         rx_rm(block, 0, 0, 0x89, REG_R11, REG_R9, 0);
     } else if (seg == &cpu_state.seg_es) {
         rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) &codegen_flat_es);
+        rx_rm(block, 0, 0, 0x89, REG_R11, REG_R9, 0);
+    } else if (seg == &cpu_state.seg_ss) {
+        rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) &codegen_flat_ss);
+        rx_rm(block, 0, 0, 0x89, REG_R11, REG_R9, 0);
+        rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) &codegen_wide_ss);
         rx_rm(block, 0, 0, 0x89, REG_R11, REG_R9, 0);
     }
     rx_rr(block, 0, 0, 0x31, REG_RAX, REG_RAX);
@@ -2133,9 +2181,9 @@ codegen_backend_init(void)
     }
 
     {
-        x86seg *load_seg[4] = { &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
+        x86seg *load_seg[5] = { &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs, &cpu_state.seg_ss };
 
-        for (int c = 0; c < 4; c++) {
+        for (int c = 0; c < 5; c++) {
             codegen_load_seg_rout[c] = routine_start(block, 0x200);
             build_load_seg_routine(block, load_seg[c]);
         }
