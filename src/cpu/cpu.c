@@ -49,6 +49,7 @@
 
 #ifdef USE_DYNAREC
 #    include "codegen.h"
+#    include "x86seg.h"
 #endif /* USE_DYNAREC */
 #include "x87_timings.h"
 
@@ -1005,6 +1006,11 @@ cpu_set(void)
             far_load_order = FAR_LOAD_ORDER_NONE;
             break;
     }
+#ifdef USE_DYNAREC
+    /* Their entries hold loads made under the previous CPU class and bus */
+    seg_load_cache_flush();
+    cs_load_cache_flush();
+#endif
 
     /* Whether a task switch that faults after marking the new TSS busy
        (clearing the old task's Busy bit for a JMP, writing the new TSS's

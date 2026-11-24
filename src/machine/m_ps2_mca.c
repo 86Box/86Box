@@ -1973,6 +1973,7 @@ mem_remap_top_ps2(int kb, uint32_t start, uint32_t phys_base)
         addr = phys_base + (offset << 12);
         if (start_addr == 0)
             start_addr = addr;
+        mem_set_page_byte_masks(&pages[c], addr >> 12);
         pages[c].mem     = set ? &ram[addr] : page_ff;
         if (c > (mem_size >> 10)) {
             pages[c].write_b = set ? mem_write_ramb_page : NULL;
@@ -1983,8 +1984,6 @@ mem_remap_top_ps2(int kb, uint32_t start, uint32_t phys_base)
             pages[c].write_w = mem_write_ramw_page;
             pages[c].write_l = mem_write_raml_page;
         }
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
     }
 
     flushmmucache();

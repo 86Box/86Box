@@ -237,6 +237,15 @@ typedef struct page_t {
 
     uint8_t *mem;
 
+    /*The chunks of store_fast_mask whose bytes are all dirty: any store there
+      changes no mask. Right after mem, so both load as a pair.*/
+    uint64_t store_full_mask;
+
+    /*Chunks that hold no code and whose dirty bit is set, of a page that owns
+      its byte masks: a store there whose bytes are already dirty changes no
+      mask. Cleared whenever a chunk gets code or the dirty bits are cleared.*/
+    uint64_t store_fast_mask;
+
     uint32_t block, block_2;
 
     /*Head of codeblock tree associated with this page*/
@@ -247,6 +256,10 @@ typedef struct page_t {
 
     uint32_t evict_prev;
     uint32_t evict_next;
+
+    /*byte_dirty_mask and byte_code_present_mask are this page's own, not
+      those of another page it aliases*/
+    uint8_t byte_masks_own;
 
     uint64_t *byte_dirty_mask;
     uint64_t *byte_code_present_mask;
@@ -311,8 +324,10 @@ extern uint32_t  mmut_hit_w_page;
 
 /* The lookup entries held out of the tables while the CPU is in ring 3
    (mem.c): how many, what the tables would hold for an access they are held
-   for, and their move into the tables. */
+   for, and their move into the tables; whether a write to the page would
+   look at an entry held, with nothing moved. */
 extern int       mem_held_num;
+extern int       mem_held_write_listed(uint32_t page);
 extern uintptr_t mem_held_read(uint32_t addr);
 extern page_t   *mem_held_write_page(uint32_t page);
 extern void      mem_held_promote(void);
@@ -555,6 +570,7 @@ extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
 extern int  mem_phys_has_code(uint32_t addr, uint32_t len);
 extern void mem_phys_written(uint32_t addr, uint32_t len);
+extern void mem_set_page_byte_masks(page_t *page, uint32_t mask_page);
 extern void mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set);
 
 extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);

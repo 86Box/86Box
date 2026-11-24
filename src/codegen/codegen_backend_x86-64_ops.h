@@ -131,6 +131,7 @@ void host_x86_IMUL32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_IMUL64_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_MOVSXD_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_SHR64_IMM(codeblock_t *block, int dst_reg, int shift);
+void host_x86_BT64_REG_REG(codeblock_t *block, int base_reg, int bit_reg);
 void host_x86_BSF32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_BSR32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_CMOVNZ32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);

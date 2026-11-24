@@ -520,6 +520,12 @@ mem_held_w(uint32_t addr)
     return ptr;
 }
 
+int
+mem_held_write_listed(uint32_t page)
+{
+    return mem_held_num && (CPL == 3) && (writelookup_held_at(page) >= 0);
+}
+
 uintptr_t
 mem_held_read(uint32_t addr)
 {
@@ -1782,6 +1788,53 @@ mem_no_mmut_walk_n(uint32_t addr, uint32_t *a64, int num, int write)
     return 0;
 }
 
+/* The physical addresses of a write's bytes, resolved at the start of the
+   write, before any part of it is written: the translate step left
+   MMUT_UNWALKED for a page whose lookup entry it used, and that entry can be
+   gone by now (a flush from an I/O read, or the write ring). Each such page
+   takes its frame from its page_lookup entry if it still has one, as
+   writemembl() writes through it, else from a walk made now. Every part is
+   then written with these frames: the first part of a page-crossing store
+   can recycle the second page's entry or rewrite its page table entry, and
+   writememll() too takes both frames before it writes. Non-zero if a walk
+   faulted. */
+static __inline int
+mem_no_mmut_resolve_w(uint32_t addr, uint32_t *a64, int num)
+{
+    if (!(cr0 >> 31))
+        return 0;
+    for (int i = 0; i < num; i++) {
+        const uint32_t va = addr + i;
+        const page_t  *pl;
+        uint32_t       a;
+
+        if (a64[i] != MMUT_UNWALKED)
+            continue;
+        pl = mem_page_lookup(va >> 12);
+        if (pl && pl->write_b)
+            a = ((uint32_t) (pl - pages) << 12) | (va & 0xfff);
+        else if ((va >> 12) == (addr >> 12)) {
+            a = mem_no_mmut_walk(va, 1);
+            if (cpu_state.abrt)
+                return 1;
+        } else {
+            /* The second page is walked at the store's last byte, as
+               writememll() and do_mmutranslate() walk it: a fault reports
+               that address. */
+            a = mem_no_mmut_walk(addr + num - 1, 1);
+            if (cpu_state.abrt)
+                return 1;
+            a = (a & ~0xfff) | (va & 0xfff);
+        }
+        a64[i] = a;
+        while (((i + 1) < num) && ((va >> 12) == ((addr + i + 1) >> 12))) {
+            i++;
+            a64[i] = a + (uint32_t) (addr + i - va);
+        }
+    }
+    return 0;
+}
+
 /* Read a byte from memory without MMU translation - result of previous MMU translation passed as value. */
 static uint8_t
 readmembl_no_mmut_body(uint32_t addr, uint32_t a64)
@@ -1860,11 +1913,8 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
         return;
     }
 
-    if ((cr0 >> 31) && (a64 == MMUT_UNWALKED)) {
-        a64 = mem_no_mmut_walk(addr, 1);
-        if (cpu_state.abrt)
-            return;
-    }
+    if (mem_no_mmut_resolve_w(addr, &a64, 1))
+        return;
 
     writemembl_no_mmut_body(addr, a64, val);
 }
@@ -2169,7 +2219,7 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
         return;
     }
 
-    if (mem_no_mmut_walk_n(addr, a64, 2, 1))
+    if (mem_no_mmut_resolve_w(addr, a64, 2))
         return;
 
     writememwl_no_mmut_body(addr, a64, val);
@@ -2516,7 +2566,7 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
         return;
     }
 
-    if (mem_no_mmut_walk_n(addr, a64, 4, 1))
+    if (mem_no_mmut_resolve_w(addr, a64, 4))
         return;
 
     writememll_no_mmut_body(addr, a64, val);
@@ -2780,7 +2830,8 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
                 a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
                 a64[i] = (uint32_t) a;
             }
-        }
+        } else
+            a64[i] = MMUT_UNWALKED;
 
         addr++;
     }
@@ -3781,6 +3832,28 @@ mem_write_remappedl2(uint32_t addr, uint32_t val, UNUSED(void *priv))
         *(uint32_t *) &ram[addr] = val;
 }
 
+void
+mem_set_page_byte_masks(page_t *page, uint32_t mask_page)
+{
+    uint64_t *dirty   = &byte_dirty_mask[mask_page * 64];
+    uint64_t *present = &byte_code_present_mask[mask_page * 64];
+
+    /* Every caller sets the page's mem and write handlers right after this:
+       the recompiler's direct stores to its chunks (store_fast_mask) assume
+       the RAM and handlers they were marked with, so they stop here. */
+    page->store_fast_mask = 0;
+    page->store_full_mask = 0;
+    page->byte_masks_own  = (mask_page == (uint32_t) (page - pages));
+    if ((page->byte_dirty_mask == dirty) && (page->byte_code_present_mask == present))
+        return;
+
+#ifdef USE_DYNAREC
+    codegen_invalidate_page_masks(page);
+#endif
+    page->byte_dirty_mask        = dirty;
+    page->byte_code_present_mask = present;
+}
+
 /* Point the page entries of base..base+size-1 at RAM from ram_addr (set), or
    back at their own physical addresses: code a chipset runs from RAM at a
    second address is then tracked for self-modification through that page, as
@@ -3802,16 +3875,14 @@ mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set)
            alias of, as mem_remap_top() does: its own index is past the end
            of the arrays, and code compiled through the alias can still be
            flushed from it. */
-        if (((uint64_t) addr + 0x1000) > ((uint64_t) mem_size << 10)) {
-            pages[c].mem = page_ff;
-            addr         = (((uint64_t) alias + 0x1000) <= ((uint64_t) mem_size << 10)) ? alias : 0;
-        } else
-            pages[c].mem = &ram[addr];
-        pages[c].write_b                = mem_write_ramb_page;
-        pages[c].write_w                = mem_write_ramw_page;
-        pages[c].write_l                = mem_write_raml_page;
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
+        const int backed = ((uint64_t) addr + 0x1000) <= ((uint64_t) mem_size << 10);
+        if (!backed)
+            addr = (((uint64_t) alias + 0x1000) <= ((uint64_t) mem_size << 10)) ? alias : 0;
+        mem_set_page_byte_masks(&pages[c], addr >> 12);
+        pages[c].mem     = backed ? &ram[addr] : page_ff;
+        pages[c].write_b = mem_write_ramb_page;
+        pages[c].write_w = mem_write_ramw_page;
+        pages[c].write_l = mem_write_raml_page;
     }
 
     if (set)
@@ -4690,6 +4761,7 @@ mem_reset(void)
         pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
+        pages[c].byte_masks_own         = ((uint64_t) c << 12) < ((uint64_t) mem_size << 10);
     }
 
     memset(_mem_exec, 0x00, sizeof(_mem_exec));
@@ -4807,12 +4879,11 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         }
         if (start_addr == 0)
             start_addr = addr;
+        mem_set_page_byte_masks(&pages[c], addr >> 12);
         pages[c].mem     = set ? &ram[addr] : page_ff;
         pages[c].write_b = set ? mem_write_ramb_page : NULL;
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
     }
 
     mem_set_mem_state_both(start * 1024, size * 1024, set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
@@ -4821,6 +4892,7 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         if ((c >= 0xc0) && (c <= 0xcf))
             continue;
 
+        mem_set_page_byte_masks(&pages[c], c);
         if (sis_mode || ((c << 12) >= (mem_size << 10)))
             pages[c].mem = page_ff;
         else {
@@ -4835,8 +4907,6 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
             pages[c].write_w = NULL;
             pages[c].write_l = NULL;
         }
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
     }
 
     if (set) {
