@@ -182,21 +182,6 @@ sound_source_give_buffer(void *priv, const void *buf)
 }
 
 static void
-sound_source_clear_buffers(sound_source_t *src)
-{
-    if (src->buf16 != NULL)
-        memset(src->buf16, 0x00, 2 * src->buffer_size * sizeof(int16_t));
-
-    if (src->buff != NULL)
-        memset(src->buff, 0x00, 2 * src->buffer_size * sizeof(float));
-
-    if (src->buf != NULL)
-        memset(src->buf, 0x00, 2 * src->buffer_size * sizeof(int32_t));
-
-    src->pos = 0;
-}
-
-static void
 sound_source_dealloc_buffers(sound_source_t *src)
 {
     if (src->buf16 != NULL) {
