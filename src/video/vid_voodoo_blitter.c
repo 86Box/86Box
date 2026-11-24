@@ -378,15 +378,15 @@ voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data)
                         src_dat = (b >> 3) | ((g & 0xfc) << 3) | ((r & 0xf8) << 8);
                         break;
                     case BLIT_SRC_24BPP_DITHER_2X2:
-                        r       = ditherv1_rb2x2[r][voodoo->blt.dst_y & 1][x & 1];
-                        g       = ditherv1_g2x2[g][voodoo->blt.dst_y & 1][x & 1];
-                        b       = ditherv1_rb2x2[b][voodoo->blt.dst_y & 1][x & 1];
+                        r       = dither_rb2x2[r][voodoo->blt.dst_y & 1][x & 1];
+                        g       = dither_g2x2[g][voodoo->blt.dst_y & 1][x & 1];
+                        b       = dither_rb2x2[b][voodoo->blt.dst_y & 1][x & 1];
                         src_dat = (b >> 3) | ((g & 0xfc) << 3) | ((r & 0xf8) << 8);
                         break;
                     case BLIT_SRC_24BPP_DITHER_4X4:
-                        r       = ditherv1_rb[r][voodoo->blt.dst_y & 3][x & 3];
-                        g       = ditherv1_g[g][voodoo->blt.dst_y & 3][x & 3];
-                        b       = ditherv1_rb[b][voodoo->blt.dst_y & 3][x & 3];
+                        r       = dither_rb[r][voodoo->blt.dst_y & 3][x & 3];
+                        g       = dither_g[g][voodoo->blt.dst_y & 3][x & 3];
+                        b       = dither_rb[b][voodoo->blt.dst_y & 3][x & 3];
                         src_dat = (b >> 3) | ((g & 0xfc) << 3) | ((r & 0xf8) << 8);
                         break;
 

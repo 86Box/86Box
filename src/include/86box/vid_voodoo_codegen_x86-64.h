@@ -3302,10 +3302,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 
     if (params->fbzMode & FBZ_RGB_WMASK) {
         if (dither) {
-            const int v1 = voodoo->type < VOODOO_BANSHEE;
             addbyte(0x49); /*MOV R8, dither_rb*/
             addbyte(0xb8);
-            addquad(dither2x2 ? (uintptr_t) (v1 ? ditherv1_rb2x2 : dither_rb2x2) : (uintptr_t) (v1 ? ditherv1_rb : dither_rb));
+            addquad(dither2x2 ? (uintptr_t) dither_rb2x2 : (uintptr_t) dither_rb);
             addbyte(0x4c); /*MOV ESI, real_y (R14)*/
             addbyte(0x89);
             addbyte(0xf6);
@@ -3377,7 +3376,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addbyte(0xb6);
             addbyte(0x9c);
             addbyte(0x1e);
-            addlong(dither2x2 ? (v1 ? ((uintptr_t) ditherv1_g2x2 - (uintptr_t) ditherv1_rb2x2) : ((uintptr_t) dither_g2x2 - (uintptr_t) dither_rb2x2)) : (v1 ? ((uintptr_t) ditherv1_g - (uintptr_t) ditherv1_rb) : ((uintptr_t) dither_g - (uintptr_t) dither_rb)));
+            addlong(dither2x2 ? ((uintptr_t) dither_g2x2 - (uintptr_t) dither_rb2x2) : ((uintptr_t) dither_g - (uintptr_t) dither_rb));
             addbyte(0x0f); /*MOVZX ECX, dither_rb[RCX+RSI]*/
             addbyte(0xb6);
             addbyte(0x0c);
