@@ -1328,9 +1328,12 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
     uintptr_t carry = (uintptr_t) LOOKUP_INV;
     int       held  = -1;
 
-    /* As in addreadlookup(). The RAM write handlers mark code pages dirty
-       themselves, so page_lookup is not needed for that meanwhile. */
-    if ((virt == 0xffffffff) || cpu_dr_armed)
+    /* As in addreadlookup(), device threads included: a device-thread
+       physical write has no linear address, mem_logical_addr then holds the
+       CPU thread's current one, and the table is the CPU thread's alone.
+       The RAM write handlers mark code pages dirty themselves, so
+       page_lookup is not needed for that meanwhile. */
+    if (!is_cpu_thread || (virt == 0xffffffff) || cpu_dr_armed)
         return;
 
     if (GDBSTUB_WATCHED(virt))
@@ -3198,12 +3201,28 @@ mem_phys_written(uint32_t addr, uint32_t len)
     }
 }
 
+/* A physical write has no linear address, so on the CPU thread it drops
+   the current one, and a write handler it reaches adds no lookup entry
+   from an older access. The linear address belongs to the CPU thread,
+   which may be in the middle of an access, so a write made from any
+   other thread leaves it as it is, and addwritelookup() adds nothing for
+   it. That is the only part of a physical write that is safe off the
+   CPU thread: the dirty marking and code invalidation that follow are
+   not synchronized, so device writes to guest memory belong on the CPU
+   thread. */
+static __inline void
+mem_phys_write_start(void)
+{
+    if (is_cpu_thread)
+        mem_logical_addr = 0xffffffff;
+}
+
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
     mem_mapping_t *map = write_mapping_bus[addr >> MEM_GRANULARITY_BITS];
 
-    mem_logical_addr = 0xffffffff;
+    mem_phys_write_start();
 
     if (map) {
         uint8_t *p = mem_phys_exec(map, addr, 1);
@@ -3222,7 +3241,7 @@ mem_writew_phys(uint32_t addr, uint16_t val)
     mem_mapping_t *map = write_mapping_bus[addr >> MEM_GRANULARITY_BITS];
     uint16_t      *p;
 
-    mem_logical_addr = 0xffffffff;
+    mem_phys_write_start();
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (p = (uint16_t *) mem_phys_exec(map, addr, 2))) {
         *p = val;
@@ -3242,7 +3261,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
     mem_mapping_t *map = write_mapping_bus[addr >> MEM_GRANULARITY_BITS];
     uint32_t      *p;
 
-    mem_logical_addr = 0xffffffff;
+    mem_phys_write_start();
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (p = (uint32_t *) mem_phys_exec(map, addr, 4))) {
         *p = val;
@@ -3404,7 +3423,7 @@ mem_write_phys_block(const void *src, uint32_t addr, uint32_t len)
     const uint8_t *p    = (const uint8_t *) src;
     uint32_t       done = 0;
 
-    mem_logical_addr = 0xffffffff;
+    mem_phys_write_start();
 
     if (!cpu_use_exec)
         return 0;
