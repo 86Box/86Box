@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-24 19:28+0000\n"
+"PO-Revision-Date: 2026-11-24 19:38+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -1413,70 +1413,75 @@ msgid "Machine type \"%s\""
 msgstr "Machinetype \"%s\""
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "Videokaart \"%s\""
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "Toetsenbord \"%s\""
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "Muis \"%s\""
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "Tablet \"%s\""
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "Joystick \"%s\""
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "Geluidskaart \"%s\""
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "MIDI-uitvoerapparaat \"%s\""
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "MIDI-invoerapparaat \"%s\""
 
 msgid "Network card \"%s\""
-msgstr ""
+msgstr "Netwerkkaart \"%s\""
 
 msgid "Serial port device \"%s\""
-msgstr ""
+msgstr "Seriëlepoortapparaat \"%s\""
 
 msgid "Parallel port device \"%s\""
-msgstr ""
+msgstr "Parallelepoortapparaat \"%s\""
 
 msgid "Game port \"%s\""
-msgstr ""
+msgstr "Gamepoort \"%s\""
 
 msgid "SCSI card \"%s\""
-msgstr ""
+msgstr "SCSI-kaart \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr ""
+msgstr "Floppycontroller \"%s\""
 
 msgid "Disk controller \"%s\""
-msgstr ""
+msgstr "Schijfcontroller \"%s\""
 
 msgid "CD-ROM interface \"%s\""
-msgstr ""
+msgstr "Cd-rominterface \"%s\""
 
 msgid "Memory expansion card \"%s\""
-msgstr ""
+msgstr "Geheugenuitbreidingskaart \"%s\""
 
 msgid "ROM expansion card \"%s\""
-msgstr ""
+msgstr "ROM-uibreidingskaart \"%s\""
 
 msgid "RTC card \"%s\""
-msgstr ""
+msgstr "RTC-kaart \"%s\""
 
 msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
 msgstr ""
+"De schijfkopie \"%s\" overschrijdt de maximale capaciteit van dit station en "
+"wordt genegeerd."
 
 msgid "%s was not connected: every USB port of this machine is in use."
 msgstr ""
+"%s is niet aangesloten: alle USB-poorten van deze machine zijn in gebruik."
 
 msgid "%s was not connected: this machine has no USB controller that can take devices."
 msgstr ""
+"%s is niet aangesloten: deze machine heeft geen USB-controller waarop "
+"apparaten kunnen worden aangesloten."
 
 msgid "Do you want to save the settings?"
 msgstr "Wil je de instellingen opslaan?"
@@ -1503,22 +1508,22 @@ msgid "CD-ROM images"
 msgstr "CD-ROM-images"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "&Nieuwe CD-R-schijfkopie…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "Nieuwe CD-R-schijfkopie…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "&CD-RW-schijfkopie"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "CD-R-schijfkopie"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Aaru-schijfkopie"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "Kan de schijfkopie niet aanmaken"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Apparaatconfiguratie"
@@ -1904,10 +1909,10 @@ msgid "Power &off"
 msgstr "&Uitschakelen"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "On&derbreken"
 
 msgid "Suspend"
-msgstr ""
+msgstr "Onderbreken"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -2383,7 +2388,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 Toetsenbord"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "USB-toetsenbord"
 
 msgid "Keys"
 msgstr "Toetsen"
