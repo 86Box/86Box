@@ -2299,6 +2299,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     } else if (svga->chain4 && !svga->force_old_addr) {
         readplane = addr & 3;
         addr      = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
+        latch_addr = addr;
     } else if (svga->chain2_read) {
         readplane = (readplane & 2) | (addr & 1);
         addr &= ~1;

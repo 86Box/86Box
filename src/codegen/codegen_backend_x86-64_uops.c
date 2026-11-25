@@ -1670,6 +1670,24 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
     if (!REG_IS_W(src_size))
         fatal("LOAD_SEG %02x %p\n", uop->src_reg_a_real, uop->p);
 #    endif
+    /*seg_load_cache is filled only on the processors far_load_order marks
+      as following the Intel Architecture manuals, and only in protected
+      mode outside V86, which the routine checks again*/
+    if ((far_load_order == FAR_LOAD_ORDER_IA) && ((block->status & (CPU_STATUS_PMODE | CPU_STATUS_V86)) == CPU_STATUS_PMODE) &&
+        ((uop->p == &cpu_state.seg_ds) || (uop->p == &cpu_state.seg_es) || (uop->p == &cpu_state.seg_fs) || (uop->p == &cpu_state.seg_gs) ||
+         (uop->p == &cpu_state.seg_ss))) {
+        int nr = (uop->p == &cpu_state.seg_ds) ? 0 : (uop->p == &cpu_state.seg_es) ? 1 : (uop->p == &cpu_state.seg_fs) ? 2 : (uop->p == &cpu_state.seg_gs) ? 3 : 4;
+
+#    if _WIN64
+        host_x86_MOVZX_REG_32_16(block, REG_ECX, src_reg);
+#    else
+        host_x86_MOVZX_REG_32_16(block, REG_EDI, src_reg);
+#    endif
+        host_x86_CALL(block, codegen_load_seg_rout[nr]);
+        host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
+        codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
+        return 0;
+    }
 #    if _WIN64
     host_x86_MOVZX_REG_32_16(block, REG_ECX, src_reg);
     host_x86_MOV64_REG_IMM(block, REG_EDX, (uint64_t) uop->p);
@@ -1825,8 +1843,18 @@ codegen_mem_slow(codeblock_t *block, const mem_slow_t *slow)
     if (slow->misaligned_p)
         jump_here(slow->misaligned_p);
     jump_here(slow->miss_p);
-    host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
-    host_x86_CALL(block, slow->rout);
+    /*A byte, word or long store goes straight to its routine's entry behind
+      the writelookup2 test, which the block has just done*/
+    if (slow->store && (slow->rout == codegen_mem_store_byte) && codegen_mem_store_byte_tracked)
+        host_x86_CALL(block, codegen_mem_store_byte_tracked);
+    else if (slow->store && (slow->rout == codegen_mem_store_word) && codegen_mem_store_word_tracked)
+        host_x86_CALL(block, codegen_mem_store_word_tracked);
+    else if (slow->store && (slow->rout == codegen_mem_store_long) && codegen_mem_store_long_tracked)
+        host_x86_CALL(block, codegen_mem_store_long_tracked);
+    else {
+        host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
+        host_x86_CALL(block, slow->rout);
+    }
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     codegen_exit_Jcc_add(block, slow->add, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
     if (!slow->store) {

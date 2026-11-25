@@ -368,12 +368,12 @@ mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs)
     if (o_y != NULL)
         *o_y = 1;
 
-    ds_y = mouse_scale_coord_x(real_y, 1);
+    ds_y = mouse_scale_coord_y(real_y, 1);
 
     if (ds_y >= 0.0)
-        scaled_y = (int) floor(mouse_scale_coord_x(real_y, 1));
+        scaled_y = (int) floor(mouse_scale_coord_y(real_y, 1));
     else
-        scaled_y = (int) ceil(mouse_scale_coord_x(real_y, 1));
+        scaled_y = (int) ceil(mouse_scale_coord_y(real_y, 1));
 
     if (real_y > smax_y) {
         if (abs) {

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-04 14:27+0000\n"
+"PO-Revision-Date: 2026-11-25 14:05+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -50,7 +50,7 @@ msgid "&Hide status bar"
 msgstr "Ẩn tha&nh trạng thái"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Hiển thị hoạt động US&B"
 
 msgid "Hide &toolbar"
 msgstr "Ẩn thanh &công cụ"
@@ -164,7 +164,7 @@ msgid "4:3 Cen&ter"
 msgstr "Că&n giữa 4:3"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Căn tỷ lệ 4:3 số nguyên (theo chiề&u dọc)"
 
 msgid "Inverted VGA monitor"
 msgstr "Đảo màu VGA"
@@ -254,10 +254,10 @@ msgid "Sound &gain…"
 msgstr "Bộ &tăng âm…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "Thiết bị ra M&IDI"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Khởi động lại t&hiết bị"
 
 msgid "Send MIDI &command"
 msgstr ""
@@ -506,7 +506,7 @@ msgid "Match the host"
 msgstr "Chung với máy host"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Bù trừ số năm:"
 
 msgid "(currently %1)"
 msgstr "(hiện tại %1)"
@@ -524,10 +524,10 @@ msgid "Dynamic recompiler"
 msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Bộ tái biên dịch động đang hoạt động"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Bộ tái biên dịch động đang không chạy"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Môi trường FPU chính xác trên bộ tái biên dịch động"
@@ -569,7 +569,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Đồ họa adaptor xuất hình IBM PS/55"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "Đồ họa PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -766,10 +766,10 @@ msgid "Channel:"
 msgstr "Kênh:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (tích hợp)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(không có gì)"
 
 msgid "Onboard"
 msgstr ""

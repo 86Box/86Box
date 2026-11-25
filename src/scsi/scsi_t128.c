@@ -86,19 +86,16 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
     ncr_t               *ncr     = &t128->ncr;
     scsi_bus_t          *scsi_bus = &ncr->scsibus;
     const scsi_device_t *dev     = &scsi_devices[ncr->bus][scsi_bus->target_id];
-    uint8_t              old_ctrl = 0;
 
     addr &= 0x3fff;
     if ((addr >= 0x1800) && (addr < 0x1880))
         t128->ext_ram[addr & 0x7f] = val;
     else if ((addr >= 0x1c00) && (addr < 0x1c20)) {
         t128_log("%04X:%08X: T128 ctrl write=%02x, mode=%02x, ID=%d.\n", CS, cpu_state.pc, val & 0x10, ncr->mode & MODE_DMA, scsi_bus->target_id);
-        old_ctrl = t128->ctrl;
         t128->ctrl = val;
-
-        if ((val & 0x10) && !(old_ctrl & 0x10))
+        if (ncr->mode & MODE_DMA)
             t128_irq_enable(ncr, t128, 1);
-        else if (!(val & 0x10) && (old_ctrl & 0x10))
+        else
             t128_irq_enable(ncr, t128, 0);
     } else if ((addr >= 0x1d00) && (addr < 0x1e00))
         ncr5380_write((addr - 0x1d00) >> 5, val, ncr);
@@ -190,6 +187,11 @@ t128_dma_mode_ext(void *priv, void *ext_priv, uint8_t val)
     t128_t      *t128   = (t128_t *) ext_priv;
     ncr_t       *ncr    = (ncr_t *) priv;
     scsi_bus_t  *scsi_bus = &ncr->scsibus;
+
+    if ((val & MODE_DMA) && !(ncr->old_mode & MODE_DMA))
+        ncr->irq_ena(ncr, ncr->priv, 1);
+    else if (!(val & MODE_DMA) && (ncr->old_mode & MODE_DMA))
+        ncr->irq_ena(ncr, ncr->priv, 0);
 
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
     if (!t128->block_loaded) {
@@ -502,7 +504,7 @@ t128_init(const device_t *info)
         t128->pos_regs[0]   = 0x8c;
         t128->pos_regs[1]   = 0x50;
         mca_add(t228_read, t228_write, t228_feedb, NULL, t128);
-    } else if (info->local == 0) {
+    } else {
         ncr->irq            = device_get_config_int("irq");
         t128->rom_addr      = device_get_config_hex20("bios_addr");
         t128->bios_enabled  = device_get_config_int("boot");
@@ -533,8 +535,7 @@ t128_init(const device_t *info)
     if (info->flags & DEVICE_MCA)
         t128->status                |= 0x08;
 
-    if (info->local == 0)
-        timer_add(&t128->timer, t128_callback, t128, 0);
+    timer_add(&t128->timer, t128_callback, t128, 0);
 
     scsi_bus_set_speed(ncr->bus, 5000000.0);
     scsi_bus->speed = 0.2;
@@ -651,18 +652,4 @@ const device_t scsi_t228_device = {
     .force_redraw  = NULL,
     .config        = NULL,
     .short_name    = "T228"
-};
-
-const device_t scsi_pas_device = {
-    .name          = "Pro Audio Spectrum Plus/16 SCSI",
-    .internal_name = "scsi_pas",
-    .flags         = DEVICE_ISA,
-    .local         = 1,
-    .init          = t128_init,
-    .close         = t128_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
 };

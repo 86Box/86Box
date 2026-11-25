@@ -1600,10 +1600,14 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                 return;
             }
         case RAGE128_CONFIG_CNTL:
-            MERGE(dev->config_cntl);
-            dev->config_cntl &= ~0x000f0000; /* CFG_ATI_REV_ID is read-only */
-            rage128_vga_decode_update(dev);
-            rage128_endian_apply(dev); /* APER_0_ENDIAN, APER_1_ENDIAN, APER_REG_ENDIAN */
+            /* The write changes the I/O decode and the aperture handlers,
+               which belong to the CPU thread, so a write from a packet
+               is handed to that thread and the packet thread waits until
+               it is made (rage128_pm4_cfg_handoff). */
+            if (rage128_on_cce_thread)
+                rage128_pm4_cfg_handoff(dev, val, mask);
+            else
+                rage128_config_cntl_write(dev, val, mask);
             rage128_cap_early_reg(dev, off, val, mask);
             return;
         case RAGE128_CONFIG_XSTRAP:
@@ -2165,6 +2169,22 @@ rage128_vga_decode_update(rage128_t *dev)
                       rage128_vga_in, NULL, NULL,
                       rage128_vga_out, NULL, NULL, dev);
     }
+}
+
+/* A CONFIG_CNTL write: the register, then the VGA I/O decode and the
+   aperture handlers its fields select (RRG: CONFIG_CNTL, p. 3-10 /
+   PDF 28). Both change state the CPU thread reads without a lock: the
+   I/O handler table, and the memory tables a handler change rebuilds,
+   which are empty for a moment while they are rebuilt. So this runs on
+   the CPU thread only; a packet's write reaches it through the hand-off
+   in rage128_pm4_wb_service. */
+void
+rage128_config_cntl_write(rage128_t *dev, uint32_t val, uint32_t mask)
+{
+    dev->config_cntl = (dev->config_cntl & ~mask) | (val & mask);
+    dev->config_cntl &= ~0x000f0000; /* CFG_ATI_REV_ID is read-only */
+    rage128_vga_decode_update(dev);
+    rage128_endian_apply(dev); /* APER_0_ENDIAN, APER_1_ENDIAN, APER_REG_ENDIAN */
 }
 
 /* ------------------------------------------------------------------ */

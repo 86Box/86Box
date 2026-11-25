@@ -3307,6 +3307,87 @@ blindwrite_load_sessions(cd_image_t *img, blindwrite_cursor_t *cursor, uint16_t 
     return previous_track != 0;
 }
 
+/*
+   DPM data: u32 start sector, resolution and count, then count angles in
+   1/256 turn, as Alcohol 120% stores them. It is at byte 32 of the
+   descriptor's DPM block and at byte 12 of a .bwa file.
+ */
+static int
+blindwrite_parse_dpm(mds_dpm_t *dpm, const uint8_t *data, size_t size, size_t at)
+{
+    if (at > size || (size - at) / 4 < 3)
+        return 0;
+
+    data += at;
+    size -= at;
+    const uint32_t start = blindwrite_u32(data);
+    const uint32_t resolution = blindwrite_u32(data + 4);
+    const uint32_t count = blindwrite_u32(data + 8);
+    if (!resolution || !count || count > (size - 12) / 4)
+        return 0;
+
+    uint32_t *angles = malloc((size_t) count * sizeof(uint32_t));
+    if (angles == NULL)
+        return 0;
+    for (uint32_t i = 0; i < count; i++) {
+        angles[i] = blindwrite_u32(data + 12 + 4 * (size_t) i);
+        /* Angles that go back are not a measurement. */
+        if (i && angles[i] < angles[i - 1]) {
+            free(angles);
+            return 0;
+        }
+    }
+
+    free(dpm->data);
+    dpm->start = start;
+    dpm->resolution = resolution;
+    dpm->count = count;
+    dpm->data = angles;
+    return 1;
+}
+
+static int
+blindwrite_load_bwa(cd_image_t *img, const char *descriptor)
+{
+    char path[1024];
+    const char *name = descriptor;
+    for (const char *p = descriptor; *p; p++)
+        if (*p == '/' || *p == '\\')
+            name = p + 1;
+
+    const char *dot = strrchr(name, '.');
+    const size_t stem = dot ? (size_t) (dot - name) : strlen(name);
+    const size_t prefix = name - descriptor;
+    if (prefix + stem + 5 > sizeof(path))
+        return 0;
+
+    char bwa[sizeof(path)];
+    memcpy(bwa, name, stem);
+    strcpy(bwa + stem, ".bwa");
+    memcpy(path, descriptor, prefix);
+    path[prefix] = '\0';
+    if (!blindwrite_append_component(path, sizeof(path), bwa, 0))
+        return 0;
+
+    FILE *fp = plat_fopen(path, "rb");
+    if (fp == NULL)
+        return 0;
+
+    int result = 0;
+    if (!fseeko64(fp, 0, SEEK_END)) {
+        const off64_t size = ftello64(fp);
+        /* 16 MB is far more angles than any disc has sectors. */
+        if (size >= 24 && size <= (16 << 20) && !fseeko64(fp, 0, SEEK_SET)) {
+            uint8_t *data = malloc(size);
+            if (data != NULL && fread(data, 1, size, fp) == (size_t) size)
+                result = blindwrite_parse_dpm(&img->dpm, data, size, 12);
+            free(data);
+        }
+    }
+    fclose(fp);
+    return result;
+}
+
 static int
 blindwrite_parse(cd_image_t *img, const uint8_t *data, size_t size, const char *path)
 {
@@ -3324,10 +3405,13 @@ blindwrite_parse(cd_image_t *img, const uint8_t *data, size_t size, const char *
                               blindwrite_u16(header + 100) + blindwrite_u32(header + 104) +
                               blindwrite_u32(header + 120) +
                               (cd ? blindwrite_u16(header + 102) : blindwrite_u32(header + 124));
+    const uint32_t dpm_length = blindwrite_u32(header + 256);
+    const uint8_t *dpm = NULL;
     if (!blindwrite_take(&cursor, metadata) ||
         !blindwrite_load_blocks(img, &cursor, path) ||
         !blindwrite_load_sessions(img, &cursor, blindwrite_u16(header + 50)) ||
-        !blindwrite_take(&cursor, (uint64_t) blindwrite_u32(header + 256) + 4))
+        (dpm = blindwrite_take(&cursor, dpm_length)) == NULL ||
+        !blindwrite_take(&cursor, 4))
         return 0;
 
     const uint8_t *footer = blindwrite_take(&cursor, 16);
@@ -3341,6 +3425,11 @@ blindwrite_parse(cd_image_t *img, const uint8_t *data, size_t size, const char *
         if (i == 13)
             memcpy(img->mcn, header + 65, 13);
     }
+
+    /* The .bwa file beside the descriptor has the whole table; the descriptor
+       usually keeps only its start. */
+    if (!blindwrite_load_bwa(img, path))
+        blindwrite_parse_dpm(&img->dpm, dpm, dpm_length, 32);
     return 1;
 }
 

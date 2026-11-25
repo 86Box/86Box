@@ -175,7 +175,6 @@ typedef struct emu8008_t {
     /* AC97 / Codec Mixer state (IOBase + 0x16/0x1C/0x1E) */
     uint8_t  ac97_latch;
     uint8_t  ac97_index;
-    uint16_t ac97_regs[128];
     uint16_t codec_ext_regs[3]; /* 0xEB..0xED redirected to Bank 0 0x01EB..0x01ED */
     ac97_codec_t *ac97_codec;
 
@@ -288,27 +287,22 @@ emu8008_record_host_frame(emu8008_t *dev, int *left, int *right)
     dev->cap_input_phase = phase % dev->cap_rate;
 }
 
-static uint16_t
-emu8008_codec_read(emu8008_t *dev, uint8_t index)
-{
-    if (dev->ac97_codec)
-        return ac97_codec_readw(dev->ac97_codec, index);
-    return dev->ac97_regs[index & 0x7fu];
-}
-
 static void
 emu8008_update_record_gain(emu8008_t *dev)
 {
-    const uint16_t select = emu8008_codec_read(dev, 0x1a);
-    const uint16_t gain   = emu8008_codec_read(dev, 0x1c);
-    const int      muted  = (gain & AC97_MUTE) || (emu8008_codec_read(dev, 0x26) & 0x0100);
+    if (!dev->ac97_codec)
+        return;
+
+    const uint16_t select = ac97_codec_readw(dev->ac97_codec, 0x1a);
+    const uint16_t gain   = ac97_codec_readw(dev->ac97_codec, 0x1c);
+    const int      muted  = (gain & AC97_MUTE) || (ac97_codec_readw(dev->ac97_codec, 0x26) & 0x0100);
 
     dev->cap_source[0] = (select >> 8) & 7;
     dev->cap_source[1] = select & 7;
     /* The record gain register uses 1.5 dB steps. */
     dev->cap_gain[0]   = muted ? 0.0 : pow(10.0, ((gain >> 8) & 15) * (1.5 / 20.0));
     dev->cap_gain[1]   = muted ? 0.0 : pow(10.0, (gain & 15) * (1.5 / 20.0));
-    dev->cap_mic_boost = (emu8008_codec_read(dev, 0x0e) & 0x0040) ? 10 : 1;
+    dev->cap_mic_boost = (ac97_codec_readw(dev->ac97_codec, 0x0e) & 0x0040) ? 10 : 1;
 }
 
 static void
@@ -548,8 +542,15 @@ static uint32_t
 emu8008_read_reg32(emu8008_t *dev, uint8_t bank, uint8_t idx)
 {
     if ((bank == 6 || bank == 7) && idx == 0xE0) {
-        /* Reg 0xE0: bits[19:8] = sample clock, bits[7:0] = chip ID (0x0C) */
-        return ((dev->sample_clock & 0x0FFFu) << 8) | (dev->chip_id_reg & 0xFFu);
+        /* Reg 0xE0: bits[19:8] = a counter at 32 times the sample rate, with the
+           voice being processed in bits[12:8] and the sample clock above it, and
+           bits[7:0] = chip ID (0x0C). The drivers check that the chip is running
+           by reading the voice up to 32 times for a change, and wait for one of
+           the first voices before some writes. */
+        uint64_t period = (1000000 * TIMER_USEC) / SOUND_FREQ;
+        uint64_t left   = (uint64_t) timer_get_remaining_u64(&dev->clock_timer);
+        uint32_t voice  = (left >= period) ? 0 : (uint32_t) (((period - left) * 32) / period);
+        return (((((uint32_t) dev->sample_clock << 5) | voice) & 0x0FFFu) << 8) | (dev->chip_id_reg & 0xFFu);
     }
 
     static const uint16_t emu8k_bank_ports[4] = { 0x0620, 0x0A20, 0x0A22, 0x0E20 };
@@ -676,7 +677,7 @@ emu8008_inw(uint16_t port, void *priv)
         case 0x1C:
             if (dev->ac97_index >= 0xEB && dev->ac97_index <= 0xED)
                 return dev->codec_ext_regs[dev->ac97_index - 0xEB];
-            return emu8008_codec_read(dev, dev->ac97_index);
+            return dev->ac97_codec ? ac97_codec_readw(dev->ac97_codec, dev->ac97_index) : 0xFFFF;
         default:
             return 0xFFFF;
     }
@@ -778,10 +779,8 @@ emu8008_outw(uint16_t port, uint16_t val, void *priv)
         case 0x1C:
             if (dev->ac97_index >= 0xEB && dev->ac97_index <= 0xED) {
                 dev->codec_ext_regs[dev->ac97_index - 0xEB] = val;
-            } else {
-                dev->ac97_regs[dev->ac97_index & 0x7Fu] = val;
-                if (dev->ac97_codec)
-                    ac97_codec_writew(dev->ac97_codec, dev->ac97_index, val);
+            } else if (dev->ac97_codec) {
+                ac97_codec_writew(dev->ac97_codec, dev->ac97_index, val);
                 switch (dev->ac97_index) {
                     case 0x00:
                         emu8008_update_record_gain(dev);
@@ -789,7 +788,7 @@ emu8008_outw(uint16_t port, uint16_t val, void *priv)
                         /* fall through */
                     case 0x02:
                     case 0x18:
-                        if (dev->ac97_codec) {
+                        {
                             int master_l, master_r, pcm_l, pcm_r;
                             emu8008_update_audio(dev);
                             ac97_codec_getattn(dev->ac97_codec, 0x02, &master_l, &master_r);
@@ -966,13 +965,14 @@ emu8008_reset(void *priv)
     dev->playback_pos = 0;
     dev->playback_frame[0] = dev->playback_frame[1] = 0;
     dev->effect_frame = (emu8k_effect_sends_t) { 0 };
-    dev->playback_gain[0] = dev->playback_gain[1] = 0;
+    /* No volume control without a codec. */
+    dev->playback_gain[0] = dev->playback_gain[1] = dev->ac97_codec ? 0 : 32768;
     emu8008_update_record_gain(dev);
     emu8008_update_irq(dev);
 }
 
 static void *
-emu8008_init(const device_t *info)
+emu8008_init(UNUSED(const device_t *info))
 {
     emu8008_t *dev = calloc(1, sizeof(emu8008_t));
     if (!dev)
@@ -983,7 +983,7 @@ emu8008_init(const device_t *info)
         return NULL;
     }
 
-    dev->subsys_id = (uint16_t) info->local;
+    dev->subsys_id = (uint16_t) device_get_config_int("model");
 
     dev->log = log_open("EMU8008");
     emu8008_log(dev->log, "EMU8008: init subsys=%04X\n", dev->subsys_id);
@@ -1011,7 +1011,7 @@ emu8008_init(const device_t *info)
     ac97_codec       = &dev->ac97_codec;
     ac97_codec_count = 1;
     ac97_codec_id    = 0;
-    device_add(&stac9708_device);
+    device_add(&ct1297_device);
     dev->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     if (dev->mpu)
         mpu401_init(dev->mpu, 0, 0, M_UART, 1);
@@ -1020,7 +1020,7 @@ emu8008_init(const device_t *info)
         mpu401_irq_attach(dev->mpu, emu8008_mpu_irq, NULL, dev);
 
     /* EMU8000 wavetable core (ROM-less PCI mode) */
-    emu8k_init(dev->emu8k, 0, device_get_config_int("onboard_ram"));
+    emu8k_init(dev->emu8k, 0, 0);
 
     wavetable_add_handler(emu8008_get_wt_buffer, dev);
     sound_in_add_handler(emu8008_put_buffer, dev);
@@ -1062,55 +1062,25 @@ emu8008_close(void *priv)
 
 static const device_config_t emu8008_config[] = {
     {
-        .name        = "onboard_ram",
-        .description = "Onboard RAM",
+        .name        = "model",
+        .description = "Model",
         .type        = CONFIG_SELECTION,
-        .default_int = 4096,
+        .default_int = EMU8008_SUBSYS_CT4650,
         .selection   = {
-            { .description = "None",  .value = 0     },
-            { .description = "512 KB", .value = 512  },
-            { .description = "2 MB",  .value = 2048  },
-            { .description = "4 MB",  .value = 4096  },
-            { .description = "8 MB",  .value = 8192  },
-            { .description = ""                      }
+            { .description = "CT4600", .value = EMU8008_SUBSYS_CT4600 },
+            { .description = "CT4650", .value = EMU8008_SUBSYS_CT4650 },
+            { .description = "CT4655", .value = EMU8008_SUBSYS_CT4655 },
+            { .description = ""                                       }
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-const device_t emu8008_ct4600_device = {
-    .name          = "Sound Blaster AWE64D (CT4600)",
-    .internal_name = "emu8008_ct4600",
+const device_t sb_awe64d_device = {
+    .name          = "Sound Blaster AWE64D",
+    .internal_name = "sb_awe64d",
     .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
-    .local         = EMU8008_SUBSYS_CT4600,
-    .init          = emu8008_init,
-    .close         = emu8008_close,
-    .reset         = emu8008_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = emu8008_config
-};
-
-const device_t emu8008_ct4650_device = {
-    .name          = "Sound Blaster AWE64D (CT4650)",
-    .internal_name = "emu8008_ct4650",
-    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
-    .local         = EMU8008_SUBSYS_CT4650,
-    .init          = emu8008_init,
-    .close         = emu8008_close,
-    .reset         = emu8008_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = emu8008_config
-};
-
-const device_t emu8008_ct4655_device = {
-    .name          = "Sound Blaster AWE64D (CT4655)",
-    .internal_name = "emu8008_ct4655",
-    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
-    .local         = EMU8008_SUBSYS_CT4655,
+    .local         = 0,
     .init          = emu8008_init,
     .close         = emu8008_close,
     .reset         = emu8008_reset,

@@ -25,17 +25,17 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
-#include "cpu.h"
 #include <86box/machine.h>
+#include "cpu.h"
 #include <86box/io.h>
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/ui.h>
 #include <86box/fdd.h>
-#include <86box/fdd_tape.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/fdd_tape.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/fifo.h>
@@ -2036,7 +2036,16 @@ fdc_read(uint16_t addr, void *priv)
                 }
                 if ((fdc->stat & 0xf0) == 0xf0) {
                     fdc->stat &= ~0x80;
-                    if ((fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) || !fdc->fifo) {
+                    if (fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) {
+                        ret             = fdc->dat;
+                        fdc->data_ready = 0;
+                    } else if (!fdc->dma) {
+                        ret = fifo_read(fdc->fifo_p);
+                        if (fifo_get_empty(fdc->fifo_p)) {
+                            fdc->stat       = 0x70;
+                            fdc->data_ready = 0;
+                        }
+                    } else if (!fdc->fifo) {
                         fdc->data_ready = 0;
                         ret             = fdc->dat;
                     } else
@@ -2691,7 +2700,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
         return 0;
     }
 
-    if ((fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) || !fdc->dma) {
+    if (fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) {
         if (fdc->tc)
             return 0;
 
@@ -2700,19 +2709,25 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
             return -1;
         }
 
-        if ((fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) || !fdc->fifo || (fdc->tfifo < 1)) {
-            fdc->dat        = data;
-            fdc->data_ready = 1;
-            fdc->stat       = 0xf0;
-        } else {
-            /* FIFO enabled */
-            fifo_write(data, fdc->fifo_p);
-            if (fifo_get_full(fdc->fifo_p)) {
-                /* We have wrapped around, means FIFO is over */
-                fdc->data_ready = 1;
-                fdc->stat       = 0xf0;
-            }
+        fdc->dat        = data;
+        fdc->stat       = 0xf0;
+        fdc->data_ready = 1;
+    } else if (!fdc->dma) {
+        /* The controller carries its 16-byte FIFO whether or not the FIFO
+           threshold is enabled: "FIFO disabled" only means a threshold of
+           one byte, not a single holding register. An overrun is a full
+           FIFO, not the second byte to arrive. */
+        if (fdc->tc)
+            return 0;
+
+        if (fifo_get_full(fdc->fifo_p)) {
+            fdc_overrun(fdc);
+            return -1;
         }
+
+        fifo_write(data, fdc->fifo_p);
+        fdc->stat       = 0xf0;
+        fdc->data_ready = 1;
     } else {
         if (fdc->tc)
             return -1;

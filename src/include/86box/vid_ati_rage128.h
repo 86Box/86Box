@@ -1434,6 +1434,14 @@ typedef struct rage128_t {
     atomic_int                           cce_wb_done;
     atomic_int                           cce_wb_closing;
     event_t                             *cce_wb_event;
+    /* A CONFIG_CNTL write made by the packet thread, handed to the CPU
+       thread the same way (rage128_pm4_cfg_handoff): cce_cfg_req is set
+       while cce_cfg_val and cce_cfg_mask hold a write the CPU thread has
+       not taken yet. The wait shares cce_wb_done and cce_wb_event, since
+       the packet thread posts one hand-off at a time. */
+    atomic_int                           cce_cfg_req;
+    uint32_t                             cce_cfg_val;
+    uint32_t                             cce_cfg_mask;
 
     /* R128_GPU_2D=verify comparison for queued 2D operations whose
        result the CPU works out (keyed blit, stretch, line, gradient):
@@ -2175,6 +2183,11 @@ extern void rage128_pm4_scratch_drop(rage128_t *dev);
 extern int  rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
 extern int  rage128_pm4_wb_handoff(rage128_t *dev, struct rage128_span_stage *st);
 extern void rage128_pm4_wb_service(rage128_t *dev);
+/* The CONFIG_CNTL write: the packet thread hands it to the CPU thread
+   with rage128_pm4_cfg_handoff, and the CPU thread makes it with
+   rage128_config_cntl_write (vid_ati_rage128.c). */
+extern int  rage128_pm4_cfg_handoff(rage128_t *dev, uint32_t val, uint32_t mask);
+extern void rage128_config_cntl_write(rage128_t *dev, uint32_t val, uint32_t mask);
 extern void rage128_flush_lock(rage128_t *dev);
 extern void rage128_flush_unlock(rage128_t *dev);
 #ifdef REG_HARNESS

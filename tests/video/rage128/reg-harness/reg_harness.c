@@ -64,6 +64,8 @@ extern uint64_t harness_irq_offthread;
 extern uint64_t harness_svga_offthread;
 extern uint64_t harness_svga_recalc_calls;
 extern uint64_t harness_svga_ramdac_calls;
+extern uint64_t harness_maps_offthread;
+extern uint64_t harness_maps_calls;
 extern void     harness_ram_alloc(void);
 extern void     harness_video_luts_init(void);
 extern uint8_t (*harness_pci_read)(int func, int addr, int len, void *priv);
@@ -5960,6 +5962,126 @@ vectors_cce_display(rage128_t *dev)
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
     wr(dev, RAGE128_DAC_CNTL, dac_save);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+}
+
+/* CONFIG_CNTL written by packets. The write changes the VGA I/O decode
+   and the aperture handlers, and the emulator's I/O and memory tables
+   that hold them are read by the processor with no lock; a memory table
+   slot is empty while it is rebuilt, so a guest access made then would
+   be lost. The register must change when the packet runs, but the
+   handler changes must be made by the CPU thread, which the packet
+   thread waits for. harness_maps_offthread counts handler changes made
+   off the CPU thread. */
+static void
+vectors_cce_config_cntl(rage128_t *dev)
+{
+    uint32_t *tbl     = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring    = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  cc_save = rd(dev, RAGE128_CONFIG_CNTL);
+    uint32_t  cc      = cc_save & ~0x1fu;
+    uint32_t  pkt[2];
+    uint64_t  off0;
+    uint64_t  calls0;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    off0 = harness_maps_offthread;
+
+    /* PIO: aperture 0 16 bpp swap, aperture 1 32 bpp swap, register
+       aperture swapped. */
+    calls0 = harness_maps_calls;
+    pkt[0] = RAGE128_CONFIG_CNTL >> 2;
+    pkt[1] = cc | 1u | (2u << 2) | (1u << 4);
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce config: a packet write of CONFIG_CNTL lands",
+            rd(dev, RAGE128_CONFIG_CNTL) & 0x1fu, 1u | (2u << 2) | (1u << 4));
+    check_true("cce config: the packet write installs the swapped aperture handlers",
+               dev->lfb_mapping.write_l == rage128_lfb_writel_sw16
+                   && dev->agp_mapping.write_l == rage128_agp_writel_sw32
+                   && dev->mmio_mapping.write_l == rage128_mmio_writel_sw);
+    check_true("cce config: the handlers are installed on the CPU thread",
+               harness_maps_calls - calls0 >= 3);
+    check32("cce config: PIO, no handler change off the CPU thread",
+            (uint32_t) (harness_maps_offthread - off0), 0);
+
+    /* Ring: the same write back to unswapped, fetched by bus master. */
+    rr_reset(dev);
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    memset(ram + RING_PHYS, 0, 0x1000);
+    tbl[RING_CARD_ADDR >> 12] = RING_PHYS;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    ring[0] = RAGE128_CONFIG_CNTL >> 2;
+    ring[1] = cc;
+    off0    = harness_maps_offthread;
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x80000003);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 2);
+    rr_quiesce(dev);
+    check32("cce config: a ring write of CONFIG_CNTL lands",
+            rd(dev, RAGE128_CONFIG_CNTL) & 0x1fu, 0);
+    check_true("cce config: the ring write puts back the unswapped handlers",
+               dev->lfb_mapping.write_l == rage128_lfb_writel
+                   && dev->agp_mapping.write_l == rage128_agp_writel
+                   && dev->mmio_mapping.write_l == rage128_mmio_writel);
+    check32("cce config: ring, no handler change off the CPU thread",
+            (uint32_t) (harness_maps_offthread - off0), 0);
+
+    /* The packet thread waits for the CPU thread: a register write behind
+       the CONFIG_CNTL write in the same stream does not run while the
+       hand-off is unanswered. Nothing here answers it until the sample
+       is taken: the register file and the post are read from the device,
+       not through a register read, which would answer it. A sample is
+       taken only while the post is still pending and the write not yet
+       made; a pump that answered it first leaves no such moment, and the
+       stream is tried again. */
+    {
+        int      tries, valid = 0, waited = 0;
+        uint32_t wptr = 2, scratch_at = 0, scratch_end;
+
+        wr(dev, RAGE128_GUI_SCRATCH_REG0, 0);
+        for (tries = 0; tries < 5 && !valid; tries++) {
+            uint32_t marker = 0xc0f90000u | (uint32_t) tries;
+            int      ms;
+
+            ring[(wptr + 0) & 15u] = RAGE128_CONFIG_CNTL >> 2;
+            ring[(wptr + 1) & 15u] = cc | 1u;
+            ring[(wptr + 2) & 15u] = RAGE128_GUI_SCRATCH_REG0 >> 2;
+            ring[(wptr + 3) & 15u] = marker;
+            wptr = (wptr + 4) & 15u; /* a 16-dword ring (size field 3) */
+            wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, wptr);
+            for (ms = 0; ms < 1000 && !atomic_load(&dev->cce_cfg_req); ms++)
+                lap_msleep(1);
+            lap_msleep(20);
+            if (atomic_load(&dev->cce_cfg_req) && (dev->config_cntl & 0x1fu) == 0) {
+                valid      = 1;
+                waited     = ms < 1000;
+                scratch_at = dev->gui_scratch[0];
+            }
+            rr_quiesce(dev);
+            scratch_end = rd(dev, RAGE128_GUI_SCRATCH_REG0);
+            wr(dev, RAGE128_CONFIG_CNTL, cc);
+            wr(dev, RAGE128_GUI_SCRATCH_REG0, 0);
+            if (!valid && scratch_end != marker)
+                break;
+        }
+        check_true("cce config: the stream reaches the hand-off with it unanswered", valid && waited);
+        check32("cce config: the write behind CONFIG_CNTL waits for the hand-off", scratch_at, 0);
+        check32("cce config: it runs once the CPU thread answers", scratch_end,
+                0xc0f90000u | (uint32_t) (tries - 1));
+    }
+    check_true("cce config: no stray bus-master access", harness_sysmem_stray == 0);
+
+    rr_reset(dev);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    pci_wr8(0x04, 0x03);
+    wr(dev, RAGE128_CONFIG_CNTL, cc_save);
 }
 
 /* ------------------------------------------------------------------ */
@@ -15109,6 +15231,7 @@ run_agp_32mb(void)
     vectors_gen_prim_count(dev);
     vectors_cce_gen_int(dev);
     vectors_cce_display(dev);
+    vectors_cce_config_cntl(dev);
     vectors_bm_chunk_tap(dev);
     vectors_modeset_tap(dev);
     vectors_early_arms(dev);

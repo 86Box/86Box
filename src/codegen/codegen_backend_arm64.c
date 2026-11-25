@@ -61,6 +61,9 @@ void *codegen_gpf_rout;
 void *codegen_ss_rout;
 void *codegen_exit_rout;
 void *codegen_rep_rout[2][3][2];
+void *codegen_load_seg_rout[5];
+void *codegen_retf_rout[2][2];
+void *codegen_call_far_rout[2][2];
 
 /*Entries to the exit routines that take 1..n cycles off cycles first, one
   per routine and count, so an exit that charges them keeps its single
@@ -262,6 +265,37 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 }
 
 #    if !defined(USE_GDBSTUB)
+static void
+build_store_logical_addr(codeblock_t *block)
+{
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &mem_logical_addr);
+    host_arm64_STR_IMM_W(block, REG_W0, REG_X6, 0);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &high_page);
+    host_arm64_STRB_IMM(block, REG_WZR, REG_X6, 0);
+}
+
+/*The store when it changes no mask: X5 = page->mem. readmem*l() and
+  writemem*l() clear high_page on every call, and some of its readers do not
+  set it first.*/
+static void
+build_store_fast_data(codeblock_t *block, int size)
+{
+    host_arm64_MOVX_IMM(block, REG_X7, (uint64_t) &high_page);
+    host_arm64_STRB_IMM(block, REG_WZR, REG_X7, 0);
+    host_arm64_AND_IMM(block, REG_W6, REG_W0, 0xfff);
+    if (size == 1)
+        host_arm64_STRB_REG(block, REG_W1, REG_X5, REG_X6);
+    else if (size == 2)
+        host_arm64_STRH_REG(block, REG_W1, REG_X5, REG_X6);
+    else
+        host_arm64_STR_REG(block, REG_W1, REG_X5, REG_X6);
+    host_arm64_MOVZ_IMM(block, REG_X1, 0);
+    host_arm64_RET(block, REG_X30);
+}
+
+_Static_assert(offsetof(page_t, store_full_mask) == offsetof(page_t, mem) + 8,
+               "page_t mem and store_full_mask are loaded as a pair");
+
 /*An aligned byte, word or dword store to a RAM page whose writes are tracked
   (page_lookup): what writemem*l() and mem_write_ram*_page() do, without the
   two calls. The store never reaches the next 64-byte chunk, so only one dirty
@@ -273,6 +307,10 @@ static int
 build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 {
     uint32_t *done[3];
+    uint32_t *not_full;
+    uint32_t *marked[2];
+    uint32_t *fast_skip[4];
+    uint32_t *full_skip;
     uint32_t *add_evict;
     int       nr_to_c   = 0;
     int       byte_mask = (1 << size) - 1;
@@ -290,22 +328,44 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
         write_offset = offsetof(page_t, write_l);
     }
 
-    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &codegen_in_recompile);
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
-    host_arm64_CMP_IMM(block, REG_W3, 0);
-    to_c[nr_to_c++] = host_arm64_BNE_(block);
-    /*An armed debug breakpoint needs writememll()'s check*/
-    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &cpu_dr_armed);
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
-    host_arm64_CMP_IMM(block, REG_W3, 0);
-    to_c[nr_to_c++] = host_arm64_BNE_(block);
-
-    /*X4 = page*/
-    host_arm64_MOV_REG_LSR(block, REG_W2, REG_W0, 12);
+    /*X4 = page, from W2 = page number (build_store_routine()). No test of
+      cpu_dr_armed: arming a breakpoint flushes page_lookup
+      (cpu_dr7_update()), and no entry is added while one is armed, so a page
+      found here means none is.*/
     host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) page_lookup);
     host_arm64_LDRX_REG_LSL3(block, REG_X4, REG_X3, REG_X2);
-    host_arm64_CMPX_IMM(block, REG_X4, 0);
-    to_c[nr_to_c++] = host_arm64_BEQ_(block);
+    to_c[nr_to_c++] = host_arm64_CBZ_(block, REG_X4);
+
+    /*A chunk in store_full_mask holds no code and all its bytes are dirty, so
+      the marking below would change nothing: only the data is stored. One in
+      store_fast_mask only holds no code and is dirty: the same when the
+      store's own bytes are dirty. A bit is only set on a RAM page with the
+      RAM write handlers, and cleared before either changes
+      (mem_set_page_byte_masks()), so neither needs testing here. Compiled
+      code never runs while codegen_in_recompile is set. mem_logical_addr is
+      only read by the RAM handlers' lookup adds, whose callers set it first.
+      X5 = page->mem, W6 = 64-byte chunk*/
+    host_arm64_LDP_IMM_X(block, REG_X5, REG_X8, REG_X4, offsetof(page_t, mem));
+    host_arm64_UBFX(block, REG_W6, REG_W0, 6, 6);
+    host_arm64_LSRX(block, REG_X12, REG_X8, REG_X6);
+    not_full = host_arm64_TBZ(block, REG_X12, 0);
+    build_store_fast_data(block, size);
+
+    host_arm64_branch_set_offset(not_full, &block_write_data[block_pos]);
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X4, offsetof(page_t, store_fast_mask));
+    host_arm64_LSRX(block, REG_X12, REG_X8, REG_X6);
+    marked[0] = host_arm64_TBZ(block, REG_X12, 0);
+    host_arm64_LDR_IMM_X(block, REG_X11, REG_X4, offsetof(page_t, byte_dirty_mask));
+    host_arm64_LDRX_REG_LSL3(block, REG_X12, REG_X11, REG_X6);
+    host_arm64_MOVZ_IMM(block, REG_X10, byte_mask);
+    host_arm64_LSLX(block, REG_X10, REG_X10, REG_X0);
+    host_arm64_ORRX_REG(block, REG_X8, REG_X12, REG_X10, 0);
+    host_arm64_CMPX_REG(block, REG_X8, REG_X12);
+    marked[1] = host_arm64_BNE_(block);
+    build_store_fast_data(block, size);
+
+    for (int c = 0; c < 2; c++)
+        host_arm64_branch_set_offset(marked[c], &block_write_data[block_pos]);
     host_arm64_LDR_IMM_X(block, REG_X5, REG_X4, write_offset);
     host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) write_fn);
     host_arm64_CMPX_REG(block, REG_X5, REG_X6);
@@ -318,11 +378,11 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) page_ff);
     host_arm64_CMPX_REG(block, REG_X5, REG_X6);
     to_c[nr_to_c++] = host_arm64_BEQ_(block);
-
-    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &mem_logical_addr);
-    host_arm64_STR_IMM_W(block, REG_W0, REG_X6, 0);
-    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &high_page);
-    host_arm64_STRB_IMM(block, REG_WZR, REG_X6, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &codegen_in_recompile);
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
+    host_arm64_CMP_IMM(block, REG_W3, 0);
+    to_c[nr_to_c++] = host_arm64_BNE_(block);
+    build_store_logical_addr(block);
 
     /*Unchanged data: no store and no dirty bits. The C functions take the
       data as uint8_t or uint16_t, so only its low bits count.*/
@@ -363,6 +423,38 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_arm64_ORRX_REG(block, REG_X12, REG_X12, REG_X10, 0);
     host_arm64_STR_IMM_Q(block, REG_X12, REG_X11, 0);
 
+    /*The chunk's dirty bit is set now: one with no code of either kind, of a
+      page with its own byte masks, goes into store_fast_mask*/
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X4, offsetof(page_t, store_fast_mask));
+    host_arm64_LSRX(block, REG_X3, REG_X8, REG_X6);
+    host_arm64_TST_IMM(block, REG_W3, 1);
+    fast_skip[0] = host_arm64_BNE_(block);
+    host_arm64_LDRB_IMM_W(block, REG_W3, REG_X4, offsetof(page_t, byte_masks_own));
+    host_arm64_CMP_IMM(block, REG_W3, 0);
+    fast_skip[1] = host_arm64_BEQ_(block);
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X4, offsetof(page_t, code_present_mask));
+    host_arm64_LSRX(block, REG_X3, REG_X3, REG_X6);
+    host_arm64_TST_IMM(block, REG_W3, 1);
+    fast_skip[2] = host_arm64_BNE_(block);
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X4, offsetof(page_t, byte_code_present_mask));
+    host_arm64_LDR_REG_X(block, REG_X3, REG_X3, REG_X13);
+    host_arm64_CMPX_IMM(block, REG_X3, 0);
+    fast_skip[3] = host_arm64_BNE_(block);
+    host_arm64_ORRX_REG(block, REG_X8, REG_X8, REG_X7, 0);
+    host_arm64_STR_IMM_Q(block, REG_X8, REG_X4, offsetof(page_t, store_fast_mask));
+
+    /*A chunk in store_fast_mask whose bytes are now all dirty (X12) goes into
+      store_full_mask*/
+    host_arm64_branch_set_offset(fast_skip[0], &block_write_data[block_pos]);
+    host_arm64_CMNX_IMM(block, REG_X12, 1);
+    full_skip = host_arm64_BNE_(block);
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X4, offsetof(page_t, store_full_mask));
+    host_arm64_ORRX_REG(block, REG_X8, REG_X8, REG_X7, 0);
+    host_arm64_STR_IMM_Q(block, REG_X8, REG_X4, offsetof(page_t, store_full_mask));
+    host_arm64_branch_set_offset(full_skip, &block_write_data[block_pos]);
+    for (int c = 1; c < 4; c++)
+        host_arm64_branch_set_offset(fast_skip[c], &block_write_data[block_pos]);
+
     /*A page not yet on the evict list goes on it when the store hits code*/
     host_arm64_LDR_IMM_W(block, REG_W12, REG_X4, offsetof(page_t, evict_prev));
     host_arm64_CMN_IMM(block, REG_W12, 1);
@@ -391,20 +483,84 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 }
 #    endif
 
+/*A misaligned store that stays inside its page and has a write lookup: what
+  writememwl(), writememll() and writememql() do on their in-page branch,
+  high_page cleared, the timing_misaligned charge under the same Cyrix
+  alignment rule and the store through the lookup. The C functions store
+  through a valid write lookup on this branch before any page_lookup test
+  (a ring-3 held carry can have both), so nothing is marked dirty. A page
+  crossing or a missing lookup branches back to the C path at c_path.
+  In - W0 = address, X1 or V_TEMP = data, X3 = writelookup2[] entry*/
+static void
+build_store_misaligned(codeblock_t *block, int size, int is_float, uint32_t *misaligned_offset, void *c_path)
+{
+    uint32_t *skip   = NULL;
+    uint32_t *charge = NULL;
+
+    /*At most 32 instructions with every MOVX_IMM at four: one chunk, so the
+      short branches reach*/
+    codegen_alloc(block, 136);
+    host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
+
+    /*The last byte is in the next page when bit 12 differs*/
+    host_arm64_ADD_IMM(block, REG_W2, REG_W0, size - 1);
+    host_arm64_EOR_REG(block, REG_W2, REG_W2, REG_W0, 0);
+    host_arm64_branch_set_offset(host_arm64_TBNZ(block, REG_W2, 12), c_path);
+    host_arm64_CMPX_IMM(block, REG_X3, -1);
+    host_arm64_branch_set_offset(host_arm64_BEQ_(block), c_path);
+
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &high_page);
+    host_arm64_STRB_IMM(block, REG_WZR, REG_X2, 0);
+
+    if (size != 8) {
+        host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &cpu_cyrix_alignment);
+        host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+        charge = host_arm64_CBZ_SHORT_(block, REG_W2);
+        host_arm64_AND_IMM(block, REG_W2, REG_W0, 7);
+        if (size == 2) {
+            host_arm64_CMP_IMM(block, REG_W2, 7);
+            skip = host_arm64_BNE_SHORT_(block);
+        } else {
+            host_arm64_CMP_IMM(block, REG_W2, 4);
+            skip = host_arm64_BLE_SHORT_(block);
+        }
+        host_arm64_short_branch_set_offset(charge, &block_write_data[block_pos]);
+    }
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &timing_misaligned);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    codegen_direct_read_32(block, REG_W4, &cpu_state._cycles);
+    host_arm64_SUB_REG(block, REG_W4, REG_W4, REG_W2, 0);
+    codegen_direct_write_32(block, &cpu_state._cycles, REG_W4);
+    if (skip)
+        host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+
+    if (size == 2)
+        host_arm64_STRH_REG(block, REG_X1, REG_X3, REG_X0);
+    else if (size == 4 && !is_float)
+        host_arm64_STR_REG(block, REG_X1, REG_X3, REG_X0);
+    else if (size == 4 && is_float)
+        host_arm64_STR_REG_F32(block, REG_V_TEMP, REG_X3, REG_X0);
+    else
+        host_arm64_STR_REG_F64(block, REG_V_TEMP, REG_X3, REG_X0);
+    host_arm64_MOVZ_IMM(block, REG_X1, 0);
+    host_arm64_RET(block, REG_X30);
+}
+
 static void
 build_store_routine(codeblock_t *block, int size, int is_float)
 {
     uint32_t *branch_offset;
     uint32_t *misaligned_offset = NULL;
+    void     *c_path;
 
     /*In - R0 = address, R1 = data
       Out - R1 = abrt*/
     /*MOV W2, W0, LSR #12
       MOV X3, #writelookup2
-      LDR X2, [X3, X2, LSL #3]
-      CMP X2, #-1
+      LDR X3, [X3, X2, LSL #3]
+      CMP X3, #-1
       BEQ +
-      STRB W1, [X2, X0]
+      STRB W1, [X3, X0]
       MOV W1, #0
       RET
     * STP X29, X30, [SP, #-16]
@@ -416,23 +572,23 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     codegen_alloc(block, 80);
     host_arm64_MOV_REG_LSR(block, REG_W2, REG_W0, 12);
     host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) writelookup2);
-    host_arm64_LDRX_REG_LSL3(block, REG_X2, REG_X3, REG_X2);
+    host_arm64_LDRX_REG_LSL3(block, REG_X3, REG_X3, REG_X2);
     if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
         misaligned_offset = host_arm64_BNE_(block);
     }
-    host_arm64_CMPX_IMM(block, REG_X2, -1);
+    host_arm64_CMPX_IMM(block, REG_X3, -1);
     branch_offset = host_arm64_BEQ_(block);
     if (size == 1 && !is_float)
-        host_arm64_STRB_REG(block, REG_X1, REG_X2, REG_X0);
+        host_arm64_STRB_REG(block, REG_X1, REG_X3, REG_X0);
     else if (size == 2 && !is_float)
-        host_arm64_STRH_REG(block, REG_X1, REG_X2, REG_X0);
+        host_arm64_STRH_REG(block, REG_X1, REG_X3, REG_X0);
     else if (size == 4 && !is_float)
-        host_arm64_STR_REG(block, REG_X1, REG_X2, REG_X0);
+        host_arm64_STR_REG(block, REG_X1, REG_X3, REG_X0);
     else if (size == 4 && is_float)
-        host_arm64_STR_REG_F32(block, REG_V_TEMP, REG_X2, REG_X0);
+        host_arm64_STR_REG_F32(block, REG_V_TEMP, REG_X3, REG_X0);
     else if (size == 8)
-        host_arm64_STR_REG_F64(block, REG_V_TEMP, REG_X2, REG_X0);
+        host_arm64_STR_REG_F64(block, REG_V_TEMP, REG_X3, REG_X0);
     host_arm64_MOVZ_IMM(block, REG_X1, 0);
     host_arm64_RET(block, REG_X30);
 
@@ -446,8 +602,7 @@ build_store_routine(codeblock_t *block, int size, int is_float)
             host_arm64_branch_set_offset(to_c[c], &block_write_data[block_pos]);
     }
 #    endif
-    if (size != 1)
-        host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
+    c_path = &block_write_data[block_pos];
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
     if (size == 4 && is_float)
         host_arm64_FMOV_W_S(block, REG_W1, REG_V_TEMP);
@@ -466,6 +621,9 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     codegen_direct_read_8(block, REG_W1, &cpu_state.abrt);
     host_arm64_LDP_POSTIDX_X(block, REG_X29, REG_X30, REG_XSP, 16);
     host_arm64_RET(block, REG_X30);
+
+    if (size != 1)
+        build_store_misaligned(block, size, is_float, misaligned_offset, c_path);
 }
 
 static void
@@ -1102,6 +1260,517 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
         fatal("build_rep_routine - too many slow path branches\n");
 }
 
+#    define LOAD_SEG_ENTRY(field) ((int) offsetof(seg_load_cache_t, field))
+#    define LOAD_SEG_MAX_MISS     10
+
+_Static_assert((offsetof(x86seg, ar_high) == (offsetof(x86seg, access) + 1)) && (offsetof(x86seg, seg) == (offsetof(x86seg, access) + 2)),
+               "a null selector's access, ar_high and selector are stored as one word");
+
+/*loadseg_pm_fast() for one of DS, ES, FS, GS and SS, selector in W0, result
+  in W0: the load its seg_load_cache entry recorded is repeated when every
+  input of it is the same (abort, PE, VM, the selector and CPL in the tag,
+  the table's base and limit, a read lookup for the descriptor's page and
+  the eight bytes read through it), which leaves what that call would; a
+  null selector in DS, ES, FS or GS is loaded as loadseg() loads it; any
+  other load goes to loadseg_pm_fast(). Uses X1-X8 and X16, keeps W0 to the
+  end*/
+static void
+build_load_seg_routine(codeblock_t *block, x86seg *seg)
+{
+    int       seg_offset = rep_state_offset(seg);
+    uint32_t *miss[LOAD_SEG_MAX_MISS];
+    int       nr_miss  = 0;
+    uint32_t *null_sel = NULL;
+
+    host_arm64_LDRB_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt));
+    host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.w));
+    host_arm64_LDRH_IMM(block, REG_W4, REG_CPUSTATE, rep_state_offset(&cpu_state.eflags));
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
+    miss[nr_miss++] = host_arm64_TBZ_SHORT_(block, REG_W3, 0);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W4, 1); /*VM_FLAG*/
+    if (seg != &cpu_state.seg_ss) {
+        host_arm64_AND_IMM(block, REG_W2, REG_W0, 0xfffc);
+        null_sel = host_arm64_CBZ_SHORT_(block, REG_W2);
+    }
+
+    /*The tag: selector, CPL, valid*/
+    host_arm64_LDRB_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.access));
+    host_arm64_UBFX(block, REG_W2, REG_W2, 5, 2);
+    host_arm64_ORR_REG(block, REG_W2, REG_W0, REG_W2, 16);
+    host_arm64_ORR_IMM(block, REG_W2, REG_W2, SEG_LOAD_CACHE_VALID);
+
+    /*X1 = &seg_load_cache[(selector >> 2) & 255]*/
+    host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) seg_load_cache);
+    host_arm64_AND_IMM(block, REG_W3, REG_W0, (SEG_LOAD_CACHE_SIZE - 1) << 2);
+    host_arm64_ORR_REG(block, REG_W3, REG_WZR, REG_W3, 4);
+    host_arm64_ADDX_REG_UXTW(block, REG_X1, REG_X1, REG_W3);
+
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X1, LOAD_SEG_ENTRY(tag));
+    host_arm64_CMP_REG(block, REG_W3, REG_W2);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+
+    if (seg == &cpu_state.seg_ss) {
+        /*An entry any load filled: loadseg_pm_fast()'s SS test on the
+          recorded bytes, which are compared with memory below. RPL == CPL;
+          P, DPL == CPL, S, data, W and A set, expand-down free*/
+        host_arm64_UBFX(block, REG_W3, REG_W2, 16, 2);
+        host_arm64_EOR_REG(block, REG_W4, REG_W0, REG_W3, 0);
+        host_arm64_AND_IMM(block, REG_W4, REG_W4, 3);
+        miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W4);
+        host_arm64_LDR_IMM_W(block, REG_W4, REG_X1, LOAD_SEG_ENTRY(desc) + 4);
+        host_arm64_AND_IMM(block, REG_W4, REG_W4, 0xfb00);
+        host_arm64_MOVZ_IMM(block, REG_W5, 0x9300);
+        host_arm64_ORR_REG(block, REG_W5, REG_W5, REG_W3, 13);
+        host_arm64_CMP_REG(block, REG_W4, REG_W5);
+        miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    }
+
+    /*The table's base and limit*/
+    host_arm64_LDP_IMM_X(block, REG_X2, REG_X3, REG_X1, LOAD_SEG_ENTRY(dt));
+    host_arm64_LDR_IMM_X(block, REG_X2, REG_X2, 0);
+    host_arm64_CMPX_REG(block, REG_X2, REG_X3);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+
+    /*The descriptor, read as read_descriptor()'s readmeml() hit reads it*/
+    host_arm64_LDP_IMM_X(block, REG_X2, REG_X3, REG_X1, LOAD_SEG_ENTRY(lookup));
+    host_arm64_LDR_IMM_X(block, REG_X2, REG_X2, 0);
+    host_arm64_CMNX_IMM(block, REG_X2, 1); /*LOOKUP_INV*/
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_LDR_IMM_W(block, REG_W4, REG_X1, LOAD_SEG_ENTRY(addr));
+    host_arm64_LDR_REG_X(block, REG_X2, REG_X2, REG_X4);
+    host_arm64_CMPX_REG(block, REG_X2, REG_X3);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+
+    /*The segment register, checked = 0*/
+    host_arm64_LDP_IMM_X(block, REG_X2, REG_X3, REG_X1, LOAD_SEG_ENTRY(image));
+    host_arm64_LDR_IMM_W(block, REG_W4, REG_X1, LOAD_SEG_ENTRY(image) + 16);
+    host_arm64_ADDX_IMM(block, REG_X5, REG_CPUSTATE, seg_offset);
+    host_arm64_STP_IMM_X(block, REG_X2, REG_X3, REG_X5, 0);
+    host_arm64_STR_IMM_W(block, REG_W4, REG_X5, 16);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X5, (int) offsetof(x86seg, checked));
+
+    /*cpu_cur_status as seg_load_status() leaves it*/
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpu_cur_status);
+    host_arm64_LDRH_IMM(block, REG_W7, REG_X6, 0);
+    if (seg == &cpu_state.seg_ss) {
+        /*NOTFLATSS from the entry's NOTFLATES, NOT64K, NOTWIDESS from
+          limit_high, then set_stack32() from the B bit*/
+        host_arm64_LDRH_IMM(block, REG_W8, REG_X1, LOAD_SEG_ENTRY(status_es));
+        host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff & ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS | CPU_STATUS_STACK32));
+        host_arm64_UBFX(block, REG_W5, REG_W8, 10, 1);
+        host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W5, 9);
+        host_arm64_LDR_IMM_W(block, REG_W5, REG_X1, LOAD_SEG_ENTRY(image) + (int) offsetof(x86seg, limit_high));
+        host_arm64_CMN_IMM(block, REG_W5, 1);
+        host_arm64_CSET_NE(block, REG_W5);
+        host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W5, 12);
+        host_arm64_LDR_IMM_W(block, REG_W5, REG_X1, LOAD_SEG_ENTRY(desc) + 4);
+        host_arm64_UBFX(block, REG_W5, REG_W5, 22, 1);
+        host_arm64_MOVX_IMM(block, REG_X4, (uint64_t) &stack32);
+        host_arm64_STR_IMM_W(block, REG_W5, REG_X4, 0);
+        host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W5, 1);
+        host_arm64_AND_IMM(block, REG_W8, REG_W8, CPU_STATUS_NOT64K);
+    } else if (seg == &cpu_state.seg_ds) {
+        host_arm64_LDRH_IMM(block, REG_W8, REG_X1, LOAD_SEG_ENTRY(status_ds));
+        host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff & ~(CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS));
+    } else {
+        host_arm64_LDRH_IMM(block, REG_W8, REG_X1, LOAD_SEG_ENTRY(status_es));
+        if (seg == &cpu_state.seg_es)
+            host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff & ~CPU_STATUS_NOTFLATES);
+        else
+            host_arm64_AND_IMM(block, REG_W8, REG_W8, CPU_STATUS_NOT64K);
+    }
+    host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W8, 0);
+    host_arm64_STRH_IMM(block, REG_W7, REG_X6, 0);
+
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpl_override);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+    if (seg == &cpu_state.seg_ds) {
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_flat_ds);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_wide_ds);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+    } else if (seg == &cpu_state.seg_es) {
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_flat_es);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+    } else if (seg == &cpu_state.seg_ss) {
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_flat_ss);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+        host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &codegen_wide_ss);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+    }
+    host_arm64_MOVZ_IMM(block, REG_W0, 0);
+    host_arm64_RET(block, REG_X30);
+
+    if (null_sel) {
+        /*loadseg()'s null selector branch: the selector, access 80h, ar_high
+          10h and base FFFFFFFFh (the mark every access through it faults
+          on), checked = 0, the limits kept; DS and ES lose their flat and
+          wide bits. A null SS is #GP(0), from loadseg()*/
+        host_arm64_short_branch_set_offset(null_sel, &block_write_data[block_pos]);
+        host_arm64_ADDX_IMM(block, REG_X5, REG_CPUSTATE, seg_offset);
+        host_arm64_MOVZ_IMM(block, REG_W2, 0x1080);
+        host_arm64_ORR_REG(block, REG_W2, REG_W2, REG_W0, 16);
+        host_arm64_STR_IMM_W(block, REG_W2, REG_X5, (int) offsetof(x86seg, access));
+        host_arm64_mov_imm(block, REG_W3, 0xffffffff);
+        host_arm64_STR_IMM_W(block, REG_W3, REG_X5, (int) offsetof(x86seg, base));
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_X5, (int) offsetof(x86seg, checked));
+        if ((seg == &cpu_state.seg_ds) || (seg == &cpu_state.seg_es)) {
+            host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpu_cur_status);
+            host_arm64_LDRH_IMM(block, REG_W7, REG_X6, 0);
+            host_arm64_ORR_IMM(block, REG_W7, REG_W7,
+                               (seg == &cpu_state.seg_ds) ? (CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS) : CPU_STATUS_NOTFLATES);
+            host_arm64_STRH_IMM(block, REG_W7, REG_X6, 0);
+        }
+        host_arm64_MOVZ_IMM(block, REG_W0, 0);
+        host_arm64_RET(block, REG_X30);
+    }
+
+    for (int c = 0; c < nr_miss; c++)
+        host_arm64_short_branch_set_offset(miss[c], &block_write_data[block_pos]);
+    host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) seg);
+    host_arm64_jump(block, (uintptr_t) loadseg_pm_fast);
+}
+
+#    define FAR_ENTRY(field) ((int) offsetof(cs_load_cache_t, field))
+#    define FAR_MAX_MISS     24
+
+/*far_pm_fast_desc() and far_pm_fast_code() for the selector in sel_reg at
+  the CPL in cpl_reg, by the selector's cs_load_cache entry, left in X2: the
+  tag, the table's base and limit, a read lookup for the descriptor's page
+  and the eight bytes read through it as seg_load_cache's are tested, then
+  the terms of far_pm_fast_code() that are not functions of those (an entry
+  held below CPL 3, the first transfer at CPL 3 since a change). Uses X3-X5*/
+static void
+build_far_cs_test(codeblock_t *block, int sel_reg, int cpl_reg, uint32_t **miss, int *nr_miss)
+{
+    host_arm64_ORR_REG(block, REG_W3, sel_reg, cpl_reg, 16);
+    host_arm64_ORR_IMM(block, REG_W3, REG_W3, SEG_LOAD_CACHE_VALID);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) cs_load_cache);
+    host_arm64_AND_IMM(block, REG_W4, sel_reg, (CS_LOAD_CACHE_SIZE - 1) << 2);
+    host_arm64_ORR_REG(block, REG_W4, REG_WZR, REG_W4, 4);
+    host_arm64_ADDX_REG_UXTW(block, REG_X2, REG_X2, REG_W4);
+
+    host_arm64_LDR_IMM_W(block, REG_W4, REG_X2, FAR_ENTRY(tag));
+    host_arm64_CMP_REG(block, REG_W4, REG_W3);
+    miss[(*nr_miss)++] = host_arm64_BNE_SHORT_(block);
+
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X2, FAR_ENTRY(dt));
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X3, 0);
+    host_arm64_CMPX_REG(block, REG_X3, REG_X4);
+    miss[(*nr_miss)++] = host_arm64_BNE_SHORT_(block);
+
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X2, FAR_ENTRY(lookup));
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X3, 0);
+    host_arm64_CMNX_IMM(block, REG_X3, 1); /*LOOKUP_INV*/
+    miss[(*nr_miss)++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_LDR_IMM_W(block, REG_W5, REG_X2, FAR_ENTRY(addr));
+    host_arm64_LDR_REG_X(block, REG_X3, REG_X3, REG_X5);
+    host_arm64_CMPX_REG(block, REG_X3, REG_X4);
+    miss[(*nr_miss)++] = host_arm64_BNE_SHORT_(block);
+
+    /*CPL 3 ? oldcpl != 3 : mem_held_num != 0*/
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &mem_held_num);
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
+    host_arm64_MOVX_IMM(block, REG_X4, (uint64_t) &oldcpl);
+    host_arm64_LDR_IMM_W(block, REG_W4, REG_X4, 0);
+    host_arm64_EOR_IMM(block, REG_W4, REG_W4, 3);
+    host_arm64_CMP_IMM(block, cpl_reg, 3);
+    host_arm64_CSEL_EQ(block, REG_W3, REG_W4, REG_W3);
+    miss[(*nr_miss)++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
+}
+
+/*far_pm_fast_load_cs() from the entry at X2, the CPL in cpl_reg. Uses
+  X3-X8*/
+static void
+build_far_cs_load(codeblock_t *block, int cpl_reg)
+{
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X2, FAR_ENTRY(image));
+    host_arm64_LDR_IMM_W(block, REG_W5, REG_X2, FAR_ENTRY(image) + 16);
+    host_arm64_ADDX_IMM(block, REG_X6, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs));
+    host_arm64_STP_IMM_X(block, REG_X3, REG_X4, REG_X6, 0);
+    host_arm64_STR_IMM_W(block, REG_W5, REG_X6, 16);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, (int) offsetof(x86seg, checked));
+
+    /*NOT64K is only ever set by a load, USE32 follows the D bit*/
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpu_cur_status);
+    host_arm64_LDRH_IMM(block, REG_W7, REG_X6, 0);
+    host_arm64_LDRH_IMM(block, REG_W8, REG_X2, FAR_ENTRY(status));
+    host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff & ~CPU_STATUS_USE32);
+    host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W8, 0);
+    host_arm64_STRH_IMM(block, REG_W7, REG_X6, 0);
+
+    host_arm64_LDRH_IMM(block, REG_W8, REG_X2, FAR_ENTRY(use32));
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &use32);
+    host_arm64_STR_IMM_W(block, REG_W8, REG_X6, 0);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &oldcpl);
+    host_arm64_STR_IMM_W(block, cpl_reg, REG_X6, 0);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &cpl_override);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X6, 0);
+}
+
+/*Branches to the miss path unless the stack item width bytes wide at the
+  offset in off_reg (zero-extended) lies within the SS limits in W11
+  (limit_low) and W12 (limit_high). Uses X3*/
+static void
+build_far_item_in_limits(codeblock_t *block, int off_reg, int width, uint32_t **miss, int *nr_miss)
+{
+    host_arm64_SUBX_REG(block, REG_X3, off_reg, REG_X11);
+    miss[(*nr_miss)++] = host_arm64_TBNZ_SHORT_(block, REG_X3, 63);
+    host_arm64_ADDX_IMM(block, REG_X3, off_reg, width - 1);
+    host_arm64_SUBX_REG(block, REG_X3, REG_X12, REG_X3);
+    miss[(*nr_miss)++] = host_arm64_TBNZ_SHORT_(block, REG_X3, 63);
+}
+
+/*pmoderetf_pm_fast() for one operand size and stack width, is32 in W0 and
+  the immediate in W1: the return pmoderetf_pm_fast() would make at the
+  same level is repeated when both items lie within the SS limits and are
+  read through their read lookups, the selector's RPL is the CPL and its
+  cs_load_cache entry holds (build_far_cs_test), and the offset is within
+  the entry's limit; it leaves what that call would. Anything else goes to
+  pmoderetf_pm_fast() with W0 and W1 as they came. Uses X2-X15*/
+static void
+build_retf_routine(codeblock_t *block, int is32, int stack_32)
+{
+    const int width = is32 ? 4 : 2;
+    uint32_t *miss[FAR_MAX_MISS];
+    int       nr_miss = 0;
+
+    host_arm64_LDRB_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt));
+    host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.w));
+    host_arm64_LDRH_IMM(block, REG_W4, REG_CPUSTATE, rep_state_offset(&cpu_state.eflags));
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
+    miss[nr_miss++] = host_arm64_TBZ_SHORT_(block, REG_W3, 0);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W4, 1); /*VM_FLAG*/
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &stack32);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    if (stack_32)
+        miss[nr_miss++] = host_arm64_CBZ_SHORT_(block, REG_W2);
+    else
+        miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
+
+    /*W10 = SS base, not the null selector's mark; W6, W7 = the offsets of
+      the two items*/
+    host_arm64_ADDX_IMM(block, REG_X9, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_ss));
+    host_arm64_LDR_IMM_W(block, REG_W10, REG_X9, (int) offsetof(x86seg, base));
+    host_arm64_CMN_IMM(block, REG_W10, 1);
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_LDR_IMM_W(block, REG_W11, REG_X9, (int) offsetof(x86seg, limit_low));
+    host_arm64_LDR_IMM_W(block, REG_W12, REG_X9, (int) offsetof(x86seg, limit_high));
+    if (stack_32) {
+        host_arm64_LDR_IMM_W(block, REG_W6, REG_CPUSTATE, rep_state_offset(&ESP));
+        host_arm64_ADD_IMM(block, REG_W7, REG_W6, width);
+    } else {
+        host_arm64_LDRH_IMM(block, REG_W6, REG_CPUSTATE, rep_state_offset(&SP));
+        host_arm64_ADD_IMM(block, REG_W7, REG_W6, width);
+        host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff);
+    }
+    build_far_item_in_limits(block, REG_X6, width, miss, &nr_miss);
+    build_far_item_in_limits(block, REG_X7, width, miss, &nr_miss);
+
+    /*W13 = the offset and W14 = the selector, by the readmemw()/readmeml()
+      hits*/
+    host_arm64_ADD_REG(block, REG_W6, REG_W10, REG_W6, 0);
+    host_arm64_ADD_REG(block, REG_W7, REG_W10, REG_W7, 0);
+    host_arm64_ORR_REG(block, REG_W3, REG_W6, REG_W7, 0);
+    host_arm64_TST_IMM(block, REG_W3, width - 1);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_MOVX_IMM(block, REG_X8, (uint64_t) readlookup2);
+    host_arm64_MOV_REG_LSR(block, REG_W3, REG_W6, 12);
+    host_arm64_LDRX_REG_LSL3(block, REG_X3, REG_X8, REG_X3);
+    host_arm64_CMNX_IMM(block, REG_X3, 1); /*LOOKUP_INV*/
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_MOV_REG_LSR(block, REG_W4, REG_W7, 12);
+    host_arm64_LDRX_REG_LSL3(block, REG_X4, REG_X8, REG_X4);
+    host_arm64_CMNX_IMM(block, REG_X4, 1); /*LOOKUP_INV*/
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    if (is32)
+        host_arm64_LDR_REG(block, REG_W13, REG_X3, REG_X6);
+    else
+        host_arm64_LDRH_REG(block, REG_W13, REG_X3, REG_X6);
+    host_arm64_LDRH_REG(block, REG_W14, REG_X4, REG_X7);
+
+    /*W15 = CPL, the selector's RPL*/
+    host_arm64_LDRB_IMM_W(block, REG_W15, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.access));
+    host_arm64_UBFX(block, REG_W15, REG_W15, 5, 2);
+    host_arm64_AND_IMM(block, REG_W3, REG_W14, 3);
+    host_arm64_CMP_REG(block, REG_W3, REG_W15);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+
+    build_far_cs_test(block, REG_W14, REG_W15, miss, &nr_miss);
+
+    /*The offset within the new CS limit*/
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X2, FAR_ENTRY(image) + (int) offsetof(x86seg, limit));
+    host_arm64_SUBX_REG(block, REG_X3, REG_X3, REG_X13);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_X3, 63);
+
+    if (stack_32) {
+        host_arm64_LDR_IMM_W(block, REG_W3, REG_CPUSTATE, rep_state_offset(&ESP));
+        host_arm64_ADD_IMM(block, REG_W3, REG_W3, 2 * width);
+        host_arm64_ADD_REG(block, REG_W3, REG_W3, REG_W1, 0);
+        host_arm64_STR_IMM_W(block, REG_W3, REG_CPUSTATE, rep_state_offset(&ESP));
+    } else {
+        host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&SP));
+        host_arm64_ADD_IMM(block, REG_W3, REG_W3, 2 * width);
+        host_arm64_ADD_REG(block, REG_W3, REG_W3, REG_W1, 0);
+        host_arm64_STRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&SP));
+    }
+    host_arm64_STR_IMM_W(block, REG_W13, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
+    build_far_cs_load(block, REG_W15);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &timing_retf_pm);
+    host_arm64_LDR_IMM_W(block, REG_W7, REG_X6, 0);
+    host_arm64_LDR_IMM_W(block, REG_W8, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    host_arm64_SUB_REG(block, REG_W8, REG_W8, REG_W7, 0);
+    host_arm64_STR_IMM_W(block, REG_W8, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    host_arm64_RET(block, REG_X30);
+
+    if (nr_miss > FAR_MAX_MISS)
+        fatal("build_retf_routine - too many miss branches\n");
+    for (int c = 0; c < nr_miss; c++)
+        host_arm64_short_branch_set_offset(miss[c], &block_write_data[block_pos]);
+    host_arm64_jump(block, (uintptr_t) pmoderetf_pm_fast);
+}
+
+/*dynarec_call_far_w/l() for one operand size and stack width, the selector
+  in W0, the return address in W1 and the target offset in cpu_state.pc:
+  the call call_far_pm_fast() would make at the same level is repeated when
+  no debug register is in use, both pushes lie within the SS limits and hit
+  their write lookups, the selector's cs_load_cache entry holds
+  (build_far_cs_test), and the offset is within the entry's limit; it
+  leaves what that call would. Anything else goes to dynarec_call_far_w/l()
+  with W0 and W1 as they came. Uses X2-X15 and X17*/
+static void
+build_call_far_routine(codeblock_t *block, int is32, int stack_32)
+{
+    const int width = is32 ? 4 : 2;
+    uint32_t *miss[FAR_MAX_MISS];
+    int       nr_miss = 0;
+
+    host_arm64_LDRB_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt));
+    host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.w));
+    host_arm64_LDRH_IMM(block, REG_W4, REG_CPUSTATE, rep_state_offset(&cpu_state.eflags));
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
+    miss[nr_miss++] = host_arm64_TBZ_SHORT_(block, REG_W3, 0);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W4, 1); /*VM_FLAG*/
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &cpu_debug_regs_486);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &stack32);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    if (stack_32)
+        miss[nr_miss++] = host_arm64_CBZ_SHORT_(block, REG_W2);
+    else
+        miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W2);
+
+    /*W10 = SS base, not the null selector's mark; W6, W7 = the offsets of
+      the two pushes*/
+    host_arm64_ADDX_IMM(block, REG_X9, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_ss));
+    host_arm64_LDR_IMM_W(block, REG_W10, REG_X9, (int) offsetof(x86seg, base));
+    host_arm64_CMN_IMM(block, REG_W10, 1);
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_LDR_IMM_W(block, REG_W11, REG_X9, (int) offsetof(x86seg, limit_low));
+    host_arm64_LDR_IMM_W(block, REG_W12, REG_X9, (int) offsetof(x86seg, limit_high));
+    if (stack_32) {
+        host_arm64_LDR_IMM_W(block, REG_W5, REG_CPUSTATE, rep_state_offset(&ESP));
+        host_arm64_SUB_IMM(block, REG_W6, REG_W5, width);
+        host_arm64_SUB_IMM(block, REG_W7, REG_W5, 2 * width);
+    } else {
+        host_arm64_LDRH_IMM(block, REG_W5, REG_CPUSTATE, rep_state_offset(&SP));
+        host_arm64_SUB_IMM(block, REG_W6, REG_W5, width);
+        host_arm64_AND_IMM(block, REG_W6, REG_W6, 0xffff);
+        host_arm64_SUB_IMM(block, REG_W7, REG_W5, 2 * width);
+        host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff);
+    }
+    build_far_item_in_limits(block, REG_X6, width, miss, &nr_miss);
+    build_far_item_in_limits(block, REG_X7, width, miss, &nr_miss);
+
+    /*X14 and X17 = where the writememw()/writememl() hits store the old CS
+      and the return address*/
+    host_arm64_ADD_REG(block, REG_W6, REG_W10, REG_W6, 0);
+    host_arm64_ADD_REG(block, REG_W7, REG_W10, REG_W7, 0);
+    host_arm64_ORR_REG(block, REG_W3, REG_W6, REG_W7, 0);
+    host_arm64_TST_IMM(block, REG_W3, width - 1);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_MOVX_IMM(block, REG_X8, (uint64_t) writelookup2);
+    host_arm64_MOV_REG_LSR(block, REG_W3, REG_W6, 12);
+    host_arm64_LDRX_REG_LSL3(block, REG_X14, REG_X8, REG_X3);
+    host_arm64_CMNX_IMM(block, REG_X14, 1); /*LOOKUP_INV*/
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_ADDX_REG_UXTW(block, REG_X14, REG_X14, REG_W6);
+    host_arm64_MOV_REG_LSR(block, REG_W3, REG_W7, 12);
+    host_arm64_LDRX_REG_LSL3(block, REG_X17, REG_X8, REG_X3);
+    host_arm64_CMNX_IMM(block, REG_X17, 1); /*LOOKUP_INV*/
+    miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
+    host_arm64_ADDX_REG_UXTW(block, REG_X17, REG_X17, REG_W7);
+
+    /*W13 = the target offset, in the operand size; W15 = CPL*/
+    host_arm64_LDR_IMM_W(block, REG_W13, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
+    if (!is32)
+        host_arm64_AND_IMM(block, REG_W13, REG_W13, 0xffff);
+    host_arm64_LDRB_IMM_W(block, REG_W15, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.access));
+    host_arm64_UBFX(block, REG_W15, REG_W15, 5, 2);
+
+    build_far_cs_test(block, REG_W0, REG_W15, miss, &nr_miss);
+
+    /*The offset within the new CS limit*/
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X2, FAR_ENTRY(image) + (int) offsetof(x86seg, limit));
+    host_arm64_SUBX_REG(block, REG_X3, REG_X3, REG_X13);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_X3, 63);
+
+    /*The pushes, the old CS zero-extended*/
+    host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&CS));
+    if (is32) {
+        host_arm64_STR_IMM_W(block, REG_W3, REG_X14, 0);
+        host_arm64_STR_IMM_W(block, REG_W1, REG_X17, 0);
+    } else {
+        host_arm64_STRH_IMM(block, REG_W3, REG_X14, 0);
+        host_arm64_STRH_IMM(block, REG_W1, REG_X17, 0);
+    }
+
+    host_arm64_STR_IMM_W(block, REG_W13, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &optype);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &cgate16);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &cgate32);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &cgate_task);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &call_gate_undo.active);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
+    host_arm64_LDR_IMM_W(block, REG_W4, REG_X2, FAR_ENTRY(addr));
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &call_far_a_addr);
+    host_arm64_STR_IMM_W(block, REG_W4, REG_X3, 0);
+    host_arm64_LDRH_IMM(block, REG_W4, REG_X2, FAR_ENTRY(desc) + 4);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &call_far_a_word);
+    host_arm64_STRH_IMM(block, REG_W4, REG_X3, 0);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &call_far_a_pending);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
+    build_far_cs_load(block, REG_W15);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &timing_call_pm);
+    host_arm64_LDR_IMM_W(block, REG_W7, REG_X6, 0);
+    host_arm64_LDR_IMM_W(block, REG_W8, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    host_arm64_SUB_REG(block, REG_W8, REG_W8, REG_W7, 0);
+    host_arm64_STR_IMM_W(block, REG_W8, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &oldss);
+    host_arm64_STR_IMM_W(block, REG_W10, REG_X6, 0);
+    if (stack_32) {
+        host_arm64_LDR_IMM_W(block, REG_W3, REG_CPUSTATE, rep_state_offset(&ESP));
+        host_arm64_SUB_IMM(block, REG_W3, REG_W3, 2 * width);
+        host_arm64_STR_IMM_W(block, REG_W3, REG_CPUSTATE, rep_state_offset(&ESP));
+    } else {
+        host_arm64_LDRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&SP));
+        host_arm64_SUB_IMM(block, REG_W3, REG_W3, 2 * width);
+        host_arm64_STRH_IMM(block, REG_W3, REG_CPUSTATE, rep_state_offset(&SP));
+    }
+    host_arm64_RET(block, REG_X30);
+
+    if (nr_miss > FAR_MAX_MISS)
+        fatal("build_call_far_routine - too many miss branches\n");
+    for (int c = 0; c < nr_miss; c++)
+        host_arm64_short_branch_set_offset(miss[c], &block_write_data[block_pos]);
+    host_arm64_jump(block, (uintptr_t) (is32 ? dynarec_call_far_l : dynarec_call_far_w));
+}
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 #        define LINK_SLOT(field) ((int) offsetof(codegen_link_slot_t, field))
 #        define LINK_MAX_MISS    32
@@ -1310,6 +1979,7 @@ build_link_routine(codeblock_t *block)
     uint32_t *one_page;
     uint32_t *byte_mask;
     uint32_t *no_paging_2;
+    uint32_t *chk_none;
     uint8_t  *nmi_done;
     uint8_t  *irq_done;
     uint8_t  *xlat_done;
@@ -1485,6 +2155,21 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDR_IMM_X(block, REG_X13, REG_X13, 0);
     host_arm64_TSTX_REG(block, REG_X13, REG_X10);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    /*A target whose code has the entry check is not marked by writes: its
+      chunks' dirty words are, and written it is a miss here, before the
+      stores below, as a dirty block marked by writes is. X16 = the target
+      block*/
+    host_arm64_LDR_IMM_X(block, REG_X13, REG_X16, offsetof(codeblock_t, chk_dirty));
+    chk_none = host_arm64_CBZ_SHORT_(block, REG_X13);
+    host_arm64_LDR_IMM_X(block, REG_X10, REG_X16, offsetof(codeblock_t, page_mask));
+    host_arm64_LDR_IMM_X(block, REG_X17, REG_X13, 0);
+    host_arm64_TSTX_REG(block, REG_X17, REG_X10);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_LDR_IMM_X(block, REG_X10, REG_X16, offsetof(codeblock_t, page_mask2));
+    host_arm64_LDR_IMM_X(block, REG_X17, REG_X13, 8);
+    host_arm64_TSTX_REG(block, REG_X17, REG_X10);
+    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_short_branch_set_offset(chk_none, &block_write_data[block_pos]);
     host_arm64_LDR_IMM_W(block, REG_W10, REG_CPUSTATE, rep_state_offset(&cpu_state.TOP));
     host_arm64_UBFX(block, REG_W13, REG_W9, 16, 8);
     host_arm64_AND_REG(block, REG_W10, REG_W10, REG_W13, 0);
@@ -1856,6 +2541,27 @@ codegen_backend_init(void)
         }
     }
 
+    {
+        x86seg *load_seg[5] = { &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs, &cpu_state.seg_ss };
+
+        for (int c = 0; c < 5; c++) {
+            codegen_alloc(block, (load_seg[c] == &cpu_state.seg_ss) ? 512 : 400);
+            codegen_load_seg_rout[c] = &block_write_data[block_pos];
+            build_load_seg_routine(block, load_seg[c]);
+        }
+    }
+
+    for (int is32 = 0; is32 < 2; is32++) {
+        for (int stack_32 = 0; stack_32 < 2; stack_32++) {
+            codegen_alloc(block, 1024);
+            codegen_retf_rout[is32][stack_32] = &block_write_data[block_pos];
+            build_retf_routine(block, is32, stack_32);
+            codegen_alloc(block, 1024);
+            codegen_call_far_rout[is32][stack_32] = &block_write_data[block_pos];
+            build_call_far_routine(block, is32, stack_32);
+        }
+    }
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     build_link_routine(block);
     build_link_set_routine(block);
@@ -1896,6 +2602,61 @@ codegen_set_rounding_mode(int mode)
     cpu_state.new_fp_control = mode << 3;
 }
 
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+/*The checked block's bytes against memory, through the mapping in _mem_exec[]
+  now, which must still be the one it was compiled under: the immediates are
+  read from that. Its dirty bits first: written since, it goes to the C loop
+  as the link routine sends a block marked by writes and dirty. A difference
+  leaves before the first instruction, through the plain exit, with nothing
+  done: the C loop then handles it (codegen_block_check()). Ahead of anything
+  with state, so it is the same from the link entry. X1 = the bytes, X2 = the
+  words to compare with*/
+static void
+entry_check_emit(codeblock_t *block)
+{
+    const codegen_entry_check_t *c = &codegen_entry_check;
+    uint32_t                    *fail[3 + 16];
+    uint32_t                    *pass;
+    uint8_t                     *fail_dest;
+    int                          nr_fail = 0;
+
+    /*In one allocator block, for the short branches*/
+    codegen_alloc(block, (44 + 5 * c->nr) * 4);
+    host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) c->dirty);
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X1, 0);
+    host_arm64_MOVX_IMM(block, REG_X5, c->dirty_bits[0]);
+    host_arm64_TSTX_REG(block, REG_X3, REG_X5);
+    fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    if (c->dirty_bits[1]) {
+        host_arm64_MOVX_IMM(block, REG_X5, c->dirty_bits[1]);
+        host_arm64_TSTX_REG(block, REG_X4, REG_X5);
+        fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    }
+    host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) c->exec_slot);
+    host_arm64_LDR_IMM_X(block, REG_X1, REG_X1, 0);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) (uintptr_t) c->exec);
+    host_arm64_CMPX_REG(block, REG_X1, REG_X2);
+    fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    host_arm64_ADDX_IMM(block, REG_X1, REG_X1, c->offset);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) (uintptr_t) c->chk);
+    for (int n = 0; n < c->nr; n++) {
+        host_arm64_LDR_IMM_X(block, REG_X3, REG_X1, c->word[n] * 8);
+        host_arm64_LDP_IMM_X(block, REG_X4, REG_X5, REG_X2, n * 16);
+        host_arm64_EORX_REG(block, REG_X3, REG_X3, REG_X4, 0);
+        host_arm64_TSTX_REG(block, REG_X3, REG_X5);
+        fail[nr_fail++] = host_arm64_BNE_SHORT_(block);
+    }
+    pass      = host_arm64_B_(block);
+    fail_dest = &block_write_data[block_pos];
+    host_arm64_B(block, codegen_exit_rout);
+    /*Before the short branches are set: the one ahead of it would look like
+      the skip of a conditional branch template*/
+    host_arm64_branch_set_offset(pass, &block_write_data[block_pos]);
+    for (int n = 0; n < nr_fail; n++)
+        host_arm64_short_branch_set_offset(fail[n], fail_dest);
+}
+#    endif
+
 /*R10 - cpu_state*/
 void
 codegen_backend_prologue(codeblock_t *block)
@@ -1915,6 +2676,10 @@ codegen_backend_prologue(codeblock_t *block)
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     link_site = 0;
+#    endif
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+    if (codegen_entry_check.nr)
+        entry_check_emit(block);
 #    endif
 
     if (block->flags & CODEBLOCK_HAS_FPU) {
