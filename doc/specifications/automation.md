@@ -43,6 +43,9 @@ example on a server, in a container or under a program that controls it:
 `--headless` doesn't need an automation build, but it's of little use
 without one or a VNC renderer: nothing could see or drive the machine.
 
+To run a headless machine in a container (Docker, Podman), see
+[container/README.md](../../container/README.md).
+
 ## Transports and security
 
 | Endpoint | Transport |

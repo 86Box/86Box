@@ -141,7 +141,6 @@ int force_debug = 0; /* (O) force debug output */
 int settings_only     = 0; /* (O) show only the settings dialog */
 int confirm_exit_cmdl = 1; /* (O) do not ask for confirmation on quit if set to 0 */
 int headless          = 0; /* (O) run without a window or dialogs (--headless) */
-int headless_vid_api  = 0; /* the configured renderer, saved in place of the headless one */
 #ifdef _WIN32
 uint64_t unique_id   = 0;
 uint64_t source_hwnd = 0;
@@ -1548,10 +1547,9 @@ usage:
 
         /*
            Headless, nothing is shown: draw with the software renderer, which
-           needs no GPU or display, and keep the configured one for saving.
+           needs no GPU or display (config_save() leaves the configured one).
            A VNC renderer is a display of its own, so it stays.
          */
-        headless_vid_api = vid_api;
         if (headless && (vid_api != plat_vidapi("vnc")))
             vid_api = plat_vidapi("qt_software");
 
