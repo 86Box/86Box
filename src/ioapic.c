@@ -33,6 +33,9 @@
 #include "apic_platform.h"
 #include "ioapic_82093aa.h"
 #include "lapic.h"
+#ifdef USE_VFIO
+#    include <86box/vfio.h>
+#endif
 
 typedef struct ioapic_t {
     /* Config/state gates stay here; apic_platform owns LAPIC topology effects. */
@@ -90,6 +93,7 @@ typedef struct ioapic_t {
     uint8_t       legacy_irq_default_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       legacy_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       pirq_to_intin[4]; /* the board's PIRQ wiring, 0xff for none */
+    uint8_t       pirq_steered_isa; /* steered PIRQs also reach the inputs of their IRQs */
     uint8_t       ioapic_masked_irq_log_count[24];
     uint8_t       ioapic_irq_log_count[24];
     uint8_t       ioapic_deliver_log_count[24];
@@ -914,6 +918,16 @@ ioapic_pirq_intin(uint8_t pirq)
     return dev->pirq_to_intin[pirq];
 }
 
+/* Whether a PIRQ wired to an input of its own also reaches the input of the
+   IRQ it is steered to. */
+int
+ioapic_pirq_steered_isa(void)
+{
+    const ioapic_t *dev = ioapic_global;
+
+    return (dev != NULL) && dev->uniprocessor_apic && dev->pirq_steered_isa;
+}
+
 /* Whether a PCI interrupt the MP table puts on intin reaches the I/O APIC
    on a wire of its own, apart from the IRQ line it is steered to
    (irq_line, 0xff for none). On the ESC the I/O APIC's inputs are the IRQ
@@ -951,6 +965,37 @@ ioapic_legacy_irq_enabled(void)
     ioapic_t *dev = ioapic_global;
 
     return (dev != NULL) && dev->uniprocessor_apic;
+}
+
+/* The input an ISA IRQ line is wired to, 0xff for none. */
+uint8_t
+ioapic_legacy_irq_intin(uint8_t irq)
+{
+    ioapic_t *dev = ioapic_global;
+    uint8_t   pin;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic || (irq >= IOAPIC_LEGACY_IRQ_COUNT))
+        return IOAPIC_LEGACY_IRQ_NC;
+
+    pin = ioapic_legacy_irq_to_pin(dev, irq);
+    return (pin < dev->pins) ? pin : IOAPIC_LEGACY_IRQ_NC;
+}
+
+/* Whether any of the inputs in the mask has its redirection entry unmasked. */
+int
+ioapic_intins_unmasked(uint32_t intins)
+{
+    ioapic_t *dev = ioapic_global;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic)
+        return 0;
+
+    for (uint8_t pin = 0; pin < dev->pins; pin++) {
+        if ((intins & ioapic_82093aa_pin_bit(pin)) && !ioapic_redir_masked(dev->ioapic_redir[pin * 2]))
+            return 1;
+    }
+
+    return 0;
 }
 
 static void
@@ -1115,6 +1160,11 @@ ioapic_eoi(ioapic_t *dev, uint8_t vector)
             continue;
 
         *lowp &= ~IOAPIC_REDIR_REMOTEIRR;
+#ifdef USE_VFIO
+        /* VFIO cannot report a passed-through device deasserting INTx, so
+           resample the level before relying on it again. */
+        vfio_irq_intx_resample_intin(pin);
+#endif
         if (ioapic_log_first(&dev->ioapic_eoi_log_count[pin], 8))
             ioapic_log("IOAPIC: EOI pin=%u vector=%02x line=%u count=%u\n",
                        pin, vector, ioapic_pin_asserted(dev, pin),
@@ -1452,6 +1502,7 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
 
         dev->pirq_to_intin[pirq] = ((pin != 0) && (pin < dev->pins)) ? pin : IOAPIC_LEGACY_IRQ_NC;
     }
+    dev->pirq_steered_isa    = !!routing->pirq_steered_isa;
     dev->legacy_routes_set   = 1;
     dev->legacy_routes_wired = 1;
 }
