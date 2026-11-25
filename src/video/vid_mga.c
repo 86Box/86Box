@@ -3544,10 +3544,9 @@ blit_fbitblt(mystique_t *mystique)
     int16_t  x_start = mystique->dwgreg.sgn.scanleft ? mystique->dwgreg.fxright : mystique->dwgreg.fxleft;
     int16_t  x_end   = mystique->dwgreg.sgn.scanleft ? mystique->dwgreg.fxleft : mystique->dwgreg.fxright;
 
-    src_addr = mystique->dwgreg.ar[3];
-
     for (uint16_t y = 0; y < mystique->dwgreg.length; y++) {
         int16_t x = x_start;
+        src_addr  = mystique->dwgreg.ar[3];
         while (1) {
             if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
                 uint32_t src;
@@ -3588,19 +3587,15 @@ blit_fbitblt(mystique_t *mystique)
                 }
             }
 
-            if (src_addr == mystique->dwgreg.ar[0]) {
-                mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
-                mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
-                src_addr = mystique->dwgreg.ar[3];
+            if (src_addr == mystique->dwgreg.ar[0] || x == x_end)
                 break;
-            } else
-                src_addr += x_dir;
-
-            if (x != x_end)
-                x += x_dir;
-            else
-                break;
+            src_addr += x_dir;
+            x += x_dir;
         }
+
+        /* The destination can reach its boundary before the source reaches AR0. */
+        mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
+        mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
 
         if (mystique->dwgreg.sgn.sdy)
             mystique->dwgreg.ydst_lin -= (mystique->dwgreg.pitch & PITCH_MASK);
