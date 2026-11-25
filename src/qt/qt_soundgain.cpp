@@ -59,7 +59,7 @@ protected:
         for (int v = slider->maximum(); v >= slider->minimum(); v -= 6) {
             const int y = QStyle::sliderPositionFromValue(slider->minimum(), slider->maximum(), v, span, true) + (handle / 2);
 
-            painter.drawText(QRect(0, y - half, width(), fontMetrics().height()), Qt::AlignLeft | Qt::AlignVCenter,
+            painter.drawText(QRect(0, y - half, width(), fontMetrics().height()), Qt::AlignRight | Qt::AlignVCenter,
                              QString("%1%2 dB").arg((v > 0) ? "+" : "").arg(v));
         }
     }
