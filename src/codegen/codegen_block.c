@@ -748,10 +748,12 @@ block_dirty_list_add(codeblock_t *block)
            next entry (codegen_block_check()) puts back the kept version
            compiled from the bytes there or compiles it with the entry
            check. Its masks are per byte, as the entry tests read them. Not a
-           block that reads its opcodes as it runs (CODEBLOCK_NO_OPCODES). */
+           block that reads its opcodes as it runs (CODEBLOCK_NO_OPCODES), nor
+           one whose rewrites are scoring towards that (smc_family_score), as
+           in invalidate_block(). */
         if (((evict_block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK)) == (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK)) &&
             !evict_block->head_mem_block && ((evict_block->pc & 0xfff) < 0xfc0) &&
-            !(evict_block->flags & CODEBLOCK_NO_OPCODES)) {
+            !(evict_block->flags & CODEBLOCK_NO_OPCODES) && !evict_block->smc_family_score) {
             evict_block->next = evict_block->prev = BLOCK_INVALID;
             evict_block->flags |= CODEBLOCK_CHECKED | CODEBLOCK_NO_IMMEDIATES;
             evict_block->dirty_mask = &block_untracked_mask;
@@ -1510,18 +1512,6 @@ invalidate_block(codeblock_t *block)
     if (!block->valid)
         fatal("Invalidating deleted block\n");
 #endif
-#ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
-    /* Rewritten again after it was compiled to read its immediates from
-       memory: its next compiles get the entry check, and while its current
-       code has one, writes stop marking the block and the check compares its
-       own bytes with memory on every entry instead (codegen_block_check()).
-       Only a block with versions, whose two chunks are in one page, and not
-       one that reads its opcodes as it runs (CODEBLOCK_NO_OPCODES). */
-    if (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) ==
-         (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES)) &&
-        ((block->pc & 0xfff) < 0xfc0))
-        block->flags |= CODEBLOCK_CHECKED;
-#endif
     /* A block that compiled, then got rewritten before it ran often enough
        from block->data to make up for compiling it, cost more than
        interpreting it would have: count it as a strike against the block.
@@ -1566,6 +1556,21 @@ invalidate_block(codeblock_t *block)
                 smc_family_rewritten(&block->smc_family_score, ran_long);
         }
     }
+#ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+    /* Rewritten again after it was compiled to read its immediates from
+       memory: its next compiles get the entry check, and while its current
+       code has one, writes stop marking the block and the check compares its
+       own bytes with memory on every entry instead (codegen_block_check()).
+       Only a block with versions, whose two chunks are in one page, and not
+       one that reads its opcodes as it runs (CODEBLOCK_NO_OPCODES). Nor one
+       whose rewrites are scoring towards that (smc_family_score): a checked
+       block stays off the dirty list, where the loop moves a block on to
+       reading its opcodes, so it would keep recompiling for every change. */
+    if (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) ==
+         (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES)) &&
+        ((block->pc & 0xfff) < 0xfc0) && !block->smc_family_score)
+        block->flags |= CODEBLOCK_CHECKED;
+#endif
     remove_from_block_list(block, old_pc);
     if (block->head_mem_block) {
         uint32_t block_nr = get_block_nr(block);
