@@ -46,10 +46,13 @@ SoundGain::SoundGain(QWidget *parent)
 
         label->setAlignment(Qt::AlignCenter);
         label->setWordWrap(true);
-        label->setMinimumWidth(90);
-        label->setMaximumWidth(110);
+        label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+        label->setFixedWidth(110);
+        label->setFixedHeight(label->fontMetrics().lineSpacing() * 3);
+        dB->setFixedHeight(dB->fontMetrics().lineSpacing());
         dB->setAlignment(Qt::AlignCenter);
 
+        /* Every slider, the master's included, has the same scale. */
         slider->setRange(-18, 18);
         slider->setSingleStep(2);
         slider->setPageStep(4);
