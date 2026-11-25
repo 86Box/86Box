@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-25 11:26+0000\n"
+"PO-Revision-Date: 2026-11-25 14:05+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -164,7 +164,7 @@ msgid "4:3 Cen&ter"
 msgstr "Că&n giữa 4:3"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Căn tỷ lệ 4:3 số nguyên (theo chiề&u dọc)"
 
 msgid "Inverted VGA monitor"
 msgstr "Đảo màu VGA"
@@ -254,10 +254,10 @@ msgid "Sound &gain…"
 msgstr "Bộ &tăng âm…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "Thiết bị ra M&IDI"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Khởi động lại t&hiết bị"
 
 msgid "Send MIDI &command"
 msgstr ""
