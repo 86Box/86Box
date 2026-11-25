@@ -195,7 +195,7 @@ sndio_init_source(UNUSED(void *priv), const int sample_rate, UNUSED(int buffer_s
     source->hdl         = sio_open(devname, SIO_PLAY, 0);
 
     /* The configured device may belong to another backend or no longer exist. */
-    if ((source->hdl == NULL) && (devname != SIO_DEVANY))
+    if ((source->hdl == NULL) && (sound_output_device[0] != '\0'))
         source->hdl = sio_open(SIO_DEVANY, SIO_PLAY, 0);
 
     if (source->hdl == NULL) {
@@ -246,7 +246,7 @@ sndio_init_input(UNUSED(void *priv), const int sample_rate)
     struct sio_par  par;
 
     in->hdl = sio_open(devname, SIO_REC, 1);
-    if ((in->hdl == NULL) && (devname != SIO_DEVANY))
+    if ((in->hdl == NULL) && (sound_input_dev_name[0] != '\0'))
         in->hdl = sio_open(SIO_DEVANY, SIO_REC, 1);
     if (in->hdl == NULL) {
         free(in);
