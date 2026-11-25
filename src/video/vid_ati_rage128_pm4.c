@@ -27,15 +27,19 @@
  *          vid_ati_rage128.h.
  *
  *          Through the on-chip PCI GART, the table and the pages it maps
- *          in system RAM are read straight through the ram array, which
- *          touches no CPU-thread state. The AGP aperture, and table
- *          entries that point into it, are read through dma_bm_read,
- *          from the CCE thread as well, the way the Voodoo FIFO thread
- *          reads an AGP command FIFO with mem_readl_phys. Every write the
- *          device makes to guest memory goes through dma_bm_write on the
- *          CPU thread, which marks the pages changed and drops recompiled
- *          code built from them; a write-back the CCE thread needs is
- *          handed to the CPU thread (rage128_pm4_wb_handoff).
+ *          in system RAM are read straight through the ram array. The AGP
+ *          aperture, and table entries that point into it, are read
+ *          through dma_bm_read, from the CCE thread as well, the way the
+ *          Voodoo FIFO thread reads an AGP command FIFO with
+ *          mem_readl_phys. A physical read made off the CPU thread leaves
+ *          the CPU thread's memory state alone: the page walk it last
+ *          recorded, the linear address of the access it is making, and
+ *          its read lookup table, which only the CPU thread fills. Every
+ *          write the device makes to guest memory goes through
+ *          dma_bm_write on the CPU thread, which marks the pages changed
+ *          and drops recompiled code built from them; a write-back the
+ *          CCE thread needs is handed to the CPU thread
+ *          (rage128_pm4_wb_handoff).
  *
  *          Relevant literature:
  *
@@ -227,9 +231,9 @@ rage128_pm4_reset(rage128_t *dev)
 }
 
 /* One dword of guest system RAM, read straight from the ram array.
-   Usable from any thread: unlike mem_read_phys and dma_bm_read it
-   touches no CPU-thread state (mem_readl_phys stores mem_logical_addr).
-   Returns 0 for an address past the end of RAM. */
+   Usable from any thread: it takes no mapping lookup and calls no read
+   handler, so it reads only installed RAM. Returns 0 for an address past
+   the end of RAM. */
 static inline int
 rage128_guest_ram_readl(uint32_t phys, uint32_t *val)
 {
@@ -729,6 +733,33 @@ rage128_pm4_wb_handoff(rage128_t *dev, struct rage128_span_stage *st)
     return 1;
 }
 
+/* The same hand-off for a CONFIG_CNTL write from a packet. The write
+   rebuilds the memory tables for the card's apertures and changes the
+   I/O handler table; the CPU thread reads both without a lock, and a
+   table slot is empty for a moment while it is rebuilt, so a guest access
+   made then would be lost. The packet thread posts the write here and
+   waits until the CPU thread has made it in rage128_pm4_wb_service,
+   which keeps the order of the stream: nothing behind the packet runs
+   before the new handlers are in place. The wait and its end at close
+   are those of the write-back above. Returns 1 when the CPU thread made
+   the write, 0 when the close took it back. Packet thread only. */
+int
+rage128_pm4_cfg_handoff(rage128_t *dev, uint32_t val, uint32_t mask)
+{
+    dev->cce_cfg_val  = val;
+    dev->cce_cfg_mask = mask;
+    atomic_store(&dev->cce_wb_done, 0);
+    thread_reset_event(dev->cce_wb_event);
+    atomic_store(&dev->cce_cfg_req, 1);
+    thread_set_event(dev->cce_idle_event);
+    while (!atomic_load(&dev->cce_wb_done)) {
+        if (atomic_load(&dev->cce_wb_closing) && atomic_exchange(&dev->cce_cfg_req, 0))
+            return 0;
+        thread_wait_event(dev->cce_wb_event, 1);
+    }
+    return 1;
+}
+
 /* The write-back the CPU thread is making for the packet thread, if any:
    the device it belongs to, and whether that thread has been let go
    already. */
@@ -762,11 +793,11 @@ rage128_pm4_wb_release_early(rage128_t *dev)
     }
 }
 
-/* CPU-thread side of the hand-off: make the write-back the packet thread
-   posted, if any, and let it go on. The changed bytes are copied out of
-   the staging first and the staging released, so the packet thread may
-   reuse it as soon as it is let go, which rage128_pm4_wb_release_early
-   can do partway through. Without memory for the copy the write-back is
+/* CPU-thread side of the hand-off: make the CONFIG_CNTL write or the
+   write-back the packet thread posted, if any, and let it go on. The
+   changed bytes are copied out of the staging first and the staging
+   released, so the packet thread may reuse it as soon as it is let go,
+   which rage128_pm4_wb_release_early can do partway through. Without memory for the copy the write-back is
    dropped (r128_span_stage_take says why) and the packet thread let go.
    Does nothing on the packet thread, so a caller shared by both threads
    can call it unconditionally. A write-back served from inside another one, through
@@ -779,7 +810,14 @@ rage128_pm4_wb_service(rage128_t *dev)
     rage128_t                 *outer_dev;
     int                        outer_released;
 
-    if (rage128_on_cce_thread || !atomic_load_explicit(&dev->cce_wb_req, memory_order_relaxed))
+    if (rage128_on_cce_thread)
+        return;
+    /* A posted CONFIG_CNTL write (rage128_pm4_cfg_handoff). */
+    if (atomic_load_explicit(&dev->cce_cfg_req, memory_order_relaxed) && atomic_exchange(&dev->cce_cfg_req, 0)) {
+        rage128_config_cntl_write(dev, dev->cce_cfg_val, dev->cce_cfg_mask);
+        rage128_pm4_wb_release(dev);
+    }
+    if (!atomic_load_explicit(&dev->cce_wb_req, memory_order_relaxed))
         return;
     st = atomic_exchange(&dev->cce_wb_req, NULL);
     if (!st)
@@ -2208,6 +2246,7 @@ rage128_pm4_thread_init(rage128_t *dev)
     dev->cce_hold_event = thread_create_event();
     dev->cce_wb_event   = thread_create_event();
     atomic_store(&dev->cce_wb_closing, 0);
+    atomic_store(&dev->cce_cfg_req, 0);
     dev->cce_thread_run = 1;
     dev->cce_thread     = thread_create_named(rage128_cce_thread, dev, "rage128_cce");
 }
