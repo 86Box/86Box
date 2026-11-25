@@ -686,14 +686,19 @@ sinc(const double x)
     return sin(M_PI * x) / (M_PI * x);
 }
 
+static int pas16_filter_cutoff = 0;
+static int pas16_filter_rate   = 0;
+
 static void
-recalc_pas16_filter(const int playback_freq)
+recalc_pas16_filter_rate(const int playback_freq, const int host_rate)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
-    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
+    double       fC = ((double) playback_freq) / (double) (host_rate << 1);
     double       gain = 0.0;
+
+    if (fC > 0.5)
+        fC = 0.5;
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
@@ -714,6 +719,42 @@ recalc_pas16_filter(const int playback_freq)
     /* Normalise filter, to produce unity gain */
     for (n = 0; n < SB16_NCoef; n++)
         low_fir_pas16_coef[n] /= gain;
+}
+
+static void
+recalc_pas16_filter(const int playback_freq)
+{
+    pas16_filter_cutoff = playback_freq;
+    pas16_filter_rate   = sound_sample_rate;
+    recalc_pas16_filter_rate(playback_freq, pas16_filter_rate);
+}
+
+/* The host rate of the source follows the PCM sample rate, so the analog
+   filter cutoff has to be re-derived whenever the host rate changes. */
+static void
+pas16_check_filter_rate(const pas16_t *pas16)
+{
+    const int rate = sound_source_get_rate(pas16->src_snd);
+
+    if (pas16->filter && (rate > 0) && (rate != pas16_filter_rate)) {
+        pas16_filter_rate = rate;
+        recalc_pas16_filter_rate(pas16_filter_cutoff, rate);
+    }
+}
+
+static void
+pas16_request_rate(pas16_t *pas16, const uint8_t stereo_alt)
+{
+    const ctrf_t *ctr   = &pas16->pit->counters[0];
+    const uint64_t reload = (ctr->l == 0) ? 0x10000ULL : (uint64_t) ctr->l;
+
+    if (ctr->pit_const != 0) {
+        double rate = (1000000.0 * (double) TIMER_USEC) / ((double) reload * (double) ctr->pit_const);
+
+        if (stereo_alt)
+            rate /= 2.0;
+        sound_source_set_rate(pas16->src_snd, rate);
+    }
 }
 
 #ifdef ENABLE_PAS16_LOG
@@ -2447,6 +2488,8 @@ pas16_pit_timer0(const int new_out, UNUSED(int old_out), void *priv)
 
             pas16->ticks = 0;
 
+            pas16_request_rate(pas16, !(pas16->pcm_ctrl & PAS16_PCM_MONO) && !(pas16->sys_conf_1 & 0x02));
+
             if (pas16->pcm_ctrl & PAS16_PCM_MONO) {
                 temp = pas16_readdma_mono(pas16);
 
@@ -2934,6 +2977,7 @@ pas_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double             bass_treble;
 
+    pas16_check_filter_rate(pas16);
     pas16_update(pas16);
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l;
@@ -2991,6 +3035,7 @@ pasplus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double             bass_treble;
 
+    pas16_check_filter_rate(pas16);
     pas16_update(pas16);
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
@@ -3215,6 +3260,7 @@ pas16_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
     double               bass_treble;
 
+    pas16_check_filter_rate(pas16);
     pas16_update(pas16);
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
