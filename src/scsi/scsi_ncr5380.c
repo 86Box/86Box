@@ -63,11 +63,15 @@ void
 ncr5380_irq(ncr_t *ncr, int set_irq)
 {
     if (set_irq) {
-        if (ncr->irq != -1)
+        if ((ncr->irq != -1) && (ncr->irq < 16)) {
+            ncr5380_log("NCR IRQ %d issued.\n", ncr->irq);
             picint(1 << ncr->irq);
+        }
     } else {
-        if (ncr->irq != 1)
+        if ((ncr->irq != -1) && (ncr->irq < 16)) {
+            ncr5380_log("NCR IRQ %d cleared.\n", ncr->irq);
             picintc(1 << ncr->irq);
+        }
     }
 }
 
@@ -86,7 +90,7 @@ ncr5380_reset(ncr_t *ncr)
     ncr->mode = 0;
     ncr->tcr = 0;
     ncr->icr = 0;
-    ncr5380_log("NCR Reset\n");
+    ncr5380_log("NCR5380 core reset\n");
 
     ncr->timer(ncr->priv, 0.0);
 
@@ -179,6 +183,7 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
 
         case 2: /* Mode register */
             ncr5380_log("Write: Mode register, val=%02x.\n", val);
+            ncr->old_mode = ncr->mode;
             if ((val & MODE_ARBITRATE) && !(ncr->mode & MODE_ARBITRATE)) {
                 ncr->icr &= ~ICR_ARB_LOST;
                 ncr->icr |= ICR_ARB_IN_PROGRESS;
