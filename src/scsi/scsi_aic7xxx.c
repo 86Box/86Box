@@ -376,6 +376,7 @@ aic_log(const char *tag, const char *fmt, ...)
 #define AIC_VL_DI     0x01
 #define AIC_VL_RAMEN  0x0c
 #define AIC_VL_BANK   0x10
+#define AIC_VL_EDGE   0x80
 
 #define SEQCTL           0x60
 #define PERRORDIS        0x80
@@ -1030,12 +1031,12 @@ typedef struct aic7xxx_t {
        board's wiring (its interrupt, its FIFO threshold) and what the driver
        loads from the EEPROM, so they are kept the same way */
     uint8_t eisa;
-    uint8_t vl;                             /* VL-bus board */
+    uint8_t vl;                             /* VLB board */
     uint16_t vl_base;                       /* zC00 window */
     uint8_t vl_seectl;                      /* Last value written to C0h */
     uint8_t vl_adsel;                       /* SW1 to SW4, as C1h bits 4:1 */
     uint8_t vl_biossel;                     /* SW6 and SW7, as C1h bits 6:5 */
-    uint8_t vl_cfg;                         /* last value written to C1h */
+    uint8_t vl_cfg;                         /* Last value written to C1h */
     uint8_t vl_ramen;                       /* The shadow RAM is over the ROM */
     uint8_t vl_bank;                        /* The window shows the upper half */
     uint8_t vl_rom[0x10000];                /* The whole EPROM */
@@ -1211,7 +1212,7 @@ aic_update_irq(aic7xxx_t *dev)
            mode straight out of it. So the old reading landed on level for
            the right outcome and the wrong reason, and would have been
            wrong the moment anything cleared IRQMS. */
-        if (!(dev->hcntrl & IRQMS)) {
+        if (dev->vl || !(dev->hcntrl & IRQMS)) {
             if (fire)
                 picint(1 << dev->irq);
             else
@@ -6156,14 +6157,24 @@ aic_eisa_write(uint16_t port, uint8_t val, void *priv)
     aic_write(dev, reg, val, 0);
 }
 
-/* AHA-284xVL emulation */
+/* ---- the VL-bus board --------------------------------------------------- */
 
+/* The one dump of the board's 64 KB EPROM. */
 #define AHA284XVL_ROM      "roms/scsi/adaptec/aha2840vl.bin"
 
+/* The AHA-284xVL's identifier is the EISA kind, as the 274x's is, and the
+   BIOS finds the board by it: ADP7756 with the board's BIOS on, ADP7757
+   with it switched off (SW8). */
 #define AIC_VL_ID0 0x04
 #define AIC_VL_ID1 0x90
 #define AIC_VL_ID2 0x77
 
+/* The 93C46 as the BIOS writes it when it finds the checksum wrong, which
+   is its table at 0C40h in the image and so the factory contents: thirty-one
+   words and their sum. Words 0 to 15 are the targets (synchronous,
+   disconnect, in the scan), 16 the BIOS options, 17 the host adapter's
+   (termination, parity, bus reset, FIFO threshold 100%) and 18 the bus
+   release time, the interrupt in bits 7:4 (11) and our SCSI ID (7). */
 static void
 aic_seeprom_284x(uint16_t *nvr)
 {
@@ -6183,6 +6194,10 @@ aic_seeprom_284x(uint16_t *nvr)
     nvr[31] = sum;
 }
 
+/* What the 32 KB window shows. The CPU can run code straight out of the
+   buffer behind the mapping, so what is on offer is kept there rather than
+   worked out per access: the half of the EPROM the board has selected and,
+   over 3F80h to 3FFFh of the lower one, the shadow RAM when it is on. */
 static void
 aic_vl_window(aic7xxx_t *dev)
 {
@@ -6278,7 +6293,7 @@ aic_vl_config(aic7xxx_t *dev, uint8_t val)
     dev->vl_cfg = val;
 
     if (irq != 0)
-        aic_write(dev, INTDEF, irq, 0);
+        aic_write(dev, INTDEF, AIC_VL_EDGE | irq, 0);
 
     if ((ramen != dev->vl_ramen) || (bank != dev->vl_bank)) {
         dev->vl_ramen = ramen;
@@ -6371,7 +6386,7 @@ aic_vl_init(aic7xxx_t *dev, const device_t *info)
 
     memset(dev->eisa_conf, 0, sizeof(dev->eisa_conf));
     dev->eisa_conf[SCSICONF - SCSICONF] = ENSPCHK | RESET_SCSI | 7;
-    dev->eisa_conf[INTDEF - SCSICONF]   = 11;
+    dev->eisa_conf[INTDEF - SCSICONF]   = AIC_VL_EDGE | 11;
     dev->eisa_conf[HOSTCONF - SCSICONF] = 0xc0; /* FIFO threshold 100% */
     dev->eisa_global                    = 0x00;
     dev->bios_ctl_set                   = 0;
