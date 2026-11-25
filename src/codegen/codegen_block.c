@@ -103,10 +103,17 @@ static const int dirty_list_max[DIRTY_LISTS] = { 64, 4096 };
   dirty bits of that 64-byte chunk (and of the next one, for a checked
   block's first list), 64 for every other block. A page gets an entry with
   its first listed block and frees it when both lists are empty. Entry 0
-  is none. mask_base is the byte dirty array the lists are keyed to.*/
+  is none. mask_base is the byte dirty array the lists are keyed to.
+  bytes[] holds, per list 0-63, the bytes its blocks' dirty tests read in
+  their own chunk, and bytes_next[] those an untracked (checked) block's
+  first-list test reads in the next chunk: a list none of whose bytes are
+  dirty has no block to flush. Both are exact: a block ORs its bytes in
+  when added, and its removal recomputes them from the blocks left.*/
 #define CHUNK_LIST_OTHER 64
 typedef struct block_chunk_lists_t {
     uint32_t head[2][CHUNK_LIST_OTHER + 1];
+    uint64_t bytes[2][CHUNK_LIST_OTHER];
+    uint64_t bytes_next[CHUNK_LIST_OTHER];
     union {
         const uint64_t *mask_base;
         uint32_t        next_free;
@@ -1182,6 +1189,11 @@ add_to_chunk_lists(codeblock_t *block)
     if (block->chunk_next)
         codeblock[block->chunk_next].chunk_prev = block_nr;
     lists->head[0][block->chunk_key] = block_nr;
+    if (block->chunk_key != CHUNK_LIST_OTHER) {
+        lists->bytes[0][block->chunk_key] |= block->page_mask;
+        if (block->dirty_mask == &block_untracked_mask)
+            lists->bytes_next[block->chunk_key] |= block->page_mask2;
+    }
 
     if (block->page_mask2) {
         block->chunk_lists_2 = block_chunk_lists_get(block->phys_2 >> 12);
@@ -1192,6 +1204,8 @@ add_to_chunk_lists(codeblock_t *block)
         if (block->chunk_next_2)
             codeblock[block->chunk_next_2].chunk_prev_2 = block_nr;
         lists->head[1][block->chunk_key_2] = block_nr;
+        if (block->chunk_key_2 != CHUNK_LIST_OTHER)
+            lists->bytes[1][block->chunk_key_2] |= block->page_mask2;
     }
 }
 
@@ -1204,6 +1218,19 @@ remove_from_chunk_list(codeblock_t *block)
         block_chunk_lists[block->chunk_lists].head[0][block->chunk_key] = block->chunk_next;
     if (block->chunk_next)
         codeblock[block->chunk_next].chunk_prev = block->chunk_prev;
+    if (block->chunk_key != CHUNK_LIST_OTHER) {
+        block_chunk_lists_t *lists = &block_chunk_lists[block->chunk_lists];
+        uint64_t             bytes = 0;
+        uint64_t             next  = 0;
+
+        for (uint32_t b = lists->head[0][block->chunk_key]; b; b = codeblock[b].chunk_next) {
+            bytes |= codeblock[b].page_mask;
+            if (codeblock[b].dirty_mask == &block_untracked_mask)
+                next |= codeblock[b].page_mask2;
+        }
+        lists->bytes[0][block->chunk_key]  = bytes;
+        lists->bytes_next[block->chunk_key] = next;
+    }
 }
 
 static void
@@ -1215,6 +1242,14 @@ remove_from_chunk_list_2(codeblock_t *block)
         block_chunk_lists[block->chunk_lists_2].head[1][block->chunk_key_2] = block->chunk_next_2;
     if (block->chunk_next_2)
         codeblock[block->chunk_next_2].chunk_prev_2 = block->chunk_prev_2;
+    if (block->chunk_key_2 != CHUNK_LIST_OTHER) {
+        block_chunk_lists_t *lists = &block_chunk_lists[block->chunk_lists_2];
+        uint64_t             bytes = 0;
+
+        for (uint32_t b = lists->head[1][block->chunk_key_2]; b; b = codeblock[b].chunk_next_2)
+            bytes |= codeblock[b].page_mask2;
+        lists->bytes[1][block->chunk_key_2] = bytes;
+    }
 }
 
 static void
@@ -1828,22 +1863,37 @@ check_flush_block_2(codeblock_t *block)
 /*Most chunk lists one walk merges; past that the whole page list is walked*/
 #define CHECK_FLUSH_MAX_LISTS 8
 
+/*Fewer than CHECK_FLUSH_MAX_LISTS chunks set, without a popcount libcall*/
+static inline int
+check_flush_few_chunks(uint64_t chunks)
+{
+    for (int n = 0; n < (CHECK_FLUSH_MAX_LISTS - 1); n++)
+        chunks &= chunks - 1;
+    return !chunks;
+}
+
 /*The blocks of one page list that are on the given chunk lists, in the page
   list's order (falling list_stamp), tested as the walk of the whole list
-  tests them. A block on any other chunk list reads only dirty bits that are
-  clear, so that walk would pass it over.*/
+  tests them. A block on any other chunk list, or on a list none of whose
+  bytes are dirty, reads only dirty bits that are clear, so that walk would
+  pass it over.*/
 static void
-check_flush_chunk_lists(const uint32_t *heads, uint64_t chunks, int second)
+check_flush_chunk_lists(const block_chunk_lists_t *lists, const uint64_t *dirty, uint64_t chunks, int second)
 {
-    uint32_t cur[CHECK_FLUSH_MAX_LISTS + 1];
-    int      nr = 0;
+    const uint32_t *heads = lists->head[second];
+    uint32_t        cur[CHECK_FLUSH_MAX_LISTS + 1];
+    int             nr = 0;
 
     if (heads[CHUNK_LIST_OTHER])
         cur[nr++] = heads[CHUNK_LIST_OTHER];
     for (; chunks; chunks &= chunks - 1) {
-        const uint32_t head = heads[__builtin_ctzll(chunks)];
+        const int      c    = __builtin_ctzll(chunks);
+        const uint32_t head = heads[c];
+        uint64_t       hit  = dirty[c] & lists->bytes[second][c];
 
-        if (head)
+        if (!second && lists->bytes_next[c])
+            hit |= (c < 63) ? (dirty[c + 1] & lists->bytes_next[c]) : 1;
+        if (head && hit)
             cur[nr++] = head;
     }
     while (nr) {
@@ -1878,14 +1928,24 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
     int            remove_from_evict_list = 0;
     int            whole                  = !lists_nr || (page->mem == page_ff) || (page->byte_dirty_mask != block_chunk_lists[lists_nr].mask_base);
 
-    /*The chunks with dirty bytes*/
-    for (int c = 0; !whole && (c < 64); c++) {
-        if (page->byte_dirty_mask[c])
-            chunks |= (uint64_t) 1 << c;
+    /*The chunks with dirty bytes. Most writes dirty one or two chunks, so
+      eight words are tested at once and only a group with a bit is split.*/
+    if (!whole) {
+        const uint64_t *dirty = page->byte_dirty_mask;
+
+        for (int g = 0; g < 64; g += 8) {
+            if (!(dirty[g] | dirty[g + 1] | dirty[g + 2] | dirty[g + 3] |
+                  dirty[g + 4] | dirty[g + 5] | dirty[g + 6] | dirty[g + 7]))
+                continue;
+            for (int c = g; c < (g + 8); c++) {
+                if (dirty[c])
+                    chunks |= (uint64_t) 1 << c;
+            }
+        }
     }
     /*A checked block's first-list test reads its second chunk's bits too*/
-    if (!whole && (__builtin_popcountll(chunks | (chunks >> 1)) < CHECK_FLUSH_MAX_LISTS))
-        check_flush_chunk_lists(block_chunk_lists[lists_nr].head[0], chunks | (chunks >> 1), 0);
+    if (!whole && check_flush_few_chunks(chunks | (chunks >> 1)))
+        check_flush_chunk_lists(&block_chunk_lists[lists_nr], page->byte_dirty_mask, chunks | (chunks >> 1), 0);
     else {
         while (block_nr) {
             codeblock_t *block      = &codeblock[block_nr];
@@ -1901,8 +1961,8 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
     }
 
     /*The first walk can release the entry if the second list is empty.*/
-    if (page->block_2 && !whole && (__builtin_popcountll(chunks) < CHECK_FLUSH_MAX_LISTS))
-        check_flush_chunk_lists(block_chunk_lists[lists_nr].head[1], chunks, 1);
+    if (page->block_2 && !whole && check_flush_few_chunks(chunks))
+        check_flush_chunk_lists(&block_chunk_lists[lists_nr], page->byte_dirty_mask, chunks, 1);
     else {
         block_nr = page->block_2;
 
