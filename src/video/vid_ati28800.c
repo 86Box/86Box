@@ -474,6 +474,8 @@ ati28800_recalctimings(svga_t *svga)
     ati28800_t       *ati28800 = (ati28800_t *) svga->priv;
     int               clock_sel = 0x00;
 
+    svga->hoverride = 1;
+
     if (ati28800->id == 6) {
         if (ati28800->regs[0xad] & 0x01)
             svga->htotal += 0x100;
@@ -502,11 +504,9 @@ ati28800_recalctimings(svga_t *svga)
         svga->htotal <<= 1;
         svga->rowoffset <<= 1;
         svga->dots_per_clock <<= 1;
-        svga->gdcreg[5] &= ~0x40;
     }
 
     if (ati28800->regs[0xb0] & 0x20) {
-        svga->gdcreg[5] |= 0x40;
         if ((ati28800->regs[0xb6] & 0x18) >= 0x10)
             svga->packed_4bpp = 1;
         else
@@ -549,79 +549,61 @@ ati28800_recalctimings(svga_t *svga)
                          svga->seqregs[1] & 8, svga->gdcreg[5] & 0x60,
                          ati28800->regs[0xb3] & 0x40, ati28800->regs[0xac] & 0x40,
                          ati28800->regs[0xb6] & 0x18, ati28800->svga.attrregs[0x10] & 0x80);
-            switch (svga->gdcreg[5] & 0x60) {
-                case 0x00:
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
-                        svga->render = svga_render_4bpp_lowres;
-                    else
-                        svga->render = svga_render_4bpp_highres;
-                    break;
-                case 0x20:                    /*4 colours*/
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
-                        svga->render = svga_render_2bpp_lowres;
-                    else
-                        svga->render = svga_render_2bpp_highres;
-                    break;
-                case 0x40:
-                case 0x60: /*256+ colours*/
-                    switch (svga->bpp) {
-                        case 8:
-                            svga->map8 = svga->pallook;
-                            if (svga->lowres)
-                                svga->render = svga_render_8bpp_lowres;
-                            else {
-                                svga->render = svga_render_8bpp_highres;
-                                if (!svga->packed_4bpp) {
-                                    svga->memaddr_latch <<= 1;
-                                    svga->rowoffset <<= 1;
-                                }
-                            }
-                            break;
-                        case 15:
-                            if (svga->lowres)
-                                svga->render = svga_render_15bpp_lowres;
-                            else {
-                                svga->render = svga_render_15bpp_highres;
-                                svga->hdisp >>= 1;
-                                svga->dots_per_clock >>= 1;
-                                svga->rowoffset <<= 1;
+            if ((svga->gdcreg[5] & 0x40) || (svga->attrregs[0x10] & 0x40) || (ati28800->regs[0xb0] & 0x20)) {
+                switch (svga->bpp) {
+                    case 8:
+                        svga->map8 = svga->pallook;
+                        if (svga->lowres)
+                            svga->render = svga_render_8bpp_lowres;
+                        else {
+                            svga->render = svga_render_8bpp_highres;
+                            if (!svga->packed_4bpp) {
                                 svga->memaddr_latch <<= 1;
-                            }
-                            break;
-                        case 16:
-                            if (svga->lowres)
-                                svga->render = svga_render_16bpp_lowres;
-                            else {
-                                svga->render = svga_render_16bpp_highres;
-                                svga->hdisp >>= 1;
-                                svga->dots_per_clock >>= 1;
                                 svga->rowoffset <<= 1;
-                                svga->memaddr_latch <<= 1;
                             }
-                            break;
-                        case 24:
-                            if (svga->lowres)
-                                svga->render = svga_render_24bpp_lowres;
-                            else {
-                                svga->render = svga_render_24bpp_highres;
-                                svga->hdisp /= 3;
-                                svga->dots_per_clock /= 3;
-                                svga->rowoffset <<= 1;
-                                svga->memaddr_latch <<= 1;
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
+                        }
+                        break;
+                    case 15:
+                        if (svga->lowres)
+                            svga->render = svga_render_15bpp_lowres;
+                        else {
+                            svga->render = svga_render_15bpp_highres;
+                            svga->hdisp >>= 1;
+                            svga->dots_per_clock >>= 1;
+                            svga->rowoffset <<= 1;
+                            svga->memaddr_latch <<= 1;
+                        }
+                        break;
+                    case 16:
+                        if (svga->lowres)
+                            svga->render = svga_render_16bpp_lowres;
+                        else {
+                            svga->render = svga_render_16bpp_highres;
+                            svga->hdisp >>= 1;
+                            svga->dots_per_clock >>= 1;
+                            svga->rowoffset <<= 1;
+                            svga->memaddr_latch <<= 1;
+                        }
+                        break;
+                    case 24:
+                        if (svga->lowres)
+                            svga->render = svga_render_24bpp_lowres;
+                        else {
+                            svga->render = svga_render_24bpp_highres;
+                            svga->hdisp /= 3;
+                            svga->dots_per_clock /= 3;
+                            svga->rowoffset <<= 1;
+                            svga->memaddr_latch <<= 1;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            } else if (!svga->ati_4color)
+                svga->hoverride = 0;
+        } else
+            svga->hoverride = 0;
     }
-
-    svga->hoverride = 1;
 
     if (ati28800->type == VGAWONDERXL24)
         bt481_recalctimings(svga->ramdac, svga);
