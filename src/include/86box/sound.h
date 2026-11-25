@@ -104,6 +104,11 @@ extern const char *    sound_source_get_label(int n);
 extern int             sound_source_get_gain(int n);
 extern void            sound_source_set_gain(int n, int gain);
 extern void            sound_source_save_gains(void);
+extern int             sound_stream_extra_count(void);
+extern const char *    sound_stream_extra_label(int n);
+extern int             sound_stream_extra_get_gain(int n);
+extern void            sound_stream_extra_set_gain(int n, int gain);
+extern void            sound_stream_extra_save_gains(void);
 extern void            sound_source_remove_all(void);
 
 extern void            sound_source_close_all(void);

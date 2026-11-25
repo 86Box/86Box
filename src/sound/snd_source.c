@@ -748,7 +748,8 @@ const device_t sound_source_device = {
     .config        = NULL
 };
 
-/* Per-source gain, for the sound gain dialog. */
+/* Per-source gain, for the sound gain dialog. The sources of the cards come
+   first, the streams that are fed directly (CD, floppy, hard disk, MIDI) last. */
 static sound_source_t *
 sound_source_nth(int n)
 {
@@ -760,8 +761,8 @@ sound_source_nth(int n)
     return NULL;
 }
 
-int
-sound_source_get_count(void)
+static int
+sound_source_card_count(void)
 {
     int n = 0;
 
@@ -771,12 +772,18 @@ sound_source_get_count(void)
     return n;
 }
 
+int
+sound_source_get_count(void)
+{
+    return sound_source_card_count() + sound_stream_extra_count();
+}
+
 const char *
 sound_source_get_label(const int n)
 {
     const sound_source_t *src = sound_source_nth(n);
 
-    return (src != NULL) ? src->label : "";
+    return (src != NULL) ? src->label : sound_stream_extra_label(n - sound_source_card_count());
 }
 
 int
@@ -784,7 +791,7 @@ sound_source_get_gain(const int n)
 {
     const sound_source_t *src = sound_source_nth(n);
 
-    return (src != NULL) ? src->gain : 0;
+    return (src != NULL) ? src->gain : sound_stream_extra_get_gain(n - sound_source_card_count());
 }
 
 void
@@ -794,9 +801,11 @@ sound_source_set_gain(const int n, const int gain)
 
     if (src != NULL)
         src->gain = gain;
+    else
+        sound_stream_extra_set_gain(n - sound_source_card_count(), gain);
 }
 
-/* Puts the gains of the sources that exist into the configuration. */
+/* Puts the gains into the configuration. */
 void
 sound_source_save_gains(void)
 {
@@ -806,4 +815,6 @@ sound_source_save_gains(void)
         else
             config_delete_var("Sound gains", (char *) src->key);
     }
+
+    sound_stream_extra_save_gains();
 }

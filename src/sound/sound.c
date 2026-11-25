@@ -40,6 +40,8 @@
 #include <86box/usb.h>
 #include <86box/automation.h>
 #include <86box/runctl.h>
+#include <86box/ini.h>
+#include <86box/config.h>
 
 typedef struct {
     const device_t *device;
@@ -61,6 +63,7 @@ int  wavetable_pos_global               = 0;
 int  sound_gain                         = 0;
 char sound_output_device[512]           = { 0 };
 
+static void sound_stream_load_gains(void);
 static void *sound_streams[I_MAX]                = { NULL };
 static unsigned long long sound_stream_buf_sizes[I_MAX] = {
     0, (MUSICBUFLEN << 1), (WTBUFLEN << 1),     (CD_BUFLEN << 1),
@@ -555,6 +558,8 @@ sound_output_init(void)
     }
 
 
+    sound_stream_load_gains();
+
     sound_output_initialized = 1;
 }
 
@@ -578,13 +583,127 @@ sound_output_close(void)
     sound_output_initialized = 0;
 }
 
+/* Streams that are fed directly rather than by a card's source have their own
+   gain, which is listed after the sources' in the sound gain dialog. */
+static const struct {
+    uint8_t     stream;
+    const char *key;
+    const char *label;
+} sound_extra_streams[] = {
+    { I_CD,   "stream_cd",   "CD audio"          },
+    { I_FDD,  "stream_fdd",  "Floppy drive audio" },
+    { I_HDD,  "stream_hdd",  "Hard disk audio"    },
+    { I_MIDI, "stream_midi", "MIDI"               }
+};
+
+#define SOUND_EXTRA_COUNT ((int) (sizeof(sound_extra_streams) / sizeof(sound_extra_streams[0])))
+
+static int      sound_stream_gain[I_MAX];
+static int16_t *sound_stream_scratch[I_MAX];
+static int      sound_stream_scratch_len[I_MAX];
+
+static int
+sound_extra_nth(int n)
+{
+    for (int i = 0; i < SOUND_EXTRA_COUNT; i++) {
+        if (sound_streams[sound_extra_streams[i].stream] == NULL)
+            continue;
+        if (n-- == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+int
+sound_stream_extra_count(void)
+{
+    int n = 0;
+
+    for (int i = 0; i < SOUND_EXTRA_COUNT; i++)
+        n += (sound_streams[sound_extra_streams[i].stream] != NULL);
+
+    return n;
+}
+
+const char *
+sound_stream_extra_label(const int n)
+{
+    const int i = sound_extra_nth(n);
+
+    return (i >= 0) ? sound_extra_streams[i].label : "";
+}
+
+int
+sound_stream_extra_get_gain(const int n)
+{
+    const int i = sound_extra_nth(n);
+
+    return (i >= 0) ? sound_stream_gain[sound_extra_streams[i].stream] : 0;
+}
+
+void
+sound_stream_extra_set_gain(const int n, const int gain)
+{
+    const int i = sound_extra_nth(n);
+
+    if (i >= 0)
+        sound_stream_gain[sound_extra_streams[i].stream] = gain;
+}
+
+void
+sound_stream_extra_save_gains(void)
+{
+    for (int i = 0; i < SOUND_EXTRA_COUNT; i++) {
+        const int gain = sound_stream_gain[sound_extra_streams[i].stream];
+
+        if (gain != 0)
+            config_set_int("Sound gains", (char *) sound_extra_streams[i].key, gain);
+        else
+            config_delete_var("Sound gains", (char *) sound_extra_streams[i].key);
+    }
+}
+
+static void
+sound_stream_load_gains(void)
+{
+    for (int i = 0; i < SOUND_EXTRA_COUNT; i++)
+        sound_stream_gain[sound_extra_streams[i].stream] = config_get_int("Sound gains", (char *) sound_extra_streams[i].key, 0);
+}
+
 void
 sound_give(const void *buf, const uint8_t src, const int size)
 {
     automation_audio(src, buf, size);
 
-    if ((src < I_MAX) && (sound_streams[src] != NULL) && (runctl_mode() != RUN_MODE_FAST))
+    if ((src < I_MAX) && (sound_streams[src] != NULL) && (runctl_mode() != RUN_MODE_FAST)) {
+        const int gain = sound_stream_gain[src];
+
+        if (gain != 0) {
+            /* Each of these streams is fed from a single thread. */
+            if (sound_stream_scratch_len[src] < size) {
+                free(sound_stream_scratch[src]);
+                sound_stream_scratch[src]     = (int16_t *) malloc(size * sizeof(int16_t));
+                sound_stream_scratch_len[src] = (sound_stream_scratch[src] != NULL) ? size : 0;
+            }
+
+            if (sound_stream_scratch[src] != NULL) {
+                const double   factor = pow(10.0, (double) gain / 20.0);
+                const int16_t *in     = (const int16_t *) buf;
+
+                for (int c = 0; c < size; c++) {
+                    double v = (double) in[c] * factor;
+
+                    sound_stream_scratch[src][c] = (int16_t) ((v > 32767.0) ? 32767.0 : ((v < -32768.0) ? -32768.0 : v));
+                }
+
+                sound_backend_give_buffer(sound_streams[src], sound_stream_scratch[src], size, 0);
+                return;
+            }
+        }
+
         sound_backend_give_buffer(sound_streams[src], buf, size, 0);
+    }
 }
 
 /* Frames a stream has ticked since its last block: the start of its next
