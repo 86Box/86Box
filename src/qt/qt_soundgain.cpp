@@ -133,7 +133,8 @@ SoundGain::SoundGain(QWidget *parent)
     }
 
     ui->slidersLayout->addStretch(1);
-    setMinimumSize(360, 320);
+    setMinimumSize(460, 320);
+    resize(560, 340);
 }
 
 SoundGain::~SoundGain()
