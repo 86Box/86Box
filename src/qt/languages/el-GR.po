@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 18:32+0000\n"
+"PO-Revision-Date: 2026-11-25 14:05+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1914,10 +1914,10 @@ msgid "Power &off"
 msgstr "&Απενεργοποίηση"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "&Αναστολή"
 
 msgid "Suspend"
-msgstr ""
+msgstr "Αναστολή"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
