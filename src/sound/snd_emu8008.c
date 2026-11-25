@@ -542,8 +542,15 @@ static uint32_t
 emu8008_read_reg32(emu8008_t *dev, uint8_t bank, uint8_t idx)
 {
     if ((bank == 6 || bank == 7) && idx == 0xE0) {
-        /* Reg 0xE0: bits[19:8] = sample clock, bits[7:0] = chip ID (0x0C) */
-        return ((dev->sample_clock & 0x0FFFu) << 8) | (dev->chip_id_reg & 0xFFu);
+        /* Reg 0xE0: bits[19:8] = a counter at 32 times the sample rate, with the
+           voice being processed in bits[12:8] and the sample clock above it, and
+           bits[7:0] = chip ID (0x0C). The drivers check that the chip is running
+           by reading the voice up to 32 times for a change, and wait for one of
+           the first voices before some writes. */
+        uint64_t period = (1000000 * TIMER_USEC) / SOUND_FREQ;
+        uint64_t left   = (uint64_t) timer_get_remaining_u64(&dev->clock_timer);
+        uint32_t voice  = (left >= period) ? 0 : (uint32_t) (((period - left) * 32) / period);
+        return (((((uint32_t) dev->sample_clock << 5) | voice) & 0x0FFFu) << 8) | (dev->chip_id_reg & 0xFFu);
     }
 
     static const uint16_t emu8k_bank_ports[4] = { 0x0620, 0x0A20, 0x0A22, 0x0E20 };
