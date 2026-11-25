@@ -16,8 +16,6 @@ public:
     ~SoundGain();
 
 private slots:
-    void on_verticalSlider_valueChanged(int value);
-
     void on_SoundGain_accepted();
     void on_SoundGain_rejected();
 

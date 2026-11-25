@@ -16,6 +16,9 @@
 #include "ui_qt_soundgain.h"
 
 #include <QLabel>
+#include <QScrollArea>
+#include <QVBoxLayout>
+#include <functional>
 #include <QSlider>
 
 extern "C" {
@@ -30,59 +33,59 @@ SoundGain::SoundGain(QWidget *parent)
     , ui(new Ui::SoundGain)
 {
     ui->setupUi(this);
-    ui->verticalSlider->setValue(sound_gain);
+
     sound_gain_orig = sound_gain;
 
-    /* One slider per source that exists right now, after the master gain. */
-    const int count = sound_source_get_count();
-    int       col   = 4;
+    /* A column per slider: the master gain first, then every source that
+       exists right now. All of them go from -18 dB to +18 dB. */
+    auto addColumn = [this](const QString &name, const int value, std::function<void(int)> apply) {
+        auto *column = new QVBoxLayout();
+        auto *label  = new QLabel(name, ui->scrollAreaWidgetContents);
+        auto *slider = new QSlider(Qt::Vertical, ui->scrollAreaWidgetContents);
+        auto *dB     = new QLabel(ui->scrollAreaWidgetContents);
 
-    ui->gridLayout->removeWidget(ui->buttonBox);
-
-    for (int i = 0; i < count; i++) {
-        auto *label = new QLabel(QString::fromUtf8(sound_source_get_label(i)), this);
         label->setAlignment(Qt::AlignCenter);
         label->setWordWrap(true);
-        label->setMinimumWidth(120);
+        label->setMinimumWidth(90);
+        label->setMaximumWidth(110);
+        dB->setAlignment(Qt::AlignCenter);
 
-        auto *slider = new QSlider(Qt::Vertical, this);
-        slider->setRange(-24, 18);
+        slider->setRange(-18, 18);
         slider->setSingleStep(2);
         slider->setPageStep(4);
+        slider->setTickInterval(6);
         slider->setTickPosition(QSlider::TicksBothSides);
-        slider->setToolTip(tr("%1 dB").arg(sound_source_get_gain(i)));
-        slider->setValue(sound_source_get_gain(i));
+        slider->setValue(value);
+        dB->setText(tr("%1 dB").arg(value));
 
-        source_gain_orig.push_back(sound_source_get_gain(i));
-
-        connect(slider, &QSlider::valueChanged, this, [slider, i](int value) {
-            sound_source_set_gain(i, value);
-            slider->setToolTip(tr("%1 dB").arg(value));
+        connect(slider, &QSlider::valueChanged, this, [dB, apply](int v) {
+            apply(v);
+            dB->setText(tr("%1 dB").arg(v));
         });
 
-        ui->gridLayout->addWidget(label, 0, col);
-        ui->gridLayout->addWidget(slider, 1, col, 10, 1, Qt::AlignHCenter);
-        col++;
+        column->addWidget(label);
+        column->addWidget(slider, 1, Qt::AlignHCenter);
+        column->addWidget(dB);
+        ui->slidersLayout->addLayout(column);
+    };
+
+    addColumn(tr("Master"), sound_gain, [](int v) { sound_gain = v; });
+
+    const int count = sound_source_get_count();
+
+    for (int i = 0; i < count; i++) {
+        source_gain_orig.push_back(sound_source_get_gain(i));
+        addColumn(QString::fromUtf8(sound_source_get_label(i)), sound_source_get_gain(i),
+                  [i](int v) { sound_source_set_gain(i, v); });
     }
 
-    ui->gridLayout->addWidget(ui->buttonBox, 0, col, 7, 1);
-    ui->buttonBox->setMinimumWidth(120);
-
-    /* Room for the master slider, its dB scale, every source and the buttons. */
-    setMinimumWidth(220 + (count * 130) + 140);
-    setMinimumHeight(320);
-    resize(minimumSize());
+    ui->slidersLayout->addStretch(1);
+    setMinimumSize(360, 320);
 }
 
 SoundGain::~SoundGain()
 {
     delete ui;
-}
-
-void
-SoundGain::on_verticalSlider_valueChanged(int value)
-{
-    sound_gain = value;
 }
 
 void
