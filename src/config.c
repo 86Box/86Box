@@ -1030,12 +1030,11 @@ load_sound(void)
     /* Migrate the separate AWE64D models to the model setting of one card. */
     static const struct {
         const char *internal_name;
-        const char *name;
         int         model;
     } awe64d_models[] = {
-        { "emu8008_ct4600", "Sound Blaster AWE64D (CT4600)", 0x0010 },
-        { "emu8008_ct4650", "Sound Blaster AWE64D (CT4650)", 0x0030 },
-        { "emu8008_ct4655", "Sound Blaster AWE64D (CT4655)", 0x0031 }
+        { "emu8008_ct4600", 0x0010 },
+        { "emu8008_ct4650", 0x0030 },
+        { "emu8008_ct4655", 0x0031 }
     };
     for (int i = 0; i < SOUND_CARD_MAX; i++) {
         if (i)
@@ -1049,15 +1048,8 @@ load_sound(void)
             if (strcmp(p, awe64d_models[j].internal_name))
                 continue;
             ini_section_set_string(cat, temp, "sb_awe64d");
-
-            char old_name[512];
-            char new_name[512];
-            sprintf(old_name, "%s #%i", awe64d_models[j].name, i + 1);
-            sprintf(new_name, "Sound Blaster AWE64D #%i", i + 1);
-            ini_section_t sec = ini_find_section(config, old_name);
-            if ((sec != NULL) && (ini_find_section(config, new_name) == NULL))
-                ini_rename_section(sec, new_name);
-            ini_section_set_int(ini_find_or_create_section(config, new_name), "model", awe64d_models[j].model);
+            sprintf(temp, "Sound Blaster AWE64D #%i", i + 1);
+            ini_section_set_int(ini_find_or_create_section(config, temp), "model", awe64d_models[j].model);
             break;
         }
     }

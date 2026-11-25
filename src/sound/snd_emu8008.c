@@ -1013,7 +1013,7 @@ emu8008_init(UNUSED(const device_t *info))
         mpu401_irq_attach(dev->mpu, emu8008_mpu_irq, NULL, dev);
 
     /* EMU8000 wavetable core (ROM-less PCI mode) */
-    emu8k_init(dev->emu8k, 0, device_get_config_int("onboard_ram"));
+    emu8k_init(dev->emu8k, 0, 0);
 
     wavetable_add_handler(emu8008_get_wt_buffer, dev);
     sound_in_add_handler(emu8008_put_buffer, dev);
@@ -1064,20 +1064,6 @@ static const device_config_t emu8008_config[] = {
             { .description = "CT4650", .value = EMU8008_SUBSYS_CT4650 },
             { .description = "CT4655", .value = EMU8008_SUBSYS_CT4655 },
             { .description = ""                                       }
-        }
-    },
-    {
-        .name        = "onboard_ram",
-        .description = "Onboard RAM",
-        .type        = CONFIG_SELECTION,
-        .default_int = 4096,
-        .selection   = {
-            { .description = "None",  .value = 0     },
-            { .description = "512 KB", .value = 512  },
-            { .description = "2 MB",  .value = 2048  },
-            { .description = "4 MB",  .value = 4096  },
-            { .description = "8 MB",  .value = 8192  },
-            { .description = ""                      }
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
