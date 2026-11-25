@@ -95,6 +95,30 @@ extern const uint8_t codegen_link_set_mtf[6][4];
 extern uint16_t codegen_link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
 #endif
 
+#ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+/*An exit with more targets than its slot and set hold (an indirect call or
+  jump through a table, a RET shared by many callers) would miss every time
+  and go back to C. After a set miss the routine also tries the record at
+  the target's index in this table, shared by every exit, with the same
+  checks as for a slot. codegen_link_patch() copies a record here when it
+  fills a slot that has a set. A record is checked on every use like any
+  other except for link_gen: codegen_link_block_changed() empties the
+  block's record instead (block->link_mcache), so the routine skips that
+  load from the target's codeblock_t, often a cache miss here.*/
+#    define CODEGEN_LINK_MCACHE_BITS 13
+#    define CODEGEN_LINK_MCACHE_SIZE (1 << CODEGEN_LINK_MCACHE_BITS)
+#    define CODEGEN_LINK_MCACHE_MUL  0x9e3779b1u
+/*Index of the record for the target at virt (cs + pc)*/
+#    define CODEGEN_LINK_MCACHE_INDEX(virt) ((uint32_t) ((uint32_t) (virt) * CODEGEN_LINK_MCACHE_MUL) >> (32 - CODEGEN_LINK_MCACHE_BITS))
+/*Each record on its own aligned pair of cache lines*/
+#    define CODEGEN_LINK_MCACHE_SHIFT 7
+typedef union codegen_link_mcache_t {
+    codegen_link_slot_t r;
+    uint8_t             pad[1 << CODEGEN_LINK_MCACHE_SHIFT];
+} codegen_link_mcache_t;
+extern codegen_link_mcache_t codegen_link_mcache[CODEGEN_LINK_MCACHE_SIZE];
+#endif
+
 /*Byte offset of the link entry from &block->data[BLOCK_START]: the first
   instruction after the prologue's register saves.*/
 #if defined(__aarch64__) || defined(_M_ARM64)

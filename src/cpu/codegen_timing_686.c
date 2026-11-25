@@ -1076,11 +1076,32 @@ codegen_timing_686_block_end(void)
     }
 }
 
+static void
+codegen_timing_686_snapshot(codegen_timing_snapshot_t *snap, int load)
+{
+    size_t pos = 0;
+
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_full);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_opcode);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_timings);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_op_32);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_regmask);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_deps);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, prev_fetchdat);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_regmask_modified);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, regmask_modified);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, decode_delay);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_prefix);
+}
+
 codegen_timing_t codegen_timing_686 = {
     codegen_timing_686_start,
     codegen_timing_686_prefix,
     codegen_timing_686_opcode,
     codegen_timing_686_block_start,
     codegen_timing_686_block_end,
-    NULL
+    NULL,
+    NULL,
+    NULL,
+    codegen_timing_686_snapshot
 };

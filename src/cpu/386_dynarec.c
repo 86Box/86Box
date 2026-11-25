@@ -36,6 +36,7 @@
 #ifdef USE_DYNAREC
 #    include "codegen.h"
 #    include "codegen_backend.h"
+#    include "codegen_smc_policy.h"
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 #        include "codegen_link.h"
 #    endif
@@ -741,6 +742,12 @@ exec386_dynarec_int(void)
 /* pc and _cs as one 64-bit value, so a lookup compares both at once. */
 _Static_assert(offsetof(codeblock_t, _cs) == offsetof(codeblock_t, pc) + 4, "codeblock_t pc/_cs layout");
 _Static_assert(!(offsetof(codeblock_t, pc) & 7), "codeblock_t pc/_cs layout");
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(__amd64__) || defined(_M_X64)
+/* What the dispatcher and the link routines read of a block, through
+   runs_left, stays in its first 128 bytes; the page and chunk list links
+   after it are only touched when blocks are listed or flushed. */
+_Static_assert(offsetof(codeblock_t, runs_left) + sizeof(((codeblock_t *) 0)->runs_left) <= 128, "codeblock_t layout");
+#endif
 
 static inline uint64_t
 codeblock_pc_cs(const codeblock_t *block)
@@ -919,9 +926,22 @@ exec386_dynarec_dyn(const int dbg)
 #        endif
                 }
             }
-            if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
+            /* Not again for a block back from the cooldown below: it has
+               been moved up a mode for this rewrite already. */
+            if (valid_block && ((block->flags & (CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_REVIVE_HELD)) == CODEBLOCK_IN_DIRTY_LIST)) {
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-                if (block->flags & CODEBLOCK_BYTE_MASK)
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                    /* Only for code whose opcodes keep changing every few
+                       runs (smc_family_ready()): else compile it for the
+                       bytes it has, as before. Decided again at each
+                       rewrite, so code at the same address that has since
+                       settled (other code put there, say) leaves it. */
+                    if (smc_family_ready(block->smc_family_score))
+                        block->flags |= CODEBLOCK_NO_OPCODES;
+                    else
+                        block->flags &= ~CODEBLOCK_NO_OPCODES;
+                }
+                else if (block->flags & CODEBLOCK_BYTE_MASK)
                     block->flags |= CODEBLOCK_NO_IMMEDIATES;
                 else
                     block->flags |= CODEBLOCK_BYTE_MASK;
@@ -951,6 +971,23 @@ exec386_dynarec_dyn(const int dbg)
                      !block->head_mem_block)
                 codegen_block_put_back(block);
 #        endif
+            /* Else it is compiled again now, unless the address likely holds
+               other code: that gets the cooldown a new block on its page
+               would (codegen_block_init()), once. */
+            if (valid_block && ((block->flags & (CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_REVIVE_HELD)) == CODEBLOCK_IN_DIRTY_LIST) &&
+                !codegen_block_dirty_patched(block)) {
+                const uint64_t until = smc_thrash_new_block_cooldown(pages[block->phys >> 12].smc_strikes, tsc);
+
+                if (until) {
+                    block->smc_cooldown_until = until;
+                    block->flags |= CODEBLOCK_REVIVE_HELD;
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                    codegen_link_block_changed(block);
+#        endif
+                    exec386_dynarec_int();
+                    return;
+                }
+            }
         }
     }
 
@@ -1544,6 +1581,11 @@ exec386_dynarec(int32_t cycs)
         exec386_dynarec_dbg(cycs);
     else
         exec386_dynarec_common(cycs, 0);
+
+    if (UNLIKELY(purgable_page_list_head))
+        codegen_flush_evict_list(CODEGEN_EVICT_FLUSH_MAX);
+    if (UNLIKELY(family_review_count))
+        codegen_family_review();
 }
 #endif
 
