@@ -848,6 +848,8 @@ block_recycle_stale(void)
             continue;
         }
         block_clock_hand = (block_nr + 1) & BLOCK_MASK;
+        if (!(block->flags & CODEBLOCK_WAS_RECOMPILED))
+            *codegen_ghost_slot(block->phys) = block->phys + 1;
         delete_block(block);
         return 1;
     }
@@ -973,6 +975,7 @@ codegen_reset(void)
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(uint32_t));
+    codegen_evict_thrash = 0;
     family_review_reset();
     mem_reset_page_blocks();
     block_chunk_lists_nr   = 0;
@@ -1693,6 +1696,10 @@ codegen_invalidate_page_masks(page_t *page)
         page_remove_from_evict_list(page);
 }
 
+int      codegen_evict_thrash = 0;
+uint32_t codegen_admit_filter[1 << (32 - CODEGEN_ADMIT_SHIFT)];
+uint32_t codegen_evict_ghost[1 << (32 - CODEGEN_GHOST_SHIFT)];
+
 void
 codegen_delete_random_block(int required_mem_block)
 {
@@ -1716,6 +1723,8 @@ codegen_delete_random_block(int required_mem_block)
             }
             if (block->valid && (!required_mem_block || block->head_mem_block)) {
                 block_clock_hand = (block_nr + 1) & BLOCK_MASK;
+                if (!(block->flags & CODEBLOCK_WAS_RECOMPILED))
+                    *codegen_ghost_slot(block->phys) = block->phys + 1;
                 delete_block(block);
                 return;
             }
@@ -1953,6 +1962,9 @@ void
 codegen_block_start_recompile(codeblock_t *block)
 {
     page_t *page = &pages[block->phys >> 12];
+
+    if (codegen_evict_thrash)
+        codegen_evict_thrash--;
 
     if (!page->block)
         mem_flush_write_page(block->phys, cs + cpu_state.pc);
