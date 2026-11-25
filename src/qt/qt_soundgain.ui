@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>200</width>
-    <height>250</height>
+    <width>360</width>
+    <height>320</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,8 +18,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>200</width>
-    <height>250</height>
+    <width>360</width>
+    <height>320</height>
    </size>
   </property>
   <property name="windowTitle">

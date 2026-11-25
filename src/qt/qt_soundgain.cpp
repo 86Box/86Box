@@ -43,7 +43,7 @@ SoundGain::SoundGain(QWidget *parent)
         auto *label = new QLabel(QString::fromUtf8(sound_source_get_label(i)), this);
         label->setAlignment(Qt::AlignCenter);
         label->setWordWrap(true);
-        label->setMaximumWidth(90);
+        label->setMinimumWidth(120);
 
         auto *slider = new QSlider(Qt::Vertical, this);
         slider->setRange(-24, 18);
@@ -66,6 +66,12 @@ SoundGain::SoundGain(QWidget *parent)
     }
 
     ui->gridLayout->addWidget(ui->buttonBox, 0, col, 7, 1);
+    ui->buttonBox->setMinimumWidth(120);
+
+    /* Room for the master slider, its dB scale, every source and the buttons. */
+    setMinimumWidth(220 + (count * 130) + 140);
+    setMinimumHeight(320);
+    resize(minimumSize());
 }
 
 SoundGain::~SoundGain()
