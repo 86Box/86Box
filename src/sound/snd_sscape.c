@@ -1827,7 +1827,12 @@ static void
 sscape_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     sscape_t    *dev  = (sscape_t *) priv;
-    const double step = (double) dev->otto_rate / (double) SOUND_FREQ;
+    int           host_rate;
+    double        step;
+
+    sound_source_set_rate(dev->src_snd, (dev->ad1848.enable && dev->ad1848.freq > 0) ? (double) dev->ad1848.freq : 0.0);
+    host_rate = sound_source_get_rate(dev->src_snd);
+    step      = (double) dev->otto_rate / (double) ((host_rate > 0) ? host_rate : SOUND_FREQ);
 
     ad1848_update(&dev->ad1848);
     for (int c = 0; c < len * 2; c++)

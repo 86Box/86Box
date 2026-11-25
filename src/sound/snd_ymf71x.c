@@ -798,6 +798,8 @@ ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
+    sound_source_set_rate(ymf71x->src_wss, (ymf71x->ad1848.enable && ymf71x->ad1848.freq > 0) ? (double) ymf71x->ad1848.freq : 0.0);
+
     /* wss part */
 
     /* Don't play audio if the WSS Playback analog or digital sections are powered down */

@@ -1616,6 +1616,8 @@ azt2316a_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
+    sound_source_set_rate(azt2316a->src_wss, (azt2316a->ad1848.enable && azt2316a->ad1848.freq > 0) ? (double) azt2316a->ad1848.freq : 0.0);
+
     /* wss part */
     ad1848_update(&azt2316a->ad1848);
     for (uint16_t c = 0; c < len * 2; c++)

@@ -324,6 +324,8 @@ ymf701_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf701_t *ymf701 = (ymf701_t *) priv;
 
+    sound_source_set_rate(ymf701->src_wss, (ymf701->ad1848.enable && ymf701->ad1848.freq > 0) ? (double) ymf701->ad1848.freq : 0.0);
+
     /* wss part */
     ad1848_update(&ymf701->ad1848);
     for (uint16_t c = 0; c < len * 2; c++)

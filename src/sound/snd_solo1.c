@@ -831,6 +831,12 @@ solo1_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     if (!src_rate)
         src_rate = 8000;
 
+    /* Let the host source run at the Audio 2 rate the guest programmed. */
+    if ((dev->io_regs[0x06] & 0x02) && ((dev->mixer_regs[0x78] & 0x03) == 0x03) && dev->a2_cur_count)
+        sound_source_set_rate(dev->src_snd, (double) src_rate);
+
+    const uint32_t host_rate = (uint32_t) sound_source_get_rate(dev->src_snd);
+
     for (uint16_t i = 0; i < len; i++) {
         const int active = (dev->io_regs[0x06] & 0x02) &&
                            ((dev->mixer_regs[0x78] & 0x03) == 0x03) &&
@@ -839,8 +845,8 @@ solo1_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         if (active) {
             dev->a2_rate_accum += src_rate;
 
-            while (dev->a2_rate_accum >= (uint32_t) sound_sample_rate) {
-                dev->a2_rate_accum -= (uint32_t) sound_sample_rate;
+            while (dev->a2_rate_accum >= host_rate) {
+                dev->a2_rate_accum -= host_rate;
                 solo1_a2_fetch_frame(dev);
             }
 

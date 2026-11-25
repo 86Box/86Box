@@ -406,6 +406,8 @@ opti930_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
+    sound_source_set_rate(optimc->src_wss, (optimc->ad1848.enable && optimc->ad1848.freq > 0) ? (double) optimc->ad1848.freq : 0.0);
+
     if (((optimc->max_reg == 11) && (optimc->regs[3] & 0x4)) || ((optimc->max_reg == 25) && !(optimc->regs[3] & 0x4)))
         return;
 
@@ -442,6 +444,8 @@ static void
 optimc_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
+
+    sound_source_set_rate(optimc->src_wss, (optimc->ad1848.enable && optimc->ad1848.freq > 0) ? (double) optimc->ad1848.freq : 0.0);
 
     if (optimc->regs[3] & 0x4)
         return;

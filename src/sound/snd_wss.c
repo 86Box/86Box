@@ -238,6 +238,7 @@ wss_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
 
+    sound_source_set_rate(wss->src_snd, (wss->ad1848.enable && wss->ad1848.freq > 0) ? (double) wss->ad1848.freq : 0.0);
     ad1848_update(&wss->ad1848);
     for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += wss->ad1848.buffer[c] / 2;

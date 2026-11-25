@@ -784,6 +784,8 @@ ad1816_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ad1816_t *ad1816 = (ad1816_t *) priv;
 
+    sound_source_set_rate(ad1816->src_snd, (ad1816->enable && ad1816->freq > 0) ? (double) ad1816->freq : 0.0);
+
     /* Don't play audio if the DAC mute or chip powerdown bits are set */
     if ((ad1816->iregs[44] & 0x8000) || (ad1816->iregs[44] & 0x0008))
         return;

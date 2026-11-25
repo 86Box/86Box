@@ -830,6 +830,9 @@ cs5530_abm_timer(void *priv)
         freq = (double) ac97_codec_getrate(dev->codec, 0x2c);
         if (freq < 1.0)
             freq = (double) SOUND_FREQ;
+        /* Let the host source run at the DAC rate the codec is set to. */
+        if ((dev->abm_cmd[0] & 0x01) && dev->abm[0].loaded)
+            sound_source_set_rate(dev->src_snd, freq);
         timer_advance_u64(&dev->abm_timer, (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq)));
     }
 }

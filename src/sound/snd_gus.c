@@ -2354,6 +2354,11 @@ gus_poll_wave(void *priv)
     } else
         timer_advance_u64(&gus->samp_timer, gus->samp_latch);
 
+    /* Let the host source run at the GF1 rate the guest programmed. The
+       models that mix in a codec or run fixed-rate filters stay at the host rate. */
+    if (((gus->type <= GUS_CLASSIC_37) && !gus->daughter) || (gus->type == GUS_EXTREME))
+        sound_source_set_rate(gus->src_snd, ((double) TIMER_USEC * 1000000.0) / (double) gus->samp_latch);
+
     gus->out_l = gus->out_r = 0;
 
     if (gus->type == GUS_INTERWAVE && gus->iw_enhanced && (gus->synth_global & 0x02)) {

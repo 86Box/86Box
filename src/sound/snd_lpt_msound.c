@@ -122,6 +122,9 @@ msound_arm_timer(msound_t *const msound)
     const uint64_t sample_period = (TIMER_USEC * 1000000ULL) / hz;
 
     timer_set_delay_u64(&msound->sample_timer, sample_period);
+
+    /* Let the host source run at the sample rate the guest programmed. */
+    sound_source_set_rate(msound->source, (double) hz);
 }
 
 static uint32_t

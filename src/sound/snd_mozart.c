@@ -276,6 +276,10 @@ mozart_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     const double   dac_l  = (ad1848->mce || (ad1848->regs[6] & 0x80)) ? 0.0 : mozart_dac_vols[ad1848->regs[6] & 0x3f];
     const double   dac_r  = (ad1848->mce || (ad1848->regs[7] & 0x80)) ? 0.0 : mozart_dac_vols[ad1848->regs[7] & 0x3f];
 
+    /* The SB DSP shares this source and requests its own rate. */
+    if (ad1848->enable && ad1848->freq > 0)
+        sound_source_set_rate(dev->src_snd, (double) ad1848->freq);
+
     ad1848_update(ad1848);
     sb_dsp_update(dsp);
 

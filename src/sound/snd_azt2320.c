@@ -291,6 +291,8 @@ azt2320_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     azt2320_t *azt2320 = (azt2320_t *) priv;
 
+    sound_source_set_rate(azt2320->src_wss, (azt2320->ad1848.enable && azt2320->ad1848.freq > 0) ? (double) azt2320->ad1848.freq : 0.0);
+
     /* wss part */
     ad1848_update(&azt2320->ad1848);
     for (uint16_t c = 0; c < len * 2; c++)

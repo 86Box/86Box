@@ -230,6 +230,10 @@ pssj_callback(void *priv)
     if ((pssj->ctrl & 3) == 2)
         record = 1;
 
+    /* Let the host source run at the output rate the guest programmed. */
+    if (!record && ((pssj->ctrl & 3) == 3 || (!(pssj->ctrl & 2) && pssj->amplitude)))
+        sound_source_set_rate(pssj->source, 3579545.0 / (double) (pssj->freq ? pssj->freq : 0x400));
+
     timer_advance_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double) (pssj->freq ? pssj->freq : 0x400)) * (record ? 10 : 1) );
 }
 

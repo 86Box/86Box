@@ -317,6 +317,8 @@ ps1snd_callback(void *priv)
     ps1snd_update(ps1snd);
 
     if (ps1snd->fifo_read_idx != ps1snd->fifo_write_idx) {
+        /* Let the host source run at the DAC rate the guest programmed. */
+        sound_source_set_rate(ps1snd->source, 1000000.0 / (double) (ps1snd->timer_latch + 1));
         ps1snd->dac_val = ps1snd->fifo[ps1snd->fifo_read_idx & 2047];
         ps1snd->fifo_read_idx++;
     }

@@ -802,6 +802,8 @@ cs423x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     cs423x_t       *dev = (cs423x_t *) priv;
 
+    sound_source_set_rate(dev->src_snd, (dev->ad1848.enable && dev->ad1848.freq > 0) ? (double) dev->ad1848.freq : 0.0);
+
     /* Output audio from the WSS codec. */
     ad1848_update(&dev->ad1848);
 
