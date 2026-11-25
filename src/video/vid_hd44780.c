@@ -1101,7 +1101,8 @@ hd44780_init(const device_t *info)
     }
 
     dev->log = log_open("HD44780");
-    hd44780_log(dev->log, "init(%dx%d, rows=%d, font=%d, wiring=%d)\n", dev->cols, dev->rows, dev->font, dev->font, dev->wiring);
+    hd44780_log(dev->log, "init(%dx%d, font=%s, wiring=%d)\n", dev->cols, dev->rows,
+                (dev->font == hd44780_font_a02) ? "A02" : "A00", dev->wiring);
 
     dev->monitor_index = monitor_index_global;
 
