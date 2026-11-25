@@ -18,6 +18,10 @@
 #include <QLabel>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QPainter>
+#include <QStyle>
+#include <QStyleOptionSlider>
 #include <functional>
 #include <QSlider>
 
@@ -27,6 +31,42 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/sound.h>
 }
+
+/* A dB scale to be placed right next to a vertical slider of the same height,
+   with its marks where the slider's values are. */
+class GainScale : public QWidget {
+public:
+    explicit GainScale(const QSlider *slider, QWidget *parent = nullptr)
+        : QWidget(parent)
+        , slider(slider)
+    {
+        setMinimumWidth(fontMetrics().horizontalAdvance(QStringLiteral("+18 dB")) + 4);
+        setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        QStyleOptionSlider opt;
+
+        opt.initFrom(slider);
+        opt.orientation = Qt::Vertical;
+        const int handle = slider->style()->pixelMetric(QStyle::PM_SliderLength, &opt, slider);
+        const int span   = qMax(1, slider->height() - handle);
+        const int half   = fontMetrics().height() / 2;
+
+        for (int v = slider->maximum(); v >= slider->minimum(); v -= 6) {
+            const int y = QStyle::sliderPositionFromValue(slider->minimum(), slider->maximum(), v, span, true) + (handle / 2);
+
+            painter.drawText(QRect(0, y - half, width(), fontMetrics().height()), Qt::AlignLeft | Qt::AlignVCenter,
+                             QString("%1%2 dB").arg((v > 0) ? "+" : "").arg(v));
+        }
+    }
+
+private:
+    const QSlider *slider;
+};
 
 SoundGain::SoundGain(QWidget *parent)
     : QDialog(parent)
@@ -38,7 +78,7 @@ SoundGain::SoundGain(QWidget *parent)
 
     /* A column per slider: the master gain first, then every source that
        exists right now. All of them go from -18 dB to +18 dB. */
-    auto addColumn = [this](const QString &name, const int value, std::function<void(int)> apply) {
+    auto addColumn = [this](const QString &name, const int value, std::function<void(int)> apply, const bool scale = false) {
         auto *column = new QVBoxLayout();
         auto *label  = new QLabel(name, ui->scrollAreaWidgetContents);
         auto *slider = new QSlider(Qt::Vertical, ui->scrollAreaWidgetContents);
@@ -67,12 +107,22 @@ SoundGain::SoundGain(QWidget *parent)
         });
 
         column->addWidget(label);
-        column->addWidget(slider, 1, Qt::AlignHCenter);
+        if (scale) {
+            auto *row = new QHBoxLayout();
+
+            row->setSpacing(2);
+            row->addStretch(1);
+            row->addWidget(slider);
+            row->addWidget(new GainScale(slider, ui->scrollAreaWidgetContents));
+            row->addStretch(1);
+            column->addLayout(row, 1);
+        } else
+            column->addWidget(slider, 1, Qt::AlignHCenter);
         column->addWidget(dB);
         ui->slidersLayout->addLayout(column);
     };
 
-    addColumn(tr("Master"), sound_gain, [](int v) { sound_gain = v; });
+    addColumn(tr("Master"), sound_gain, [](int v) { sound_gain = v; }, true);
 
     const int count = sound_source_get_count();
 
