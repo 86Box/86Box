@@ -719,7 +719,8 @@ hd44780_render(hd44780_t *dev)
             int            is_cursor = at_cursor && (lcd->config[1] & 0x02);
             int            is_blink  = at_cursor && (lcd->config[1] & 0x01) && (lcd->frames < 30);
             uint8_t        ch        = lcd->ddram[addr];
-            const uint8_t *glyph     = ((ch & 0xf8) == 0x00) ? &lcd->cgram[(ch & 0x07) << 3] : dev->font[ch];
+            /* Codes 0x00-0x07 and 0x08-0x0F both select the 8 CGRAM characters. */
+            const uint8_t *glyph     = ((ch & 0xf0) == 0x00) ? &lcd->cgram[(ch & 0x07) << 3] : dev->font[ch];
             for (int dy = 0; dy < CHAR_H; dy++) {
                 uint8_t bits;
                 if (!(row & 1) && !(lcd->config[2] & 0x20)) /* uninitialized state */
