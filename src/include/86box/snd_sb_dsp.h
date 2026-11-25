@@ -187,6 +187,7 @@ typedef struct sb_dsp_t {
     int     pos;
 
     const int *clock; /* NULL: the shared stream clock */
+    double     rate_latch; /* Output period last passed on to the host source */
 
     uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
 

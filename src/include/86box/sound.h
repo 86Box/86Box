@@ -89,6 +89,9 @@ extern void *          sound_source_add_stream(uint8_t stream,
                                                void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
                                                void *priv);
 extern const int *     sound_source_get_pos_ptr(void *src);
+extern void            sound_source_set_rate(void *src, double rate);
+extern void            sound_source_set_rate_by_clock(const int *clock, double rate);
+extern int             sound_source_get_rate(void *src);
 extern int             sound_source_class_pending(uint8_t stream);
 extern uint64_t        sound_source_offset_delay(pc_timer_t *timer, uint64_t latch);
 
@@ -125,6 +128,7 @@ enum {
 
 #define SOUND_FREQ   FREQ_48000
 #define SOUNDBUFLEN  (SOUND_FREQ / 50)
+#define SOUND_MIN_RATE 4000
 
 #define MUSIC_FREQ   FREQ_49716
 #define MUSICBUFLEN  (MUSIC_FREQ / 36)

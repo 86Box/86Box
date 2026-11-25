@@ -314,8 +314,10 @@ recalc_sb16_filter(const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
-    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
+    /* The host rate follows the playback rate, so there is nothing above the cutoff to remove. */
+    const double fC = 0.5;
+
+    (void) playback_freq;
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
@@ -2949,6 +2951,14 @@ pollsb(void *priv)
     int       data[2];
 
     timer_advance_u64(&dsp->output_timer, (uint64_t) dsp->sblatcho);
+
+    /* Let the host source run at the rate the guest programmed. */
+    if ((dsp->sblatcho != dsp->rate_latch) && (dsp->clock != NULL) && (dsp->sblatcho > 0.0) &&
+        ((dsp->sb_8_enable && dsp->sb_8_output) || (dsp->sb_16_enable && dsp->sb_16_output))) {
+        dsp->rate_latch = dsp->sblatcho;
+        sound_source_set_rate_by_clock(dsp->clock, (1000000.0 * (double) TIMER_USEC) / dsp->sblatcho);
+    }
+
     if (dsp->sb_8_enable && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
         sb_dsp_update(dsp);
 

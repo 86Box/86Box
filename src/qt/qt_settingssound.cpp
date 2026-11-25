@@ -132,9 +132,6 @@ SettingsSound::SettingsSound(QWidget *parent)
         tr("Rate the host input capture device is opened at.\n\n"
            "44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."));
 
-    ui->comboBoxSampleRate->setToolTip(
-        tr("Rate the emulator mixes to the host output device."));
-
     ui->checkBoxSoundInput->setChecked(sound_input_enabled > 0);
 
     onCurrentMachineChanged(machine);
@@ -174,8 +171,6 @@ SettingsSound::populateAudioDevices(const int backend)
 
         modelAudioOut->removeRows(0, removeRowsAudioOut);
         ui->comboBoxAudioOutputDevice->setCurrentIndex(-1);
-        /* Setting the index fires on_comboBoxAudioOutputDevice_currentIndexChanged,
-        which probes supported rates and populates comboBoxSampleRate. */
         ui->comboBoxAudioOutputDevice->setCurrentIndex(selectedAudioRow);
     }
 
@@ -246,7 +241,6 @@ SettingsSound::changed()
     has_changed  |= (mpu401_standalone_enable   != (ui->checkBoxMPU401->isChecked() ? 1 : 0));
     has_changed  |= mpu401_cfg_changed;
     has_changed  |= (sound_is_float             != (ui->checkBoxFloat32->isChecked() ? 1 : 0));
-    has_changed  |= (sound_sample_rate           != ui->comboBoxSampleRate->currentData().toInt());
 
     soft_changed |= (sound_backend_current       != ui->comboBoxSoundBackend->currentData().toInt());
     soft_changed |= (QString(sound_output_device) != ui->comboBoxAudioOutputDevice->currentData().toString());
@@ -326,7 +320,6 @@ SettingsSound::save(int soft)
 
     sound_is_float = ui->checkBoxFloat32->isChecked() ? 1 : 0;
 
-    sound_sample_rate = ui->comboBoxSampleRate->currentData().toInt();
 }
 
 static bool
@@ -597,48 +590,6 @@ SettingsSound::on_comboBoxSoundBackend_currentIndexChanged(int index)
         return;
 
     populateAudioDevices(ui->comboBoxSoundBackend->currentData().toInt());
-}
-
-void
-SettingsSound::on_comboBoxAudioOutputDevice_currentIndexChanged(int index)
-{
-    if (index < 0)
-        return;
-
-    QByteArray devName   = ui->comboBoxAudioOutputDevice->currentData().toString().toUtf8();
-    int        rates[16] = { 0 };
-    const int  count     = sound_backend_get_supported_rates_of(ui->comboBoxSoundBackend->currentData().toInt(),
-                                                                devName.constData(), rates, 16);
-
-    /* Keep the current selection if it's in the new list; fall back to the
-       globally configured rate, then to the first available rate. */
-    int targetRate = ui->comboBoxSampleRate->currentData().toInt();
-    if (targetRate == 0)
-        targetRate = sound_sample_rate;
-
-    auto *modelSR       = ui->comboBoxSampleRate->model();
-    int   removeRowsSR  = modelSR->rowCount();
-    int   selectedRow   = 0;
-    bool  targetOffered = false;
-
-    Models::Batch rateRows(modelSR);
-    for (int i = 0; i < count; i++) {
-        int row = rateRows.add(tr("%1 Hz").arg(rates[i]), rates[i]);
-        if (rates[i] == targetRate) {
-            selectedRow   = row - removeRowsSR;
-            targetOffered = true;
-        }
-    }
-
-    if (!targetOffered && (targetRate > 0)) {
-        int row = rateRows.add(tr("%1 Hz (host will resample)").arg(targetRate), targetRate);
-        selectedRow = row - removeRowsSR;
-    }
-    rateRows.commit();
-
-    modelSR->removeRows(0, removeRowsSR);
-    ui->comboBoxSampleRate->setCurrentIndex(-1);
-    ui->comboBoxSampleRate->setCurrentIndex(selectedRow);
 }
 
 void

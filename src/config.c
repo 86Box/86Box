@@ -1139,9 +1139,9 @@ load_sound(void)
     strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
     sound_output_device[sizeof(sound_output_device) - 1] = '\0';
 
-    sound_sample_rate = ini_section_get_int(cat, "sound_sample_rate", FREQ_48000);
-    if (sound_sample_rate != FREQ_44100 && sound_sample_rate != FREQ_48000)
-        sound_sample_rate = FREQ_48000;
+    /* The host rate follows the guest, this is only the rate sources start at and the most they run at. */
+    sound_sample_rate = FREQ_48000;
+    ini_section_delete_var(cat, "sound_sample_rate");
 
     sb_input_rate = ini_section_get_int(cat, "sound_input_rate", FREQ_44100);
     if (sb_input_rate != FREQ_44100 && sb_input_rate != FREQ_48000)
@@ -4182,10 +4182,7 @@ save_sound(void)
     else
         ini_section_delete_var(cat, "sound_input_enabled");
 
-    if (sound_sample_rate == FREQ_48000)
-        ini_section_delete_var(cat, "sound_sample_rate");
-    else
-        ini_section_set_int(cat, "sound_sample_rate", sound_sample_rate);
+    ini_section_delete_var(cat, "sound_sample_rate");
 
     if (sb_input_rate == FREQ_44100)
         ini_section_delete_var(cat, "sound_input_rate");

@@ -38,6 +38,9 @@ typedef struct sound_source_t {
     int                    sample_rate;
     int                    buffer_size;
 
+    double                 req_rate;   /* Rate the card asked for, 0 for none. */
+    int                    req_seen;   /* Rate seen at the previous block. */
+
     pc_timer_t             timer;
     uint64_t               latch;
 
@@ -88,12 +91,22 @@ sound_source_class_first(const int cls)
     return NULL;
 }
 
+/* The frames of a block of a stream class as seen by automation: the main
+   stream is always presented at the default host rate, no matter which rate
+   its sources currently run at. */
+static int
+sound_source_class_frames(const sound_source_t *src)
+{
+    return (src->cls == (I_NORMAL + 1)) ? (sound_sample_rate / 50) : src->buffer_size;
+}
+
 static void
 sound_source_class_tap(const sound_source_t *src)
 {
     const uint8_t      stream = (uint8_t) (src->cls - 1);
     sound_class_mix_t *mix    = &class_mix[stream];
-    const int          len    = src->buffer_size * 2;
+    const int          frames = sound_source_class_frames(src);
+    const int          len    = frames * 2;
 
     if (mix->len != len) {
         free(mix->buf);
@@ -104,8 +117,17 @@ sound_source_class_tap(const sound_source_t *src)
         mix->done = 0;
     }
 
-    for (int c = 0; c < len; c++)
-        mix->buf[c] += src->buf[c];
+    if (frames == src->buffer_size) {
+        for (int c = 0; c < len; c++)
+            mix->buf[c] += src->buf[c];
+    } else {
+        for (int c = 0; c < frames; c++) {
+            const int ind = (int) (((int64_t) c * src->buffer_size) / frames);
+
+            mix->buf[c * 2]     += src->buf[ind * 2];
+            mix->buf[c * 2 + 1] += src->buf[ind * 2 + 1];
+        }
+    }
 
     if (++mix->done < sound_source_class_count(src->cls))
         return;
@@ -137,7 +159,7 @@ sound_source_class_pending(const uint8_t stream)
 {
     const sound_source_t *src = sound_source_class_first(stream + 1);
 
-    return (src != NULL) ? src->pos : 0;
+    return (src != NULL) ? (int) (((int64_t) src->pos * sound_source_class_frames(src)) / src->buffer_size) : 0;
 }
 
 /* See sound_poll_offset_delay(): the phase of the main stream's sources. */
@@ -246,6 +268,86 @@ sound_source_set_sample_rate(void *priv)
     timer_set_delay_u64(&src->timer, src->latch);
 }
 
+/* A card tells which rate its output is generated at. The change is applied at
+   a block boundary, when it has been asked for twice in a row, so that the
+   clock the card reads stays consistent and a guest that reprograms its rate
+   back and forth does not make the backend reopen its stream every time. */
+void
+sound_source_set_rate(void *priv, const double rate)
+{
+    sound_source_t *src = (sound_source_t *) priv;
+    double          r   = rate;
+
+    if (src == NULL)
+        return;
+
+    if ((r <= 0.0) || (r > (double) sound_sample_rate))
+        r = (double) sound_sample_rate;
+    else if (r < (double) SOUND_MIN_RATE)
+        r = (double) SOUND_MIN_RATE;
+
+    src->req_rate = r;
+}
+
+/* For cards that only know their clock. */
+void
+sound_source_set_rate_by_clock(const int *clock, const double rate)
+{
+    if (clock == NULL)
+        return;
+
+    for (sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
+        if (&src->pos == clock) {
+            sound_source_set_rate(src, rate);
+            return;
+        }
+    }
+}
+
+int
+sound_source_get_rate(void *priv)
+{
+    const sound_source_t *src = (sound_source_t *) priv;
+
+    return (src != NULL) ? src->sample_rate : sound_sample_rate;
+}
+
+static void
+sound_source_apply_rate(sound_source_t *src)
+{
+    const int      rate  = (int) (src->req_rate + 0.5);
+    const uint64_t latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / src->req_rate));
+    void *         old;
+
+    if (rate <= 0)
+        return;
+
+    if (rate == src->sample_rate) {
+        /* Same host rate: only follow the exact period, to stay in step with the card. */
+        src->latch    = latch;
+        src->req_seen = rate;
+        return;
+    }
+
+    if (src->req_seen != rate) {
+        src->req_seen = rate;
+        return;
+    }
+
+    old      = src->src;
+    src->src = NULL;
+    sound_backend_close_source(old);
+
+    sound_source_dealloc_buffers(src);
+
+    src->sample_rate = rate;
+    src->buffer_size = rate / 50;
+    src->latch       = latch;
+
+    sound_source_alloc_buffers(src);
+    sound_source_do_init(src);
+}
+
 void
 sound_source_poll(void *priv)
 {
@@ -282,6 +384,9 @@ sound_source_poll(void *priv)
             sound_source_give_buffer(src, src->buf16);
 
         src->pos = 0;
+
+        if (src->req_rate != 0.0)
+            sound_source_apply_rate(src);
     }
 }
 
@@ -462,7 +567,7 @@ sound_source_add_stream(const uint8_t stream,
 
         /* Join the phase of the class, so that its blocks complete together. */
         if ((peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
-            src->pos = peer->pos;
+            src->pos = (int) (((int64_t) peer->pos * src->buffer_size) / peer->buffer_size);
             timer_set_delay_u64(&src->timer, timer_get_remaining_u64(&peer->timer));
         }
     }

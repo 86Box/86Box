@@ -263,8 +263,10 @@ recalc_ess_dac2_filter(const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
-    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
+    /* The host rate follows the playback rate, so there is nothing above the cutoff to remove. */
+    const double fC = 0.5;
+
+    (void) playback_freq;
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
