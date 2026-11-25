@@ -118,7 +118,7 @@ ncr53c400_irq_enable(void *priv, void *ext_priv, int state)
         ncr400->status_ctrl |= (state << 0);
         ncr53c400_log("Status Control bit 4=%02x.\n", ncr400->status_ctrl);
 
-        if (ncr400->status_ctrl & 0x10)
+        if (ncr400->status_ctrl & 0x10) /*IRQ enable bit*/
             ncr5380_irq(ncr, state);
     }
     return 1;
@@ -145,6 +145,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
     scsi_bus_t          *scsi_bus   = &ncr->scsibus;
     scsi_device_t       *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
     int                  ncr400_offs = 0;
+    uint8_t              old_reset  = 0;
     uint8_t              old_ctrl   = 0;
     double               period     = scsi_bus->period;
     double               min_period = 10.0;
@@ -206,17 +207,14 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* Control */
-                        /*Parity bits*/
-                        /*This is to avoid RTBios 8.10R BIOS problems with the hard disk and detection.*/
-                        /*If the parity bits are set, bit 0 of the 53c400 status port should be set as well.*/
-                        /*Required by RTASPI10.SYS otherwise it won't initialize.*/
-                        if (val & 0x80) {
-                            if (ncr->mode & 0x30) {
-                                if (!(ncr->mode & MODE_DMA)) {
-                                    ncr->mode = 0x00;
-                                    ncr400->reset = 1;
-                                }
-                            }
+                        old_reset = ncr400->reset;
+                        ncr400->reset = val & 0x80;
+                        if ((old_reset ^ ncr400->reset) & 0x80) { /*Reset bit of the 53c400*/
+                            ncr5380_reset(ncr);
+                            ncr53c400_irq_enable(ncr, ncr400, 1);
+                            ncr->isr |= STATUS_INT;
+                            ncr53c400_log("NCR53c400 reset.\n");
+                            break;
                         }
 
                         ncr53c400_log("NCR 53c400 control=%02x, control before=%02x, mode=%02x.\n", val, ncr400->status_ctrl, ncr->mode);
@@ -230,14 +228,11 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         old_ctrl = ncr400->status_ctrl;
                         ncr400->status_ctrl = (ncr400->status_ctrl & 0x87) | (val & 0x78);
 
-                        if (!ncr400->reset) {
-                            if ((val & 0x10) && !(old_ctrl & 0x10))
-                                ncr53c400_irq_enable(ncr, ncr400, 1);
-                            else if (!(val & 0x10) && (old_ctrl & 0x10))
-                                ncr53c400_irq_enable(ncr, ncr400, 0);
-                        }
-
-                        ncr53c400_log("Actual control status bit=%02x, reset=%d.\n", ncr400->status_ctrl, ncr400->reset);
+                        ncr53c400_log("Actual control status bit=%02x, reset=%d, val=%02x.\n", ncr400->status_ctrl, ncr400->reset, val);
+                        if ((val & 0x10) && !(old_ctrl & 0x10))
+                            ncr53c400_irq_enable(ncr, ncr400, 1);
+                        else if (!(val & 0x10) && (old_ctrl & 0x10))
+                            ncr53c400_irq_enable(ncr, ncr400, 0);
                         break;
 
                     case 0x3981: /* block counter register */
@@ -367,11 +362,6 @@ ncr53c400_read(uint32_t addr, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* status */
-                        if (ncr400->reset) {
-                            ncr400->reset = 0;
-                            ncr53c400_irq_enable(ncr, ncr400, 1);
-                        }
-
                         ret = ncr400->status_ctrl;
                         ncr53c400_log("NCR status ctrl read=%02x.\n", ncr400->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr400->busy)
@@ -522,6 +512,10 @@ ncr53c400_dma_mode_ext(void *priv, void *ext_priv, uint8_t val)
     ncr_t          *ncr        = (ncr_t *) priv;
     scsi_bus_t     *scsi_bus   = &ncr->scsibus;
 
+    if ((val & 0x30) == 0x30) { /*Parity interrupt bits*/
+        ncr53c400_irq_enable(ncr, ncr400, 1);
+        ncr->isr |= STATUS_INT;
+    }
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
     ncr53c400_log("NCR 53c400: Loaded?=%d, DMA mode enabled=%02x, valDMA=%02x.\n", ncr400->block_count_loaded, ncr->mode & MODE_DMA, val & MODE_DMA);
     if (!ncr400->block_count_loaded) {

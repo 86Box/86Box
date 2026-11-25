@@ -74,6 +74,7 @@ typedef struct ncr_t {
     uint8_t isr_reg;
 
     uint8_t bus;
+    uint8_t old_mode;
 
     int     irq;
 
@@ -98,7 +99,6 @@ extern uint8_t  ncr5380_read(uint16_t port, ncr_t *ncr);
 
 #ifdef EMU_DEVICE_H
 extern const device_t scsi_lcs6821n_device;
-extern const device_t scsi_pas_device;
 extern const device_t scsi_rt1000b_device;
 extern const device_t scsi_rt1000mc_device;
 extern const device_t scsi_t128_device;
