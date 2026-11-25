@@ -369,6 +369,27 @@ block_version_drop_kept(uint16_t nr)
     block_version_owner_sync(block_versions[nr].owner);
 }
 
+#ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+/*Free the kept versions with the entry check of a block leaving checked
+  mode: nothing would compare their bytes, nor would writes mark them*/
+static void
+block_version_drop_checked(uint32_t block_nr)
+{
+    uint16_t *link = &block_version_kept[block_nr];
+
+    while (*link) {
+        uint16_t nr = *link;
+
+        if (block_versions[nr].checked) {
+            *link = block_versions[nr].next;
+            block_version_free(nr);
+        } else
+            link = &block_versions[nr].next;
+    }
+    block_version_owner_sync(block_nr);
+}
+#endif
+
 static uint16_t
 block_version_alloc(void)
 {
@@ -2608,6 +2629,13 @@ codegen_block_end_recompile(codeblock_t *block)
     codegen_block_generate_end_mask_recompile();
 #ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
     block_version_checked_nr = 0;
+    /*Its rewrites now score towards reading its opcodes as it runs
+      (block_checked_invalidate()): compiled marked by writes again, so they
+      reach invalidate_block() and the dirty list, which move it on*/
+    if ((block->flags & CODEBLOCK_CHECKED) && block->smc_family_score) {
+        block->flags &= ~CODEBLOCK_CHECKED;
+        block_version_drop_checked(get_block_nr(block));
+    }
     if (block->flags & CODEBLOCK_CHECKED) {
         /*Without a version its code has nothing to compare with and stays
           marked by writes, as codegen_block_generate_end_mask_recompile()
@@ -2940,6 +2968,36 @@ block_version_put_back(codeblock_t *block)
   on the dirty list. The cooldown the strike sets on the block the loop is
   entering starts with that, as the loop tests the cooldown before
   invalidate_block() sets it.*/
+/*Whether the bytes a version was compiled from, as its entry check compares
+  them, are the same in guest memory through exec*/
+static int
+block_version_chk_same(const codeblock_t *block, const block_version_t *v, const uint8_t *exec)
+{
+    const uint8_t *code = &exec[(block->phys & MEM_GRANULARITY_MASK) & ~0x3f];
+
+    for (int c = 0; c < v->chk_nr; c++) {
+        uint64_t word;
+
+        memcpy(&word, &code[v->chk_word[c] * 8], sizeof(word));
+        if ((word ^ v->chk[c * 2]) & v->chk[c * 2 + 1])
+            return 0;
+    }
+    return 1;
+}
+
+/*Whether a checked block's current version fails its entry check against
+  guest memory now, under the mapping it was compiled under*/
+static int
+block_checked_opcodes_changed(const codeblock_t *block)
+{
+    const uint16_t cur  = block_version_cur[get_block_nr(block)];
+    const uint8_t *exec = _mem_exec[block->phys >> MEM_GRANULARITY_BITS];
+
+    if (!cur || (exec != block_versions[cur].exec))
+        return 0;
+    return !block_version_chk_same(block, &block_versions[cur], exec);
+}
+
 static void
 block_checked_invalidate(codeblock_t *block)
 {
@@ -2947,6 +3005,19 @@ block_checked_invalidate(codeblock_t *block)
 
     smc_thrash_rewritten(&block->smc_strikes, &pages[block->phys >> 12].smc_strikes,
                          codeblock_ran(block->runs_left, SMC_THRASH_MIN_RUNS), tsc, &cooldown);
+    /*Its entry check compares the bytes its code depends on, immediates
+      not among them: a rewrite that fails it changed opcodes. Scored as
+      invalidate_block() scores one, so code whose opcodes keep changing
+      leaves checked mode at its next compile (codegen_block_end_recompile())
+      and can move on to reading them as it runs. Writes that leave those
+      bytes alone (data next to the code) do not score.*/
+    if (block_checked_opcodes_changed(block)) {
+        int ran_long = codeblock_ran(block->runs_left, SMC_FAMILY_MIN_RUNS);
+
+        smc_family_hold_rewritten(&block_family_hold[get_block_nr(block)], ran_long);
+        smc_family_rewritten(&block->smc_family_score, ran_long);
+        block_family_runs[get_block_nr(block)] = 0;
+    }
     if (block == block_checked_entering) {
         block_checked_cooldown_block = block;
         block_checked_cooldown       = cooldown;
@@ -3006,20 +3077,8 @@ codegen_block_check(codeblock_t *block)
       checked): only its dirty bits tell, as for any block marked by writes*/
     if (block->dirty_mask != &block_untracked_mask)
         same = 1;
-    else if (cur && (exec == block_versions[cur].exec)) {
-        const block_version_t *v    = &block_versions[cur];
-        const uint8_t         *code = &exec[(block->phys & MEM_GRANULARITY_MASK) & ~0x3f];
-        int                    c;
-
-        for (c = 0; c < v->chk_nr; c++) {
-            uint64_t word;
-
-            memcpy(&word, &code[v->chk_word[c] * 8], sizeof(word));
-            if ((word ^ v->chk[c * 2]) & v->chk[c * 2 + 1])
-                break;
-        }
-        same = (c == v->chk_nr);
-    }
+    else if (cur && (exec == block_versions[cur].exec))
+        same = block_version_chk_same(block, &block_versions[cur], exec);
     if (same && !written)
         return 0;
     if (block->smc_cooldown_until > tsc)
