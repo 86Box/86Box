@@ -175,7 +175,6 @@ typedef struct emu8008_t {
     /* AC97 / Codec Mixer state (IOBase + 0x16/0x1C/0x1E) */
     uint8_t  ac97_latch;
     uint8_t  ac97_index;
-    uint16_t ac97_regs[128];
     uint16_t codec_ext_regs[3]; /* 0xEB..0xED redirected to Bank 0 0x01EB..0x01ED */
     ac97_codec_t *ac97_codec;
 
@@ -288,27 +287,22 @@ emu8008_record_host_frame(emu8008_t *dev, int *left, int *right)
     dev->cap_input_phase = phase % dev->cap_rate;
 }
 
-static uint16_t
-emu8008_codec_read(emu8008_t *dev, uint8_t index)
-{
-    if (dev->ac97_codec)
-        return ac97_codec_readw(dev->ac97_codec, index);
-    return dev->ac97_regs[index & 0x7fu];
-}
-
 static void
 emu8008_update_record_gain(emu8008_t *dev)
 {
-    const uint16_t select = emu8008_codec_read(dev, 0x1a);
-    const uint16_t gain   = emu8008_codec_read(dev, 0x1c);
-    const int      muted  = (gain & AC97_MUTE) || (emu8008_codec_read(dev, 0x26) & 0x0100);
+    if (!dev->ac97_codec)
+        return;
+
+    const uint16_t select = ac97_codec_readw(dev->ac97_codec, 0x1a);
+    const uint16_t gain   = ac97_codec_readw(dev->ac97_codec, 0x1c);
+    const int      muted  = (gain & AC97_MUTE) || (ac97_codec_readw(dev->ac97_codec, 0x26) & 0x0100);
 
     dev->cap_source[0] = (select >> 8) & 7;
     dev->cap_source[1] = select & 7;
     /* The record gain register uses 1.5 dB steps. */
     dev->cap_gain[0]   = muted ? 0.0 : pow(10.0, ((gain >> 8) & 15) * (1.5 / 20.0));
     dev->cap_gain[1]   = muted ? 0.0 : pow(10.0, (gain & 15) * (1.5 / 20.0));
-    dev->cap_mic_boost = (emu8008_codec_read(dev, 0x0e) & 0x0040) ? 10 : 1;
+    dev->cap_mic_boost = (ac97_codec_readw(dev->ac97_codec, 0x0e) & 0x0040) ? 10 : 1;
 }
 
 static void
@@ -676,7 +670,7 @@ emu8008_inw(uint16_t port, void *priv)
         case 0x1C:
             if (dev->ac97_index >= 0xEB && dev->ac97_index <= 0xED)
                 return dev->codec_ext_regs[dev->ac97_index - 0xEB];
-            return emu8008_codec_read(dev, dev->ac97_index);
+            return dev->ac97_codec ? ac97_codec_readw(dev->ac97_codec, dev->ac97_index) : 0xFFFF;
         default:
             return 0xFFFF;
     }
@@ -778,10 +772,8 @@ emu8008_outw(uint16_t port, uint16_t val, void *priv)
         case 0x1C:
             if (dev->ac97_index >= 0xEB && dev->ac97_index <= 0xED) {
                 dev->codec_ext_regs[dev->ac97_index - 0xEB] = val;
-            } else {
-                dev->ac97_regs[dev->ac97_index & 0x7Fu] = val;
-                if (dev->ac97_codec)
-                    ac97_codec_writew(dev->ac97_codec, dev->ac97_index, val);
+            } else if (dev->ac97_codec) {
+                ac97_codec_writew(dev->ac97_codec, dev->ac97_index, val);
                 switch (dev->ac97_index) {
                     case 0x00:
                         emu8008_update_record_gain(dev);
@@ -789,7 +781,7 @@ emu8008_outw(uint16_t port, uint16_t val, void *priv)
                         /* fall through */
                     case 0x02:
                     case 0x18:
-                        if (dev->ac97_codec) {
+                        {
                             int master_l, master_r, pcm_l, pcm_r;
                             emu8008_update_audio(dev);
                             ac97_codec_getattn(dev->ac97_codec, 0x02, &master_l, &master_r);
@@ -966,7 +958,8 @@ emu8008_reset(void *priv)
     dev->playback_pos = 0;
     dev->playback_frame[0] = dev->playback_frame[1] = 0;
     dev->effect_frame = (emu8k_effect_sends_t) { 0 };
-    dev->playback_gain[0] = dev->playback_gain[1] = 0;
+    /* No volume control without a codec. */
+    dev->playback_gain[0] = dev->playback_gain[1] = dev->ac97_codec ? 0 : 32768;
     emu8008_update_record_gain(dev);
     emu8008_update_irq(dev);
 }
