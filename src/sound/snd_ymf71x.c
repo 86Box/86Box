@@ -796,6 +796,8 @@ ymf71x_put_buffer(int16_t *buffer, int len, void *priv)
 static void
 ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
+    for (int c = 0; c < FILTER_USERS; c++)
+        filters_set_rate(c, (double) sound_source_get_rate(((ymf71x_t *) priv)->src_wss));
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
     sound_source_set_rate(ymf71x->src_wss, (ymf71x->ad1848.enable && ymf71x->ad1848.freq > 0) ? (double) ymf71x->ad1848.freq : 0.0);
@@ -852,6 +854,8 @@ ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 static void
 ymf71x_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
+    for (int c = 0; c < FILTER_USERS; c++)
+        filters_set_rate(c, (double) sound_source_get_rate(((ymf71x_t *) priv)->sb->src_snd));
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
     /* sbprov2 part */

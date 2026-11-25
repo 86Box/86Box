@@ -736,6 +736,9 @@ pas16_check_filter_rate(const pas16_t *pas16)
 {
     const int rate = sound_source_get_rate(pas16->src_snd);
 
+    filters_set_rate(0, (double) rate);
+    filters_set_rate(3, (double) rate);
+
     if (pas16->filter && (rate > 0) && (rate != pas16_filter_rate)) {
         pas16_filter_rate = rate;
         recalc_pas16_filter_rate(pas16_filter_cutoff, rate);

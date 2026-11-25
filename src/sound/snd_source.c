@@ -22,6 +22,10 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/automation.h>
+#include <86box/ini.h>
+#include <86box/config.h>
+#include <stdio.h>
+#include <math.h>
 
 typedef struct sound_source_t {
     const char *           name;
@@ -33,7 +37,16 @@ typedef struct sound_source_t {
 
     int                    cls;        /* Stream class + 1, 0 for none. */
     int                    pos;
-    int                    gain;
+    int                    gain;       /* Per-source gain in dB. */
+    char                   key[64];    /* Configuration key of the gain. */
+    char                   label[160]; /* What the user sees. */
+
+    /* Sources of the same device, class and rate share one timer: the leader
+       runs it and delivers the blocks of its followers as well. */
+    struct sound_source_t *leader;
+    struct sound_source_t *followers;
+    struct sound_source_t *fnext;
+    int                    inst;
     int                    sample_rate;
     int                    buffer_size;
 
@@ -47,6 +60,7 @@ typedef struct sound_source_t {
     void *                 priv;
 
     const device_t *       info;
+    const device_t *       dev;        /* Device that created the source. */
 
     struct sound_source_t *prev;
     struct sound_source_t *next;
@@ -68,6 +82,14 @@ typedef struct sound_class_mix_t {
 
 static sound_class_mix_t class_mix[I_MAX] = { 0 };
 
+static sound_source_t *
+sound_source_lead(sound_source_t *src)
+{
+    return (src->leader != NULL) ? src->leader : src;
+}
+
+static void sound_source_identify(sound_source_t *src);
+
 static int
 sound_source_class_count(const int cls)
 {
@@ -83,7 +105,7 @@ static sound_source_t *
 sound_source_class_first(const int cls)
 {
     for (sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
-        if (src->cls == cls)
+        if ((src->cls == cls) && (src->leader == NULL))
             return src;
     }
 
@@ -266,6 +288,8 @@ sound_source_set_rate(void *priv, const double rate)
     if (src == NULL)
         return;
 
+    src = sound_source_lead(src);
+
     if ((r <= 0.0) || (r > (double) sound_sample_rate))
         r = (double) sound_sample_rate;
     else if (r < (double) SOUND_MIN_RATE)
@@ -319,18 +343,57 @@ sound_source_apply_rate(sound_source_t *src)
         return;
     }
 
-    old      = src->src;
-    src->src = NULL;
-    sound_backend_close_source(old);
+    for (sound_source_t *s = src; s != NULL; s = (s == src) ? src->followers : s->fnext) {
+        old      = s->src;
+        s->src   = NULL;
+        sound_backend_close_source(old);
 
-    sound_source_dealloc_buffers(src);
+        sound_source_dealloc_buffers(s);
 
-    src->sample_rate = rate;
-    src->buffer_size = rate / 50;
-    src->latch       = latch;
+        s->sample_rate = rate;
+        s->buffer_size = rate / 50;
+        s->latch       = latch;
 
-    sound_source_alloc_buffers(src);
-    sound_source_do_init(src);
+        sound_source_alloc_buffers(s);
+        sound_source_do_init(s);
+    }
+}
+
+/* The gain of a source in dB, as a factor. */
+static double
+sound_source_gain_factor(const int gain)
+{
+    return pow(10.0, (double) gain / 20.0);
+}
+
+static void
+sound_source_block(sound_source_t *src)
+{
+    memset(src->buf, 0x00, src->buffer_size * 2 * sizeof(int32_t));
+
+    if (src->get_buffer != NULL)
+        src->get_buffer(src->buf, src->buffer_size, src->priv);
+
+    if (src->cls != 0)
+        sound_source_class_tap(src);
+
+    const int    gained = (src->gain != 0);
+    const double factor = gained ? sound_source_gain_factor(src->gain) : 1.0;
+
+    for (uint32_t c = 0; c < (uint32_t) (src->buffer_size * 2); c++) {
+        double v = (double) src->buf[c];
+
+        if (gained)
+            v *= factor;
+        if (v > 32767.0)
+            v = 32767.0;
+        if (v < -32768.0)
+            v = -32768.0;
+
+        src->buf16[c] = (int16_t) v;
+    }
+
+    sound_source_give_buffer(src, src->buf16);
 }
 
 void
@@ -338,30 +401,23 @@ sound_source_poll(void *priv)
 {
     sound_source_t *src = (sound_source_t *) priv;
 
+    sound_source_t *f;
+
     timer_advance_u64(&src->timer, src->latch);
 
     src->pos++;
+    for (f = src->followers; f != NULL; f = f->fnext)
+        f->pos = src->pos;
+
     if (src->pos == src->buffer_size) {
-        memset(src->buf, 0x00, src->buffer_size * 2 * sizeof(int32_t));
+        sound_source_block(src);
 
-        if (src->get_buffer != NULL)
-            src->get_buffer(src->buf, src->buffer_size, src->priv);
-
-        if (src->cls != 0)
-            sound_source_class_tap(src);
-
-        for (uint32_t c = 0; c < (uint32_t) (src->buffer_size * 2); c++) {
-            if (src->buf[c] > 32767)
-                src->buf[c] = 32767;
-            if (src->buf[c] < -32768)
-                src->buf[c] = -32768;
-
-            src->buf16[c] = (int16_t) src->buf[c];
-        }
-
-        sound_source_give_buffer(src, src->buf16);
+        for (f = src->followers; f != NULL; f = f->fnext)
+            sound_source_block(f);
 
         src->pos = 0;
+        for (f = src->followers; f != NULL; f = f->fnext)
+            f->pos = 0;
 
         if (src->req_rate != 0.0)
             sound_source_apply_rate(src);
@@ -429,6 +485,30 @@ sound_source_close(void *priv)
 
     sound_source_do_close(src);
 
+    if (src->leader != NULL) {
+        sound_source_t **pp = &src->leader->followers;
+
+        while ((*pp != NULL) && (*pp != src))
+            pp = &(*pp)->fnext;
+        if (*pp != NULL)
+            *pp = src->fnext;
+    } else if (src->followers != NULL) {
+        /* Hand the timer over to the first follower. */
+        sound_source_t *n = src->followers;
+        const uint64_t  rem = timer_is_enabled(&src->timer) ? timer_get_remaining_u64(&src->timer) : src->latch;
+
+        n->leader    = NULL;
+        n->followers = n->fnext;
+        n->fnext     = NULL;
+        for (sound_source_t *f = n->followers; f != NULL; f = f->fnext)
+            f->leader = n;
+        n->req_rate  = src->req_rate;
+        n->req_seen  = src->req_seen;
+        n->latch     = src->latch;
+        n->pos       = src->pos;
+        timer_set_delay_u64(&n->timer, rem);
+    }
+
     if (src->prev != NULL)
         src->prev->next    = src->next;
 
@@ -472,6 +552,8 @@ sound_source_init(const device_t *info)
 
     last_sound_source       = src;
 
+    sound_source_identify(src);
+
     return src;
 }
 
@@ -492,9 +574,77 @@ sound_source_link(sound_source_t *src)
     last_sound_source = src;
 }
 
+static void *sound_source_add_unmerged(int sample_rate, int frames,
+                                       void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
+                                       void *priv);
+
+/* Names the source after the device that creates it and loads its gain. */
+static void
+sound_source_identify(sound_source_t *src)
+{
+    int ordinal = 0;
+
+    src->dev  = device_get_current();
+    src->inst = (src->dev != NULL) ? device_get_instance() : 0;
+
+    for (const sound_source_t *o = first_sound_source; o != NULL; o = o->next) {
+        if ((o != src) && (o->dev == src->dev) && (o->inst == src->inst))
+            ordinal++;
+    }
+
+    if (src->dev != NULL) {
+        char name[128] = { 0 };
+
+        device_get_name(src->dev, 0, name);
+        snprintf(src->key, sizeof(src->key), "%s_%i_%i",
+                 device_get_internal_name(src->dev), src->inst, ordinal);
+        snprintf(src->label, sizeof(src->label), "%s #%i", name, ordinal + 1);
+    } else {
+        snprintf(src->key, sizeof(src->key), "source_%i", ordinal);
+        snprintf(src->label, sizeof(src->label), "Source #%i", ordinal + 1);
+    }
+
+    src->gain = config_get_int("Sound gains", src->key, 0);
+}
+
+/* Sources of the same device, class and rate do not need a timer each. */
+static void
+sound_source_merge(sound_source_t *src)
+{
+    if (src->dev == NULL)
+        return;
+
+    for (sound_source_t *o = first_sound_source; o != NULL; o = o->next) {
+        if ((o == src) || (o->leader != NULL) || (o->dev != src->dev) || (o->inst != src->inst) ||
+            (o->cls != src->cls) || (o->sample_rate != src->sample_rate) || (o->buffer_size != src->buffer_size))
+            continue;
+
+        timer_disable(&src->timer);
+
+        src->leader   = o;
+        src->fnext    = o->followers;
+        o->followers  = src;
+        src->pos      = o->pos;
+        src->latch    = o->latch;
+        return;
+    }
+}
+
 void *
 sound_source_add(const int sample_rate, const int frames,
                  void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    sound_source_t *src = (sound_source_t *) sound_source_add_unmerged(sample_rate, frames, get_buffer, priv);
+
+    if (src != NULL)
+        sound_source_merge(src);
+
+    return src;
+}
+
+static void *
+sound_source_add_unmerged(const int sample_rate, const int frames,
+                          void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
     sound_source_t *src = (sound_source_t *) calloc(1, sizeof(sound_source_t));
 
@@ -510,6 +660,7 @@ sound_source_add(const int sample_rate, const int frames,
     sound_source_alloc_buffers(src);
     sound_source_do_init(src);
     sound_source_link(src);
+    sound_source_identify(src);
 
     timer_add(&src->timer, sound_source_poll, src, 1);
 
@@ -525,16 +676,16 @@ sound_source_add_stream(const uint8_t stream,
 
     switch (stream) {
         case I_NORMAL:
-            src = (sound_source_t *) sound_source_add(sound_sample_rate, sound_sample_rate / 50, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add_unmerged(sound_sample_rate, sound_sample_rate / 50, get_buffer, priv);
             break;
         case I_MUSIC:
-            src = (sound_source_t *) sound_source_add(MUSIC_FREQ, MUSICBUFLEN, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add_unmerged(MUSIC_FREQ, MUSICBUFLEN, get_buffer, priv);
             break;
         case I_YM2151:
-            src = (sound_source_t *) sound_source_add(YM2151_FREQ, YM2151BUFLEN, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add_unmerged(YM2151_FREQ, YM2151BUFLEN, get_buffer, priv);
             break;
         case I_WT:
-            src = (sound_source_t *) sound_source_add(WT_FREQ, WTBUFLEN, get_buffer, priv);
+            src = (sound_source_t *) sound_source_add_unmerged(WT_FREQ, WTBUFLEN, get_buffer, priv);
             break;
         default:
             break;
@@ -543,8 +694,10 @@ sound_source_add_stream(const uint8_t stream,
     if (src != NULL) {
         src->cls = stream + 1;
 
+        sound_source_merge(src);
+
         /* Join the phase of the class, so that its blocks complete together. */
-        if ((peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
+        if ((src->leader == NULL) && (peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
             src->pos = (int) (((int64_t) peer->pos * src->buffer_size) / peer->buffer_size);
             timer_set_delay_u64(&src->timer, timer_get_remaining_u64(&peer->timer));
         }
@@ -558,7 +711,7 @@ sound_source_get_pos_ptr(void *priv)
 {
     const sound_source_t *src = (sound_source_t *) priv;
 
-    return (src == NULL) ? NULL : &src->pos;
+    return (src == NULL) ? NULL : &sound_source_lead((sound_source_t *) src)->pos;
 }
 
 /* Safe to call on a source that has already been removed. */
@@ -594,3 +747,63 @@ const device_t sound_source_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/* Per-source gain, for the sound gain dialog. */
+static sound_source_t *
+sound_source_nth(int n)
+{
+    for (sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
+        if (n-- == 0)
+            return src;
+    }
+
+    return NULL;
+}
+
+int
+sound_source_get_count(void)
+{
+    int n = 0;
+
+    for (const sound_source_t *src = first_sound_source; src != NULL; src = src->next)
+        n++;
+
+    return n;
+}
+
+const char *
+sound_source_get_label(const int n)
+{
+    const sound_source_t *src = sound_source_nth(n);
+
+    return (src != NULL) ? src->label : "";
+}
+
+int
+sound_source_get_gain(const int n)
+{
+    const sound_source_t *src = sound_source_nth(n);
+
+    return (src != NULL) ? src->gain : 0;
+}
+
+void
+sound_source_set_gain(const int n, const int gain)
+{
+    sound_source_t *src = sound_source_nth(n);
+
+    if (src != NULL)
+        src->gain = gain;
+}
+
+/* Puts the gains of the sources that exist into the configuration. */
+void
+sound_source_save_gains(void)
+{
+    for (const sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
+        if (src->gain != 0)
+            config_set_int("Sound gains", (char *) src->key, src->gain);
+        else
+            config_delete_var("Sound gains", (char *) src->key);
+    }
+}

@@ -2,6 +2,7 @@
 #define QT_SOUNDGAIN_HPP
 
 #include <QDialog>
+#include <vector>
 
 namespace Ui {
 class SoundGain;
@@ -23,6 +24,7 @@ private slots:
 private:
     Ui::SoundGain *ui;
     int            sound_gain_orig;
+    std::vector<int> source_gain_orig;
 };
 
 #endif // QT_SOUNDGAIN_HPP

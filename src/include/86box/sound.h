@@ -99,6 +99,11 @@ extern uint64_t        sound_source_offset_delay(pc_timer_t *timer, uint64_t lat
    for a card that has none. */
 #define SOUND_CLOCK(clk, fallback) (((clk) != NULL) ? *(clk) : (fallback))
 extern void            sound_source_remove(void *src);
+extern int             sound_source_get_count(void);
+extern const char *    sound_source_get_label(int n);
+extern int             sound_source_get_gain(int n);
+extern void            sound_source_set_gain(int n, int gain);
+extern void            sound_source_save_gains(void);
 extern void            sound_source_remove_all(void);
 
 extern void            sound_source_close_all(void);

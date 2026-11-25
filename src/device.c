@@ -965,6 +965,12 @@ device_force_redraw(void)
     }
 }
 
+const device_t *
+device_get_current(void)
+{
+    return device_current.dev;
+}
+
 int
 device_get_instance(void)
 {

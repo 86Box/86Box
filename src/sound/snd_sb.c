@@ -291,9 +291,20 @@ recalc_ess_dac2_filter(const int playback_freq)
 }
 
 /* SB 1, 1.5, MCV, and 2 do not have a mixer, so signal is hardwired. */
+/* The bass/treble filters are designed for the rate the source runs at. */
+static void
+sb_set_filter_rate(const sb_t *sb)
+{
+    const double rate = (double) sound_source_get_rate(sb->src_snd);
+
+    for (int c = 0; c < FILTER_USERS; c++)
+        filters_set_rate(c, rate);
+}
+
 static void
 sb_get_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
     double                   out_mono;
@@ -416,6 +427,7 @@ sb2_filter_cd_audio(UNUSED(int channel), double *buffer, void *priv)
 void
 sb_get_buffer_sbpro(int32_t *buffer, const uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
@@ -528,6 +540,7 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 static void
 sb_get_buffer_sb16_awe32(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     double                   bass_treble;
@@ -1495,6 +1508,7 @@ void ess_dac2_update(void *priv);
 void
 sb_get_buffer_ess488(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t              *ess   = (sb_t *) priv;
 
     sb_dsp_update(&ess->dsp);
@@ -1540,6 +1554,7 @@ sb_get_music_buffer_ess488(int32_t *buffer, uint16_t len, void *priv)
 void
 sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t              *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
 
@@ -1575,6 +1590,7 @@ sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 void
 sb_get_buffer_ess_dac2(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t              *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
 

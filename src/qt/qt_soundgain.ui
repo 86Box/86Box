@@ -22,12 +22,6 @@
     <height>250</height>
    </size>
   </property>
-  <property name="maximumSize">
-   <size>
-    <width>200</width>
-    <height>250</height>
-   </size>
-  </property>
   <property name="windowTitle">
    <string>Sound Gain</string>
   </property>
@@ -54,7 +48,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Gain</string>
+      <string>Master</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
