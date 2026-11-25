@@ -29,6 +29,7 @@
 #    include <windows.h>
 #endif
 
+#include <stdlib.h>
 #include <86box/fs_name.h>
 #include <86box/86box.h>
 #include <86box/keyboard.h>
@@ -332,7 +333,7 @@ main(int argc, char **argv)
     SDL_Init(0);
     ret = pc_init(argc, argv);
     if (ret == 0)
-        return 0;
+        return headless ? 1 : 0; /* a controlling program needs to know */
     if (!pc_init_roms()) {
         ui_msgbox_header(MBX_FATAL, "No ROMs found.", EMU_NAME " could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
@@ -353,10 +354,29 @@ main(int argc, char **argv)
 
     mousemutex = SDL_CreateMutex();
 
-    if (start_in_fullscreen)
+    if (start_in_fullscreen && !headless)
         video_fullscreen = 1;
 
-    sdl_initho();
+    /* Headless, SDL draws into memory: no display server is needed. This is
+       a hint, not setenv(): SDL 3 has read the environment by now. A driver
+       chosen in the environment (SDL_VIDEODRIVER) still wins over it. */
+    if (headless) {
+#if defined(SDL_HINT_VIDEO_DRIVER)
+        SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+#elif defined(SDL_HINT_VIDEODRIVER) /* SDL 2.0.22 and later */
+        SDL_SetHint(SDL_HINT_VIDEODRIVER, "offscreen");
+#else /* older SDL 2 reads the environment at initialization */
+        setenv("SDL_VIDEODRIVER", "offscreen", 0);
+#endif
+    }
+
+    /* Without video, nothing (not even a signal) can stop the machine:
+       headless, a program started 86Box and must hear that it didn't run. */
+    if (!sdl_initho() && headless) {
+        fprintf(stderr, "SDL: no video driver for --headless; set SDL_VIDEODRIVER to one this SDL has (offscreen, dummy).\n");
+        SDL_Quit();
+        return 1;
+    }
 
     /* Fire up the machine. */
     pc_reset_hard_init();

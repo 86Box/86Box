@@ -42,6 +42,12 @@ ui_msgbox_header(int flags, char *header, char *message)
             header = EMU_NAME;
     }
 
+    /* Headless, nobody can answer: log it, and a question gets its default, No. */
+    if (headless) {
+        fprintf(stderr, "%s: %s%s\n", header, message, (flags & MBX_QUESTION_YN) ? " (headless: answered No)" : "");
+        return 0;
+    }
+
 #ifdef USE_SDL2_LIB
     msgbtn.buttonid = 1;
 #else

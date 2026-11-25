@@ -154,6 +154,8 @@ extern int force_debug; /* (O) force debug output */
 #endif
 extern int settings_only;     /* (O) show only the settings dialog */
 extern int confirm_exit_cmdl; /* (O) do not ask for confirmation on quit if set to 0 */
+extern int headless;          /* (O) run without a window or dialogs (--headless) */
+extern int headless_vid_api;  /* the configured renderer, saved in place of the headless one */
 #ifdef _WIN32
 extern uint64_t unique_id;
 extern uint64_t source_hwnd;

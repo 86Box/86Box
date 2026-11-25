@@ -12,6 +12,37 @@ a client asks for it. That makes runs repeatable and lets a slow client (a
 test harness, a script, an [AI agent](https://github.com/dafugg/86box-mcp)) take
 as long as it needs between moves.
 
+## Running headless
+
+Add `--headless` to run the machine with no window and no dialogs, for
+example on a server, in a container or under a program that controls it:
+
+```
+86Box --headless --vmpath ~/vms/dos622 --automation unix:/tmp/86box.sock --automation-hold
+```
+
+- No display server or GPU is needed. The Qt build selects Qt's `offscreen`
+  platform and the SDL build SDL's `offscreen` video driver, unless
+  `QT_QPA_PLATFORM` or `SDL_VIDEODRIVER` is already set in the environment.
+- The screen is drawn with the software renderer, whatever the
+  configuration says. The configured renderer is kept and saved, so the
+  machine opens as before without `--headless`. A VNC renderer is kept: it
+  is a remote display of its own.
+- What would have been a message box goes to standard error and to the
+  automation log (`log`). A question gets its default answer, No: for
+  example, a configuration with hardware this build doesn't have is not
+  loaded, and 86Box exits. The "moved or copied" question leaves the MAC
+  addresses alone; pass `--assume_copied_vm` or `--assume_moved_vm` to answer
+  it. "Pause when inactive" has no effect.
+- There is no exit confirmation. `quit` powers off and exits, as do SIGINT
+  (Ctrl+C), SIGTERM and SIGHUP; a second signal kills 86Box at once.
+- `--headless` needs a machine (`--vmpath` or a configuration file). It
+  can't start the VM manager or the settings dialog, and 86Box exits if
+  asked to.
+
+`--headless` doesn't need an automation build, but it's of little use
+without one or a VNC renderer: nothing could see or drive the machine.
+
 ## Transports and security
 
 | Endpoint | Transport |

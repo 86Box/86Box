@@ -33,6 +33,8 @@ extern "C" {
 
 extern int ui_msgbox(int flags, char *message);
 extern int ui_msgbox_header(int flags, char *header, char *message);
+/* Log a message that headless mode cannot show (Qt). */
+extern void ui_headless_message(int flags, const char *text);
 /* Configuration loading supplies names and categories; the UI owns all text. */
 typedef struct ui_unsupported_hardware_t {
     int  kind;

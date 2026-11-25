@@ -140,6 +140,8 @@ int force_debug = 0; /* (O) force debug output */
 #endif
 int settings_only     = 0; /* (O) show only the settings dialog */
 int confirm_exit_cmdl = 1; /* (O) do not ask for confirmation on quit if set to 0 */
+int headless          = 0; /* (O) run without a window or dialogs (--headless) */
+int headless_vid_api  = 0; /* the configured renderer, saved in place of the headless one */
 #ifdef _WIN32
 uint64_t unique_id   = 0;
 uint64_t source_hwnd = 0;
@@ -660,7 +662,7 @@ warning(const char *fmt, ...)
     /* With an automation client, nobody may be there to dismiss the dialog,
        and while it's up the machine and the socket are stuck (headless, for
        good). The message is in the log; carry on. */
-    if (!AUTOMATION_ACTIVE)
+    if (!AUTOMATION_ACTIVE && !headless)
         ui_msgbox(MBX_WARNING, temp);
 
     fflush(stdlog);
@@ -701,7 +703,7 @@ warning_ex(const char *fmt, va_list ap)
     /* With an automation client, nobody may be there to dismiss the dialog,
        and while it's up the machine and the socket are stuck (headless, for
        good). The message is in the log; carry on. */
-    if (!AUTOMATION_ACTIVE)
+    if (!AUTOMATION_ACTIVE && !headless)
         ui_msgbox(MBX_WARNING, temp);
 
     fflush(stdlog);
@@ -826,6 +828,8 @@ pc_show_usage(void)
             "-E or --vmmpath\t\t- vm manager path\n"
 #endif
             "-F or --fullscreen\t\t- start in fullscreen mode\n"
+            "--headless\t\t\t- run without a window or dialogs, for control by\n"
+            "\t\t\t\t  another program (see --automation); needs a VM\n"
             "-G or --lang langid\t\t- start with specified language\n"
             "\t\t\t\t   (e.g. en-US, or system)\n"
 #ifdef SHOW_EXTRA_PARAMS
@@ -1029,6 +1033,10 @@ usage:
 #endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
+        } else if (!strcasecmp(argv[c], "--headless")) {
+            /* Nobody is there to answer a question about exiting. */
+            headless          = 1;
+            confirm_exit_cmdl = 0;
         } else if (!strcasecmp(argv[c], "--logfile") || !strcasecmp(argv[c], "-L")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1479,6 +1487,13 @@ usage:
         vmm_path[sizeof(vmm_path) - 1] = '\0';
     }
 
+    /* Headless, there is nobody to use the manager or the settings dialog. */
+    if (headless && (start_vmm || settings_only)) {
+        fprintf(stderr, "--headless runs a machine: give it with --vmpath or a configuration file, "
+                        "without --vmmpath or --settings.\n");
+        return 0;
+    }
+
     if (start_vmm) {
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
         strncpy(usr_path, vmm_path, sizeof(usr_path) - 1);
@@ -1530,6 +1545,15 @@ usage:
          */
         if (!config_load())
             return 0;
+
+        /*
+           Headless, nothing is shown: draw with the software renderer, which
+           needs no GPU or display, and keep the configured one for saving.
+           A VNC renderer is a display of its own, so it stays.
+         */
+        headless_vid_api = vid_api;
+        if (headless && (vid_api != plat_vidapi("vnc")))
+            vid_api = plat_vidapi("qt_software");
 
         /*
            Clear the CMOS and/or BIOS flash file, if we were started with

@@ -76,6 +76,7 @@ extern "C" {
 #endif
 
 #include <thread>
+#include <csignal>
 #include <iostream>
 #include <memory>
 
@@ -475,10 +476,38 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
+/* Headless, a terminal's Ctrl+C or a supervisor's SIGTERM is how 86Box is
+   told to exit, since there is no window to close. The handler only sets a
+   flag; the GUI thread polls it and shuts down as Exit would. */
+static volatile sig_atomic_t headless_stop_signal = 0;
+
+static void
+headless_signal_handler(int sig)
+{
+    headless_stop_signal = sig;
+}
+
+/* --headless is looked for before QApplication exists, since that is when
+   the platform plugin is chosen; pc_init() parses it again with the rest. */
+static bool
+headless_requested(int argc, char *argv[])
+{
+    for (int i = 1; i < argc; i++) {
+        if (!strcasecmp(argv[i], "--headless"))
+            return true;
+    }
+    return false;
+}
+
 int
 main(int argc, char *argv[])
 {
     fs_codepage_init();
+
+    /* The offscreen platform needs no display server or GPU. One chosen in
+       the environment (minimal, vnc, a real one for debugging) wins. */
+    if (headless_requested(argc, argv) && qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", "offscreen");
 #ifdef Q_OS_WINDOWS
     /* Check if Windows supports UTF-8 */
     if (GetACP() == CP_UTF8)
@@ -535,7 +564,8 @@ main(int argc, char *argv[])
 #endif
 
     if (!pc_init(argc, argv)) {
-        return 0;
+        /* Headless, a program started 86Box and needs to know it didn't run. */
+        return headless ? 1 : 0;
     }
 
 #ifdef HAS_COLOR_SCHEME_HINT
@@ -567,6 +597,12 @@ main(int argc, char *argv[])
 #endif
 
     if (!pc_init_roms()) {
+        if (headless) {
+            fprintf(stderr, "%s could not find any usable ROM images. Download a ROM set from %s "
+                            "and extract it into the \"roms\" directory, or give its path with --rompath.\n",
+                    EMU_NAME, EMU_ROMS_URL);
+            return 6;
+        }
         QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
                              QObject::tr("%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory.").arg(EMU_NAME, EMU_ROMS_URL),
                              QMessageBox::Ok);
@@ -609,7 +645,13 @@ main(int argc, char *argv[])
     }
 
     // UUID / copy / move detection
-    if (!util::compareUuid()) {
+    if (headless) {
+        /* Nobody can answer, and the safe answer (Cancel) changes nothing;
+           --assume_copied_vm or --assume_moved_vm give one in advance. */
+        if (!util::compareUuid())
+            fprintf(stderr, "This machine might have been moved or copied; leaving its MAC addresses as they are. "
+                            "Pass --assume_copied_vm or --assume_moved_vm to say which.\n");
+    } else if (!util::compareUuid()) {
         QMessageBox movewarnbox;
         movewarnbox.setIcon(QMessageBox::Icon::Warning);
         movewarnbox.setText(QObject::tr("This machine might have been moved or copied."));
@@ -637,7 +679,7 @@ main(int argc, char *argv[])
         (winbox = FindWindowExW(winbox, NULL, L"TPageControl", NULL)) && /* holds a TTabSheet even on VM pages */
         FindWindowExW(winbox, NULL, L"TTabSheet", NULL))
 #    endif
-    {
+    if (!headless) {
         QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("WinBox is no longer supported"),
                                QObject::tr("Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."),
                                QMessageBox::NoButton);
@@ -664,7 +706,9 @@ main(int argc, char *argv[])
     }
 
     /* Warn the user about unsupported configs */
-    if (cpu_override) {
+    if (cpu_override && headless)
+        fprintf(stderr, "Warning: CPU type filtering is disabled for this machine (unsupported configuration).\n");
+    else if (cpu_override) {
         QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("You are loading an unsupported configuration"),
                                QObject::tr("CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."),
                                QMessageBox::NoButton);
@@ -688,7 +732,11 @@ main(int argc, char *argv[])
 #endif
 
     main_window = new MainWindow();
-    if (startMaximized) {
+    if (headless) {
+        /* Never shown: frames still reach the renderer, the automation
+           socket and screenshots, but no window opens anywhere. */
+        fprintf(stderr, "Running headless (Qt platform \"%s\").\n", QApplication::platformName().toUtf8().data());
+    } else if (startMaximized) {
         main_window->showMaximized();
     } else {
         main_window->show();
@@ -805,6 +853,29 @@ main(int argc, char *argv[])
     }
 
     // pc_reset_hard_init();
+
+    QTimer headless_signals;
+    if (headless) {
+        signal(SIGINT, headless_signal_handler);
+        signal(SIGTERM, headless_signal_handler);
+#ifdef SIGHUP
+        signal(SIGHUP, headless_signal_handler);
+#endif
+        QObject::connect(&headless_signals, &QTimer::timeout, &app, [] {
+            if (!headless_stop_signal)
+                return;
+            fprintf(stderr, "Signal %d received, exiting.\n", (int) headless_stop_signal);
+            headless_stop_signal = 0;
+            /* A second signal while closing is the default action: it kills. */
+            signal(SIGINT, SIG_DFL);
+            signal(SIGTERM, SIG_DFL);
+#ifdef SIGHUP
+            signal(SIGHUP, SIG_DFL);
+#endif
+            main_window->close();
+        });
+        headless_signals.start(100);
+    }
 
     QTimer onesec;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
