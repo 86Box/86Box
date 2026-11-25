@@ -171,7 +171,6 @@ static int       mt32_on     = 0;
 
 static uint32_t samplerate   = 44100;
 static int      buf_size     = 0;
-static float   *buffer       = NULL;
 static int16_t *buffer_int16 = NULL;
 
 static mt32emu_report_handler_version
@@ -214,13 +213,6 @@ mt32_led_updated(UNUSED(void *instance_data), mt32emu_boolean led_state)
 }
 
 void
-mt32_stream(float *stream, int len)
-{
-    if (context)
-        mt32emu_render_float(context, stream, len);
-}
-
-void
 mt32_stream_int16(int16_t *stream, int len)
 {
     if (context)
@@ -238,7 +230,6 @@ mt32_thread(UNUSED(void *param))
 {
     int      buf_pos = 0;
     int      bsize   = buf_size / BUFFER_SEGMENTS;
-    float   *buf;
     int16_t *buf16;
 
     thread_set_event(start_event);
@@ -247,52 +238,27 @@ mt32_thread(UNUSED(void *param))
         thread_wait_event(event, -1);
         thread_reset_event(event);
 
-        if (sound_is_float) {
-            buf = (float *) ((uint8_t *) buffer + buf_pos);
-            memset(buf, 0, bsize);
-            mt32_stream(buf, bsize / (2 * sizeof(float)));
+        buf16 = (int16_t *) ((uint8_t *) buffer_int16 + buf_pos);
+        memset(buf16, 0, bsize);
+        mt32_stream_int16(buf16, bsize / (2 * sizeof(int16_t)));
 
-            /* Apply sound card MIDI volume and filters */
-            if (filter_midi != NULL) {
-                for (int i = 0; i < (bsize / sizeof(float)); i += 2) {
-                    double dl = (double) buf[i];
-                    double dr = (double) buf[i + 1];
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    buf[i] = (float) dl;
-                    buf[i + 1] = (float) dr;
-                }
+        /* Apply sound card MIDI volume and filters */
+        if (filter_midi != NULL) {
+            for (int i = 0; i < (bsize / sizeof(int16_t)); i += 2) {
+                double dl = (double) buf16[i];
+                double dr = (double) buf16[i + 1];
+                filter_midi(0, &dl, filter_midi_p);
+                filter_midi(1, &dr, filter_midi_p);
+                buf16[i] = (int16_t) round(dl);
+                buf16[i + 1] = (int16_t) round(dr);
             }
+        }
 
-            buf_pos += bsize;
+        buf_pos += bsize;
 
-            if (buf_pos >= buf_size) {
-                givealbuffer_midi(buffer, buf_size / sizeof(float));
-                buf_pos = 0;
-            }
-        } else {
-            buf16 = (int16_t *) ((uint8_t *) buffer_int16 + buf_pos);
-            memset(buf16, 0, bsize);
-            mt32_stream_int16(buf16, bsize / (2 * sizeof(int16_t)));
-
-            /* Apply sound card MIDI volume and filters */
-            if (filter_midi != NULL) {
-                for (int i = 0; i < (bsize / sizeof(int16_t)); i += 2) {
-                    double dl = (double) buf16[i];
-                    double dr = (double) buf16[i + 1];
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    buf16[i] = (int16_t) round(dl);
-                    buf16[i + 1] = (int16_t) round(dr);
-                }
-            }
-
-            buf_pos += bsize;
-
-            if (buf_pos >= buf_size) {
-                givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
-                buf_pos = 0;
-            }
+        if (buf_pos >= buf_size) {
+            givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
+            buf_pos = 0;
         }
     }
 }
@@ -338,15 +304,8 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 
     samplerate = mt32emu_get_actual_stereo_output_samplerate(context);
     /* buf_size = samplerate/RENDER_RATE*2; */
-    if (sound_is_float) {
-        buf_size     = (samplerate / RENDER_RATE) * 2 * BUFFER_SEGMENTS * sizeof(float);
-        buffer       = calloc(1, buf_size);
-        buffer_int16 = NULL;
-    } else {
-        buf_size     = (samplerate / RENDER_RATE) * 2 * BUFFER_SEGMENTS * sizeof(int16_t);
-        buffer       = NULL;
-        buffer_int16 = calloc(1, buf_size);
-    }
+    buf_size     = (samplerate / RENDER_RATE) * 2 * BUFFER_SEGMENTS * sizeof(int16_t);
+    buffer_int16 = calloc(1, buf_size);
 
     mt32emu_set_output_gain(context, device_get_config_int("output_gain") / 100.0f);
     mt32emu_set_reverb_enabled(context, device_get_config_int("reverb"));
@@ -425,10 +384,6 @@ mt32_close(void *priv)
 
     midi_lcd_set_type(MIDI_LCD_NONE);
     ui_sb_mt32lcd("");
-
-    if (buffer)
-        free(buffer);
-    buffer = NULL;
 
     if (buffer_int16)
         free(buffer_int16);

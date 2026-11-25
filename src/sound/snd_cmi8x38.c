@@ -1685,6 +1685,10 @@ stereo:
     if (cmi8x38_do_log)
         ui_sb_bugui(buf);
 #endif
+
+    /* Both channels are summed into one stream, so it runs at channel 0's rate. */
+    if (dev->src_snd != NULL)
+        sound_source_set_rate(dev->src_snd, dev->dma[0].rate);
 }
 
 static void
@@ -1788,6 +1792,7 @@ cmi8x38_init(const device_t *info)
     /* Initialize playback handler and CD audio filter. */
     sound_in_add_handler(cmi8x38_put_buffer, dev); /* recording */
     dev->src_snd = sound_source_add_stream(I_NORMAL, cmi8x38_get_buffer, dev);
+    cmi8x38_speed_changed(dev);
     dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, dev->sb);
 

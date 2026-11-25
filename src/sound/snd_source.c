@@ -29,7 +29,6 @@ typedef struct sound_source_t {
     void *                 src;
     int32_t *              buf;
 
-    float *                buff;
     int16_t *              buf16;
 
     int                    cls;        /* Stream class + 1, 0 for none. */
@@ -112,7 +111,7 @@ sound_source_class_tap(const sound_source_t *src)
         free(mix->buf);
         free(mix->out);
         mix->buf  = (int32_t *) calloc(len, sizeof(int32_t));
-        mix->out  = calloc(len, sizeof(float));
+        mix->out  = calloc(len, sizeof(int16_t));
         mix->len  = len;
         mix->done = 0;
     }
@@ -132,12 +131,7 @@ sound_source_class_tap(const sound_source_t *src)
     if (++mix->done < sound_source_class_count(src->cls))
         return;
 
-    if (sound_is_float) {
-        float *out = (float *) mix->out;
-
-        for (int c = 0; c < len; c++)
-            out[c] = ((float) mix->buf[c]) / (float) 32768.0;
-    } else {
+    {
         int16_t *out = (int16_t *) mix->out;
 
         for (int c = 0; c < len; c++) {
@@ -147,7 +141,7 @@ sound_source_class_tap(const sound_source_t *src)
         }
     }
 
-    automation_audio(stream, mix->out, len, sound_is_float);
+    automation_audio(stream, mix->out, len);
 
     memset(mix->buf, 0x00, len * sizeof(int32_t));
     mix->done = 0;
@@ -211,11 +205,6 @@ sound_source_dealloc_buffers(sound_source_t *src)
         src->buf16 = NULL;
     }
 
-    if (src->buff != NULL) {
-        free(src->buff);
-        src->buff = NULL;
-    }
-
     if (src->buf != NULL) {
         free(src->buf);
         src->buf = NULL;
@@ -228,11 +217,7 @@ static void
 sound_source_alloc_buffers(sound_source_t *src)
 {
     src->buf = (int32_t *) calloc(sizeof(int32_t), 2 * src->buffer_size);
-
-    if (sound_is_float)
-        src->buff  = (float *) calloc(sizeof(float), 2 * src->buffer_size);
-    else
-        src->buf16 = (int16_t *) calloc(sizeof(int16_t), 2 * src->buffer_size);
+    src->buf16 = (int16_t *) calloc(sizeof(int16_t), 2 * src->buffer_size);
 }
 
 static void
@@ -366,22 +351,15 @@ sound_source_poll(void *priv)
             sound_source_class_tap(src);
 
         for (uint32_t c = 0; c < (uint32_t) (src->buffer_size * 2); c++) {
-            if (sound_is_float)
-                src->buff[c] = ((float) src->buf[c]) / (float) 32768.0;
-            else {
-                if (src->buf[c] > 32767)
-                    src->buf[c] = 32767;
-                if (src->buf[c] < -32768)
-                    src->buf[c] = -32768;
+            if (src->buf[c] > 32767)
+                src->buf[c] = 32767;
+            if (src->buf[c] < -32768)
+                src->buf[c] = -32768;
 
-                src->buf16[c] = (int16_t) src->buf[c];
-            }
+            src->buf16[c] = (int16_t) src->buf[c];
         }
 
-        if (sound_is_float)
-            sound_source_give_buffer(src, src->buff);
-        else
-            sound_source_give_buffer(src, src->buf16);
+        sound_source_give_buffer(src, src->buf16);
 
         src->pos = 0;
 

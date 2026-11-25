@@ -1191,6 +1191,8 @@ ac97_via_speed_changed(void *priv)
         freq = (double) SOUND_FREQ;
 
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
+    if (dev->src_snd != NULL)
+        sound_source_set_rate(dev->src_snd, freq);
     dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0)); /* FM operates at a fixed 24 KHz */
 
     /* the record channel runs at the codec's PCM L/R ADC rate, which
@@ -1251,6 +1253,7 @@ ac97_via_init(UNUSED(const device_t *info))
 
     /* Set up playback handler. */
     dev->src_snd = sound_source_add_stream(I_NORMAL, ac97_via_get_buffer, dev);
+    ac97_via_speed_changed(dev);
     dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
 
     /* and the record channel's input. */

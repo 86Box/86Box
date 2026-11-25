@@ -208,7 +208,6 @@ extern int      mcamem_type[];              /* (C) enable MCA mem cards */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isarom_type[];              /* (C) enable ISA ROM cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
-extern int      sound_is_float;             /* (C) sound uses FP values */
 extern char     sound_input_dev_name[512];  /* (C) name of sound input device */
 extern int      sound_input_enabled;        /* (C) enable sound input */
 extern int      sound_sample_rate;          /* (C) sound output sample rate */

@@ -65,8 +65,6 @@ SettingsSound::SettingsSound(QWidget *parent)
     scMidiOut              = new SettingsCompleter(ui->comboBoxMidiOut, nullptr);
     scMidiIn               = new SettingsCompleter(ui->comboBoxMidiIn, nullptr);
 
-    ui->checkBoxFloat32->setChecked(sound_is_float > 0);
-
     // FM driver does not need to be changed with machine changes.
     {
         // FM
@@ -240,7 +238,6 @@ SettingsSound::changed()
     has_changed  |= (fm_driver                  != ui->comboBoxFM->currentData().toInt());
     has_changed  |= (mpu401_standalone_enable   != (ui->checkBoxMPU401->isChecked() ? 1 : 0));
     has_changed  |= mpu401_cfg_changed;
-    has_changed  |= (sound_is_float             != (ui->checkBoxFloat32->isChecked() ? 1 : 0));
 
     soft_changed |= (sound_backend_current       != ui->comboBoxSoundBackend->currentData().toInt());
     soft_changed |= (QString(sound_output_device) != ui->comboBoxAudioOutputDevice->currentData().toString());
@@ -317,8 +314,6 @@ SettingsSound::save(int soft)
     fm_driver = ui->comboBoxFM->currentData().toInt();
 
     mpu401_standalone_enable = ui->checkBoxMPU401->isChecked() ? 1 : 0;
-
-    sound_is_float = ui->checkBoxFloat32->isChecked() ? 1 : 0;
 
 }
 
@@ -438,9 +433,6 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     // Standalone MPU401
     ui->checkBoxMPU401->setChecked(mpu401Enabled > 0 && allowMpu401(ui));
-
-    // Float32 Sound
-    ui->checkBoxFloat32->setChecked(sound_is_float > 0);
 
     updateSoundInputEnabled();
 

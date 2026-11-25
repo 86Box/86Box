@@ -78,10 +78,7 @@ openal_give_buffer(void *priv, void *src, const void *buf, const int size, UNUSE
         if (processed >= 1) {
             alSourceUnqueueBuffers(source->source, 1, &buffer);
 
-            if (sound_is_float)
-                alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, size * (int) sizeof(float), source->sample_rate);
-            else
-                alBufferData(buffer, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), source->sample_rate);
+            alBufferData(buffer, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), source->sample_rate);
 
             alSourceQueueBuffers(source->source, 1, &buffer);
         }
@@ -91,15 +88,11 @@ openal_give_buffer(void *priv, void *src, const void *buf, const int size, UNUSE
 static void *
 openal_init_source(void *priv, int sample_rate, int buffer_size)
 {
-    float   *        buf    = { 0 };
     int16_t *        buf16  = { 0 };
 
     openal_source_t *source = (openal_source_t *) calloc(1, sizeof(openal_source_t));
 
-    if (sound_is_float)
-        buf   = (float *) calloc(buffer_size, sizeof(float));
-    else
-        buf16 = (int16_t *) calloc(buffer_size, sizeof(int16_t));
+    buf16 = (int16_t *) calloc(buffer_size, sizeof(int16_t));
 
     alGenBuffers(4, source->buffers);
 
@@ -114,29 +107,18 @@ openal_init_source(void *priv, int sample_rate, int buffer_size)
 
     source->sample_rate = sample_rate;
 
-    if (sound_is_float)
-        memset(buf, 0x00, buffer_size * sizeof(float));
-    else
-        memset(buf16, 0x00, buffer_size * sizeof(int16_t));
+    memset(buf16, 0x00, buffer_size * sizeof(int16_t));
 
     for (uint8_t c = 0; c < 4; c++) {
-        if (sound_is_float)
-            alBufferData(source->buffers[c], AL_FORMAT_STEREO_FLOAT32,
-                         buf, (int) buffer_size * (int) sizeof(float),
-                         (int) sample_rate);
-        else
-            alBufferData(source->buffers[c], AL_FORMAT_STEREO16,
-                         buf16, (int) buffer_size * (int) sizeof(int16_t),
-                         (int) sample_rate);
+        alBufferData(source->buffers[c], AL_FORMAT_STEREO16,
+                     buf16, (int) buffer_size * (int) sizeof(int16_t),
+                     (int) sample_rate);
     }
 
     alSourceQueueBuffers(source->source, 4, source->buffers);
     alSourcePlay(source->source);
 
-    if (sound_is_float)
-        free(buf);
-    else
-        free(buf16);
+    free(buf16);
 
     return source;
 }

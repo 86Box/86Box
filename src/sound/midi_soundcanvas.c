@@ -87,7 +87,6 @@ typedef struct soundcanvas {
     /* audio buffers */
     float    *buf_left;
     float    *buf_right;
-    float    *out_buffer;        /* interleaved float stereo */
     int16_t  *out_buffer_int16;  /* interleaved int16 stereo */
     int       buf_size;          /* total buffer size in bytes */
     float     vol_ctrl;          /* Output gain */
@@ -248,13 +247,8 @@ soundcanvas_thread(void *param)
     int            frames_per_seg;
     int            seg_bytes;
 
-    if (sound_is_float) {
-        seg_bytes      = data->buf_size / BUFFER_SEGMENTS;
-        frames_per_seg = seg_bytes / (2 * (int)sizeof(float));
-    } else {
-        seg_bytes      = data->buf_size / BUFFER_SEGMENTS;
-        frames_per_seg = seg_bytes / (2 * (int)sizeof(int16_t));
-    }
+    seg_bytes      = data->buf_size / BUFFER_SEGMENTS;
+    frames_per_seg = seg_bytes / (2 * (int)sizeof(int16_t));
 
     thread_set_event(data->start_event);
 
@@ -284,60 +278,35 @@ soundcanvas_thread(void *param)
         }
 
         /* Interleave into output buffer */
-        if (sound_is_float) {
-            float *buf = (float *)((uint8_t *)data->out_buffer + buf_pos);
+        int16_t *buf = (int16_t *)((uint8_t *)data->out_buffer_int16 + buf_pos);
 
-            for (int i = 0; i < frames_per_seg; i++) {
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    double dl = (double) (data->buf_left[i] * data->vol_ctrl);
-                    double dr = (double) (data->buf_right[i] * data->vol_ctrl);
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    buf[i * 2 + 0] = (float) dl;
-                    buf[i * 2 + 1] = (float) dr;
-                } else {
-                    buf[i * 2 + 0] = data->buf_left[i] * data->vol_ctrl;
-                    buf[i * 2 + 1] = data->buf_right[i] * data->vol_ctrl;
-                }
+        for (int i = 0; i < frames_per_seg; i++) {
+            float l = data->buf_left[i]  * 32767.0f * data->vol_ctrl;
+            float r = data->buf_right[i] * 32767.0f * data->vol_ctrl;
+
+            /* Apply sound card MIDI volume and filters */
+            if (filter_midi != NULL) {
+                double dl = (double) l;
+                double dr = (double) r;
+                filter_midi(0, &dl, filter_midi_p);
+                filter_midi(1, &dr, filter_midi_p);
+                l = (float) dl;
+                r = (float) dr;
             }
-            buf_pos += seg_bytes;
-            if (buf_pos >= data->buf_size) {
-                givealbuffer_midi(data->out_buffer,
-                                  data->buf_size / (int)sizeof(float));
-                buf_pos = 0;
-            }
-        } else {
-            int16_t *buf = (int16_t *)((uint8_t *)data->out_buffer_int16 + buf_pos);
 
-            for (int i = 0; i < frames_per_seg; i++) {
-                float l = data->buf_left[i]  * 32767.0f * data->vol_ctrl;
-                float r = data->buf_right[i] * 32767.0f * data->vol_ctrl;
+            if (l >  32767.0f) l =  32767.0f;
+            if (l < -32768.0f) l = -32768.0f;
+            if (r >  32767.0f) r =  32767.0f;
+            if (r < -32768.0f) r = -32768.0f;
 
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    double dl = (double) l;
-                    double dr = (double) r;
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    l = (float) dl;
-                    r = (float) dr;
-                }
-
-                if (l >  32767.0f) l =  32767.0f;
-                if (l < -32768.0f) l = -32768.0f;
-                if (r >  32767.0f) r =  32767.0f;
-                if (r < -32768.0f) r = -32768.0f;
-
-                buf[i * 2 + 0] = (int16_t)l;
-                buf[i * 2 + 1] = (int16_t)r;
-            }
-            buf_pos += seg_bytes;
-            if (buf_pos >= data->buf_size) {
-                givealbuffer_midi(data->out_buffer_int16,
-                                  data->buf_size / (int)sizeof(int16_t));
-                buf_pos = 0;
-            }
+            buf[i * 2 + 0] = (int16_t)l;
+            buf[i * 2 + 1] = (int16_t)r;
+        }
+        buf_pos += seg_bytes;
+        if (buf_pos >= data->buf_size) {
+            givealbuffer_midi(data->out_buffer_int16,
+                              data->buf_size / (int)sizeof(int16_t));
+            buf_pos = 0;
         }
     }
 }
@@ -485,15 +454,8 @@ soundcanvas_init(UNUSED(const device_t *info))
     data->buf_right = (float *)calloc((size_t)frames_per_seg, sizeof(float));
 
     /* Allocate interleaved output buffer */
-    if (sound_is_float) {
-        data->buf_size         = frames_per_seg * 2 * (int)sizeof(float) * BUFFER_SEGMENTS;
-        data->out_buffer       = (float *)calloc(1, (size_t)data->buf_size);
-        data->out_buffer_int16 = NULL;
-    } else {
-        data->buf_size         = frames_per_seg * 2 * (int)sizeof(int16_t) * BUFFER_SEGMENTS;
-        data->out_buffer       = NULL;
-        data->out_buffer_int16 = (int16_t *)calloc(1, (size_t)data->buf_size);
-    }
+    data->buf_size         = frames_per_seg * 2 * (int)sizeof(int16_t) * BUFFER_SEGMENTS;
+    data->out_buffer_int16 = (int16_t *)calloc(1, (size_t)data->buf_size);
 
     al_set_midi(data->sample_rate, data->buf_size);
 
@@ -556,12 +518,10 @@ soundcanvas_close(void *priv)
 
     free(data->buf_left);
     free(data->buf_right);
-    free(data->out_buffer);
     free(data->out_buffer_int16);
 
     data->buf_left         = NULL;
     data->buf_right        = NULL;
-    data->out_buffer       = NULL;
     data->out_buffer_int16 = NULL;
 
     if (data->log != NULL) {

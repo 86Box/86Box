@@ -252,13 +252,8 @@ xaudio2_give_buffer(void *priv, void *src, const void *buf, const int size, UNUS
                                                 XAUDIO2_COMMIT_NOW);
         XAUDIO2_BUFFER buffer = { 0 };
         buffer.Flags          = 0;
-        if (sound_is_float) {
-            buffer.pAudioData = calloc(size, sizeof(float));
-            buffer.AudioBytes = size * sizeof(float);
-        } else {
-            buffer.pAudioData = calloc(size, sizeof(int16_t));
-            buffer.AudioBytes = size * sizeof(int16_t);
-        }
+        buffer.pAudioData = calloc(size, sizeof(int16_t));
+        buffer.AudioBytes = size * sizeof(int16_t);
         if (buffer.pAudioData == NULL) {
             fatal("xaudio2: Out Of Memory!");
         }
@@ -278,13 +273,8 @@ xaudio2_init_source(void *priv, int sample_rate, int buffer_size)
     WAVEFORMATEX fmt;
     fmt.nChannels = 2;
 
-    if (sound_is_float) {
-        fmt.wFormatTag     = WAVE_FORMAT_IEEE_FLOAT;
-        fmt.wBitsPerSample = 32;
-    } else {
-        fmt.wFormatTag     = WAVE_FORMAT_PCM;
-        fmt.wBitsPerSample = 16;
-    }
+    fmt.wFormatTag     = WAVE_FORMAT_PCM;
+    fmt.wBitsPerSample = 16;
 
     source->sample_rate = sample_rate;
 

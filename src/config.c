@@ -1102,16 +1102,7 @@ load_sound(void)
     }
 
 
-    memset(temp, '\0', sizeof(temp));
-    p = ini_section_get_string(cat, "sound_type", "float");
-    if (strlen(p) > 511)
-        fatal("Configuration: Length of sound_type is more than 511\n");
-    else
-        strncpy(temp, p, 511);
-    if (!strcmp(temp, "float") || !strcmp(temp, "1"))
-        sound_is_float = 1;
-    else
-        sound_is_float = 0;
+    ini_section_delete_var(cat, "sound_type");
 
     p = ini_section_get_string(cat, "fm_driver", "nuked");
     if (!strcmp(p, "ymfm")) {
@@ -4152,10 +4143,7 @@ save_sound(void)
             ini_section_delete_var(cat, legacy_cards[i][0]);
     }
 
-    if (sound_is_float == 1)
-        ini_section_delete_var(cat, "sound_type");
-    else
-        ini_section_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
+    ini_section_delete_var(cat, "sound_type");
 
     if (fm_driver == FM_DRV_NUKED)
         ini_section_delete_var(cat, "fm_driver");

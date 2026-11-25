@@ -152,10 +152,7 @@ sndio_give_buffer(UNUSED(void *priv), void *src, const void *buf, const int size
             for (int ch = 0; ch < 2; ch++) {
                 double v;
 
-                if (sound_is_float)
-                    v = 32767.0 * (double) ((const float *) buf)[ind * 2 + ch];
-                else
-                    v = (double) ((const int16_t *) buf)[ind * 2 + ch];
+                v = (double) ((const int16_t *) buf)[ind * 2 + ch];
 
                 v *= vol;
                 if (v > 32767.0)

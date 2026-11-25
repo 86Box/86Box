@@ -104,7 +104,6 @@ static pc_timer_t midi_poll_timer = { 0 };
 static uint64_t   midi_poll_latch = 0ULL;
 
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
-static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
@@ -348,10 +347,7 @@ sound_card_init(void)
 static void
 sound_cd_clean_buffers(void)
 {
-    if (sound_is_float)
-        memset(cd_out_buffer, 0, (CD_BUFLEN * 2) * sizeof(float));
-    else
-        memset(cd_out_buffer_int16, 0, (CD_BUFLEN * 2) * sizeof(int16_t));
+    memset(cd_out_buffer_int16, 0, (CD_BUFLEN * 2) * sizeof(int16_t));
 }
 
 static void
@@ -443,35 +439,27 @@ sound_cd_thread(UNUSED(void *param))
                                         filter_cd_audio_p);
                     }
 
-                    if (sound_is_float) {
-                        cd_out_buffer[c] += (float) (cd_buffer_temp[0] / 32768.0);
-                        cd_out_buffer[c + 1] += (float) (cd_buffer_temp[1] / 32768.0);
-                    } else {
-                        if (cd_buffer_temp[0] > 32767.0)
-                            temp_buffer[0] = 32767;
-                        else if (cd_buffer_temp[0] < -32768.0)
-                            temp_buffer[0] = -32768;
-                        else
-                            temp_buffer[0] = (int16_t) trunc(cd_buffer_temp[0]);
+                    if (cd_buffer_temp[0] > 32767.0)
+                        temp_buffer[0] = 32767;
+                    else if (cd_buffer_temp[0] < -32768.0)
+                        temp_buffer[0] = -32768;
+                    else
+                        temp_buffer[0] = (int16_t) trunc(cd_buffer_temp[0]);
 
-                        if (cd_buffer_temp[1] > 32767.0)
-                            temp_buffer[1] = 32767;
-                        else if (cd_buffer_temp[1] < -32768.0)
-                            temp_buffer[1] = -32768;
-                        else
-                            temp_buffer[1] = (int16_t) trunc(cd_buffer_temp[1]);
+                    if (cd_buffer_temp[1] > 32767.0)
+                        temp_buffer[1] = 32767;
+                    else if (cd_buffer_temp[1] < -32768.0)
+                        temp_buffer[1] = -32768;
+                    else
+                        temp_buffer[1] = (int16_t) trunc(cd_buffer_temp[1]);
 
-                        cd_out_buffer_int16[c]     = (int16_t) (cd_out_buffer_int16[c] + temp_buffer[0]);
-                        cd_out_buffer_int16[c + 1] = (int16_t) (cd_out_buffer_int16[c + 1] + temp_buffer[1]);
-                    }
+                    cd_out_buffer_int16[c]     = (int16_t) (cd_out_buffer_int16[c] + temp_buffer[0]);
+                    cd_out_buffer_int16[c + 1] = (int16_t) (cd_out_buffer_int16[c + 1] + temp_buffer[1]);
                 }
             }
         }
 
-        if (sound_is_float)
-            givealbuffer_cd(cd_out_buffer);
-        else
-            givealbuffer_cd(cd_out_buffer_int16);
+        givealbuffer_cd(cd_out_buffer_int16);
     }
 }
 
@@ -593,7 +581,7 @@ sound_output_close(void)
 void
 sound_give(const void *buf, const uint8_t src, const int size)
 {
-    automation_audio(src, buf, size, sound_is_float);
+    automation_audio(src, buf, size);
 
     if ((src < I_MAX) && (sound_streams[src] != NULL) && (runctl_mode() != RUN_MODE_FAST))
         sound_backend_give_buffer(sound_streams[src], buf, size, 0);
@@ -1022,10 +1010,10 @@ sound_fdd_thread(UNUSED(void *param))
             continue;
         }
 
-        static float fdd_float_buffer[SOUNDBUFLEN * 2];
-        memset(fdd_float_buffer, 0, sizeof(fdd_float_buffer));
-        fdd_audio_callback((int16_t *) fdd_float_buffer, SOUNDBUFLEN * 2);
-        givealbuffer_fdd(fdd_float_buffer, SOUNDBUFLEN * 2);
+        static int16_t fdd_buffer[SOUNDBUFLEN * 2];
+        memset(fdd_buffer, 0, sizeof(fdd_buffer));
+        fdd_audio_callback(fdd_buffer, SOUNDBUFLEN * 2);
+        givealbuffer_fdd(fdd_buffer, SOUNDBUFLEN * 2);
 
         frames_rendered += SOUNDBUFLEN;
         uint32_t target_ms = start_time + (uint32_t) ((frames_rendered * 1000ULL) / sound_sample_rate);
@@ -1099,10 +1087,10 @@ sound_hdd_thread(UNUSED(void *param))
             continue;
         }
 
-        static float hdd_float_buffer[SOUNDBUFLEN * 2];
-        memset(hdd_float_buffer, 0, sizeof(hdd_float_buffer));
-        hdd_audio_callback((int16_t *) hdd_float_buffer, SOUNDBUFLEN * 2);
-        givealbuffer_hdd(hdd_float_buffer, SOUNDBUFLEN * 2);
+        static int16_t hdd_buffer[SOUNDBUFLEN * 2];
+        memset(hdd_buffer, 0, sizeof(hdd_buffer));
+        hdd_audio_callback(hdd_buffer, SOUNDBUFLEN * 2);
+        givealbuffer_hdd(hdd_buffer, SOUNDBUFLEN * 2);
 
         frames_rendered += SOUNDBUFLEN;
         uint32_t target_ms = start_time + (uint32_t) ((frames_rendered * 1000ULL) / sound_sample_rate);
