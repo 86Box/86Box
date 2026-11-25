@@ -804,7 +804,7 @@ block_dirty_list_add(codeblock_t *block)
            one whose rewrites are scoring towards that (smc_family_score), as
            in invalidate_block(). */
         if (((evict_block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK)) == (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK)) &&
-            !evict_block->head_mem_block && ((evict_block->pc & 0xfff) < 0xfc0) &&
+            !evict_block->head_mem_block && ((evict_block->pc & 0xfff) < 0xfc0) && evict_block->page_mask2 &&
             !(evict_block->flags & CODEBLOCK_NO_OPCODES) && !evict_block->smc_family_score) {
             evict_block->next = evict_block->prev = BLOCK_INVALID;
             evict_block->flags |= CODEBLOCK_CHECKED | CODEBLOCK_NO_IMMEDIATES;
@@ -1620,7 +1620,7 @@ invalidate_block(codeblock_t *block)
        reading its opcodes, so it would keep recompiling for every change. */
     if (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) ==
          (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES)) &&
-        ((block->pc & 0xfff) < 0xfc0) && !block->smc_family_score)
+        ((block->pc & 0xfff) < 0xfc0) && block->page_mask2 && !block->smc_family_score)
         block->flags |= CODEBLOCK_CHECKED;
 #endif
     remove_from_block_list(block, old_pc);
