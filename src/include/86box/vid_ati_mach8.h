@@ -29,7 +29,7 @@ typedef struct mach_t {
     rom_t         bios_rom;
     rom_t         bios_rom2;
     mem_mapping_t mmio_linear_mapping;
-    mem_mapping_t banked_mapping;
+    mem_mapping_t rom_window[4];
 
     void *log;
 
@@ -38,6 +38,7 @@ typedef struct mach_t {
     int vlb_bus;
     int has_bios;
     int bus_width_8bit;
+    int rom_paged;
     uint8_t  byte_latch;
     uint16_t byte_rd;
     int      byte_rd_valid;

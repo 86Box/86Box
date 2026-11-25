@@ -632,10 +632,14 @@ paradise_recalctimings(svga_t *svga)
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 svga->render = svga_render_8bpp_highres;
+                svga->hoverride = 1;
                 if (paradise->type < WD90C11)
                     svga->vram_display_mask = (svga->crtc[0x2f] & 0x02) ? 0x3ffff : paradise->vram_mask;
-            }
-        }
+            } else
+                svga->hoverride = 0;
+        } else
+            svga->hoverride = 0;
+
         if (paradise->type >= WD90C11)  switch (svga->crtc[0x2f] & 0x60) {
             case 0x60: case 0x40:
                 svga->vram_display_mask = 0x3ffff;
@@ -658,6 +662,7 @@ paradise_recalctimings(svga_t *svga)
         svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
         if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
+                svga->hoverride = 1;
                 if (svga->bpp == 24) {
                     svga->render = svga_render_24bpp_highres;
                     svga->hdisp /= 3;
@@ -676,10 +681,14 @@ paradise_recalctimings(svga_t *svga)
 
                 svga->vram_display_mask = (svga->crtc[0x2f] & 0x02) ? 0x3ffff : paradise->vram_mask;
             } else if ((svga->bpp <= 8) && svga->lowres && !svga->interlace && (svga->hdisp >= 1024) &&
-                       (svga->miscout >= 0x27) && (svga->miscout <= 0x2f))
+                       (svga->miscout >= 0x27) && (svga->miscout <= 0x2f)) {
+                svga->hoverride = 1;
                 svga->interlace = 1; /*Horrible tweak to re-enable the interlace after returning to
                                        a windowed DOS box in Win3.x*/
-        }
+            } else
+                svga->hoverride = 0;
+        } else
+            svga->hoverride = 0;
     }
 
     /*
@@ -1039,8 +1048,6 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
     svga->miscout = 0;
 
     paradise->type = info->local & 0xff;
-
-    svga->hoverride = 1;
 
     return paradise;
 }
