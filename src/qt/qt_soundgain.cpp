@@ -19,6 +19,7 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QBoxLayout>
 #include <QPainter>
 #include <QStyle>
 #include <QStyleOptionSlider>
@@ -78,11 +79,11 @@ SoundGain::SoundGain(QWidget *parent)
 
     /* A column per slider: the master gain first, then every source that
        exists right now. All of them go from -18 dB to +18 dB. */
-    auto addColumn = [this](const QString &name, const int value, std::function<void(int)> apply, const bool scale = false) {
+    auto addColumn = [this](QBoxLayout *target, QWidget *owner, const QString &name, const int value, std::function<void(int)> apply, const bool scale = false) {
         auto *column = new QVBoxLayout();
-        auto *label  = new QLabel(name, ui->scrollAreaWidgetContents);
-        auto *slider = new QSlider(Qt::Vertical, ui->scrollAreaWidgetContents);
-        auto *dB     = new QLabel(ui->scrollAreaWidgetContents);
+        auto *label  = new QLabel(name, owner);
+        auto *slider = new QSlider(Qt::Vertical, owner);
+        auto *dB     = new QLabel(owner);
 
         label->setAlignment(Qt::AlignCenter);
         label->setWordWrap(true);
@@ -113,22 +114,22 @@ SoundGain::SoundGain(QWidget *parent)
             row->setSpacing(2);
             row->addStretch(1);
             row->addWidget(slider);
-            row->addWidget(new GainScale(slider, ui->scrollAreaWidgetContents));
+            row->addWidget(new GainScale(slider, owner));
             row->addStretch(1);
             column->addLayout(row, 1);
         } else
             column->addWidget(slider, 1, Qt::AlignHCenter);
         column->addWidget(dB);
-        ui->slidersLayout->addLayout(column);
+        target->addLayout(column);
     };
 
-    addColumn(tr("Master"), sound_gain, [](int v) { sound_gain = v; }, true);
+    addColumn(ui->masterLayout, this, tr("Master"), sound_gain, [](int v) { sound_gain = v; }, true);
 
     const int count = sound_source_get_count();
 
     for (int i = 0; i < count; i++) {
         source_gain_orig.push_back(sound_source_get_gain(i));
-        addColumn(QString::fromUtf8(sound_source_get_label(i)), sound_source_get_gain(i),
+        addColumn(ui->slidersLayout, ui->scrollAreaWidgetContents, QString::fromUtf8(sound_source_get_label(i)), sound_source_get_gain(i),
                   [i](int v) { sound_source_set_gain(i, v); });
     }
 

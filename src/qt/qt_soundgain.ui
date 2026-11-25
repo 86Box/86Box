@@ -15,7 +15,22 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QScrollArea" name="scrollArea">
+    <layout class="QHBoxLayout" name="contentLayout">
+     <item>
+      <layout class="QHBoxLayout" name="masterLayout"/>
+     </item>
+     <item>
+      <widget class="QFrame" name="separator">
+       <property name="frameShape">
+        <enum>QFrame::VLine</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Sunken</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QScrollArea" name="scrollArea">
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAsNeeded</enum>
      </property>
@@ -29,6 +44,8 @@
       <layout class="QHBoxLayout" name="slidersLayout"/>
      </widget>
     </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
