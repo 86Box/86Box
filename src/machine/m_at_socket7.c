@@ -3062,7 +3062,7 @@ machine_at_t3032_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,          4, 1, 2, 3);
     pci_register_slot(0x11, PCI_CARD_NORMAL,          1, 2, 3, 4);
 
-    device_add(&cyrix_gxm_device);
+    device_add_params(&cyrix_gxm_device, (void *) GXM_KEEP_MEMORY_ON_CPU_RESET);
     device_add(&cs5530_device);
     device_add_params(&pc97317_device, (void *) (PCX730X_02E | PCX730X_PHOENIX_42I | PCX7307_PC97317));
     device_add(&sst_flash_29ee020_device);
