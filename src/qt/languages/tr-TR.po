@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 18:00+0000\n"
-"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"PO-Revision-Date: 2026-11-26 18:49+0000\n"
+"Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -253,10 +253,10 @@ msgid "Sound &gain…"
 msgstr "&Sesi artır…"
 
 msgid "M&IDI output device"
-msgstr "M&IDI çıkış cihazı"
+msgstr "M&IDI çıkış aygıtı"
 
 msgid "Restart &device"
-msgstr "Cihazı yeni&den başlat"
+msgstr "Aygıtı yeni&den başlat"
 
 msgid "Send MIDI &command"
 msgstr "MIDI &komutu gönder"
@@ -283,10 +283,10 @@ msgid "MIDI LCD"
 msgstr ""
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Her zaman &üstte"
 
 msgid "&Close"
-msgstr ""
+msgstr "&Kapat"
 
 msgid "Begin trace"
 msgstr "İzlemeyi başlat"
@@ -355,10 +355,10 @@ msgid "New Image"
 msgstr "Yeni Görüntü"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Çıkarılabilir disk tipi:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "MO tipi:"
 
 msgid "Settings"
 msgstr "Ayarlar"
@@ -451,19 +451,24 @@ msgid "%1 MHz"
 msgstr "%1 MHz"
 
 msgid "FPU:"
-msgstr "FPU:"
+msgstr "Matematik işlem birimi (FPU):"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr ""
+"C0000000h adresindeki bellek-eşlenmiş matematik işlem birimi (FPU). "
+"Destekleyen programlar bu birimi bir 387'nin yanında ya da onun yerine "
+"kullanabilir."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 3167 matematik işlem birimi (FPU)"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
 msgstr ""
+"Destekleyen 486 yazılımları için C0000000h adresindeki bellek-eşlenmiş "
+"matematik işlem birimi (FPU)."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 4167 matematik işlem birimi (FPU)"
 
 msgid "Internal"
 msgstr "Dahili"
@@ -478,43 +483,43 @@ msgid "GB"
 msgstr ""
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Bellek (RAM):"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Ana sistemin saatiyle senkronize et"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Saat dilimi:"
 
 msgid "Local"
-msgstr ""
+msgstr "Yerel"
 
 msgid "UTC"
-msgstr ""
+msgstr "Eşgüdümlü Evrensel Zaman (UTC)"
 
 msgid "Date:"
-msgstr ""
+msgstr "Tarih:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Ana sistemle eşleştir"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Yılı şu kadar kaydır:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(şu an %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Her zaman şu yılı kullan:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Tarihi senkronize etme"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
@@ -523,19 +528,19 @@ msgid "Dynamic recompiler"
 msgstr "Dinamik derleyici"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Dinamik derleyici aktif"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Dinamik derleyici devre dışı"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr "Dinamik derleyicide hassas FPU ortamı"
+msgstr "Dinamik derleyici için hassas matematik işlem birimi (FPU) ortamı"
 
 msgid "Block linking on the dynamic recompiler"
 msgstr "Dinamik derleyicide blok bağlama"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "486 ve sonraki işlemciler için hata ayıklama yazmaçları"
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
@@ -568,7 +573,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Grafikleri"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "PowerVR PCX1/PCX2 Grafikleri"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -634,10 +639,10 @@ msgid "Sound card 4:"
 msgstr "4. Ses Kartı:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Çıkış Cihazı:"
+msgstr "MIDI Çıkış Aygıtı:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI Giriş Cihazı:"
+msgstr "MIDI Giriş Aygıtı:"
 
 msgid "MIDI Out:"
 msgstr "MIDI Çıkış:"
@@ -733,10 +738,12 @@ msgid "Cassette"
 msgstr "Kaset"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"IDE aktarım modu hız sınırını kaldırır. Sabit disk ve CD-ROM sürücüsü "
+"zamanlamaları hala geçerliliğini korur."
 
 msgid "Hard disks:"
 msgstr "Sabit diskler:"
@@ -763,28 +770,30 @@ msgid "Channel:"
 msgstr "Kanal:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (Entegre)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(yok)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "Entegre"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: boş kanal yok"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: %2 kanalları kullanımda"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "IDE Çakışması"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
+"Bu IDE denetleyicileri hâlihazırda başka bir aygıt tarafından sağlanan "
+"kanallara ihtiyaç duyar ve bu nedenle çalışmazlar:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Yine de yapılandırmayı kaydetmek ister misiniz?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -865,7 +874,7 @@ msgid "MO drives"
 msgstr "MO sürücüleri"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA sürücüleri"
 
 msgid "MO:"
 msgstr "MO:"
@@ -908,24 +917,26 @@ msgstr "Genel ISA ROM Kartı"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"Herhangi bir aygıt bulunamadı. Ana sisteminizde VT-d veya IOMMU'nun "
+"etkinleştirildiğinden emin olun."
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "Özel ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "Grup"
 
 msgid "Location"
-msgstr ""
+msgstr "Konum"
 
 msgid "Name"
-msgstr ""
+msgstr "İsim"
 
 msgid "ROM images"
-msgstr ""
+msgstr "ROM görüntüleri"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Bilinmeyen aygıt"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Genel Çift ISA ROM Kartı"
@@ -979,7 +990,7 @@ msgid "(empty)"
 msgstr "(boş)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(mevcut değil)"
 
 msgid "All files"
 msgstr "Tüm dosyalar"
@@ -1030,10 +1041,10 @@ msgid "Sound"
 msgstr "Ses"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (tespit edilemedi)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (ana sistem yeniden örnekleyecek)"
 
 msgid "Network"
 msgstr "Ağ"
@@ -1111,52 +1122,52 @@ msgid "Other peripherals"
 msgstr "Diğer çevre birimleri"
 
 msgid "empty"
-msgstr ""
+msgstr "boş"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (yazma korumalı)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Boş (kartı çıkar)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Yeni CompactFlash kartı…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Yeni CompactFlash kartı"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "CompactFlash kartı seç"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "CompactFlash kartını &çıkar"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "%1 bir CompactFlash görüntüsü olarak kullanılamıyor."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "PC Card denetleyicisi (Cirrus Logic CL-PD6722, ISA, 3E0h-3E1h portları)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
 
 msgid "Network:"
-msgstr ""
+msgstr "Ağ:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "Soket %1"
 
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "Soket %1: %2"
 
 msgid "Other devices"
 msgstr "Diğer cihazlar"
@@ -1325,13 +1336,13 @@ msgid "MO images"
 msgstr "MO görüntüleri"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "MD DATA görüntüleri"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MD DATA %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "86Box'a hoşgeldiniz!"
@@ -1364,13 +1375,15 @@ msgid "No ROMs found"
 msgstr "Hiçbir ROM dosyası bulunamadı"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Desteklenmeyen Donanım"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"Makine yapılandırmasındaki bazı donanımlar şu anki 86Box yapısı tarafından "
+"desteklenmiyor."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(ve %i diğerleri)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
@@ -1385,25 +1398,25 @@ msgid "Do you want to continue?"
 msgstr ""
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "\"%s\" makine tipi"
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "\"%s\" ekran kartı"
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "\"%s\" klavye"
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "\"%s\" fare"
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "\"%s\" tablet"
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "\"%s\" oyun kolu"
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "\"%s\" ses kartı"
 
 msgid "MIDI output device \"%s\""
 msgstr ""
@@ -3361,7 +3374,7 @@ msgid "&Unmute"
 msgstr "&Sesi aç"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "Softfloat matematik işlem birimi (FPU)"
 
 msgid "High performance impact"
 msgstr "Ciddi performans etkisi"
@@ -4667,13 +4680,13 @@ msgid "CD-ROM drives…"
 msgstr ""
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Diğer çıkarılabilir aygıtlar…"
 
 msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB Yığın Depolama"
 
 msgid "Mount folder as a temporary floppy"
 msgstr ""
@@ -4682,7 +4695,7 @@ msgid "The selected drive does not support folder mounting."
 msgstr ""
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "İçeriklerin boyutu kurulu disket sürücüsünün kapasitesini aşıyor."
 
 msgid "Mount folder as a temporary removable disk"
 msgstr ""
@@ -4697,22 +4710,22 @@ msgid "There are too many files in the top folder for the root directory of the 
 msgstr ""
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "Geçici görüntü yazılamadı."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Görüntüyü oluşturmak için yeterli bellek yok."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Klasör veya arşiv okunamadı."
 
 msgid "Archives"
-msgstr ""
+msgstr "Arşivler"
 
 msgid "New USB flash drive"
-msgstr ""
+msgstr "Yeni USB bellek"
 
 msgid "&New USB flash drive…"
-msgstr ""
+msgstr "&Yeni USB bellek…"
 
 msgid "unplugged"
 msgstr ""
@@ -4730,28 +4743,28 @@ msgid "&Move %1 to"
 msgstr ""
 
 msgid "Size:"
-msgstr ""
+msgstr "Boyut:"
 
 msgid "Custom size:"
-msgstr ""
+msgstr "Özel boyut:"
 
 msgid "None (blank)"
-msgstr ""
+msgstr "Yok (boş)"
 
 msgid "FAT16"
-msgstr ""
+msgstr "FAT16"
 
 msgid "FAT32"
-msgstr ""
+msgstr "FAT32"
 
 msgid "Format:"
-msgstr ""
+msgstr "Biçim:"
 
 msgid "Could not create %1."
-msgstr ""
+msgstr "%1 oluşturulamadı."
 
 msgid "%1 already exists. Replace it?"
-msgstr ""
+msgstr "%1 zaten mevcut. Değiştirilsin mi?"
 
 msgid "USB port %1 (%2)"
 msgstr ""
