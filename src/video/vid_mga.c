@@ -354,6 +354,7 @@
 #define DMA_MODE_REG                  0
 #define DMA_MODE_BLIT                 1
 #define DMA_MODE_VECTOR               2
+#define DMA_MODE_RESERVED             3
 
 #define STATUS_SOFTRAPEN              (1 << 0)
 #define STATUS_VSYNCPEN               (1 << 4)
@@ -3135,6 +3136,19 @@ run_dma(mystique_t *mystique)
                                     mystique->dma.pri_state = 0;
                                 }
                             }
+                        }
+                        break;
+
+                    case DMA_MODE_RESERVED:
+                        /* The reserved mode cannot supply a secondary DMA payload. */
+                        mystique->dma.secaddress     = (mystique->dma.secend & DMA_ADDR_MASK) | DMA_MODE_RESERVED;
+                        mystique->dma.pri_state      = 0;
+                        mystique->dma.words_expected = 0;
+                        if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
+                            mystique->endprdmasts_pending = 1;
+                            mystique->dma.state           = MGA_DMA_STATE_IDLE;
+                        } else {
+                            mystique->dma.state = MGA_DMA_STATE_PRI;
                         }
                         break;
 
