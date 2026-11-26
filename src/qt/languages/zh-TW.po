@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-19 23:29+0000\n"
+"PO-Revision-Date: 2026-11-26 08:57+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -50,7 +50,7 @@ msgid "&Hide status bar"
 msgstr "隱藏狀態列(&H)"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "顯示 USB 活動(&B)"
 
 msgid "Hide &toolbar"
 msgstr "隱藏工具列(&T)"
@@ -86,7 +86,7 @@ msgid "Force &4:3 display ratio"
 msgstr "強制 4:3 顯示比例(&4)"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "強制機器顯示比例(&M)"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "強制 %1:%2 顯示比例(&%1)"
@@ -257,7 +257,7 @@ msgid "M&IDI output device"
 msgstr "MIDI 輸出裝置(&I)"
 
 msgid "Restart &device"
-msgstr "重新啟動機器(&D)"
+msgstr "重新啟動裝置(&D)"
 
 msgid "Send MIDI &command"
 msgstr "傳送 MIDI 命令(&C)"
@@ -356,10 +356,10 @@ msgid "New Image"
 msgstr "新增映像"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "抽取式磁碟類型:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "磁光碟類型:"
 
 msgid "Settings"
 msgstr "設定"
@@ -455,16 +455,17 @@ msgid "FPU:"
 msgstr "浮點運算器 (FPU):"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
-msgstr ""
+msgstr "記憶空間映射浮點協同處理器位於 C000000h。相容程式可將其與 387 "
+"配使用，或取代之。"
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 3167 協同處理器"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
-msgstr ""
+msgstr "記憶空間映射浮點協同處理器位於 C0000000h 供 486 相容軟體使用。"
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 4167 協同處理器"
 
 msgid "Internal"
 msgstr "內建"
@@ -524,10 +525,10 @@ msgid "Dynamic recompiler"
 msgstr "動態重編譯器"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "動態重編譯啟用中"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "動態重編譯停用中"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "動態重編譯時精確的浮點運算器模擬"
@@ -566,7 +567,7 @@ msgid "XGA Graphics"
 msgstr "XGA 圖形"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "IBM PS/55 顯示介面卡圖形"
+msgstr "IBM PS/55 顯示轉接器圖形"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
 msgstr "PowerVR PCX1/PCX2 圖形"
@@ -593,16 +594,16 @@ msgid "&Mouse"
 msgstr "滑鼠(&M)"
 
 msgid "Tablet:"
-msgstr "平板:"
+msgstr "數位板:"
 
 msgid "Tablet"
-msgstr "平板"
+msgstr "數位板"
 
 msgid "&Tablet"
-msgstr "平板(&T)"
+msgstr "數位板(&T)"
 
 msgid "Tablet (&Crosshair)"
-msgstr "平板 (十字線)(&C)"
+msgstr "數位板 (十字線)(&C)"
 
 msgid "Joystick:"
 msgstr "搖桿:"
@@ -659,7 +660,7 @@ msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "內部 LPT 的 ECP 的 DMA:"
+msgstr "內建 LPT 的 ECP 的 DMA:"
 
 msgid "Floppy disk controller:"
 msgstr "軟碟控制器:"
@@ -752,7 +753,7 @@ msgid "&New…"
 msgstr "新增(&N)…"
 
 msgid "&Existing…"
-msgstr "已有影像(&E)…"
+msgstr "既有(&E)…"
 
 msgid "&Remove"
 msgstr "移除(&R)"
@@ -764,28 +765,28 @@ msgid "Channel:"
 msgstr "通道:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (內建)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(無)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "內建"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: 無閒置通道"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: 通道 %2 使用中"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "IDE 衝突"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
-msgstr ""
+msgstr "以下 IDE 控制器要求之通道已被其他裝置佔用，將無法運作:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "確定仍要儲存此組態？"
 
 msgid "ID:"
 msgstr "ID:"
@@ -866,7 +867,7 @@ msgid "MO drives"
 msgstr "磁光碟機"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA 磁光碟機"
 
 msgid "MO:"
 msgstr "磁光碟:"
@@ -908,25 +909,25 @@ msgid "Generic ISA ROM Board"
 msgstr "通用 ISA 單 ROM 板"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
-msgstr ""
+msgstr "未找到裝置。請確認您的系統已啟用 VT-d 或 IOMMU。"
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "客製化 ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "群組"
 
 msgid "Location"
-msgstr ""
+msgstr "位置"
 
 msgid "Name"
-msgstr ""
+msgstr "名稱"
 
 msgid "ROM images"
-msgstr ""
+msgstr "ROM 映像"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "未知裝置"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "通用 ISA 雙 ROM 板"
@@ -1033,16 +1034,16 @@ msgid "Sound"
 msgstr "聲音"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (未偵測到)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (主機將重新採樣)"
 
 msgid "Network"
 msgstr "網路"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "將 IPv4 及 ARP 接收成 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "連接埠 (COM 和 LPT)"
@@ -1114,52 +1115,55 @@ msgid "Other peripherals"
 msgstr "其他周邊裝置"
 
 msgid "empty"
-msgstr ""
+msgstr "空"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (寫入保護)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "空 (卡已移除)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "新增 CompactFlash 卡…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "新增 CompactFlash 卡"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "插入 CompactFlash 卡"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "移除 CompactFlash 卡(&R)"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "%1 無法做為 CompactFlash 映像使用。"
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "PC 卡控制器 (Cirrus Logic CL-PD6722, ISA, 埠 3E0h 至 3E1h)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
+"帶有兩個插槽的英特爾 82365SL 相容 PC (PCMCIA) 卡控制器，常見於膝上型電腦及 "
+"PC 卡轉接卡。\n"
+"DOS 的 PC 卡服務常式、Windows 95/98 及 Linux (i82365) 驅動程式可驅動。"
 
 msgid "Network:"
-msgstr ""
+msgstr "網路:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "插槽 %1"
 
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "插槽 %1: %2"
 
 msgid "Other devices"
 msgstr "其他裝置"
@@ -1310,7 +1314,7 @@ msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "確定要硬重設模擬器嗎？"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "確定要退出 86Box 嗎？"
+msgstr "確定要結束 86Box 嗎？"
 
 msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "無法初始化 Ghostscript。自動將 PostScript 檔案轉換為 PDF 需要 %1。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
@@ -1328,22 +1332,22 @@ msgid "MO images"
 msgstr "磁光碟映像"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "MD DATA 映像"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3 (&M)"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "歡迎使用 86Box！"
 
 msgid "Internal device"
-msgstr "內部裝置"
+msgstr "內建裝置"
 
 msgid "External"
-msgstr ""
+msgstr "外接"
 
 msgid "&File"
 msgstr "檔案(&F)"
@@ -1361,100 +1365,100 @@ msgid "&Check for updates…"
 msgstr "檢查更新(&C)…"
 
 msgid "Exit"
-msgstr "退出"
+msgstr "結束"
 
 msgid "No ROMs found"
 msgstr "找不到 ROM"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "未支援的硬體"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
-msgstr ""
+msgstr "此機器描述中的硬體不被本建置版本的 86Box 所支援。"
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(及其他 %1)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
-msgstr ""
+msgstr "繼續載入此組態將取代虛擬機器並覆寫既有組態。"
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
-msgstr ""
+msgstr "繼續載入此組態將移除這些元件並覆寫既有組態。"
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
-msgstr ""
+msgstr "繼續載入此組態將取代虛擬機器、移除其他元件及覆蓋既有組態。"
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "確定要繼續？"
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "機器類型 \"%s\""
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "顯示卡 \"%s\""
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "鍵盤 \"%s\""
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "滑鼠 \"%s\""
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "數位板 \"%s\""
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "搖桿 \"%s\""
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "聲效卡 \"%s\""
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "MIDI 輸出裝置 \"%s\""
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "MIDI 輸入裝置 \"%s\""
 
 msgid "Network card \"%s\""
-msgstr ""
+msgstr "網路卡 \"%s\""
 
 msgid "Serial port device \"%s\""
-msgstr ""
+msgstr "序列埠裝置 \"%s\""
 
 msgid "Parallel port device \"%s\""
-msgstr ""
+msgstr "並列埠裝置 \"%s\""
 
 msgid "Game port \"%s\""
-msgstr ""
+msgstr "遊戲埠 \"%s\""
 
 msgid "SCSI card \"%s\""
-msgstr ""
+msgstr "SCSI 卡 \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr ""
+msgstr "軟碟控制器 \"%s\""
 
 msgid "Disk controller \"%s\""
-msgstr ""
+msgstr "磁碟控制器 \"%s\""
 
 msgid "CD-ROM interface \"%s\""
-msgstr ""
+msgstr "CD-ROM 介面 \"%s\""
 
 msgid "Memory expansion card \"%s\""
-msgstr ""
+msgstr "記憶體擴充卡 \"%s\""
 
 msgid "ROM expansion card \"%s\""
-msgstr ""
+msgstr "ROM 擴充卡 \"%s\""
 
 msgid "RTC card \"%s\""
-msgstr ""
+msgstr "實時時鐘卡 \"%s\""
 
 msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
-msgstr ""
+msgstr "映像 \"%s\" 超出此磁碟機之最大容量，將被略過。"
 
 msgid "%s was not connected: every USB port of this machine is in use."
-msgstr ""
+msgstr "%s 未被連接: 此機器之所有 USB 埠均在使用中。"
 
 msgid "%s was not connected: this machine has no USB controller that can take devices."
-msgstr ""
+msgstr "%s 未被連接: 此機器無 USB 控制器可連接裝置。"
 
 msgid "Do you want to save the settings?"
 msgstr "要儲存設定嗎？"
@@ -1491,22 +1495,22 @@ msgid "CD-ROM images"
 msgstr "光碟映像"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "新建 CD-R 映像(&N)…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "新建 CD-RW 映像(&W)…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "CD-RW 映像"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "CD-R 映像"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Aaru 映像"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "無法創建映像"
 
 msgid "%1 Device Configuration"
 msgstr "%1 裝置組態"
@@ -1662,7 +1666,7 @@ msgstr[0] " (+%n 以上)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr[0] "%n 部機器目前處於啟用狀態。您確定要退出虛擬機器管理員嗎？"
+msgstr[0] "%n 部機器目前處於啟用狀態。您確定要結束虛擬機器管理員嗎？"
 
 msgid "Add new system wizard"
 msgstr "新增系統精靈"
@@ -1884,10 +1888,10 @@ msgid "Power &off"
 msgstr "關閉電源(&O)"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "暫停(&D)"
 
 msgid "Suspend"
-msgstr ""
+msgstr "待機"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "強制關閉電源可能導致模擬機資料流失，確定要繼續嗎？"
@@ -2133,7 +2137,7 @@ msgid "2% below perfect RPM"
 msgstr "低於標準轉速的 2%"
 
 msgid "Creating image…"
-msgstr "新建映像…"
+msgstr "建立映像…"
 
 msgid "(System Default)"
 msgstr "(系統預設)"
@@ -2198,7 +2202,7 @@ msgid "List of MCA devices:"
 msgstr "MCA 裝置清單:"
 
 msgid "&Tablet tool"
-msgstr "平板工具(&T)"
+msgstr "數位板工具(&T)"
 
 msgid "About &Qt"
 msgstr "關於 Qt(&Q)"
@@ -2324,16 +2328,16 @@ msgid "GiB"
 msgstr "GiB"
 
 msgid "Adapter 1"
-msgstr "配接器 1"
+msgstr "轉接器 1"
 
 msgid "Adapter 2"
-msgstr "配接器 2"
+msgstr "轉接器 2"
 
 msgid "Adapter 3"
-msgstr "配接器 3"
+msgstr "轉接器 3"
 
 msgid "Adapter 4"
-msgstr "配接器 4"
+msgstr "轉接器 4"
 
 msgid "Mode:"
 msgstr "模式:"
@@ -2342,7 +2346,7 @@ msgid "Interface:"
 msgstr "介面:"
 
 msgid "Adapter:"
-msgstr "配接器:"
+msgstr "轉接器:"
 
 msgid "VDE Socket:"
 msgstr "VDE 插座:"
@@ -2375,7 +2379,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 鍵盤"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "USB 鍵盤"
 
 msgid "Keys"
 msgstr "按鍵"
@@ -2408,13 +2412,13 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort 滑鼠"
 
 msgid "USB Mouse"
-msgstr ""
+msgstr "USB 滑鼠"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (序列埠)"
 
 msgid "USB Tablet"
-msgstr ""
+msgstr "USB 數位板"
 
 msgid "Default Baud rate"
 msgstr "預設鮑率"
@@ -2441,7 +2445,7 @@ msgid "System MIDI"
 msgstr "系統的 MIDI"
 
 msgid "USB Speaker"
-msgstr ""
+msgstr "USB 喇叭"
 
 msgid "MIDI Input Device"
 msgstr "MIDI 輸入裝置"
@@ -2639,7 +2643,7 @@ msgid "Nice ramp"
 msgstr "平滑漸變曲線"
 
 msgid "Hz"
-msgstr "赫茲"
+msgstr "Hz"
 
 msgid "Buttons"
 msgstr "按鈕"
@@ -2798,7 +2802,7 @@ msgid "GUS type"
 msgstr "GUS 類型"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "啟用 0x04 \"退出 86Box\" 指令"
+msgstr "啟用 0x04 \"結束 86Box\" 指令"
 
 msgid "Display type"
 msgstr "顯示類型"
@@ -3392,7 +3396,7 @@ msgid "Generic MM58167 RTC"
 msgstr "通用 MM58167 實時時鐘"
 
 msgid "OPL2Board (External Device)"
-msgstr "OPL2卡 (外部裝置)"
+msgstr "OPL2卡 (外接裝置)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr ""
@@ -3739,16 +3743,16 @@ msgid "Dark"
 msgstr "暗色"
 
 msgid "Style:"
-msgstr ""
+msgstr "式樣:"
 
 msgid "Windows 11"
-msgstr ""
+msgstr "Windows 11"
 
 msgid "Windows Native"
-msgstr ""
+msgstr "Windows 原生"
 
 msgid "Windows Classic"
-msgstr ""
+msgstr "Windows 經典"
 
 msgid "Force interpretation"
 msgstr "強制解譯執行"
@@ -4209,7 +4213,7 @@ msgid "Value, dword"
 msgstr "值，雙字元組"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
-msgstr "查找何者：16 進制位元組、文字、或小端序 16 進制值 (與 16 進制檢視相同)。"
+msgstr "查找何者: 16 進制位元組、文字、或小端序 16 進制值 (與 16 進制檢視相同)。"
 
 msgid "Memory search"
 msgstr "記憶體搜尋"
@@ -4268,7 +4272,7 @@ msgid "Inaccessible"
 msgstr "不可存取"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
-msgstr "不可存取：只有裝置處理程序回應 (讀取將有副作用)，或線性分頁不存在。"
+msgstr "不可存取: 只有裝置處理程序回應 (讀取將有副作用)，或線性分頁不存在。"
 
 msgid "Linear address, register or seg:off"
 msgstr "線性位址，暫存器或區段:偏移"
@@ -4292,7 +4296,7 @@ msgid "Disassembly"
 msgstr "反組譯"
 
 msgid "Disassembly (not available in this build)"
-msgstr "反組譯 (在本建置中不可用)"
+msgstr "反組譯 (在本建置版本中不可用)"
 
 msgid "Viewer message"
 msgstr "檢視器訊息"
@@ -4424,7 +4428,7 @@ msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
 msgstr "%2 位元組中 %1 已寫入；唯讀或不可存取的位元組被略過。"
 
 msgid "Disassembly is not available in this build."
-msgstr "反組譯在此建置中不可用。"
+msgstr "反組譯在本建置版本中不可用。"
 
 msgid "Breakpoint %1 at %2."
 msgstr "中斷點 %1 在 %2。"
@@ -4642,7 +4646,7 @@ msgid "TCP send timeout"
 msgstr "TCP 傳送逾時"
 
 msgid "Card:"
-msgstr "界面卡:"
+msgstr "介面卡:"
 
 msgid "Hub:"
 msgstr "集線器:"
@@ -4756,19 +4760,19 @@ msgid "USB port"
 msgstr "USB 埠"
 
 msgid "%1 (write-protected)"
-msgstr ""
+msgstr "%1 (防寫保護)"
 
 msgid "USB flash drive"
-msgstr ""
+msgstr "USB 快閃碟"
 
 msgid "%1 is not a disk image."
-msgstr ""
+msgstr "%1 不是磁碟映像。"
 
 msgid "Flash drive images"
-msgstr ""
+msgstr "快閃碟映像"
 
 msgid "PCI card"
-msgstr "PCI 界面卡"
+msgstr "PCI 介面卡"
 
 msgid "hub"
 msgstr "集線器"
