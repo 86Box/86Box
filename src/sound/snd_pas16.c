@@ -4054,8 +4054,10 @@ pas16_init(const device_t *info)
 
     if (pas16->type) {
         pas16->src_snd   = sound_source_add_stream(I_NORMAL, pas16_get_buffer, pas16);
+        sound_source_set_label(pas16->src_snd, "PCM");
         pas16->clock     = sound_source_get_pos_ptr(pas16->src_snd);
         pas16->src_sb    = sound_source_add_stream(I_NORMAL, pas16_get_sb_buffer, pas16);
+    sound_source_set_label(pas16->src_sb, "Sound Blaster");
         pas16->dsp.clock = sound_source_get_pos_ptr(pas16->src_sb);
         sound_in_add_handler(pas16_put_buffer, pas16);
         sound_in_start_input();
@@ -4065,8 +4067,10 @@ pas16_init(const device_t *info)
             sound_set_pc_speaker_filter(pas16_filter_pc_speaker, pas16);
     } else {
         pas16->src_snd   = sound_source_add_stream(I_NORMAL, pasplus_get_buffer, pas16);
+        sound_source_set_label(pas16->src_snd, "PCM");
         pas16->clock     = sound_source_get_pos_ptr(pas16->src_snd);
         pas16->src_sb    = sound_source_add_stream(I_NORMAL, pasplus_get_sb_buffer, pas16);
+    sound_source_set_label(pas16->src_sb, "Sound Blaster");
         pas16->dsp.clock = sound_source_get_pos_ptr(pas16->src_sb);
         sound_in_add_handler(pas16_put_buffer, pas16);
         sound_in_start_input();

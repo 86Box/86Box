@@ -294,6 +294,7 @@ wss_init(UNUSED(const device_t *info))
                   &wss->ad1848);
 
     wss->src_snd      = sound_source_add_stream(I_NORMAL, wss_get_buffer, wss);
+    sound_source_set_label(wss->src_snd, "WSS");
     wss->ad1848.clock = sound_source_get_pos_ptr(wss->src_snd);
     sound_in_add_handler(wss_put_buffer, wss);
     sound_in_start_input();
@@ -403,6 +404,7 @@ ncr_audio_init(UNUSED(const device_t *info))
     wss->pos_regs[1] = 0x51;
 
     wss->src_snd      = sound_source_add_stream(I_NORMAL, wss_get_buffer, wss);
+    sound_source_set_label(wss->src_snd, "WSS");
     wss->ad1848.clock = sound_source_get_pos_ptr(wss->src_snd);
     sound_in_add_handler(wss_put_buffer, wss);
     sound_in_start_input();

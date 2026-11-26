@@ -5260,6 +5260,7 @@ static void
 sb_add_snd_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
 {
     sb->src_snd   = sound_source_add_stream(I_NORMAL, get_buffer, sb);
+    sound_source_set_label(sb->src_snd, "Sound Blaster");
     sb->dsp.clock = sound_source_get_pos_ptr(sb->src_snd);
 }
 
@@ -5267,6 +5268,7 @@ static void
 sb_add_cms_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
 {
     sb->src_cms   = sound_source_add_stream(I_NORMAL, get_buffer, sb);
+    sound_source_set_label(sb->src_cms, "CMS");
     sb->cms.clock = sound_source_get_pos_ptr(sb->src_cms);
 }
 

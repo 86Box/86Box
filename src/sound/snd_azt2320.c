@@ -464,8 +464,10 @@ azt2320_init(UNUSED(const device_t *info))
     io_sethandler(azt2320->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2320->sb);
 
     azt2320->src_wss        = sound_source_add_stream(I_NORMAL, azt2320_get_buffer, azt2320);
+    sound_source_set_label(azt2320->src_wss, "WSS");
     azt2320->ad1848.clock   = sound_source_get_pos_ptr(azt2320->src_wss);
     azt2320->sb->src_snd    = sound_source_add_stream(I_NORMAL, azt2320_get_sbpro_buffer, azt2320);
+    sound_source_set_label(azt2320->sb->src_snd, "Sound Blaster");
     azt2320->sb->dsp.clock  = sound_source_get_pos_ptr(azt2320->sb->src_snd);
     sound_in_add_handler(azt2320_put_buffer, azt2320);
     sound_in_start_input();

@@ -955,6 +955,21 @@ adgold_mma_poll(adgold_t *adgold, int channel, int interleaved)
     }
 }
 
+/* The sample stream follows the sample rate of the channel the guest is playing or recording. */
+static void
+adgold_mma_follow_rate(adgold_t *adgold)
+{
+    int ch = 0;
+
+    if (!adgold->adgold_mma_enable[0] && !adgold->rec_on[0] && (adgold->adgold_mma_enable[1] || adgold->rec_on[1]))
+        ch = 1;
+
+    const int period = mma_sample_period(adgold->adgold_mma_regs[ch][9]);
+
+    if (period > 0)
+        sound_source_set_rate(adgold->src_mma, 1000000.0 / (period * 1.88964));
+}
+
 void
 adgold_timer_poll(void *priv)
 {
@@ -1160,6 +1175,7 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
         fatal("mma_buffer = NULL");
 
     adgold_update(adgold);
+    adgold_mma_follow_rate(adgold);
 
     for (uint16_t c = 0; c < len * 2; c += 2) {
         mma_buffer[c] = ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
@@ -1438,6 +1454,9 @@ adgold_init(UNUSED(const device_t *info))
 
     adgold->src_snd = sound_source_add_stream(I_NORMAL, adgold_get_buffer, adgold);
     adgold->src_mma = sound_source_add_stream(I_NORMAL, adgold_get_mma_buffer, adgold);
+    sound_source_set_label(adgold->src_snd, "FM");
+    sound_source_set_label(adgold->src_mma, "PCM");
+    sound_source_set_rate(adgold->src_mma, 1000000.0 / (mma_sample_period(adgold->adgold_mma_regs[0][9]) * 1.88964));
     adgold->clock   = sound_source_get_pos_ptr(adgold->src_snd);
     adgold->clock2  = sound_source_get_pos_ptr(adgold->src_mma);
     if (adgold->opl.set_clock != NULL)

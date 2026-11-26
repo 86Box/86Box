@@ -1300,8 +1300,10 @@ ad1816_init(UNUSED(const device_t *info))
     io_sethandler(ad1816->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ad1816->sb);
 
     ad1816->src_snd         = sound_source_add_stream(I_NORMAL, ad1816_get_buffer, ad1816);
+    sound_source_set_label(ad1816->src_snd, "WSS");
     ad1816->clock           = sound_source_get_pos_ptr(ad1816->src_snd);
     ad1816->sb->src_snd     = sound_source_add_stream(I_NORMAL, ad1816_get_sbpro_buffer, ad1816);
+    sound_source_set_label(ad1816->sb->src_snd, "Sound Blaster");
     ad1816->sb->dsp.clock   = sound_source_get_pos_ptr(ad1816->sb->src_snd);
     sound_in_add_handler(ad1816_put_buffer, ad1816);
     sound_in_start_input();

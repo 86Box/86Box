@@ -234,8 +234,10 @@ mmb_init(UNUSED(const device_t *info))
 
 #endif
     mmb->first.source  = sound_source_add_stream(I_NORMAL, mmb_get_buffer, &mmb->first);
+    sound_source_set_label(mmb->first.source, "AY-3-8910 #1");
     mmb->first.clock   = sound_source_get_pos_ptr(mmb->first.source);
     mmb->second.source = sound_source_add_stream(I_NORMAL, mmb_get_buffer, &mmb->second);
+    sound_source_set_label(mmb->second.source, "AY-3-8910 #2");
     mmb->second.clock  = sound_source_get_pos_ptr(mmb->second.source);
 
     ayumi_configure(&mmb->first.chip, 0, MMB_CLOCK, MMB_FREQ);

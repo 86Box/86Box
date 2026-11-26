@@ -2086,8 +2086,10 @@ azt_init(const device_t *info)
 
     azt2316a_create_config_word(azt2316a);
     azt2316a->src_wss        = sound_source_add_stream(I_NORMAL, azt2316a_get_buffer, azt2316a);
+    sound_source_set_label(azt2316a->src_wss, "WSS");
     azt2316a->ad1848.clock   = sound_source_get_pos_ptr(azt2316a->src_wss);
     azt2316a->sb->src_snd    = sound_source_add_stream(I_NORMAL, azt2316a_get_sbpro_buffer, azt2316a);
+    sound_source_set_label(azt2316a->sb->src_snd, "Sound Blaster");
     azt2316a->sb->dsp.clock  = sound_source_get_pos_ptr(azt2316a->sb->src_snd);
     sound_in_add_handler(azt2316a_put_buffer, azt2316a);
     sound_in_start_input();

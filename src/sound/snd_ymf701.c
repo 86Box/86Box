@@ -620,8 +620,10 @@ ymf701_init(const device_t *info)
     io_sethandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
 
     ymf701->src_wss      = sound_source_add_stream(I_NORMAL, ymf701_get_buffer, ymf701);
+    sound_source_set_label(ymf701->src_wss, "WSS");
     ymf701->ad1848.clock = sound_source_get_pos_ptr(ymf701->src_wss);
     ymf701->sb->src_snd   = sound_source_add_stream(I_NORMAL, ymf701_get_sbpro_buffer, ymf701);
+    sound_source_set_label(ymf701->sb->src_snd, "Sound Blaster");
     ymf701->sb->dsp.clock = sound_source_get_pos_ptr(ymf701->sb->src_snd);
     sound_in_add_handler(ymf701_put_buffer, ymf701);
     sound_in_start_input();

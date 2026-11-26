@@ -941,8 +941,10 @@ ymf71x_init(const device_t *info)
     fm_driver_get_cs(FM_YMF289B, &ymf71x->sb->opl);
 
     ymf71x->src_wss      = sound_source_add_stream(I_NORMAL, ymf71x_get_buffer, ymf71x);
+    sound_source_set_label(ymf71x->src_wss, "WSS");
     ymf71x->ad1848.clock = sound_source_get_pos_ptr(ymf71x->src_wss);
     ymf71x->sb->src_snd   = sound_source_add_stream(I_NORMAL, ymf71x_get_sbpro_buffer, ymf71x);
+    sound_source_set_label(ymf71x->sb->src_snd, "Sound Blaster");
     ymf71x->sb->dsp.clock = sound_source_get_pos_ptr(ymf71x->sb->src_snd);
     sound_in_add_handler(ymf71x_put_buffer, ymf71x);
     sound_in_start_input();

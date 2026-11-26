@@ -226,6 +226,7 @@ csm_mode_bits_changed(csm_t *csm)
         csm->dma_pulse = 0;
         csm->dma_mult = ((csm->psg.regs[10] & 0x10) || (csm->psg.regs[10] == 0)) ? 1 : 2;
         timer_set_delay_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1318) * csm->dma_mult));
+        sound_source_set_rate(csm->pcm_source, 1000000.0 / ((16 * csm->dma_interval) * 0.1318 * csm->dma_mult));
         csm_log(csm->log, "SoundMaster DMA timing = %f uS\n", (16 * csm->dma_interval) * 0.1318 * csm->dma_mult);
     }
 }
@@ -564,8 +565,10 @@ csm_device_init(UNUSED(const device_t *info))
     csm_mode_bits_changed(csm);
 
     csm->source = sound_source_add_stream(I_NORMAL, csm_get_buffer, csm);
+    sound_source_set_label(csm->source, "PSG");
     csm->clock  = sound_source_get_pos_ptr(csm->source);
     csm->pcm_source = sound_source_add_stream(I_NORMAL, csm_get_pcm_buffer, csm);
+    sound_source_set_label(csm->pcm_source, "PCM");
     csm->pcm_clock  = sound_source_get_pos_ptr(csm->pcm_source);
 
     io_sethandler(base_addr, 0x20,

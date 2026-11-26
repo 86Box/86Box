@@ -1332,10 +1332,14 @@ optimc_init(const device_t *info)
 
     if (optimc->type == OPTI_930) {
         optimc->src_wss = sound_source_add_stream(I_NORMAL, opti930_get_buffer, optimc);
+    sound_source_set_label(optimc->src_wss, "WSS");
         optimc->sb->src_snd = sound_source_add_stream(I_NORMAL, opti930_get_sbpro_buffer, optimc);
+    sound_source_set_label(optimc->sb->src_snd, "Sound Blaster");
     } else {
         optimc->src_wss = sound_source_add_stream(I_NORMAL, optimc_get_buffer, optimc);
+    sound_source_set_label(optimc->src_wss, "WSS");
         optimc->sb->src_snd = sound_source_add_stream(I_NORMAL, optimc_get_sbpro_buffer, optimc);
+    sound_source_set_label(optimc->sb->src_snd, "Sound Blaster");
     }
     optimc->ad1848.clock   = sound_source_get_pos_ptr(optimc->src_wss);
     optimc->sb->dsp.clock = sound_source_get_pos_ptr(optimc->sb->src_snd);

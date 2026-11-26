@@ -1250,6 +1250,7 @@ cs423x_init(const device_t *info)
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
     dev->src_snd      = sound_source_add_stream(I_NORMAL, cs423x_get_buffer, dev);
+    sound_source_set_label(dev->src_snd, "WSS");
     dev->ad1848.clock = sound_source_get_pos_ptr(dev->src_snd);
     dev->src_music    = sound_source_add_stream(I_MUSIC, cs423x_get_music_buffer, dev);
     sound_in_add_handler(cs423x_put_buffer, dev);

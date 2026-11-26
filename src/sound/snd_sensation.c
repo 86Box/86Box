@@ -270,6 +270,7 @@ sensation_visdac_updatefreq(sensation_t *dev)
 
     sensation_log(dev->log, "VISDAC frequency set to %i\n", dev->visdac_freq);
     dev->visdac_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) dev->visdac_freq));
+    sound_source_set_rate(dev->src_visdac, dev->visdac_freq);
 }
 
 static void
@@ -1337,6 +1338,14 @@ sensation_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     sensation_mma_update(dev);
 
+    {
+        const int ch     = (!dev->sensation_mma_enable[0] && dev->sensation_mma_enable[1]) ? 1 : 0;
+        const int period = mma_sample_period(dev->sensation_mma_regs[ch][9]);
+
+        if (period > 0)
+            sound_source_set_rate(dev->src_mma, 1000000.0 / (period * 1.88964));
+    }
+
     for (uint16_t c = 0; c < len * 2; c += 2) {
         int16_t l = (dev->mma_buffer[0][c >> 1] * dev->wave_vol_l) / 32768.0;
         int16_t r = (dev->mma_buffer[1][c >> 1] * dev->wave_vol_r) / 32768.0;
@@ -1447,10 +1456,14 @@ sensation_init(const device_t *info)
     timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);
 
     dev->src_snd = sound_source_add_stream(I_NORMAL, sensation_get_buffer, dev);
+    sound_source_set_label(dev->src_snd, "FM");
     dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
     dev->src_mma    = sound_source_add_stream(I_NORMAL, sensation_get_mma_buffer, dev);
+    sound_source_set_label(dev->src_mma, "PCM");
     dev->clock_mma  = sound_source_get_pos_ptr(dev->src_mma);
     dev->src_visdac   = sound_source_add_stream(I_NORMAL, sensation_get_visdac_buffer, dev);
+    sound_source_set_label(dev->src_visdac, "VISDAC");
+    sound_source_set_rate(dev->src_visdac, dev->visdac_freq);
     dev->clock_visdac = sound_source_get_pos_ptr(dev->src_visdac);
     if (dev->opl.set_clock != NULL)
         dev->opl.set_clock(dev->opl.priv, dev->clock);

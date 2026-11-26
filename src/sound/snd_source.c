@@ -40,6 +40,7 @@ typedef struct sound_source_t {
     int                    gain;       /* Per-source gain in dB. */
     char                   key[64];    /* Configuration key of the gain. */
     char                   label[160]; /* What the user sees. */
+    char                   what[32];   /* What the source is of its device (FM, PCM...). */
 
     /* Sources of the same device, class and rate share one timer: the leader
        runs it and delivers the blocks of its followers as well. */
@@ -778,12 +779,76 @@ sound_source_get_count(void)
     return sound_source_card_count() + sound_stream_extra_count();
 }
 
+/* The part of a device a source is, by what it is when the card did not say. */
+static const char *
+sound_source_class_what(const sound_source_t *src)
+{
+    switch (src->cls - 1) {
+        case I_MUSIC:
+        case I_YM2151:
+            return "FM";
+        case I_WT:
+            return "Wavetable";
+        default:
+            return NULL;
+    }
+}
+
+static void
+sound_source_relabel(sound_source_t *src)
+{
+    const char *what = (src->what[0] != '\0') ? src->what : NULL;
+    char        name[128] = { 0 };
+    int         others    = 0;
+
+    if (src->dev == NULL)
+        return;
+
+    for (const sound_source_t *o = first_sound_source; o != NULL; o = o->next) {
+        if ((o != src) && (o->dev == src->dev) && (o->inst == src->inst))
+            others++;
+    }
+
+    /* A device with a single source needs no telling apart. */
+    if (others == 0)
+        return;
+
+    if (what == NULL)
+        what = sound_source_class_what(src);
+
+    if (what == NULL)
+        return;
+
+    device_get_name(src->dev, 0, name);
+    if (src->inst > 0)
+        snprintf(src->label, sizeof(src->label), "%s #%i - %s", name, src->inst + 1, what);
+    else
+        snprintf(src->label, sizeof(src->label), "%s - %s", name, what);
+}
+
+/* Says what part of its device a source is: "FM", "PCM"... */
+void
+sound_source_set_label(void *priv, const char *what)
+{
+    sound_source_t *src = (sound_source_t *) priv;
+
+    if ((src == NULL) || (what == NULL))
+        return;
+
+    snprintf(src->what, sizeof(src->what), "%s", what);
+}
+
 const char *
 sound_source_get_label(const int n)
 {
-    const sound_source_t *src = sound_source_nth(n);
+    sound_source_t *src = (sound_source_t *) sound_source_nth(n);
 
-    return (src != NULL) ? src->label : sound_stream_extra_label(n - sound_source_card_count());
+    if (src == NULL)
+        return sound_stream_extra_label(n - sound_source_card_count());
+
+    sound_source_relabel(src);
+
+    return src->label;
 }
 
 int
