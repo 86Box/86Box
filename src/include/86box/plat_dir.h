@@ -17,8 +17,8 @@
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
-/* Windows (non-MinGW) and Termux need the POSIX re-implementations */
-#if (defined(_WIN32) && !defined(__MINGW32__)) || defined(__TERMUX__)
+/* Windows (non-MinGW) needs the POSIX re-implementations */
+#if defined(_WIN32) && !defined(__MINGW32__)
 #    ifdef _MAX_FNAME
 #        define MAXNAMLEN _MAX_FNAME
 #    else
