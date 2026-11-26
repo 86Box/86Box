@@ -367,6 +367,8 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
 int  start_vmm = 1;
+static int start_fast_forward = 0;
+static int start_paused       = 0;
 
 /* Statistics. */
 extern int mmuflush;
@@ -814,6 +816,8 @@ pc_show_usage(void)
             "--automation-insecure\t\t- TCP: accept clients without a token (any local process,\n"
             "\t\t\t\t  or with --automation-allow-remote anyone, controls the machine)\n"
 #endif
+            "--fast-forward\t\t- start with fast forward enabled\n"
+            "--paused\t\t\t- start with the machine paused\n"
             "-A or --assetpath path\t\t- set 'path' to be asset path\n"
 #ifdef SHOW_EXTRA_PARAMS
             "-C or --config path\t\t- set 'path' to be config file\n"
@@ -1026,6 +1030,10 @@ usage:
         } else if (!strcasecmp(argv[c], "--automation-insecure")) {
             automation_insecure = 1;
 #endif
+        } else if (!strcasecmp(argv[c], "--fast-forward")) {
+            start_fast_forward = 1;
+        } else if (!strcasecmp(argv[c], "--paused")) {
+            start_paused = 1;
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
         } else if (!strcasecmp(argv[c], "--logfile") || !strcasecmp(argv[c], "-L")) {
@@ -1197,6 +1205,13 @@ usage:
 
     if (c != argc)
         goto usage;
+
+    /* Set before the CPU thread exists, so they apply from the first quantum;
+       the frontends pick the state up from runctl when the thread starts. */
+    if (start_fast_forward)
+        runctl_set_mode(RUN_MODE_FAST);
+    if (start_paused)
+        runctl_pause(RUN_PAUSE_USER);
 
     path_slash(usr_path);
     path_slash(rom_path);

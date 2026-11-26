@@ -311,18 +311,20 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 return;
             o                                  = svga->seqregs[svga->seqaddr & 0xf];
             svga->seqregs[svga->seqaddr & 0xf] = val;
-            if (o != val && (svga->seqaddr & 0xf) == 1) {
-                svga_log("SEQADDR1 write1.\n");
-                svga_recalctimings(svga);
-            }
             switch (svga->seqaddr & 0xf) {
-                case 1:
-                    if (svga->scrblank && !(val & 0x20))
+                case 1: {
+                    /* Keep register readback immediate. Short Screen Off pulses
+                       during palette uploads would blank whole rendered rows. */
+                    uint8_t screen_off = svga->dispon ? (svga->scrblank & 0x20) : (val & 0x20);
+                    uint8_t blank      = (svga->scrblank & ~0x20) | screen_off;
+                    if (svga->scrblank != blank)
                         svga->fullchange = 3;
-                    svga->scrblank = (svga->scrblank & ~0x20) | (val & 0x20);
-                    svga_log("SEQADDR1 write2.\n");
+                    if (svga->scrblank == blank && (o ^ val) == 0x20)
+                        break;
+                    svga->scrblank = blank;
                     svga_recalctimings(svga);
                     break;
+                }
                 case 2:
                     svga->writemask = val & 0xf;
                     break;
@@ -1793,6 +1795,13 @@ svga_poll(void *priv)
 
             if (svga->fullchange)
                 svga->fullchange--;
+
+            uint8_t blank = (svga->scrblank & ~0x20) | (svga->seqregs[1] & 0x20);
+            if (svga->scrblank != blank) {
+                svga->scrblank   = blank;
+                svga->fullchange = 3;
+                svga_recalctimings(svga);
+            }
         }
         if (svga->vc == svga->vsyncstart) {
             svga->dispon = 0;
