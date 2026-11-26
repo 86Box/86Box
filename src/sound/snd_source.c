@@ -367,6 +367,24 @@ sound_source_gain_factor(const int gain)
     return pow(10.0, (double) gain / 20.0);
 }
 
+/* Peaks above the knee are rounded off instead of cut flat, which is what a float
+   pipeline with a limiter at the end would do: a hard clip of loud material (the
+   EMU8000, for one) sounds like a buzz. Below the knee the signal is untouched. */
+static double
+sound_source_soft_clip(const double v)
+{
+    const double knee  = 24576.0;
+    const double range = 32767.0 - knee;
+    const double a     = fabs(v);
+
+    if (a <= knee)
+        return v;
+
+    const double o = knee + (range * tanh((a - knee) / range));
+
+    return (v < 0.0) ? -o : o;
+}
+
 static void
 sound_source_block(sound_source_t *src)
 {
@@ -386,10 +404,7 @@ sound_source_block(sound_source_t *src)
 
         if (gained)
             v *= factor;
-        if (v > 32767.0)
-            v = 32767.0;
-        if (v < -32768.0)
-            v = -32768.0;
+        v = sound_source_soft_clip(v);
 
         src->buf16[c] = (int16_t) v;
     }
