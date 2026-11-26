@@ -24,6 +24,7 @@
 #include <QPainter>
 #include <QToolBar>
 #include <QApplication>
+#include <QStyleHints>
 
 extern "C" {
 #include <86box/86box.h>
@@ -114,7 +115,8 @@ StyleOverride::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
         menuItem.QStyleOption::operator=(*option);
         /* Menu bar items keep 5px clear on either side of the highlight */
         menuItem.rect.adjust(-5, 0, 5, 0);
-        if (option->state & State_On)
+        /* The style's own high contrast highlight has no checked state */
+        if ((option->state & State_On) && isHighContrast())
             menuItem.state |= State_Sunken;
 
         proxy()->drawControl(CE_MenuBarItem, &menuItem, painter, widget);
@@ -134,14 +136,91 @@ StyleOverride::isWindows11Style() const
 #endif
 }
 
+bool
+StyleOverride::isHighContrast() const
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    /* The windows11 style switches to its high contrast look when the
+       system reports no color scheme. */
+    return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Unknown;
+#else
+    return false;
+#endif
+}
+
+void
+StyleOverride::drawMenuBarItemHighlight(const QStyleOptionMenuItem *option, QPainter *painter) const
+{
+    /* The windows11 style has no checked state for menu bar items, so fill
+       checked ones (toolbar buttons) the way WinUI fills a checked
+       AppBarToggleButton and the style fills its own checked buttons: the
+       accent color, at 90% when hovered and 80% when pressed. */
+    QColor fill;
+    if (!(option->state & State_Enabled)) {
+        /* AccentFillColorDisabled */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        const bool dark = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+#else
+        const bool dark = false;
+#endif
+        fill = dark ? QColor(0xff, 0xff, 0xff, 0x28) : QColor(0x00, 0x00, 0x00, 0x37);
+    } else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+        fill = option->palette.color(QPalette::Accent);
+#else
+        fill = option->palette.color(QPalette::Highlight);
+#endif
+        if (option->state & State_Sunken)
+            fill.setAlpha(0xcc);
+        else if (option->state & State_MouseOver)
+            fill.setAlpha(0xe6);
+    }
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(fill);
+    /* Same 5px side margins and 4px corner radius as the style */
+    painter->drawRoundedRect(option->rect.marginsRemoved(QMargins(5, 0, 5, 0)), 4, 4);
+    painter->restore();
+}
+
 void
 StyleOverride::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
-    /* The windows11 style draws menu bar items with a hardcoded 10pt font,
-       so mark them for drawItemText() to bring the text back to 9pt. */
     if ((element == CE_MenuBarItem) && isWindows11Style()) {
+        const auto *menuItem = qstyleoption_cast<const QStyleOptionMenuItem *>(option);
+
+        /* The windows11 style draws menu bar items with a hardcoded 10pt font,
+           so mark them for drawItemText() to bring the text back to 9pt. */
         drawingMenuBarItem = true;
-        QProxyStyle::drawControl(element, option, painter, widget);
+        if (!menuItem || isHighContrast())
+            QProxyStyle::drawControl(element, option, painter, widget);
+        else if (menuItem->state & State_On) {
+            drawMenuBarItemHighlight(menuItem, painter);
+
+            /* Have the style draw only the content over the accent fill,
+               without its own hover and pressed fills */
+            QStyleOptionMenuItem content(*menuItem);
+            content.state &= ~(State_MouseOver | State_Sunken | State_Selected);
+            QProxyStyle::drawControl(element, &content, painter, widget);
+        } else if ((menuItem->state & State_Selected) && !(menuItem->state & State_MouseOver)) {
+            /* The style only highlights hovered items, give items selected
+               with the keyboard the hover fill as well, like Fluent does */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 11, 0)
+            if (const auto *v2 = qstyleoption_cast<const QStyleOptionMenuItemV2 *>(option)) {
+                QStyleOptionMenuItemV2 selected(*v2);
+                selected.state |= State_MouseOver;
+                QProxyStyle::drawControl(element, &selected, painter, widget);
+            } else
+#endif
+            {
+                QStyleOptionMenuItem selected(*menuItem);
+                selected.state |= State_MouseOver;
+                QProxyStyle::drawControl(element, &selected, painter, widget);
+            }
+        } else
+            QProxyStyle::drawControl(element, option, painter, widget);
         drawingMenuBarItem = false;
         return;
     }
