@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 18:00+0000\n"
-"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"PO-Revision-Date: 2026-11-26 18:27+0000\n"
+"Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -283,10 +283,10 @@ msgid "MIDI LCD"
 msgstr ""
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Her zaman &üstte"
 
 msgid "&Close"
-msgstr ""
+msgstr "&Kapat"
 
 msgid "Begin trace"
 msgstr "İzlemeyi başlat"
@@ -355,10 +355,10 @@ msgid "New Image"
 msgstr "Yeni Görüntü"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Çıkarılabilir disk tipi:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "MO tipi:"
 
 msgid "Settings"
 msgstr "Ayarlar"
@@ -451,19 +451,24 @@ msgid "%1 MHz"
 msgstr "%1 MHz"
 
 msgid "FPU:"
-msgstr "FPU:"
+msgstr "Matematik işlem birimi (FPU):"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr ""
+"C0000000h adresindeki bellek-eşlenmiş matematik işlem birimi (FPU). "
+"Destekleyen programlar bu birimi bir 387'nin yanında ya da onun yerine "
+"kullanabilir."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 3167 matematik işlem birimi (FPU)"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
 msgstr ""
+"Destekleyen 486 yazılımları için C0000000h adresindeki bellek-eşlenmiş "
+"matematik işlem birimi (FPU)."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 4167 matematik işlem birimi (FPU)"
 
 msgid "Internal"
 msgstr "Dahili"
@@ -478,43 +483,43 @@ msgid "GB"
 msgstr ""
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Bellek (RAM):"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Ana sistemin saatiyle senkronize et"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Saat dilimi:"
 
 msgid "Local"
-msgstr ""
+msgstr "Yerel"
 
 msgid "UTC"
-msgstr ""
+msgstr "Eşgüdümlü Evrensel Zaman (UTC)"
 
 msgid "Date:"
-msgstr ""
+msgstr "Tarih:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Ana sistemle eşleştir"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Yılı şu kadar kaydır:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(şu an %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Her zaman şu yılı kullan:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Tarihi senkronize etme"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
@@ -523,19 +528,19 @@ msgid "Dynamic recompiler"
 msgstr "Dinamik derleyici"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Dinamik derleyici aktif"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Dinamik derleyici devre dışı"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr "Dinamik derleyicide hassas FPU ortamı"
+msgstr "Dinamik derleyici için hassas matematik işlem birimi (FPU) ortamı"
 
 msgid "Block linking on the dynamic recompiler"
 msgstr "Dinamik derleyicide blok bağlama"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "486 ve sonraki işlemciler için hata ayıklama yazmaçları"
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
@@ -568,7 +573,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Grafikleri"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "PowerVR PCX1/PCX2 Grafikleri"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -733,10 +738,12 @@ msgid "Cassette"
 msgstr "Kaset"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"IDE aktarım modu hız sınırını kaldırır. Sabit disk ve CD-ROM sürücüsü "
+"zamanlamaları hala geçerliliğini korur."
 
 msgid "Hard disks:"
 msgstr "Sabit diskler:"
@@ -763,28 +770,30 @@ msgid "Channel:"
 msgstr "Kanal:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (Entegre)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(yok)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "Entegre"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: boş kanal yok"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: %2 kanalları kullanımda"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "IDE Çakışması"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
+"Bu IDE denetleyicileri hâlihazırda başka bir aygıt tarafından sağlanan "
+"kanallara ihtiyaç duyar ve bu nedenle çalışmazlar:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Yine de yapılandırmayı kaydetmek ister misiniz?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -3361,7 +3370,7 @@ msgid "&Unmute"
 msgstr "&Sesi aç"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "Softfloat matematik işlem birimi (FPU)"
 
 msgid "High performance impact"
 msgstr "Ciddi performans etkisi"
