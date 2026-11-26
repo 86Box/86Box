@@ -5219,18 +5219,19 @@ static const device_config_t mach64ragelt_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-/* The on-board 3D Rage Pro Turbo of the Intel BL440ZX, 8 MB of
-   SDRAM (TPS 1.7); its BIOS is in the system BIOS. */
+/* The on-board Rage Pro Turbo; 4mb of video memory by default,
+   it can be upgraded to 8mb by settings. */
 static const device_config_t mach64ragepro_onboard_config[] = {
     {
         .name           = "memory",
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 8,
+        .default_int    = 4,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
+            { .description = "4 MB", .value = 4 },
             { .description = "8 MB", .value = 8 },
             { .description = ""                 }
         },
