@@ -464,7 +464,7 @@ msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 
 msgstr ""
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 4167 сопроцессор"
 
 msgid "Internal"
 msgstr "Встроенный"
