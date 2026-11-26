@@ -572,11 +572,19 @@ weitek_execute(weitek_t *dev, uint16_t addr, uint32_t data)
             break;
 
         case W_LOAD | 0x20:
+            /* LOAD on the double page moves the one word T, as the store
+               there reads it: MetaWare High C (Weitek's 67FONGV) moves a
+               double as two of them, even then odd register, a double
+               constant as the low word to the odd register and then the high
+               word to the even one, and a single with odd registers (ws31 =
+               ws25, ws2 = ws29). */
+            dev->r[t] = src_s(dev, f, data);
+            break;
+
         case W_LOADDD:
-            /* A double from the bus writes T itself, odd or even, and an
-               even T takes ws1 into its low half: 67TEST loads ws1-ws6 one
-               word at a time with LOADD.D and T = 1-6, and 67DIAG reads
-               back a LOAD.D to ws15 as written. */
+            /* LOADD.D: a register pair, or the bus with ws1 as the low word
+               for an even T ("wdt <- ereg & ws1", 67MACROS.EQU). 67TEST loads
+               ws1-ws6 one word at a time with it and T = 1-6. */
             if (f)
                 set_d(dev, t, get_d(dev, f));
             else {
