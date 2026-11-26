@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-26 18:49+0000\n"
+"PO-Revision-Date: 2026-11-26 19:44+0000\n"
 "Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -789,8 +789,8 @@ msgstr "IDE Çakışması"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
-"Bu IDE denetleyicileri hâlihazırda başka bir aygıt tarafından sağlanan "
-"kanallara ihtiyaç duyar ve bu nedenle çalışmazlar:"
+"Bu IDE denetleyicileri hâlihazırda başka bir aygıtın sahip olduğu kanallara "
+"ihtiyaç duyduğundan kullanılamıyor:"
 
 msgid "Do you want to save the configuration anyway?"
 msgstr "Yine de yapılandırmayı kaydetmek ister misiniz?"
@@ -945,7 +945,7 @@ msgid "Generic Quad ISA ROM Board"
 msgstr "Genel Dörtlü ISA ROM Kartı"
 
 msgid "ISABugger device"
-msgstr "ISABugger cihazı"
+msgstr "ISABugger aygıtı"
 
 msgid "POST card"
 msgstr "POST kartı"
@@ -1023,7 +1023,9 @@ msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video 
 msgstr "\"%s\" ekran kartı roms/video klasöründe gerekli ROM dosyalarının mevcut olmaması nedeniyle kullanılamıyor. Kullanılabilen başka bir ekran kartına geçiş yapılacaktır."
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
-msgstr "\"%s\" cihazı gerekli ROM dosyalarının mevcut olmaması nedeniyle kullanılamıyor. Bu cihaz yok sayılacaktır."
+msgstr ""
+"\"%s\" aygıtı gerekli ROM dosyalarının mevcut olmaması nedeniyle "
+"kullanılamıyor. Bu aygıt yok sayılacaktır."
 
 msgid "Machine"
 msgstr "Makine"
@@ -1032,10 +1034,10 @@ msgid "Display"
 msgstr "Görüntü"
 
 msgid "Input devices"
-msgstr "Giriş cihazları"
+msgstr "Giriş aygıtları"
 
 msgid "Input &device"
-msgstr "Giriş &cihazı"
+msgstr "Giriş &aygıtı"
 
 msgid "Sound"
 msgstr "Ses"
@@ -1116,7 +1118,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "Disket & CD-ROM sürücüleri"
 
 msgid "Other removable devices"
-msgstr "Diğer kaldırılabilir cihazlar"
+msgstr "Diğer kaldırılabilir aygıtlar"
 
 msgid "Other peripherals"
 msgstr "Diğer çevre birimleri"
@@ -1170,7 +1172,7 @@ msgid "Socket %1: %2"
 msgstr "Soket %1: %2"
 
 msgid "Other devices"
-msgstr "Diğer cihazlar"
+msgstr "Diğer aygıtlar"
 
 msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
@@ -1207,13 +1209,17 @@ msgid "Type"
 msgstr "Tür"
 
 msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Herhangi bir PCap cihazı bulunamadı. %1 kurulu olduğundan ve %1 uyumlu bir internet ağı kullandığınızdan emin olun."
+msgstr ""
+"Herhangi bir PCap aygıtı bulunamadı. %1 kurulu olduğundan ve %1 uyumlu bir "
+"internet ağı kullandığınızdan emin olun."
 
 msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Geçersiz PCap cihazı. %1 kurulu olduğundan ve %1 uyumlu bir internet ağı kullandığınızdan emin olun."
+msgstr ""
+"Geçersiz PCap aygıtı. %1 kurulu olduğundan ve %1 uyumlu bir internet ağı "
+"kullandığınızdan emin olun."
 
 msgid "Generic paddle controller(s)"
-msgstr "Genel kürek kontrol cihazları"
+msgstr "Genel kürek kontrol aygıtları"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2 eksenli, 1 düğmeli oyun kolu"
@@ -1348,7 +1354,7 @@ msgid "Welcome to 86Box!"
 msgstr "86Box'a hoşgeldiniz!"
 
 msgid "Internal device"
-msgstr "Dahili cihaz"
+msgstr "Dahili aygıt"
 
 msgid "External"
 msgstr ""
@@ -1419,10 +1425,10 @@ msgid "Sound card \"%s\""
 msgstr "\"%s\" ses kartı"
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "\"%s\" MIDI çıkış aygıtı"
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "\"%s\" MIDI giriş aygıtı"
 
 msgid "Network card \"%s\""
 msgstr ""
@@ -1494,7 +1500,7 @@ msgstr ""
 "fazla bilgi için LICENSE kısmını gözden geçirin."
 
 msgid "Hardware not available"
-msgstr "Cihaz mevcut değil"
+msgstr "Aygıt mevcut değil"
 
 msgid "Don't show this message again"
 msgstr "Bu mesajı bir daha gösterme"
@@ -1521,7 +1527,7 @@ msgid "Unable to create image"
 msgstr ""
 
 msgid "%1 Device Configuration"
-msgstr "%1 Cihaz Seçenekleri"
+msgstr "%1 Aygıt Seçenekleri"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitör uyku modunda"
@@ -1988,25 +1994,25 @@ msgid "Unsupported disk image"
 msgstr "Desteklenmeyen disk görüntüsü"
 
 msgid "Unable to read device"
-msgstr "Cihaz okunamıyor"
+msgstr "Aygıt okunamıyor"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
-"Blok cihaz boyutu belirlenemedi. Bu cihaz için erişim izniniz olduğundan "
+"Blok aygıt boyutu belirlenemedi. Bu aygıt için erişim izniniz olduğundan "
 "emin olun."
 
 msgid "Device too large"
-msgstr "Cihaz fazla büyük"
+msgstr "Aygıt çok büyük"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr "Blok cihazı, sabit disk olarak kullanılması için fazla büyük."
+msgstr "Blok aygıtı, sabit disk olarak kullanılabilmesi için çok büyük."
 
 msgid "Block device detected"
-msgstr "Blok cihazı tespit edildi"
+msgstr "Blok aygıtı tespit edildi"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
-"Tespit edilen blok cihazı: %1\n"
+"Tespit edilen blok aygıtı: %1\n"
 "Boyut: %2 MB\n"
 "Geometri: &3 silindir, %4 kafa, %5 sektör"
 
@@ -2228,7 +2234,7 @@ msgid "Joystick configuration"
 msgstr "Oyun kolu seçenekleri"
 
 msgid "Device"
-msgstr "Cihaz"
+msgstr "Aygıt"
 
 msgid "%1 (X axis)"
 msgstr "1 (X ekseni)"
@@ -2237,10 +2243,10 @@ msgid "%1 (Y axis)"
 msgstr "1 (Y ekseni)"
 
 msgid "MCA devices"
-msgstr "MCA cihazları"
+msgstr "MCA aygıtları"
 
 msgid "List of MCA devices:"
-msgstr "MCA cihazlarının listesi:"
+msgstr "MCA aygıtlarının listesi:"
 
 msgid "&Tablet tool"
 msgstr "Tablet aracı"
@@ -2249,7 +2255,7 @@ msgid "About &Qt"
 msgstr "&Qt hakkında"
 
 msgid "&MCA devices…"
-msgstr "MCA cihazları…"
+msgstr "&MCA aygıtları…"
 
 msgid "Show non-&primary monitors"
 msgstr "Birincil olmayan monitörleri göster"
@@ -2363,7 +2369,7 @@ msgid "86Box Monitor #%1"
 msgstr "86Box Monitör #%1"
 
 msgid "No MCA devices."
-msgstr "MCA cihazı yok."
+msgstr "Herhangi bir MCA aygıtı yok."
 
 msgid "MiB"
 msgstr "MiB"
@@ -2396,10 +2402,10 @@ msgid "VDE Socket:"
 msgstr "VDE Soketi:"
 
 msgid "TAP Bridge Device:"
-msgstr "TAP Köprü Cihazı:"
+msgstr "TAP Köprü Aygıtı:"
 
 msgid "86Box Unit Tester"
-msgstr "86Box Test Cihazı"
+msgstr "86Box Test Aygıtı"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Anahtar Kartı"
@@ -2492,7 +2498,7 @@ msgid "USB Speaker"
 msgstr ""
 
 msgid "MIDI Input Device"
-msgstr "MIDI Giriş Cihazı"
+msgstr "MIDI Giriş Aygıtı"
 
 msgid "BIOS file"
 msgstr "BIOS dosyası"
@@ -2624,7 +2630,7 @@ msgid "JS9 Jumper (JIM)"
 msgstr "JS9 Jumper'ı (JIM)"
 
 msgid "MIDI Output Device"
-msgstr "MIDI Çıkış Cihazı"
+msgstr "MIDI Çıkış Aygıtı"
 
 msgid "MIDI Real time"
 msgstr "MIDI Gerçek Zamanı"
@@ -3293,10 +3299,10 @@ msgid "Loopback Plug"
 msgstr "Geri Döngü Adaptörü"
 
 msgid "Serial Passthrough"
-msgstr "Seri Geçiş Cihazı"
+msgstr "Seri Bağlantı Geçiş Aygıtı"
 
 msgid "Host serial device"
-msgstr "Ana sistemdeki seri cihaz"
+msgstr "Ana sistemdeki seri bağlantı aygıtı"
 
 msgid "Named Pipe"
 msgstr "Adlandırılmış Boru"
@@ -3440,7 +3446,7 @@ msgid "Generic MM58167 RTC"
 msgstr "Jenerik MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr "OPL2Board (Harici Cihaz)"
+msgstr "OPL2Board (Harici Aygıt)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Dot-Matrix yazı tipleri bulunamıyor. Genel ESC/P 2 Dot-Matrix yazıcısının emülasyonu için \"roms/printer/fonts\" dizininde TrueType yazı tiplerinin bulunması gereklidir."
@@ -3476,7 +3482,7 @@ msgid "Revision:"
 msgstr "Revizyon:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr "[Genel Hard Disk] Cihaz Seçenekleri"
+msgstr "[Genel Hard Disk] Aygıt Seçenekleri"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan derleyicisi başlatılamadı."
@@ -3485,16 +3491,16 @@ msgid "Failed to create Vulkan 1.3 instance."
 msgstr "Vulkan 1.3 örneği oluşturulamadı."
 
 msgid "No usable Vulkan physical devices found."
-msgstr "Kullanılabilir bir fiziksel Vulkan cihazı bulunamadı."
+msgstr "Kullanılabilir herhangi bir fiziksel Vulkan aygıtı bulunamadı."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr "Vulkan uyumlu fiziksel cihaz bulunamadı."
+msgstr "Vulkan uyumlu herhangi fiziksel bir aygıt bulunamadı."
 
 msgid "librashader not found. Shaders will not be available."
 msgstr "librashader bulunamadı. Gölgelendiriciler kullanılamayacak."
 
 msgid "Vulkan device lost."
-msgstr "Vulkan cihazı kayboldu."
+msgstr "Vulkan aygıtı kayboldu."
 
 msgid "Vulkan surface lost."
 msgstr "Vulkan yüzeyi kayboldu."
@@ -3638,8 +3644,8 @@ msgid "This will delete all NVRAM (and related) files of the virtual machine loc
 msgstr ""
 "Bu işlem, sanal makinenin \"nvr\" klasöründe bulunan tüm NVRAM (ve ilişkili) "
 "dosyalarını silecektir. Eğer uygulanabilir ise, makinenin BIOS'unu (ve "
-"muhtemelen sanal makine içindeki diğer cihazları) yeniden yapılandırmanız "
-"gerekecektir.\n"
+"muhtemelen ayrıca sanal makinede kurulu diğer aygıtları) yeniden "
+"yapılandırmanız gerekecektir.\n"
 "\n"
 "Sanal makinenin tüm NVRAM içeriğini silmek istediğinizden emin misiniz?"
 
@@ -4023,18 +4029,18 @@ msgid "Enable audio input (mic/line-in)"
 msgstr "Ses girişini etkinleştir (mikrofon/hat girişi)"
 
 msgid "Audio input device:"
-msgstr "Ses giriş cihazı:"
+msgstr "Ses giriş aygıtı:"
 
 msgid "Audio input sample rate:"
 msgstr "Ses girişi örnekleme hızı:"
 
 msgid "Rate the emulator mixes to the host output device."
 msgstr ""
-"Emülatörün ses örnekleme hızını ana sistemin çıkış cihazına göre ayarlar."
+"Emülatörün ses örnekleme hızını ana sistemin çıkış aygıtına göre ayarlar."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
-"Ana sistemin ses giriş cihazının kaydedildiği örnekleme hızını belirler.\n"
+"Ana sistemin ses giriş aygıtının kaydedildiği örnekleme hızını belirler.\n"
 "\n"
 "44100 Hz, SB16/AWE32 tarafından kullanılan 44.1/22/11 kHz hızları ile tam "
 "bölünür."
