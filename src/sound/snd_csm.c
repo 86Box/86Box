@@ -140,7 +140,7 @@ csm_get_pcm_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     csm_update_pcm(csm);
 
-    for (uint16_t c = 0; c < len * 2 ; c++)
+    for (int c = 0; c < len * 2 ; c++)
         buffer[c] += csm->pcm_buffer[c];
 
     csm->pcm_pos = 0;

@@ -1323,7 +1323,7 @@ sensation_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     int32_t *opl_buf = dev->opl.update(dev->opl.priv);
 
-    for (uint16_t c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         buffer[c]     += (opl_buf[c] * dev->fm_vol_l) / 65536.0;
         buffer[c + 1] += (opl_buf[c + 1] * dev->fm_vol_r) / 65536.0;
     }
@@ -1370,7 +1370,7 @@ sensation_get_visdac_buffer(int32_t *buffer, uint16_t len, void *priv)
     sensation_visdac_update(dev);
 
     if (dev->visdac_mode & 0x10) {
-        for (uint16_t c = 0; c < len * 2; c++)
+        for (int c = 0; c < len * 2; c++)
             buffer[c] += dev->visdac_buffer[c];
     }
 

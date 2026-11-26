@@ -67,11 +67,13 @@ PreferencesSound::populateAudioOutputDevices(const int backend)
 
     const char *devList = sound_backend_get_output_devices_of(backend);
     if (devList != nullptr) {
-        for (const char *dev = devList; *dev != '\0'; dev += strlen(dev) + 1) {
-            const QString devName = QString::fromUtf8(dev);
+        for (const char *dev = devList; *dev != '\0';) {
+            const size_t devLen = strnlen(dev, 1024);
+            const QString devName = QString::fromUtf8(dev, static_cast<qsizetype>(devLen));
             ui->comboBoxAudioOutputDevice->addItem(devName, devName);
             if (devName == outName)
                 selected = ui->comboBoxAudioOutputDevice->count() - 1;
+            dev += devLen + 1;
         }
     }
 

@@ -1177,7 +1177,7 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
     adgold_update(adgold);
     adgold_mma_follow_rate(adgold);
 
-    for (uint16_t c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         mma_buffer[c] = ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
         mma_buffer[c + 1] = ((adgold->mma_buffer[1][c >> 1] * adgold->samp_vol_r) >> 7) / 4;
     }
