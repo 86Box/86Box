@@ -1100,7 +1100,7 @@ MemoryHexView::contextMenuEvent(QContextMenuEvent *event)
     else if (chosen == dis)
         emit disassembleRequested(sel_);
     else if (chosen == dump)
-        emit dumpRequested(selectionStart(), (uint32_t) std::min<uint64_t>(selectionLen(), 0xffffffffULL));
+        emit dumpRequested(selectionStart(), selectionLen());
 }
 
 /* ---- MemoryViewer ---- */
@@ -1375,7 +1375,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     connect(goBtn, &QPushButton::clicked, this, &MemoryViewer::onGo);
     connect(addrEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onGo);
     connect(spaceBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MemoryViewer::onSpaceChanged);
-    connect(dumpBtn, &QPushButton::clicked, this, [this]() { onDump(hex_->selection(), (uint32_t) hex_->selectionLen()); });
+    connect(dumpBtn, &QPushButton::clicked, this, [this]() { onDump(hex_->selectionStart(), hex_->selectionLen()); });
     connect(disGo, &QPushButton::clicked, this, &MemoryViewer::onDisasmGo);
     connect(disasmEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onDisasmGo);
     connect(followBox_, &QCheckBox::toggled, this, [this](bool) { refreshDisasm(); });
@@ -1761,14 +1761,21 @@ MemoryViewer::refreshDisasm()
 }
 
 /* Hex number, with an optional 0x prefix or h suffix. */
-static bool
-parseHex(const QString &text, uint32_t *val)
+static QString
+hexDigits(const QString &text)
 {
     QString t = text.trimmed();
     if (t.startsWith(QStringLiteral("0x"), Qt::CaseInsensitive))
         t = t.mid(2);
     else if (t.endsWith(QLatin1Char('h'), Qt::CaseInsensitive))
         t.chop(1);
+    return t;
+}
+
+static bool
+parseHex(const QString &text, uint32_t *val)
+{
+    const QString t = hexDigits(text);
     if (t.isEmpty() || (t.size() > 8))
         return false;
     bool ok = false;
@@ -2073,7 +2080,7 @@ MemoryViewer::executeCommand()
             refreshMappings();
         }
     } else if (cmd == QStringLiteral("dump") && !n) {
-        onDump(hex_->selectionStart(), uint32_t(qMin(hex_->selectionLen(), uint64_t(UINT32_MAX))));
+        onDump(hex_->selectionStart(), hex_->selectionLen());
     } else if (cmd == QStringLiteral("u") && n == 1) {
 #ifdef USE_DISASM
         uint32_t addr;
@@ -2149,13 +2156,14 @@ MemoryViewer::executeCommand()
 }
 
 void
-MemoryViewer::onDump(uint32_t start, uint32_t len)
+MemoryViewer::onDump(uint32_t start, uint64_t len)
 {
+    constexpr uint64_t addressSpaceSize = 0x100000000ULL;
     QDialog dlg(this);
     dlg.setWindowTitle(tr("Dump memory"));
 
     auto *startEdit = new QLineEdit(QString::asprintf("%08X", start), &dlg);
-    auto *lenEdit   = new QLineEdit(len ? QString::asprintf("%X", len) : QStringLiteral("10000"), &dlg);
+    auto *lenEdit   = new QLineEdit(len ? QString::number((qulonglong) len, 16).toUpper() : QStringLiteral("10000"), &dlg);
     auto *space     = new QComboBox(&dlg);
     space->addItem(tr("Physical"), DEBUGGER_SPACE_PHYSICAL);
     space->addItem(tr("Linear"), DEBUGGER_SPACE_LINEAR);
@@ -2170,7 +2178,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
 
     auto *form = new QFormLayout;
     form->addRow(tr("Start (hex, register or seg:off):"), startEdit);
-    form->addRow(tr("Length (hex bytes):"), lenEdit);
+    form->addRow(tr("Length (hex bytes, up to 4 GiB):"), lenEdit);
     form->addRow(tr("Address space:"), space);
     form->addRow(tr("Fill byte for memory that cannot be read:"), fillEdit);
     form->addRow(tr("File:"), fileRow);
@@ -2192,7 +2200,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
 
     uint32_t addr;
-    uint32_t dumpLen;
+    uint64_t dumpLen;
     uint32_t fill;
     int      sp;
     for (;;) {
@@ -2205,16 +2213,17 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
             QMessageBox::warning(&dlg, tr("Dump memory"), err);
             continue;
         }
-        if (!parseHex(lenEdit->text(), &dumpLen) || !dumpLen) {
-            QMessageBox::warning(&dlg, tr("Dump memory"), tr("The length must be a hex number above 0."));
+        bool ok;
+        dumpLen = hexDigits(lenEdit->text()).toULongLong(&ok, 16);
+        if (!ok || !dumpLen || dumpLen > addressSpaceSize) {
+            QMessageBox::warning(&dlg, tr("Dump memory"), tr("The length must be a hex number from 1 to 100000000."));
             continue;
         }
+        dumpLen = std::min(dumpLen, addressSpaceSize - addr);
         if (!parseHex(fillEdit->text(), &fill) || (fill > 0xff)) {
             QMessageBox::warning(&dlg, tr("Dump memory"), tr("The fill byte must be a hex number from 00 to FF."));
             continue;
         }
-        if (((uint64_t) addr + dumpLen) > 0x100000000ULL)
-            dumpLen = (uint32_t) (0x100000000ULL - addr);
         if (fileEdit->text().isEmpty()) {
             const QString name = QFileDialog::getSaveFileName(&dlg, tr("Dump memory"), QString::asprintf("mem_%08X.bin", addr), tr("Binary files") % util::DlgFilter({ "bin" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             if (name.isEmpty())
@@ -2235,7 +2244,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     QVector<uint8_t>   cls(chunk);
     uint64_t           unreadable = 0;
     uint64_t           done       = 0;
-    QProgressDialog    progress(tr("Dumping memory…"), tr("Cancel"), 0, (int) (((uint64_t) dumpLen + chunk - 1) / chunk), this);
+    QProgressDialog    progress(tr("Dumping memory…"), tr("Cancel"), 0, (int) ((dumpLen + chunk - 1) / chunk), this);
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(500);
 
@@ -2262,7 +2271,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
             return;
         }
         done += n;
-        progress.setValue((int) (done / chunk));
+        progress.setValue((int) ((done + chunk - 1) / chunk));
         if (progress.wasCanceled())
             break;
     }
