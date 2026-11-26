@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-26 18:27+0000\n"
+"PO-Revision-Date: 2026-11-26 18:45+0000\n"
 "Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -874,7 +874,7 @@ msgid "MO drives"
 msgstr "MO sürücüleri"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA sürücüleri"
 
 msgid "MO:"
 msgstr "MO:"
@@ -917,24 +917,26 @@ msgstr "Genel ISA ROM Kartı"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"Herhangi bir aygıt bulunamadı. Ana sisteminizde VT-d veya IOMMU'nun "
+"etkinleştirildiğinden emin olun."
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "Özel ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "Grup"
 
 msgid "Location"
-msgstr ""
+msgstr "Konum"
 
 msgid "Name"
-msgstr ""
+msgstr "İsim"
 
 msgid "ROM images"
-msgstr ""
+msgstr "ROM görüntüleri"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Bilinmeyen aygıt"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Genel Çift ISA ROM Kartı"
@@ -988,7 +990,7 @@ msgid "(empty)"
 msgstr "(boş)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(mevcut değil)"
 
 msgid "All files"
 msgstr "Tüm dosyalar"
@@ -1039,10 +1041,10 @@ msgid "Sound"
 msgstr "Ses"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (tespit edilemedi)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (ana sistem yeniden örnekleyecek)"
 
 msgid "Network"
 msgstr "Ağ"
@@ -1120,52 +1122,52 @@ msgid "Other peripherals"
 msgstr "Diğer çevre birimleri"
 
 msgid "empty"
-msgstr ""
+msgstr "boş"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (yazma korumalı)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Boş (kartı çıkar)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Yeni CompactFlash kartı…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Yeni CompactFlash kartı"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "CompactFlash kartı seç"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "CompactFlash kartını &çıkar"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "%1 bir CompactFlash görüntüsü olarak kullanılamıyor."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "PC Card denetleyicisi (Cirrus Logic CL-PD6722, ISA, 3E0h-3E1h portları)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
 
 msgid "Network:"
-msgstr ""
+msgstr "Ağ:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "Soket %1"
 
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "Soket %1: %2"
 
 msgid "Other devices"
 msgstr "Diğer cihazlar"
@@ -1334,13 +1336,13 @@ msgid "MO images"
 msgstr "MO görüntüleri"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "MD DATA görüntüleri"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MD DATA %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "86Box'a hoşgeldiniz!"
@@ -1373,13 +1375,15 @@ msgid "No ROMs found"
 msgstr "Hiçbir ROM dosyası bulunamadı"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Desteklenmeyen Donanım"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"Makine yapılandırmasındaki bazı donanımlar şu anki 86Box yapısı tarafından "
+"desteklenmiyor."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(ve %i diğerleri)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
@@ -1394,25 +1398,25 @@ msgid "Do you want to continue?"
 msgstr ""
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "\"%s\" makine tipi"
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "\"%s\" ekran kartı"
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "\"%s\" klavye"
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "\"%s\" fare"
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "\"%s\" tablet"
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "\"%s\" oyun kolu"
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "\"%s\" ses kartı"
 
 msgid "MIDI output device \"%s\""
 msgstr ""
@@ -4706,22 +4710,22 @@ msgid "There are too many files in the top folder for the root directory of the 
 msgstr ""
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "Geçici görüntü yazılamadı."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Görüntüyü oluşturmak için yeterli bellek yok."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Klasör veya arşiv okunamadı."
 
 msgid "Archives"
-msgstr ""
+msgstr "Arşivler"
 
 msgid "New USB flash drive"
-msgstr ""
+msgstr "Yeni USB bellek"
 
 msgid "&New USB flash drive…"
-msgstr ""
+msgstr "&Yeni USB bellek…"
 
 msgid "unplugged"
 msgstr ""
@@ -4739,28 +4743,28 @@ msgid "&Move %1 to"
 msgstr ""
 
 msgid "Size:"
-msgstr ""
+msgstr "Boyut:"
 
 msgid "Custom size:"
-msgstr ""
+msgstr "Özel boyut:"
 
 msgid "None (blank)"
-msgstr ""
+msgstr "Yok (boş)"
 
 msgid "FAT16"
-msgstr ""
+msgstr "FAT16"
 
 msgid "FAT32"
-msgstr ""
+msgstr "FAT32"
 
 msgid "Format:"
-msgstr ""
+msgstr "Biçim:"
 
 msgid "Could not create %1."
-msgstr ""
+msgstr "%1 oluşturulamadı."
 
 msgid "%1 already exists. Replace it?"
-msgstr ""
+msgstr "%1 zaten mevcut. Değiştirilsin mi?"
 
 msgid "USB port %1 (%2)"
 msgstr ""
