@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-26 18:45+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-11-26 18:49+0000\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -476,13 +476,13 @@ msgid "MB"
 msgstr "МБ"
 
 msgid "GB"
-msgstr ""
+msgstr "ГБ"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 МБ"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 ГБ"
 
 msgid "Memory:"
 msgstr "Память:"
@@ -527,7 +527,7 @@ msgid "Dynamic recompiler is active"
 msgstr "Динамический рекомпилятор активен"
 
 msgid "Dynamic recompiler is inactive"
-msgstr "Динамический компилятор не активен"
+msgstr "Динамический рекомпилятор не активен"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точное окружение FPU в динамическом рекомпиляторе"
@@ -868,7 +868,7 @@ msgid "MO drives"
 msgstr "Магнитооптические дисководы"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA дисководы"
 
 msgid "MO:"
 msgstr "Дисководы MO:"
@@ -1111,7 +1111,7 @@ msgid "Other peripherals"
 msgstr "Другая периферия"
 
 msgid "empty"
-msgstr ""
+msgstr "пусто"
 
 msgid "CompactFlash: %1 (write-protected)"
 msgstr ""
@@ -1150,7 +1150,7 @@ msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets,
 msgstr ""
 
 msgid "Network:"
-msgstr ""
+msgstr "Сеть:"
 
 msgid "Socket %1"
 msgstr ""
