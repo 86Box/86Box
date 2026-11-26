@@ -299,6 +299,10 @@ sb_set_filter_rate(const sb_t *sb)
 
     for (int c = 0; c < FILTER_USERS; c++)
         filters_set_rate(c, rate);
+
+    /* The wavetable (user 4) runs on its own stream, at its own rate. */
+    if (sb->src_wt != NULL)
+        filters_set_rate(4, (double) sound_source_get_rate(sb->src_wt));
 }
 
 static void
@@ -5291,6 +5295,7 @@ sb_add_wt_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, voi
 {
     sb->src_wt     = sound_source_add_stream(I_WT, get_buffer, sb);
     sb->emu8k.clock = sound_source_get_pos_ptr(sb->src_wt);
+    filters_set_rate(4, (double) sound_source_get_rate(sb->src_wt));
 }
 
 void *
