@@ -3331,6 +3331,8 @@ config_load(void)
 
         gdbstub_port          = 12345;
 
+        sound_backend_current = sound_backend_get_default();
+
         config_log("VM config file not present or invalid!\n");
     } else {
         load_general();                 /* General */

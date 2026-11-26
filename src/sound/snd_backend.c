@@ -91,10 +91,15 @@ sound_backend_get_name(const int backend)
     return sound_backend_valid(backend) ? sound_backends[backend].backend->name : "None";
 }
 
-/* The first real backend, or None if there is none. */
+/* OpenAL if available, otherwise the first real backend, or None if there is none. */
 int
 sound_backend_get_default(void)
 {
+    for (int c = 1; sound_backends[c].backend != NULL; c++) {
+        if (!strcmp(sound_backends[c].backend->internal_name, "openal"))
+            return c;
+    }
+
     return (sound_backend_get_count() > 1) ? 1 : 0;
 }
 
