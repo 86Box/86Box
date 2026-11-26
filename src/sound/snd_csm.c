@@ -61,10 +61,14 @@ typedef struct csm_s {
 
     int16_t buffer[SOUNDBUFLEN * 10];
     int     pos;
+    int16_t pcm_buffer[SOUNDBUFLEN * 10];
+    int     pcm_pos;
     void *  log; /* New logging system */
 
     void      *source;
     const int *clock;
+    void      *pcm_source;
+    const int *pcm_clock;
 } csm_t;
 
 #ifdef ENABLE_CSM_LOG
@@ -84,31 +88,62 @@ csm_log(void *priv, const char *fmt, ...)
 #    define csm_log(fmt, ...)
 #endif
 
-void
-csm_update(csm_t *csm)
+static void
+csm_update_psg(csm_t *csm)
 {
     for (; csm->pos < SOUND_CLOCK(csm->clock, sound_pos_global); csm->pos++) {
         ayumi_process(&csm->psg.chip);
 
         ayumi_remove_dc(&csm->psg.chip);
 
-        double pcm_scaled = (csm->pcm_sample - 128) / 128.0;
-        csm->buffer[csm->pos << 1] = (csm->psg.chip.left + pcm_scaled) * 12000;
-        csm->buffer[(csm->pos << 1) + 1] = (csm->psg.chip.right + pcm_scaled) * 12000;
+        csm->buffer[csm->pos << 1]       = csm->psg.chip.left * 12000;
+        csm->buffer[(csm->pos << 1) + 1] = csm->psg.chip.right * 12000;
     }
 }
 
+static void
+csm_update_pcm(csm_t *csm)
+{
+    for (; csm->pcm_pos < SOUND_CLOCK(csm->pcm_clock, sound_pos_global); csm->pcm_pos++) {
+        const double pcm_scaled = (csm->pcm_sample - 128) / 128.0;
+
+        csm->pcm_buffer[csm->pcm_pos << 1]       = pcm_scaled * 12000;
+        csm->pcm_buffer[(csm->pcm_pos << 1) + 1] = pcm_scaled * 12000;
+    }
+}
+
+void
+csm_update(csm_t *csm)
+{
+    csm_update_psg(csm);
+    csm_update_pcm(csm);
+}
+
+/* The PSG and the PCM DAC are streams of their own. */
 void
 csm_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     csm_t *csm = (csm_t *) priv;
 
-    csm_update(csm);
+    csm_update_psg(csm);
 
     for (uint16_t c = 0; c < len * 2 ; c++)
         buffer[c] += csm->buffer[c];
 
     csm->pos = 0;
+}
+
+static void
+csm_get_pcm_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    csm_t *csm = (csm_t *) priv;
+
+    csm_update_pcm(csm);
+
+    for (uint16_t c = 0; c < len * 2 ; c++)
+        buffer[c] += csm->pcm_buffer[c];
+
+    csm->pcm_pos = 0;
 }
 
 static void
@@ -530,6 +565,8 @@ csm_device_init(UNUSED(const device_t *info))
 
     csm->source = sound_source_add_stream(I_NORMAL, csm_get_buffer, csm);
     csm->clock  = sound_source_get_pos_ptr(csm->source);
+    csm->pcm_source = sound_source_add_stream(I_NORMAL, csm_get_pcm_buffer, csm);
+    csm->pcm_clock  = sound_source_get_pos_ptr(csm->pcm_source);
 
     io_sethandler(base_addr, 0x20,
                   csm_read, NULL, NULL,
@@ -552,6 +589,7 @@ csm_device_close(void *priv)
     }
 
     sound_source_remove(csm->source);
+    sound_source_remove(csm->pcm_source);
     free(csm);
 }
 

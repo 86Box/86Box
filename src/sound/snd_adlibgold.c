@@ -76,6 +76,7 @@ typedef struct adgold_t {
 
     fm_drv_t opl;
     ym7128_t ym7128;
+    ym7128_t ym7128_mma; /* the surround processor of the sample stream */
 
     int fm_vol_l;
     int fm_vol_r;
@@ -531,8 +532,10 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
 
                     case 0x18: /*Surround*/
                         adgold->adgold_38x_regs[0x18] = val;
-                        if (adgold->surround_enabled)
+                        if (adgold->surround_enabled) {
                             ym7128_write(&adgold->ym7128, val);
+                            ym7128_write(&adgold->ym7128_mma, val);
+                        }
                         break;
 
                     default:
@@ -1164,7 +1167,7 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
     }
 
     if (adgold->surround_enabled)
-        ym7128_apply(&adgold->ym7128, mma_buffer, len);
+        ym7128_apply(&adgold->ym7128_mma, mma_buffer, len);
 
     switch (adgold->adgold_38x_regs[0x8] & 6) {
         case 0:
@@ -1337,8 +1340,10 @@ adgold_init(UNUSED(const device_t *info))
     adgold->gameport_enabled = device_get_config_int("gameport");
 
     fm_driver_get_ex(FM_YMF262, &adgold->opl, 3);
-    if (adgold->surround_enabled)
+    if (adgold->surround_enabled) {
         ym7128_init(&adgold->ym7128);
+        ym7128_init(&adgold->ym7128_mma);
+    }
 
     out = 65536.0; /*Main volume control ranges from +6 dB to -64 dB in 2 dB steps, then remaining settings are -80 dB (effectively 0)*/
     for (c = 0x3f; c >= 0x1c; c--) {
@@ -1458,6 +1463,7 @@ adgold_close(void *priv)
 
     mma_rec_input(&adgold->rec, 0); /* */
     sound_source_remove(adgold->src_snd);
+    sound_source_remove(adgold->src_mma);
 
     fp = nvr_fopen("adgold.bin", "wb");
     if (fp) {
