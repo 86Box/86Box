@@ -85,28 +85,7 @@ SettingsSound::SettingsSound(QWidget *parent)
         ui->comboBoxFM->setCurrentIndex(selectedRow);
     }
 
-    /* The host's audio backends and devices do not change with the machine:
-       they are asked for once, here. */
-    {
-        // Audio Backend
-        auto *modelBackend      = ui->comboBoxSoundBackend->model();
-        auto  removeRowsBackend = modelBackend->rowCount();
-        int   selectedBackend   = 0;
-
-        for (int i = 0; i < sound_backend_get_count(); i++) {
-            int row = Models::AddEntry(modelBackend, QString::fromUtf8(sound_backend_get_name(i)), i);
-            if (i == sound_backend_current)
-                selectedBackend = row - removeRowsBackend;
-        }
-
-        modelBackend->removeRows(0, removeRowsBackend);
-        populatingBackend = true;
-        ui->comboBoxSoundBackend->setCurrentIndex(-1);
-        ui->comboBoxSoundBackend->setCurrentIndex(selectedBackend);
-        populatingBackend = false;
-
-        populateAudioDevices(sound_backend_current);
-    }
+    populateAudioDevices(sound_backend_current);
 
     {
         auto *modelInRate      = ui->comboBoxAudioInputRate->model();
@@ -140,37 +119,7 @@ SettingsSound::populateAudioDevices(const int backend)
 {
     /* The selected devices only mean something to the backend they were selected for. */
     const bool    current = (backend == sound_backend_current);
-    const QString outName = current ? QString(sound_output_device) : QString();
     const QString inName  = current ? QString(sound_input_dev_name) : QString();
-
-    {
-        // Audio Output Device
-        auto *modelAudioOut      = ui->comboBoxAudioOutputDevice->model();
-        auto  removeRowsAudioOut = modelAudioOut->rowCount();
-        int   selectedAudioRow   = 0;
-
-        Models::Batch audioRows(modelAudioOut);
-        int audioRow = audioRows.add(tr("System Default"), QString(""));
-        if (outName.isEmpty())
-            selectedAudioRow = audioRow - removeRowsAudioOut;
-
-        const char *devList = sound_backend_get_output_devices_of(backend);
-        if (devList != nullptr) {
-            const char *dev = devList;
-            while (*dev != '\0') {
-                QString devName = QString::fromUtf8(dev);
-                audioRow        = audioRows.add(devName, devName);
-                if (devName == outName)
-                    selectedAudioRow = audioRow - removeRowsAudioOut;
-                dev += strlen(dev) + 1;
-            }
-        }
-        audioRows.commit();
-
-        modelAudioOut->removeRows(0, removeRowsAudioOut);
-        ui->comboBoxAudioOutputDevice->setCurrentIndex(-1);
-        ui->comboBoxAudioOutputDevice->setCurrentIndex(selectedAudioRow);
-    }
 
     {
         // Audio Input Device
@@ -239,8 +188,6 @@ SettingsSound::changed()
     has_changed  |= (mpu401_standalone_enable   != (ui->checkBoxMPU401->isChecked() ? 1 : 0));
     has_changed  |= mpu401_cfg_changed;
 
-    soft_changed |= (sound_backend_current       != ui->comboBoxSoundBackend->currentData().toInt());
-    soft_changed |= (QString(sound_output_device) != ui->comboBoxAudioOutputDevice->currentData().toString());
     soft_changed |= (sound_input_enabled         != (ui->checkBoxSoundInput->isChecked() ? 1 : 0));
     soft_changed |= (QString(sound_input_dev_name) != ui->comboBoxAudioInputDevice->currentData().toString());
     soft_changed |= (sb_input_rate != ui->comboBoxAudioInputRate->currentData().toInt());
@@ -274,19 +221,10 @@ SettingsSound::save(int soft)
 
     midi_input_device_current = ui->comboBoxMidiIn->currentData().toInt();
 
-    const bool outputMoved = (QString(sound_output_device)
-                              != ui->comboBoxAudioOutputDevice->currentData().toString())
-                          || (sound_backend_current != ui->comboBoxSoundBackend->currentData().toInt());
-
-    sound_backend_current = ui->comboBoxSoundBackend->currentData().toInt();
     const bool inputMoved  = (QString(sound_input_dev_name)
                               != ui->comboBoxAudioInputDevice->currentData().toString())
                           || (sound_input_enabled != (ui->checkBoxSoundInput->isChecked() ? 1 : 0))
                           || (sb_input_rate != ui->comboBoxAudioInputRate->currentData().toInt());
-
-    QByteArray outDevName = ui->comboBoxAudioOutputDevice->currentData().toString().toUtf8();
-    strncpy(sound_output_device, outDevName.constData(), sizeof(sound_output_device) - 1);
-    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
 
     sound_input_enabled = ui->checkBoxSoundInput->isChecked() ? 1 : 0;
 
@@ -299,9 +237,7 @@ SettingsSound::save(int soft)
         sb_input_rate = FREQ_44100;
 
     if (soft) {
-        if (outputMoved)
-            sound_reopen_output();  
-        else if (inputMoved)
+        if (inputMoved)
             sound_reopen_input();
         return;
     }
@@ -573,15 +509,6 @@ SettingsSound::on_pushButtonConfigureSoundCard4_clicked()
     const device_t *device  = sound_card_getdevice(sndCard);
 
     sound_card_cfg_changed[3] |= DeviceConfig::ConfigureDevice(device, 4);
-}
-
-void
-SettingsSound::on_comboBoxSoundBackend_currentIndexChanged(int index)
-{
-    if ((index < 0) || populatingBackend)
-        return;
-
-    populateAudioDevices(ui->comboBoxSoundBackend->currentData().toInt());
 }
 
 void

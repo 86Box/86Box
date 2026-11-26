@@ -21,8 +21,13 @@ public:
 
 private slots:
     void on_pushButtonLanguage_released();
+    void on_comboBoxSoundBackend_currentIndexChanged(int index);
 
 private:
+    void populateAudioOutputDevices(int backend);
+
+    bool populatingBackend = false;
+
     static QString styleDisplayName(const QString &style);
 
     Ui::PreferencesGeneral *ui;

@@ -804,6 +804,12 @@ sound_reopen_input(void)
     sound_capture_resume(sound_capture_suspend());
 }
 
+int
+sound_output_is_open(void)
+{
+    return sound_output_initialized;
+}
+
 void
 sound_reopen_output(void)
 {

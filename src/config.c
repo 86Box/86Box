@@ -210,6 +210,23 @@ load_global_emulator(void)
 }
 
 static void
+load_global_sound(void)
+{
+    ini_section_t cat = ini_find_section(global, "Sound");
+    char         *p;
+
+    p = ini_section_get_string(cat, "sound_backend", "");
+    if (p[0] == '\0')
+        sound_backend_current = sound_backend_get_default();
+    else
+        sound_backend_current = sound_backend_get_from_internal_name(p);
+
+    p = ini_section_get_string(cat, "sound_output_device", "");
+    strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
+    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
+}
+
+static void
 load_global_input(void)
 {
     ini_section_t cat = ini_find_section(global, "Input");
@@ -329,6 +346,7 @@ load_global(void)
     load_global_general();
     load_global_emulator();
     load_global_input();
+    load_global_sound();
 
     load_global_keybinds();            /* Load shortcut keybinds */
 
@@ -1146,16 +1164,6 @@ load_sound(void)
         strncpy(sound_input_dev_name, p, 511);
 
     sound_input_enabled = !!ini_section_get_int(cat, "sound_input_enabled", 0);
-
-    p = ini_section_get_string(cat, "sound_backend", "");
-    if (p[0] == '\0')
-        sound_backend_current = sound_backend_get_default();
-    else
-        sound_backend_current = sound_backend_get_from_internal_name(p);
-
-    p = ini_section_get_string(cat, "sound_output_device", "");
-    strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
-    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
 
     /* The host rate follows the guest, this is only the rate sources start at and the most they run at. */
     sound_sample_rate = FREQ_48000;
@@ -3331,8 +3339,6 @@ config_load(void)
 
         gdbstub_port          = 12345;
 
-        sound_backend_current = sound_backend_get_default();
-
         config_log("VM config file not present or invalid!\n");
     } else {
         load_general();                 /* General */
@@ -3501,6 +3507,22 @@ save_global_emulator(void)
 }
 
 static void
+save_global_sound(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Sound");
+
+    if (sound_backend_current == sound_backend_get_default())
+        ini_section_delete_var(cat, "sound_backend");
+    else
+        ini_section_set_string(cat, "sound_backend", sound_backend_get_internal_name(sound_backend_current));
+
+    if (sound_output_device[0] == '\0')
+        ini_section_delete_var(cat, "sound_output_device");
+    else
+        ini_section_set_string(cat, "sound_output_device", sound_output_device);
+}
+
+static void
 save_global_input(void)
 {
     ini_section_t cat = ini_find_or_create_section(global, "Input");
@@ -3578,6 +3600,7 @@ save_global(void)
     save_global_general();
     save_global_emulator();
     save_global_input();
+    save_global_sound();
 
     save_global_keybinds();
 
@@ -4179,15 +4202,9 @@ save_sound(void)
     else
         ini_section_set_string(cat, "fm_driver", "ymfm");
 
-    if (sound_backend_current == sound_backend_get_default())
-        ini_section_delete_var(cat, "sound_backend");
-    else
-        ini_section_set_string(cat, "sound_backend", sound_backend_get_internal_name(sound_backend_current));
-
-    if (sound_output_device[0] == '\0')
-        ini_section_delete_var(cat, "sound_output_device");
-    else
-        ini_section_set_string(cat, "sound_output_device", sound_output_device);
+    /* These were moved to the global configuration. */
+    ini_section_delete_var(cat, "sound_backend");
+    ini_section_delete_var(cat, "sound_output_device");
 
     if (sound_input_dev_name[0] == '\0')
         ini_section_delete_var(cat, "sound_input_dev_name");

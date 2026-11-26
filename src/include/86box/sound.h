@@ -234,6 +234,7 @@ extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
 extern void        sound_output_init(void);
+extern int         sound_output_is_open(void);
 extern void        sound_output_close(void);
 extern void        al_set_midi(int freq, int buf_size);
 extern void        sound_reopen_input(void);
