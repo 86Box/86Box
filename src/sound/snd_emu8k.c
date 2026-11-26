@@ -288,8 +288,17 @@ emu8k_overshoot_q12(int32_t samples)
 /* Attack phase (value_amp_hz, 1 << 21 = end) -> index into
  * env_vol_amplitude_to_db (0..65536). */
 static inline int
-emu8k_attack_amp_index(int32_t phase)
+emu8k_attack_amp_index(const emu8k_voice_t *voice)
 {
+    const int32_t phase = voice->vol_envelope.value_amp_hz;
+
+    /* The measured curve covers attack rates up to 0x24. Its initial
+     * plateau keeps VTFT at zero for several samples even at fast rates,
+     * so software such as Tyrian can immediately reuse a newly keyed voice.
+     * Use the linear attack for faster rates. */
+    if (ATKHLDV_ATTACK(voice->atkhldv) > 0x24)
+        return phase >> 5;
+
     double pos = (double) phase / (double) (1 << 21) * 20.0;
     if (pos < 0.0)
         pos = 0.0;
@@ -1735,7 +1744,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                         vol_env->ramp_amount_db_oct   = env_decay_to_dbs_or_oct[DCYSUSV_DECAYRELEASE_GET(val)];
                         if (DCYSUSV_IS_RELEASE(val)) {
                             if (vol_env->state == ENV_DELAY || vol_env->state == ENV_ATTACK || vol_env->state == ENV_HOLD) {
-                                vol_env->value_db_oct = env_vol_amplitude_to_db[emu8k_attack_amp_index(vol_env->value_amp_hz)] << 5; /* AWE32Emu */
+                                vol_env->value_db_oct = env_vol_amplitude_to_db[emu8k_attack_amp_index(&emu8k->voice[emu8k->cur_voice])] << 5;
                                 if (vol_env->value_db_oct > (1 << 21))
                                     vol_env->value_db_oct = 1 << 21;
                             }
@@ -2565,8 +2574,7 @@ emu8k_voice_envelope_tick(emu8k_voice_t *emu_voice)
                     volenv->state = ENV_RAMP_UP;
                 }
             }
-            /* AWE32Emu: attack shape measured on the card. Upstream: value_amp_hz >> 5. */
-            attenuation += env_vol_amplitude_to_db[emu8k_attack_amp_index(volenv->value_amp_hz)] << 5;
+            attenuation += env_vol_amplitude_to_db[emu8k_attack_amp_index(emu_voice)] << 5;
             break;
 
         case ENV_HOLD:
