@@ -168,6 +168,9 @@ add_library(ui STATIC
     qt_preferencesemulator.cpp
     qt_preferencesemulator.hpp
     qt_preferencesemulator.ui
+    qt_preferencessound.cpp
+    qt_preferencessound.hpp
+    qt_preferencessound.ui
     qt_preferencesinput.cpp
     qt_preferencesinput.hpp
     qt_preferencesinput.ui
