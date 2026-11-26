@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-26 18:45+0000\n"
+"PO-Revision-Date: 2026-11-26 18:49+0000\n"
 "Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -253,10 +253,10 @@ msgid "Sound &gain…"
 msgstr "&Sesi artır…"
 
 msgid "M&IDI output device"
-msgstr "M&IDI çıkış cihazı"
+msgstr "M&IDI çıkış aygıtı"
 
 msgid "Restart &device"
-msgstr "Cihazı yeni&den başlat"
+msgstr "Aygıtı yeni&den başlat"
 
 msgid "Send MIDI &command"
 msgstr "MIDI &komutu gönder"
@@ -639,10 +639,10 @@ msgid "Sound card 4:"
 msgstr "4. Ses Kartı:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Çıkış Cihazı:"
+msgstr "MIDI Çıkış Aygıtı:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI Giriş Cihazı:"
+msgstr "MIDI Giriş Aygıtı:"
 
 msgid "MIDI Out:"
 msgstr "MIDI Çıkış:"
@@ -4680,13 +4680,13 @@ msgid "CD-ROM drives…"
 msgstr ""
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Diğer çıkarılabilir aygıtlar…"
 
 msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB Yığın Depolama"
 
 msgid "Mount folder as a temporary floppy"
 msgstr ""
@@ -4695,7 +4695,7 @@ msgid "The selected drive does not support folder mounting."
 msgstr ""
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "İçeriklerin boyutu kurulu disket sürücüsünün kapasitesini aşıyor."
 
 msgid "Mount folder as a temporary removable disk"
 msgstr ""
