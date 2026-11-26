@@ -924,6 +924,11 @@ host_x86_SHR64_IMM(codeblock_t *block, int dst_reg, int shift)
     emit_ext(block, 0, 1, 0, 1, 0xc1, RM_OP_SHR, dst_reg, 1, shift); /*SHR dst_reg, shift (64-bit)*/
 }
 void
+host_x86_BT64_REG_REG(codeblock_t *block, int base_reg, int bit_reg)
+{
+    emit_rr(block, 0, 1, 0, 2, 0x0fa3, bit_reg, base_reg); /*BT base_reg, bit_reg (64-bit): CF = bit (bit_reg & 63)*/
+}
+void
 host_x86_BSF32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
     emit_rr(block, 0, 0, 0, 2, 0x0fbc, dst_reg, src_reg); /*BSF dst_reg, src_reg*/

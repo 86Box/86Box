@@ -1918,6 +1918,7 @@ leave_smm(void)
    Any other exception belongs to the code -- #UD from the ARPL Windows 9x
    uses as a V86 breakpoint, #DE, #BR -- and the block ends there for good,
    as it always did: discarding those recorded them afresh on every run. */
+/* Re-pointing a page's byte masks also discards the record. */
 int codegen_record_faulted;
 
 /* Set while x86_int() delivers an external interrupt, whose vector is never

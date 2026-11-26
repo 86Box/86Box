@@ -24,6 +24,7 @@
  *          Copyright 2026 Avastrap2.
  */
 
+#include <float.h>
 #include <math.h>
 #include "vid_ati_mach64.h"
 #include <86box/dma.h>
@@ -1062,6 +1063,11 @@ mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t 
 {
     uint32_t cntl = ctx->regs[SCALE_3D_CNTL >> 2];
     int      measured = ctx->mach64->ragepro && ((format == 3) || (format == 4));
+#ifndef MACH64_RAGEPRO_ERROR_DIFFUSION
+    int      track_diffusion = !ctx->mach64->ragepro;
+#else
+    const int track_diffusion = 1;
+#endif
     int      r;
     int      g;
     int      b;
@@ -1071,7 +1077,11 @@ mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t 
     c.b = mach64_3d_clamp8(c.b);
     c.a = mach64_3d_clamp8(c.a);
 
-    if (!(cntl & DITHER_EN))
+    if (!track_diffusion) {
+        /* Keep ordered dithering and the normal ROUND_EN quantization. */
+        if (!(cntl & SCALE_DITHER))
+            cntl &= ~DITHER_EN;
+    } else if (!(cntl & DITHER_EN))
         dither->valid = 0;
     else if (!(cntl & SCALE_DITHER)) {
         if (!dither->valid) {
@@ -4191,7 +4201,6 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     int       l2w      = tsp & 15;
     int       size     = (tsp >> 4) & 15;
     int       l2h      = (tsp >> 8) & 15;
-    uint32_t  offsets[11];
     int       lowest;
     int       bias     = (tex_cntl >> RP_LOD_BIAS_SHIFT) & 15;
     int       vq       = !!(tex_cntl & RP_TEX_VQ);
@@ -4210,9 +4219,6 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
         size = l2w;
     if (size < l2h)
         size = l2h;
-    for (int level = 0; level <= 10; level++)
-        offsets[level] = ctx->regs[(TEX_0_OFF + (level << 2)) >> 2];
-
     /* The levels follow the size field, not the offsets: level k of a size-s
        map is read from TEX_(s-k)_OFF whatever those hold. Measured with
        pointers into poison memory, the last map's pointer repeated, and NULL
@@ -4231,7 +4237,9 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     }
     tx->levels = size - lowest + 1;
     for (int n = 0; n < tx->levels; n++) {
-        mach64_rp_map_level(ctx, &tx->maps[n], format, offsets[size - n], l2w - n, l2h - n, !!(tex_cntl & RP_TEXTURE_CLAMP_S),
+        uint32_t offset = ctx->regs[(TEX_0_OFF >> 2) + size - n];
+
+        mach64_rp_map_level(ctx, &tx->maps[n], format, offset, l2w - n, l2h - n, !!(tex_cntl & RP_TEXTURE_CLAMP_S),
                             !!(tex_cntl & RP_TEXTURE_CLAMP_T));
         tx->maps[n].agp = !!(tex_cntl & RP_TEX_SRC_AGP);
         tx->maps[n].vq  = vq;
@@ -4608,6 +4616,26 @@ mach64_rp_filter_bits(const mach64_rp_map_t *map)
     }
 }
 
+/* Point sampling rounds to 16 fraction bits, then scales towards zero by
+   (1 - 2^-20) so an exact positive texel edge takes the texel below it. */
+static inline int
+mach64_rp_point_coord(double coord)
+{
+    if ((coord >= -131072.0) && (coord <= 131072.0)) {
+        double  scaled = coord * 65536.0 + 0.5;
+        int64_t fixed = (int64_t) scaled;
+
+        fixed -= ((double) fixed > scaled);
+        /* The scaled product is exact in binary64 in this range.
+           floor(fixed - fixed * 2^-20) is fixed - ceil(fixed * 2^-20). */
+        return (int) ((fixed - ((fixed + (1 << 20) - 1) >> 20)) >> 16);
+    }
+    if (!(coord >= -1.0e9 && coord <= 1.0e9))
+        return 0;
+    coord = mach64_rp_floor(coord * 65536.0 + 0.5) / 65536.0;
+    return (int) mach64_rp_floor(coord * (1.0 - 1.0 / (1 << 20)));
+}
+
 /* One map at s, t (0-1 across it): the nearest texel, or the 2x2 filter of
    the four whose centers surround the point. */
 static uint32_t
@@ -4626,22 +4654,8 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
         fs = (fs < 0.0) ? 0.0 : ((fs > map->w) ? map->w : fs);
     if (map->clamp_t)
         ft = (ft < 0.0) ? 0.0 : ((ft > map->h) ? map->h : ft);
-    if (!bilinear) {
-        /* Out of range coordinates still wrap in integers. The texel
-           coordinates are carried in fixed point with 16 fraction bits and
-           truncated a hair towards zero before rounding down, so a sample
-           exactly on a texel edge takes the texel below it (4.0 picks
-           texel 3, 0.0 texel 0), as Direct3D's software rasteriser does. */
-        const double k = 1.0 - 1.0 / (1 << 20);
-
-        if (fs > 1.0e9 || fs < -1.0e9)
-            fs = 0.0;
-        if (ft > 1.0e9 || ft < -1.0e9)
-            ft = 0.0;
-        fs = mach64_rp_floor(fs * 65536.0 + 0.5) / 65536.0;
-        ft = mach64_rp_floor(ft * 65536.0 + 0.5) / 65536.0;
-        return mach64_rp_texel(ctx, agp, map, (int) mach64_rp_floor(fs * k), (int) mach64_rp_floor(ft * k), inhibits);
-    }
+    if (!bilinear)
+        return mach64_rp_texel(ctx, agp, map, mach64_rp_point_coord(fs), mach64_rp_point_coord(ft), inhibits);
 
     fs -= 0.5;
     ft -= 0.5;
@@ -4690,15 +4704,15 @@ mach64_rp_sample(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_t
     if (lod > top)
         lod = top;
     level = (int) lod;
-    frac  = (unsigned) ((exp2(lod - level) - 1.0) * 256.0);
-    if (frac > 255)
-        frac = 255;
 
     switch (tx->blend_fcn) {
         case 1:
         case 3:
             if (level >= top)
                 return mach64_rp_sample_map(ctx, agp, &tx->maps[top], tx->blend_fcn == 3, s, t, inhibits);
+            frac = (unsigned) ((exp2(lod - level) - 1.0) * 256.0);
+            if (frac > 255)
+                frac = 255;
             a = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
             b = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
             *inhibits = (frac >= 128) ? ib : ia;
@@ -4806,8 +4820,22 @@ mach64_rp_w_term(double w)
     static const int8_t nibble[8] = { 0, 2, 5, 7, 9, 11, 13, 14 };
     int                 e;
     int                 j;
-    double              m = frexp(w * (1.0 + 1e-9), &e);
+    double              scaled = w * (1.0 + 1e-9);
+    double              m;
 
+#if (DBL_MANT_DIG == 53) && (DBL_MAX_EXP == 1024)
+    uint64_t bits;
+    unsigned exponent;
+
+    memcpy(&bits, &scaled, sizeof(bits));
+    exponent = (bits >> 52) & 0x7ff;
+    if (exponent && (exponent != 0x7ff)) {
+        /* frexp's top three fraction bits for positive, normal binary64 W. */
+        j = (bits >> 49) & 7;
+        return -(((int) exponent - 1023) * 65536 + nibble[j] * 4096);
+    }
+#endif
+    m = frexp(scaled, &e);
     j = (int) floor(8.0 * (2.0 * m - 1.0));
     if (j > 7)
         j = 7;
@@ -4951,22 +4979,27 @@ struct mach64_rp_tri_t {
     uint32_t            cntl;
     uint32_t            tex_cntl;
     uint32_t            alpha_tst;
-    uint32_t            z_cntl;
     uint32_t            z_base;
     int                 z_pitch;
     int                 z_on;
+    int                 z_test;
     int                 z_write;
     int                 textured;
     int                 composite;
+    int                 secondary_stw;
+    int                 texture_light;
     int                 alpha_fog;
     int                 dst_compare;
     uint32_t            dst_compare_mask;
     int                 dp_constant;
     rgba_t              fog;
+    rgba_t              flat_shade;
+    int                 shade_flat;
+    int                 shade_rgb;
     mach64_rp_plane_t   pl[RPP_COUNT];
     mach64_rp_texture_t tex;
     mach64_rp_texture_t tex2;
-    int32_t             lmi; /* LOG_MAX_INC: log2 of the largest texel step, 16.16 */
+    int32_t             texture_lmi; /* LOG_MAX_INC less texture LOD bias, in 16.16 */
     int                 w_const; /* W is the same at every pixel: its reciprocal and LOD term are per triangle */
     double              w_rcp;
     int32_t             w_term;
@@ -5083,19 +5116,23 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     int       spec_b = 0;
     int       fog_f  = 255;
 
-    shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
-    shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
-    shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
-    shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
-
-    if (z_on) {
+    if (z_on && ((tri->z_test != 7) || tri->z_write)) {
         double z = mach64_rp_at(&tri->pl[RPP_Z], fx, fy);
 
         depth = (z <= 0.0) ? 0 : ((z >= 65535.0) ? 65535 : (uint16_t) z);
-        if (!mach64_3d_z_test(depth, mach64_3d_vram_read16(mach64, z_addr), (tri->z_cntl >> Z_TEST_SHIFT) & 7))
+        if ((tri->z_test != 7) && !mach64_3d_z_test(depth, mach64_3d_vram_read16(mach64, z_addr), tri->z_test))
             return;
     }
 
+    shade = tri->flat_shade;
+    if (!tri->shade_flat) {
+        if (tri->shade_rgb) {
+            shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
+            shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
+            shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
+        }
+        shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
+    }
     src = shade;
     if (textured) {
         double   w    = tri->w_const ? tri->pl[RPP_W].c : mach64_rp_at(&tri->pl[RPP_W], fx, fy);
@@ -5109,20 +5146,30 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         if (tri->tex.lod_used) {
             int32_t w_term = tri->w_const ? tri->w_term : ((w > 0.0) ? mach64_rp_w_term(w) : 0);
 
-            argb = mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, tri->lmi - 4096 * tri->tex.bias16 + w_term, &inhibit);
+            argb = mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, tri->texture_lmi + w_term, &inhibit);
         } else
-            argb = mach64_rp_sample(ctx, agp, &tri->tex, s, t, 0.0, &inhibit);
+            argb = mach64_rp_sample_map(ctx, agp, &tri->tex.maps[0], tri->tex.bilinear_mag, s, t, &inhibit);
 
         if (inhibit)
             return;
         texel = mach64_3d_argb_rgba(argb);
 
         if (composite) {
-            double   w2  = mach64_rp_at(&tri->pl[RPP_W2], fx, fy);
-            double   rw2 = (w2 != 0.0) ? (1.0 / w2) : 1.0;
-            double   s2  = mach64_rp_at(&tri->pl[RPP_S2], fx, fy) * rw2;
-            double   t2  = mach64_rp_at(&tri->pl[RPP_T2], fx, fy) * rw2;
-            double   l2  = tri->tex2.lod_used ? mach64_rp_lod(&tri->pl[RPP_S2], &tri->pl[RPP_T2], &tri->pl[RPP_W2], s2, t2, rw2, &tri->tex2.maps[0]) : 0.0;
+            const mach64_rp_plane_t *ps = &tri->pl[tri->secondary_stw ? RPP_S2 : RPP_S];
+            const mach64_rp_plane_t *pt = &tri->pl[tri->secondary_stw ? RPP_T2 : RPP_T];
+            const mach64_rp_plane_t *pw = &tri->pl[tri->secondary_stw ? RPP_W2 : RPP_W];
+            double rw2 = rw;
+            double s2  = s;
+            double t2  = t;
+
+            if (tri->secondary_stw) {
+                double w2 = mach64_rp_at(pw, fx, fy);
+
+                rw2 = (w2 != 0.0) ? (1.0 / w2) : 1.0;
+                s2  = mach64_rp_at(ps, fx, fy) * rw2;
+                t2  = mach64_rp_at(pt, fx, fy) * rw2;
+            }
+            double   l2  = tri->tex2.lod_used ? mach64_rp_lod(ps, pt, pw, s2, t2, rw2, &tri->tex2.maps[0]) : 0.0;
             int      inh2;
             uint32_t c2  = mach64_rp_sample(ctx, agp, &tri->tex2, s2, t2, l2, &inh2);
             rgba_t   sec = mach64_3d_argb_rgba(c2);
@@ -5165,7 +5212,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         if (composite && (((tri->tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) >= 2))
             src = texel;
         else {
-            switch ((tri->cntl >> TEX_LIGHT_FCN) & 3) {
+            switch (tri->texture_light) {
                 case 1: /* modulate */
                     if (comp_mod) {
                         src.r = (texel.r * (shade.r + 1)) >> 8;
@@ -5244,21 +5291,49 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         mach64_3d_vram_write(mach64, z_addr, depth, 2);
 }
 
-/* n / d and its ceiling, d > 0, rounding towards minus and plus infinity. */
-static inline int64_t
-mach64_rp_div_floor(int64_t n, int64_t d)
-{
-    int64_t q = n / d;
+/* Each edge supplies an inclusive X bound, or clips a whole row if horizontal.
+   For a sloped edge, keep the quotient and nonnegative remainder of the
+   bound's numerator so advancing a row needs no division. */
+typedef struct mach64_rp_edge_t {
+    int64_t bound, step, remainder, remainder_step, divisor;
+    int     direction;
+} mach64_rp_edge_t;
 
-    return ((n % d) && (n < 0)) ? (q - 1) : q;
+static void
+mach64_rp_divmod_floor(int64_t n, int64_t d, int64_t *q, int64_t *r)
+{
+    *q = n / d;
+    *r = n % d;
+    if (*r < 0) {
+        --*q;
+        *r += d;
+    }
 }
 
-static inline int64_t
-mach64_rp_div_ceil(int64_t n, int64_t d)
+static void
+mach64_rp_edge_init(mach64_rp_edge_t *edge, int64_t a, int64_t b, int64_t db)
 {
-    int64_t q = n / d;
+    if (a == 0) {
+        *edge = (mach64_rp_edge_t) { .bound = b, .step = db, .divisor = 1 };
+        return;
+    }
 
-    return ((n % d) && (n > 0)) ? (q + 1) : q;
+    edge->direction = (a > 0) ? 1 : -1;
+    edge->divisor   = (a > 0) ? a : -a;
+    /* a > 0 gives ceil(-b/a), which is floor((-b+a-1)/a). */
+    mach64_rp_divmod_floor((a > 0) ? (-b + a - 1) : b, edge->divisor, &edge->bound, &edge->remainder);
+    mach64_rp_divmod_floor((a > 0) ? -db : db, edge->divisor, &edge->step, &edge->remainder_step);
+}
+
+static inline void
+mach64_rp_edge_advance(mach64_rp_edge_t *edge)
+{
+    edge->bound += edge->step;
+    edge->remainder += edge->remainder_step;
+    if (edge->remainder >= edge->divisor) {
+        edge->remainder -= edge->divisor;
+        edge->bound++;
+    }
 }
 
 /* Every step-th span found, from the first-th on, knowing k of them. */
@@ -5348,11 +5423,13 @@ mach64_rp_spans_shared(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pi
 
     if ((ctx->threads < 2) || (ctx->rp_nspans < 2) || (pixels < MACH64_3D_SHARED_PIXELS))
         return 0;
+#ifdef MACH64_RAGEPRO_ERROR_DIFFUSION
     if ((tri->cntl & DITHER_EN) && !(tri->cntl & SCALE_DITHER)) {
         /* DITHER_INIT breaks the dependency between scanlines. */
         if (!(tri->cntl & DITHER_INIT))
             return 0;
     }
+#endif
 
     for (int i = 1; i < ctx->rp_nspans; i++) {
         const mach64_rp_span_t *sp = &ctx->rp_spans[i];
@@ -5401,8 +5478,8 @@ mach64_rp_spans_shared(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pi
 static void
 mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixels)
 {
-    mach64_3d_dither_t own;
     int                threads = ctx->threads;
+    mach64_3d_dither_t own = ctx->dither;
 
     if (!mach64_rp_spans_shared(ctx, tri, pixels)) {
         mach64_rp_draw_spans(ctx, tri, 0, 1, &ctx->dither, &ctx->agp);
@@ -5410,6 +5487,7 @@ mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixe
         return;
     }
 
+#ifdef MACH64_RAGEPRO_ERROR_DIFFUSION
     if (((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) && ctx->dither.valid &&
         (ctx->dither.y > ctx->rp_spans[0].y) && (ctx->dither.y <= ctx->rp_spans[ctx->rp_nspans - 1].y)) {
         /* Incoming error can belong to an interior row. Draw in order until
@@ -5430,27 +5508,29 @@ mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixe
             mach64_rp_draw_batch(ctx, tri, pixels);
         return;
     }
+#endif
 
     if (!ctx->helpers_made)
         mach64_3d_helpers_make(ctx);
     ctx->job         = NULL;
     ctx->rp_job      = tri;
     ctx->job_threads = threads;
+#ifdef MACH64_RAGEPRO_ERROR_DIFFUSION
     for (int i = 0; i < (threads - 1); i++)
         ctx->helpers[i].dither = ctx->dither;
     if ((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) {
         for (int i = 0; i < (threads - 1); i++)
             ctx->helpers[i].dither.valid = 0;
     }
-    mach64_3d_helpers_start(ctx);
-
-    own = ctx->dither;
     if (((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) && (own.y != ctx->rp_spans[0].y))
         own.valid = 0;
+#endif
+    mach64_3d_helpers_start(ctx);
     mach64_rp_draw_spans(ctx, tri, 0, threads, &own, &ctx->agp);
     while (atomic_load(&ctx->job_left))
         mach64_3d_pause();
 
+#ifdef MACH64_RAGEPRO_ERROR_DIFFUSION
     if ((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) {
         /* A rejected pixel never packs a colour, and a whole lane can be
            rejected. The last row that actually packed a pixel owns the
@@ -5470,6 +5550,7 @@ mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixe
         }
         ctx->dither.valid = own.valid;
     }
+#endif
     ctx->rp_nspans    = 0;
 }
 
@@ -5495,6 +5576,8 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     uint32_t        pixels = 0;
     uint32_t        batch  = 0;
     uint32_t        rows   = 0;
+    uint32_t        z_cntl;
+    unsigned        planes = 0;
     double          a[RPP_COUNT][3];
 
     fcn = (ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3;
@@ -5521,11 +5604,12 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     tri.cntl      = ctx->regs[SCALE_3D_CNTL >> 2];
     tri.tex_cntl  = ctx->regs[RP_TEX_CNTL >> 2];
     tri.alpha_tst = ctx->regs[RP_ALPHA_TST_CNTL >> 2];
-    tri.z_cntl    = ctx->regs[Z_CNTL >> 2];
+    z_cntl        = ctx->regs[Z_CNTL >> 2];
     tri.z_base    = (ctx->regs[Z_OFF_PITCH >> 2] & 0xfffff) << 3;
     tri.z_pitch   = ((ctx->regs[Z_OFF_PITCH >> 2] >> 22) & 0x3ff) << 3;
-    tri.z_on      = (tri.z_cntl & Z_EN) && tri.z_pitch;
-    tri.z_write   = tri.z_on && (tri.z_cntl & Z_MASK);
+    tri.z_on      = (z_cntl & Z_EN) && tri.z_pitch;
+    tri.z_test    = (z_cntl >> Z_TEST_SHIFT) & 7;
+    tri.z_write   = tri.z_on && (z_cntl & Z_MASK);
     tri.textured  = (fcn == FCN_TEXTURE);
     tri.alpha_fog = (tri.cntl >> ALPHA_FOG_SHIFT) & 3;
     tri.fog.r     = (mach64->dp_frgd_clr >> 16) & 0xff;
@@ -5536,6 +5620,7 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     tri.dst_compare_mask = (tri.dst.bpp == 1) ? 0xff : ((tri.dst.bpp == 2) ? 0xffff : 0xffffffff);
     tri.dp_constant      = (((mach64->dp_src >> 16) & 3) == MONO_SRC_1) &&
                       ((((mach64->dp_src >> 8) & 7) == SRC_BG) || (((mach64->dp_src >> 8) & 7) == SRC_FG));
+    tri.texture_light = (tri.cntl >> TEX_LIGHT_FCN) & 3;
     tri.composite = 0;
     if (tri.textured) {
         if (!mach64_rp_texture_init(ctx, &tri.tex))
@@ -5551,23 +5636,17 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     /* The vertices' values; FLAT_SHADE_VERTEX_n gives every vertex the
        colors of vertex n. */
     flat = (ctx->setup_cntl >> RP_FLAT_SHADE_SHIFT) & 3;
+    tri.flat_shade = mach64_3d_argb_rgba(ctx->vtx[flat ? flat - 1 : 0][RP_ARGB]);
+    tri.shade_flat = flat || ((ctx->vtx[0][RP_ARGB] == ctx->vtx[1][RP_ARGB]) &&
+                             (ctx->vtx[0][RP_ARGB] == ctx->vtx[2][RP_ARGB]));
+    tri.shade_rgb = !tri.textured || (tri.texture_light == 1) || (tri.texture_light == 2) ||
+                    (tri.composite && (((tri.tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) >= 2));
+    tri.secondary_stw = tri.composite && (tri.tex_cntl & RP_SECONDARY_STW);
     for (int i = 0; i < 3; i++) {
         int      ci   = flat ? (flat - 1) : i;
         uint32_t argb = ctx->vtx[ci][RP_ARGB];
         uint32_t spec = ctx->vtx[ci][RP_SPEC];
-        double   w    = mach64_rp_float(ctx->vtx[i][RP_W]);
-        double   s    = mach64_rp_float(ctx->vtx[i][RP_S]);
-        double   t    = mach64_rp_float(ctx->vtx[i][RP_T]);
-        double   w2;
-        double   s2;
-        double   t2;
-
-        if (!isfinite(w))
-            w = 1.0;
-        if (!isfinite(s))
-            s = 0.0;
-        if (!isfinite(t))
-            t = 0.0;
+        double   w, s, t;
         a[RPP_A][i]   = (argb >> 24) & 0xff;
         a[RPP_R][i]   = (argb >> 16) & 0xff;
         a[RPP_G][i]   = (argb >> 8) & 0xff;
@@ -5577,15 +5656,26 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
         a[RPP_SG][i]  = (spec >> 8) & 0xff;
         a[RPP_SB][i]  = spec & 0xff;
         a[RPP_Z][i]   = ctx->vtx[i][RP_Z] / 65536.0;
+        if (!tri.textured)
+            continue;
+        w = mach64_rp_float(ctx->vtx[i][RP_W]);
+        s = mach64_rp_float(ctx->vtx[i][RP_S]);
+        t = mach64_rp_float(ctx->vtx[i][RP_T]);
+        if (!isfinite(w))
+            w = 1.0;
+        if (!isfinite(s))
+            s = 0.0;
+        if (!isfinite(t))
+            t = 0.0;
         a[RPP_W][i]   = w;
         a[RPP_S][i]   = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? s : (s * w);
         a[RPP_T][i]   = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? t : (t * w);
         /* The composite texture's own S, T and W with SECONDARY_STW, else
            the primary's. */
-        if (tri.tex_cntl & RP_SECONDARY_STW) {
-            w2 = mach64_rp_float(ctx->vtx_sec[i][2]);
-            s2 = mach64_rp_float(ctx->vtx_sec[i][0]);
-            t2 = mach64_rp_float(ctx->vtx_sec[i][1]);
+        if (tri.secondary_stw) {
+            double w2 = mach64_rp_float(ctx->vtx_sec[i][2]);
+            double s2 = mach64_rp_float(ctx->vtx_sec[i][0]);
+            double t2 = mach64_rp_float(ctx->vtx_sec[i][1]);
             if (!isfinite(w2))
                 w2 = 1.0;
             if (!isfinite(s2))
@@ -5595,26 +5685,40 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
             a[RPP_W2][i] = w2;
             a[RPP_S2][i] = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? s2 : (s2 * w2);
             a[RPP_T2][i] = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? t2 : (t2 * w2);
-        } else {
-            a[RPP_W2][i] = a[RPP_W][i];
-            a[RPP_S2][i] = a[RPP_S][i];
-            a[RPP_T2][i] = a[RPP_T][i];
         }
     }
-    for (int p = 0; p < RPP_COUNT; p++)
+    if (!tri.shade_flat) {
+        planes |= 1u << RPP_A;
+        if (tri.shade_rgb)
+            planes |= (1u << RPP_R) | (1u << RPP_G) | (1u << RPP_B);
+    }
+    if (tri.alpha_tst & RP_SPECULAR_LIGHT_EN)
+        planes |= (1u << RPP_SR) | (1u << RPP_SG) | (1u << RPP_SB);
+    if (tri.alpha_fog == ALPHA_FOG_FOG)
+        planes |= 1u << RPP_FOG;
+    if (tri.z_on && ((tri.z_test != 7) || tri.z_write))
+        planes |= 1u << RPP_Z;
+    if (tri.textured)
+        planes |= (1u << RPP_W) | (1u << RPP_S) | (1u << RPP_T);
+    if (tri.secondary_stw)
+        planes |= (1u << RPP_W2) | (1u << RPP_S2) | (1u << RPP_T2);
+    while (planes) {
+        unsigned p = __builtin_ctz(planes);
+
         mach64_rp_plane(&tri.pl[p], vx, vy, a[p][0], a[p][1], a[p][2], ooa);
+        planes &= planes - 1;
+    }
     tri.w_const = tri.textured && (tri.pl[RPP_W].dx == 0.0) && (tri.pl[RPP_W].dy == 0.0);
     if (tri.w_const) {
         double w = tri.pl[RPP_W].c;
 
         tri.w_rcp  = (w != 0.0) ? (1.0 / w) : 1.0;
-        tri.w_term = (w > 0.0) ? mach64_rp_w_term(w) : 0;
+        tri.w_term = (tri.tex.lod_used && (w > 0.0)) ? mach64_rp_w_term(w) : 0;
     }
 
     /* LOG_MAX_INC: the steepest of the four gradients of the texture
        coordinates U = S / W and V = T / W across the screen, in texels of the
        largest map, times the largest W of the vertices. */
-    tri.lmi = 0;
     if (tri.textured) {
         mach64_rp_plane_t pu;
         mach64_rp_plane_t pv;
@@ -5652,8 +5756,10 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
             mach64_rp_plane(&pv, vx, vy, v[0], v[1], v[2], rcp);
         }
         step = fmax(fmax(fabs(pu.dx), fabs(pu.dy)) * tri.tex.maps[0].w, fmax(fabs(pv.dx), fabs(pv.dy)) * tri.tex.maps[0].h) * wmax;
-        tri.lmi = mach64_rp_log_max_inc(step);
-        ctx->regs[RP_LOG_MAX_INC >> 2] = ((uint32_t) (tri.lmi >> 16) & 0xff) << 16 | (((uint32_t) tri.lmi >> 12) & 15) << 12;
+        int32_t lmi = mach64_rp_log_max_inc(step);
+
+        tri.texture_lmi = lmi - 4096 * tri.tex.bias16;
+        ctx->regs[RP_LOG_MAX_INC >> 2] = ((uint32_t) (lmi >> 16) & 0xff) << 16 | (((uint32_t) lmi >> 12) & 15) << 12;
     }
 
     /* Edges as functions of quarter-pixel coordinates, positive inside. */
@@ -5693,29 +5799,29 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     if ((x0 > x1) || (y0 > y1))
         return;
 
-    /* Each row's span: edge k is in where a x + b >= 0, a = 4 nx, b the
-       rest of nx (4x + 2) + ny (4y + 2) + ec + bias. */
+    /* At the first pixel centre of row y0, edge k is in where
+       (4 nx) x + nx (2) + ny (4y0 + 2) + ec + bias >= 0. */
+    mach64_rp_edge_t edges[3];
+    for (int k = 0; k < 3; k++)
+        mach64_rp_edge_init(&edges[k], nx[k] * 4, nx[k] * 2 + ny[k] * ((int64_t) y0 * 4 + 2) + ec[k] + bias[k], ny[k] * 4);
+
     ctx->rp_nspans = 0;
     for (int y = y0; y <= y1; y++) {
-        int first = x0;
-        int last  = x1;
+        int64_t first = x0;
+        int64_t last  = x1;
 
-        for (int k = 0; (k < 3) && (first <= last); k++) {
-            int64_t a = nx[k] * 4;
-            int64_t b = nx[k] * 2 + ny[k] * ((int64_t) y * 4 + 2) + ec[k] + bias[k];
+        for (int k = 0; k < 3; k++) {
+            mach64_rp_edge_t *edge = &edges[k];
 
-            if (a > 0) {
-                int64_t lo = mach64_rp_div_ceil(-b, a);
-
-                if (lo > first)
-                    first = (lo > last) ? (last + 1) : (int) lo;
-            } else if (a < 0) {
-                int64_t hi = mach64_rp_div_floor(b, -a);
-
-                if (hi < last)
-                    last = (hi < first) ? (first - 1) : (int) hi;
-            } else if (b < 0)
-                last = first - 1;
+            if (edge->direction > 0) {
+                if (edge->bound > first)
+                    first = edge->bound;
+            } else if (edge->direction < 0) {
+                if (edge->bound < last)
+                    last = edge->bound;
+            } else if (edge->bound < 0)
+                last = x0 - 1;
+            mach64_rp_edge_advance(edge);
         }
         if (first > last)
             continue;

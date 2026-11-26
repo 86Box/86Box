@@ -43,6 +43,7 @@
 #include <86box/mem.h>
 #include <86box/path.h>
 #include <86box/pci.h>
+#include <86box/chipset.h>
 #include <86box/pic.h>
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
@@ -118,9 +119,6 @@ typedef struct _vfio_region_ {
 typedef struct {
     struct _vfio_device_ *dev;
     int                   fd;
-    int                   type;
-    int                   vector;
-    uint16_t              msix_offset;
 } vfio_irq_t;
 
 typedef struct _vfio_device_ {
@@ -141,10 +139,10 @@ typedef struct _vfio_device_ {
     uint8_t  host_func;
     uint8_t  bar_count;
     uint8_t  pm_cap;
-    uint8_t  msi_cap;
-    uint8_t  msix_cap;
     uint8_t  pcie_cap;
     uint8_t  af_cap;
+    uint8_t  hidden_cap_links;
+    uint8_t  hidden_cap_link[4][2]; /* capability pointer address, pointer skipping the hidden capabilities */
     char    *name;
     char    *rom_fn;
 
@@ -165,36 +163,11 @@ typedef struct _vfio_device_ {
             uint8_t    pin;
             uint8_t    state;
             atomic_int triggered;
+            atomic_int status_hidden; /* Interrupt Status reads clear while INTx is masked */
+            int        status_misses;
             double     retry_delay;
             pc_timer_t retry_timer;
         } intx;
-        struct {
-            uint32_t address;
-            uint32_t address_upper;
-            uint32_t pending;
-            uint32_t mask;
-            uint16_t ctl;
-            uint16_t data;
-            uint16_t vector_enable_mask;
-            uint8_t  vector_count;
-            uint8_t  vector_enable_count;
-        } msi;
-        struct {
-            mem_mapping_t table_mapping;
-            mem_mapping_t pba_mapping;
-            uint32_t      table_offset;
-            uint32_t      pba_offset;
-            uint32_t      table_offset_precalc;
-            uint32_t      pba_offset_precalc;
-            uint16_t      ctl;
-            uint16_t      vector_count;
-            uint16_t      table_size;
-            uint16_t      pba_size;
-            uint8_t       table_bar;
-            uint8_t       pba_bar;
-            uint8_t      *table;
-            uint8_t      *pba;
-        } msix;
     } irq;
 
     struct {
@@ -257,10 +230,8 @@ static vfio_group_t   *first_group        = NULL;
 static vfio_group_t   *current_group;
 static vfio_slot_t    *first_slot         = NULL;
 static thread_t       *irq_thread;
-static event_t        *irq_event;
 static event_t        *irq_thread_resume;
 static pc_timer_t      irq_timer;
-static vfio_irq_t     *current_irq = NULL;
 static const device_t  vfio_device;
 
 #define ENABLE_VFIO_LOG 1
@@ -341,10 +312,6 @@ static void     vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val
 static void     vfio_dev_config_writew(vfio_device_t *dev, int addr, uint16_t val);
 static void     vfio_dev_config_writel(vfio_device_t *dev, int addr, uint32_t val);
 static void     vfio_irq_intx_setpin(vfio_device_t *dev);
-static void     vfio_irq_msi_disable(vfio_device_t *dev);
-static void     vfio_irq_msix_disable(vfio_device_t *dev);
-static void     vfio_irq_msix_updatemask(vfio_device_t *dev, uint16_t offset);
-static void     vfio_irq_enable(vfio_device_t *dev, int type);
 static void     vfio_rom_sync(vfio_device_t *dev);
 
 #define VFIO_RW(space, length_char, addr_type, addr_slength, val_type, val_slength)                                                                     \
@@ -1420,12 +1387,6 @@ vfio_bar_remap(vfio_device_t *dev, vfio_region_t *bar, uint32_t new_offset)
 
             /* Disable memory mapping. */
             mem_mapping_disable(&bar->mem_mapping);
-
-            /* Disable MSI-X table and PBA mappings if applicable to this BAR. */
-            if (dev->irq.msix.table_bar == bar->bar_id)
-                mem_mapping_disable(&dev->irq.msix.table_mapping);
-            if (dev->irq.msix.pba_bar == bar->bar_id)
-                mem_mapping_disable(&dev->irq.msix.pba_mapping);
         }
 
         /* Set new emulated and precalculated offsets now, as the quirks are mapped through them.
@@ -1445,20 +1406,6 @@ vfio_bar_remap(vfio_device_t *dev, vfio_region_t *bar, uint32_t new_offset)
 
             /* Map any quirks. */
             vfio_quirk_remap(dev, bar, 1);
-
-            /* Enable MSI-X table and PBA mappings if applicable to this BAR. */
-            if (dev->irq.msix.table_bar == bar->bar_id) {
-                dev->irq.msix.table_offset_precalc = new_offset + dev->irq.msix.table_offset;
-                mem_mapping_set_addr(&dev->irq.msix.table_mapping,
-                                     dev->irq.msix.table_offset_precalc,
-                                     dev->irq.msix.table_size);
-            }
-            if (dev->irq.msix.pba_bar == bar->bar_id) {
-                dev->irq.msix.pba_offset_precalc = new_offset + dev->irq.msix.pba_offset;
-                mem_mapping_set_addr(&dev->irq.msix.pba_mapping,
-                                     dev->irq.msix.pba_offset_precalc,
-                                     dev->irq.msix.pba_size);
-            }
         }
     } else if (bar_type == 0x01) { /* I/O BAR */
         if (bar->emulated_offset) {
@@ -1547,6 +1494,12 @@ vfio_dev_config_readb(vfio_device_t *dev, int addr)
     /* Change value accordingly. */
     uint8_t bar_id, offset, new;
     switch (addr) {
+        case 0x06: /* Status */
+            /* Clear the Capabilities List bit if every capability is hidden. */
+            if (dev->hidden_cap_links && (dev->hidden_cap_link[0][0] == 0x34) && !dev->hidden_cap_link[0][1])
+                ret &= ~0x10;
+            break;
+
         case 0x0e: /* Header Type */
             /* Hardwire the multifunction bit to the emulated view of the device,
                which may have fewer functions than the host's. */
@@ -1592,60 +1545,14 @@ vfio_dev_config_readb(vfio_device_t *dev, int addr)
                 ret = (ret & ~0x01) | dev->rom_enabled;
             break;
 
-        default:                                          /* other (capabilities) */
-            if (dev->msi_cap && (addr >= dev->msi_cap)) { /* MSI */
-                /* Adjust register offset to account for different structure levels. */
-                offset = addr - dev->msi_cap;
-                if (!(dev->irq.msi.ctl & 0x0080) && (offset >= 0x08))
-                    offset += 4;
-                switch (offset) {
-                    case 0x02 ... 0x03: /* Message Control */
-                        offset = (offset - 0x02) << 3;
-                        ret    = dev->irq.msi.ctl >> offset;
-                        goto end;
-
-                    case 0x04 ... 0x07: /* Message Address */
-                        offset = (offset - 0x04) << 3;
-                        ret    = dev->irq.msi.address >> offset;
-                        goto end;
-
-                    case 0x08 ... 0x0b: /* Message Upper Address */
-                        offset = (offset - 0x08) << 3;
-                        ret    = dev->irq.msi.address_upper >> offset;
-                        goto end;
-
-                    case 0x0c ... 0x0d: /* Message Data */
-                        offset = (offset - 0x0c) << 3;
-                        ret    = dev->irq.msi.data >> offset;
-                        goto end;
-
-                    case 0x10 ... 0x13: /* Mask Bits */
-                        if (dev->irq.msi.ctl & 0x0100) {
-                            offset = (offset - 0x10) << 3;
-                            ret    = dev->irq.msi.mask >> offset;
-                            goto end;
-                        }
-                        break;
-
-                    case 0x14 ... 0x17: /* Pending Bits */
-                        if (dev->irq.msi.ctl & 0x0100) {
-                            offset = (offset - 0x14) << 3;
-                            ret    = dev->irq.msi.pending >> offset;
-                            goto end;
-                        }
-                        break;
+        default: /* other (capability pointers) */
+            /* Skip any hidden capabilities in the list. */
+            for (uint8_t i = 0; i < dev->hidden_cap_links; i++) {
+                if (addr == dev->hidden_cap_link[i][0]) {
+                    ret = dev->hidden_cap_link[i][1];
+                    break;
                 }
             }
-            if (dev->msix_cap && (addr >= dev->msix_cap)) { /* MSI-X */
-                offset = addr - dev->msix_cap;
-                switch (offset) {
-                    case 0x02 ... 0x03: /* Message Control */
-                        offset = (offset - 0x02) << 3;
-                        ret    = dev->irq.msix.ctl >> offset;
-                        goto end;
-                }
-            }
-end:
             break;
     }
 
@@ -1683,7 +1590,6 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
     uint8_t  bar_id;
     uint8_t  offset;
     uint32_t new_value;
-    uint64_t val64;
 
     switch (addr) {
         case 0x04: /* Command */
@@ -1787,120 +1693,6 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
             if (val != dev->irq.intx.pin)
                 vfio_irq_intx_setpin(dev);
             break;
-
-        default:                                          /* other (capabilities) */
-            if (dev->msi_cap && (addr >= dev->msi_cap)) { /* MSI */
-                /* Adjust register offset to account for different structure levels. */
-                offset = addr - dev->msi_cap;
-                if (!(dev->irq.msi.ctl & 0x0080) && (offset >= 0x08))
-                    offset += 4;
-                switch (offset) {
-                    case 0x00 ... 0x01: /* Capability */
-                        goto end;
-
-                    case 0x02 ... 0x03: /* Message Control */
-                        offset    = (offset - 0x02) << 3;
-                        new_value = dev->irq.msi.ctl & ~(0x00ff << offset);
-                        new_value |= val << offset;
-
-                        /* Enable or disable MSI if requested and not conflicting with MSI-X. */
-                        if (dev->irq.type != VFIO_PCI_MSIX_IRQ_INDEX) {
-                            if (!(dev->irq.msi.ctl & 0x0001) && (new_value & 0x0001))
-                                vfio_irq_enable(dev, VFIO_PCI_MSI_IRQ_INDEX);
-                            else if ((dev->irq.msi.ctl & 0x0001) && !(new_value & 0x0001))
-                                vfio_irq_msi_disable(dev);
-                        }
-
-                        /* Update control register. */
-                        dev->irq.msi.ctl = (new_value & 0x0071) | (dev->irq.msi.ctl & 0xff8e);
-
-                        /* Update enabled vector count and mask. */
-                        dev->irq.msi.vector_enable_count = MIN(1 << ((dev->irq.msi.ctl >> 1) & 3), dev->irq.msi.vector_count);
-                        dev->irq.msi.vector_enable_mask  = dev->irq.msi.vector_enable_count - 1;
-                        goto end;
-
-                    case 0x04 ... 0x07: /* Message Address */
-                        offset    = (offset - 0x04) << 3;
-                        new_value = dev->irq.msi.address & ~(0x000000ff << offset);
-                        new_value |= val << offset;
-                        dev->irq.msi.address = new_value & 0xfffffffc;
-                        goto end;
-
-                    case 0x08 ... 0x0b: /* Message Upper Address */
-                        offset    = (offset - 0x08) << 3;
-                        new_value = dev->irq.msi.address_upper & ~(0x000000ff << offset);
-                        new_value |= val << offset;
-                        dev->irq.msi.address_upper = new_value;
-                        goto end;
-
-                    case 0x0c ... 0x0d: /* Message Data */
-                        offset    = (offset - 0x0c) << 3;
-                        new_value = dev->irq.msi.data & ~(0x00ff << offset);
-                        new_value |= val << offset;
-                        dev->irq.msi.data = new_value;
-                        goto end;
-
-                    case 0x0e ... 0x0f: /* Reserved */
-                    case 0x14 ... 0x17: /* Pending Bits */
-                        if (dev->irq.msi.ctl & 0x0100)
-                            goto end;
-                        break;
-
-                    case 0x10 ... 0x13: /* Mask Bits */
-                        if (dev->irq.msi.ctl & 0x0100) {
-                            offset    = (offset - 0x10) << 3;
-                            new_value = dev->irq.msi.mask & ~(0x000000ff << offset);
-                            new_value |= val << offset;
-                            dev->irq.msi.mask = new_value;
-
-                            /* Service any unmasked pending interrupts if MSI is enabled. */
-                            if (dev->irq.msi.ctl & 0x0001) {
-                                new_value = ~new_value;
-                                val64     = 1;
-                                for (uint8_t i = 0; i < dev->irq.msi.vector_enable_count; i++) {
-                                    if (dev->irq.msi.pending & ((1 << i) & new_value))
-                                        (void) !write(dev->irq.vectors[i].fd, &val64, sizeof(val64));
-                                }
-                                dev->irq.msi.pending &= new_value;
-                            }
-
-                            goto end;
-                        }
-                        break;
-                }
-            }
-            if (dev->msix_cap && (addr >= dev->msix_cap)) { /* MSI-X */
-                offset = addr - dev->msix_cap;
-                switch (offset) {
-                    case 0x00 ... 0x01: /* Capability */
-                    case 0x04 ... 0x0b: /* Table/PBA Offset */
-                        goto end;
-
-                    case 0x02 ... 0x03: /* Message Control */
-                        offset    = (offset - 0x02) << 3;
-                        new_value = dev->irq.msix.ctl & ~(0x00ff << offset);
-                        new_value |= val << offset;
-
-                        /* Enable or disable MSI-X if requested. */
-                        if (!(dev->irq.msix.ctl & 0x8000) && (new_value & 0x8000))
-                            vfio_irq_enable(dev, VFIO_PCI_MSIX_IRQ_INDEX);
-                        else if ((dev->irq.msix.ctl & 0x8000) && !(new_value & 0x8000))
-                            vfio_irq_msix_disable(dev);
-
-                        /* Update control register. */
-                        dev->irq.msix.ctl = (new_value & 0xc000) | (dev->irq.msix.ctl & 0x3fff);
-
-                        /* Service any unmasked pending interrupts if MSI-X
-                           is enabled and the global mask bit was cleared. */
-                        if ((dev->irq.msix.ctl & 0xc000) == 0x8000) {
-                            for (uint16_t i = 0x000c; i < dev->irq.msix.table_size; i += 0x0010)
-                                vfio_irq_msix_updatemask(dev, i);
-                        }
-                        goto end;
-                }
-            }
-end:
-            break;
     }
 }
 
@@ -1941,6 +1733,35 @@ vfio_slot_config_writeb(int func, int addr, UNUSED(int len), uint8_t val, void *
         vfio_dev_config_writeb(slot->funcs[func & 7], addr, val);
 }
 
+/* Unmask INTx through VFIO, and return whether the device is still asserting. The
+   unmask is synchronous: if the device is still asserting, VFIO masks it again and
+   signals the eventfd before returning. */
+static int
+vfio_irq_intx_unmask(vfio_device_t *dev)
+{
+    struct vfio_irq_set irq_set = {
+        .argsz = sizeof(irq_set),
+        .flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_UNMASK,
+        .index = VFIO_PCI_INTX_IRQ_INDEX,
+        .start = 0,
+        .count = 1
+    };
+    uint64_t buf;
+
+    ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
+    return read(dev->irq.vectors[0].fd, &buf, sizeof(buf)) == sizeof(buf);
+}
+
+/* Let the IRQ thread see the next trigger of a deasserted source. */
+static void
+vfio_irq_intx_rearm(vfio_device_t *dev)
+{
+    struct epoll_event event = { .events = EPOLLIN | EPOLLONESHOT };
+
+    event.data.ptr = &dev->irq.vectors[0];
+    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, dev->irq.vectors[0].fd, &event);
+}
+
 /* Raise the lines of INTx sources which triggered. VFIO masks INTx as it triggers,
    so a source stays asserted until vfio_irq_intx_sample finds it deasserted. */
 static void
@@ -1963,10 +1784,22 @@ vfio_irq_intx_service(void)
                             '@' + dev->irq.intx.pin);
 
                 /* The trigger is up to a timer period old, and a shared handler may have
-                   serviced the device since, so have the level resampled before delivery. */
-                line = pci_get_irq_line(dev->vslot->pci_slot, dev->irq.intx.pin);
-                if (line != 0xff)
-                    pic_resample_mark((line == 2) ? 9 : line);
+                   serviced the device since, so have the level resampled before delivery.
+                   A device which hides its Interrupt Status while masked would always be
+                   found deasserted, which would drop every one of its interrupts. */
+                if (!atomic_load(&dev->irq.intx.status_hidden)) {
+                    /* The I/O APIC delivers as soon as the line goes up. */
+                    if (ioapic_intins_unmasked(pci_get_irq_intins(dev->vslot->pci_slot, dev->irq.intx.pin)) &&
+                        !vfio_irq_intx_unmask(dev)) {
+                        vfio_log_op("VFIO %s: IRQ deasserted before delivery\n", dev->name);
+                        vfio_irq_intx_rearm(dev);
+                        continue;
+                    }
+
+                    line = pci_get_irq_line(dev->vslot->pci_slot, dev->irq.intx.pin);
+                    if (line != 0xff)
+                        pic_resample_mark((line == 2) ? 9 : line);
+                }
 
                 /* Mark it asserted first, as raising the line may resample it right away. */
                 dev->irq.intx.raised = 1;
@@ -1978,23 +1811,14 @@ vfio_irq_intx_service(void)
 }
 
 /* Check whether an asserted INTx source is still asserted, lowering its line if not.
-   An unmask through the ioctl is synchronous: if the device is still asserting, VFIO
-   masks it again and signals the eventfd before returning. */
+   Some devices, such as the GeForce 6200 TurboCache, clear the Interrupt Status bit
+   while INTx is masked, so they look deasserted here; their interrupt then fires again
+   as soon as it is unmasked, and the IRQ thread has the line raised once more (see
+   vfio_irq_intx_check_status). */
 static int
 vfio_irq_intx_sample(vfio_device_t *dev)
 {
-    struct vfio_irq_set irq_set = {
-        .argsz = sizeof(irq_set),
-        .flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_UNMASK,
-        .index = VFIO_PCI_INTX_IRQ_INDEX,
-        .start = 0,
-        .count = 1
-    };
-    struct epoll_event event = { .events = EPOLLIN | EPOLLONESHOT };
-    uint64_t           buf;
-
-    ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
-    if (read(dev->irq.vectors[0].fd, &buf, sizeof(buf)) == sizeof(buf)) {
+    if (vfio_irq_intx_unmask(dev)) {
         vfio_log_op("VFIO %s: IRQ still asserted\n", dev->name);
         return 1;
     }
@@ -2005,10 +1829,7 @@ vfio_irq_intx_sample(vfio_device_t *dev)
     dev->irq.intx.raised = 0;
     intx_asserted--;
     timer_stop(&dev->irq.intx.retry_timer);
-
-    /* Let the IRQ thread see the next trigger. */
-    event.data.ptr = &dev->irq.vectors[0];
-    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, dev->irq.vectors[0].fd, &event);
+    vfio_irq_intx_rearm(dev);
     return 0;
 }
 
@@ -2059,6 +1880,44 @@ vfio_irq_intx_resample(int irq)
     }
 }
 
+/* Check whether a device which just triggered shows its Interrupt Status bit, which
+   VFIO relies on to find it still asserting while INTx is masked. A device can only be
+   serviced in between by chance, so several triggers in a row without the bit set
+   mean that the device hides it while masked. */
+static void
+vfio_irq_intx_check_status(vfio_device_t *dev)
+{
+    uint8_t status;
+
+    if (atomic_load(&dev->irq.intx.status_hidden) ||
+        (pread(dev->config.fd, &status, sizeof(status), dev->config.offset + 0x06) != sizeof(status)))
+        return;
+
+    if (status & 0x08)
+        dev->irq.intx.status_misses = 0;
+    else if (++dev->irq.intx.status_misses >= 4) {
+        vfio_log("VFIO %s: Interrupt Status is hidden while INTx is masked\n", dev->name);
+        atomic_store(&dev->irq.intx.status_hidden, 1);
+    }
+}
+
+/* Called by the I/O APIC before it relies on the level of an input which was
+   already delivered. */
+void
+vfio_irq_intx_resample_intin(uint8_t intin)
+{
+    if (!intx_asserted || (intin >= 32))
+        return;
+
+    for (vfio_group_t *group = first_group; group; group = group->next) {
+        for (vfio_device_t *dev = group->first_device; dev; dev = dev->next) {
+            if (dev->irq.intx.raised && (dev->irq.type == VFIO_PCI_INTX_IRQ_INDEX) && dev->irq.vectors &&
+                (pci_get_irq_intins(dev->vslot->pci_slot, dev->irq.intx.pin) & (1u << intin)))
+                (void) vfio_irq_intx_sample(dev);
+        }
+    }
+}
+
 static void
 vfio_irq_thread(void *priv)
 {
@@ -2095,75 +1954,11 @@ vfio_irq_thread(void *priv)
 
             /* Leave INTx to the CPU thread, which raises the line and later resamples it.
                The eventfd is one-shot, so it stays quiet until the source is rearmed. */
-            if (irq->type == VFIO_PCI_INTX_IRQ_INDEX) {
-                if (!closing) {
-                    atomic_store(&dev->irq.intx.triggered, 1);
-                    atomic_store(&intx_triggered, 1);
-                }
-                continue;
+            if (!closing) {
+                vfio_irq_intx_check_status(dev);
+                atomic_store(&dev->irq.intx.triggered, 1);
+                atomic_store(&intx_triggered, 1);
             }
-
-            /* Reset eventfd counter. */
-            (void) !read(irq->fd, &buf, sizeof(buf));
-
-            /* Don't hang waiting for the timer if we're closing. */
-            if (closing)
-                continue;
-
-            /* Log VFIO IRQ type and vector. */
-            vfio_log_op("VFIO %s: %s IRQ on vector %d\n", dev->name,
-                        ((irq->type == VFIO_PCI_INTX_IRQ_INDEX) ? "INTx" : (((irq->type == VFIO_PCI_MSI_IRQ_INDEX) ? "MSI" : ((irq->type == VFIO_PCI_MSIX_IRQ_INDEX) ? "MSI-X" : NULL)))),
-                        irq->vector);
-
-            /* Perform pre-checks for specific IRQ types. */
-            switch (irq->type) {
-                case VFIO_PCI_MSI_IRQ_INDEX:
-                    /* Ignore MSI if this vector is not enabled. */
-                    if (irq->vector >= dev->irq.msi.vector_enable_count) {
-                        vfio_log_op("VFIO %s: MSI vector not enabled (%d >= %d)\n", dev->name,
-                                    irq->vector, dev->irq.msi.vector_enable_count);
-                        continue;
-                    }
-
-                    /* Ignore MSI if the upper 32 bits of a 64-bit address are non-zero. */
-                    if (dev->irq.msi.address_upper) {
-                        vfio_log_op("VFIO %s: MSI 64-bit address %08X%08X\n", dev->name,
-                                    dev->irq.msi.address_upper, dev->irq.msi.address);
-                        continue;
-                    }
-
-                    /* Mark MSI as pending if this vector is masked through per-vector masking. */
-                    if (dev->irq.msi.mask & (1 << irq->vector)) {
-                        vfio_log_op("VFIO %s: MSI masked\n", dev->name);
-                        dev->irq.msi.pending |= 1 << irq->vector;
-                        continue;
-                    }
-                    break;
-
-                case VFIO_PCI_MSIX_IRQ_INDEX:
-                    /* Ignore MSI-X if the upper 32 bits of a 64-bit address are non-zero. */
-                    if (*((uint32_t *) &dev->irq.msix.table[irq->msix_offset | 0x4])) {
-                        vfio_log_op("VFIO %s: MSI-X 64-bit address %016X\n", dev->name,
-                                    *((uint64_t *) &dev->irq.msix.table[irq->msix_offset]));
-                        continue;
-                    }
-
-                    /* Mark MSI-X as pending if this vector or all vectors are masked. */
-                    if ((dev->irq.msix.ctl & 0x4000) || (dev->irq.msix.table[irq->msix_offset | 0xc] & 0x01)) {
-                        vfio_log_op("VFIO %s: MSI-X masked\n", dev->name);
-                        dev->irq.msix.pba[irq->vector >> 3] |= 1 << (irq->vector & 0x07);
-                        continue;
-                    }
-                    break;
-            }
-
-            /* Tell the timer to service this interrupt. */
-            current_irq = irq;
-
-            /* Wait for the timer to do its job. */
-            thread_wait_event(irq_event, -1);
-            thread_reset_event(irq_event);
-            vfio_log_op("VFIO %s: IRQ serviced\n", dev->name);
         }
 
         /* Pause if we were asked to. */
@@ -2183,37 +1978,6 @@ vfio_irq_timer(void *priv)
     /* Raise the lines of INTx sources which triggered. */
     if (atomic_exchange(&intx_triggered, 0))
         vfio_irq_intx_service();
-
-    /* Stop if we're not servicing an IRQ at the moment. */
-    if (!current_irq)
-        return;
-    vfio_device_t *dev = current_irq->dev;
-
-    /* Act according to the IRQ type. */
-    uint16_t val;
-    switch (current_irq->type) {
-        case VFIO_PCI_MSI_IRQ_INDEX:
-            /* Insert the vector number into the value's lower bits. */
-            val = (dev->irq.msi.data & ~dev->irq.msi.vector_enable_mask) | (current_irq->vector & dev->irq.msi.vector_enable_mask);
-
-            /* Write value. */
-            vfio_log_op("VFIO %s: Writing MSI value %04X to %04X\n", dev->name, val, dev->irq.msi.address);
-            mem_writew_phys(dev->irq.msi.address, val);
-            break;
-
-        case VFIO_PCI_MSIX_IRQ_INDEX:
-            /* Write value. */
-            vfio_log_op("VFIO %s: Writing MSI-X value %08X to %08X\n", dev->name,
-                        *((uint32_t *) &dev->irq.msix.table[current_irq->msix_offset | 0x8]),
-                        *((uint32_t *) &dev->irq.msix.table[current_irq->msix_offset]));
-            mem_writel_phys(*((uint32_t *) &dev->irq.msix.table[current_irq->msix_offset]),
-                            *((uint32_t *) &dev->irq.msix.table[current_irq->msix_offset | 0x8]));
-            break;
-    }
-
-    /* Unblock the IRQ thread. */
-    current_irq = NULL;
-    thread_set_event(irq_event);
 }
 
 static void
@@ -2258,84 +2022,6 @@ vfio_irq_intx_setpin(vfio_device_t *dev)
 }
 
 static void
-vfio_irq_msi_disable(vfio_device_t *dev)
-{
-    /* Clear pending interrupts. */
-    dev->irq.msi.pending = 0;
-
-    /* Disable MSI on VFIO. */
-    vfio_irq_disabletype(dev, VFIO_PCI_MSI_IRQ_INDEX);
-
-    /* Re-enable INTx interrupts. */
-    vfio_irq_enable(dev, VFIO_PCI_INTX_IRQ_INDEX);
-}
-
-static void
-vfio_irq_msix_disable(vfio_device_t *dev)
-{
-    /* Clear pending interrupts. */
-    memset(dev->irq.msix.pba, 0, dev->irq.vector_count);
-
-    /* Disable MSI-X on VFIO. */
-    vfio_irq_disabletype(dev, VFIO_PCI_MSIX_IRQ_INDEX);
-
-    /* Re-enable INTx interrupts. */
-    vfio_irq_enable(dev, VFIO_PCI_INTX_IRQ_INDEX);
-}
-
-static void
-vfio_irq_msix_updatemask(vfio_device_t *dev, uint16_t offset)
-{
-    /* Service any unmasked pending interrupts. */
-    if (((dev->irq.msix.ctl & 0xc000) == 0x8000) && !(dev->irq.msix.table[offset] & 0x01) && (dev->irq.msix.pba[offset >> 7] & (1 << (offset & 0x07)))) {
-        uint64_t val = 1;
-        (void) !write(dev->irq.vectors[offset >> 4].fd, &val, sizeof(val));
-        dev->irq.msix.pba[offset >> 7] &= ~(1 << (offset & 0x07));
-    }
-}
-
-#define VFIO_RW_MSIX(length_char, val_type, val_slength)                                                                                           \
-    static val_type                                                                                                                                \
-        vfio_irq_msix_table_read##length_char(uint32_t addr, void *priv)                                                                           \
-    {                                                                                                                                              \
-        vfio_device_t *dev = (vfio_device_t *) priv;                                                                                               \
-        val_type       ret = dev->irq.msix.table[addr - dev->irq.msix.table_offset_precalc];                                                       \
-        vfio_log_op("[%08X:%04X] VFIO %s: msix_table_read" #length_char "(%08X) = %0" #val_slength "X\n", CS, cpu_state.pc, dev->name, addr, ret); \
-        return ret;                                                                                                                                \
-    }                                                                                                                                              \
-                                                                                                                                                   \
-    static void                                                                                                                                    \
-        vfio_irq_msix_table_write##length_char(uint32_t addr, val_type val, void *priv)                                                            \
-    {                                                                                                                                              \
-        vfio_device_t *dev = (vfio_device_t *) priv;                                                                                               \
-        vfio_log_op("[%08X:%04X] VFIO %s: msix_table_write" #length_char "(%08X, %0" #val_slength "X)\n", CS, cpu_state.pc, dev->name, addr, val); \
-        uint16_t offset             = addr - dev->irq.msix.table_offset_precalc;                                                                   \
-        dev->irq.msix.table[offset] = val;                                                                                                         \
-        if ((offset & 0x000f) == 0x000c)                                                                                                           \
-            vfio_irq_msix_updatemask(dev, offset);                                                                                                 \
-    }                                                                                                                                              \
-                                                                                                                                                   \
-    static val_type                                                                                                                                \
-        vfio_irq_msix_pba_read##length_char(uint32_t addr, void *priv)                                                                             \
-    {                                                                                                                                              \
-        vfio_device_t *dev = (vfio_device_t *) priv;                                                                                               \
-        val_type       ret = dev->irq.msix.table[addr - dev->irq.msix.pba_offset_precalc];                                                         \
-        vfio_log_op("[%08X:%04X] VFIO %s: msix_pba_read" #length_char "(%08X) = %0" #val_slength "X\n", CS, cpu_state.pc, dev->name, addr, ret);   \
-        return ret;                                                                                                                                \
-    }                                                                                                                                              \
-                                                                                                                                                   \
-    static void                                                                                                                                    \
-        vfio_irq_msix_pba_write##length_char(uint32_t addr, val_type val, void *priv)                                                              \
-    {                                                                                                                                              \
-        vfio_device_t *dev = (vfio_device_t *) priv;                                                                                               \
-        vfio_log_op("[%08X:%04X] VFIO %s: msix_pba_write" #length_char "(%08X, %0" #val_slength "X)\n", CS, cpu_state.pc, dev->name, addr, val);   \
-    }
-
-VFIO_RW_MSIX(b, uint8_t, 2)
-VFIO_RW_MSIX(w, uint16_t, 4)
-VFIO_RW_MSIX(l, uint32_t, 8)
-
-static void
 vfio_irq_disable(vfio_device_t *dev)
 {
     /* Do nothing if IRQs are already disabled. */
@@ -2348,13 +2034,7 @@ vfio_irq_disable(vfio_device_t *dev)
     uint64_t val = 1;
     (void) !write(irq_thread_wake_fd, &val, sizeof(val));
 
-    /* Always disable INTx after disabling MSI/MSI-X. */
-    if (dev->irq.type == VFIO_PCI_MSIX_IRQ_INDEX)
-        vfio_irq_msix_disable(dev);
-    else if (dev->irq.type == VFIO_PCI_MSI_IRQ_INDEX)
-        vfio_irq_msi_disable(dev);
-    if (dev->irq.type == VFIO_PCI_INTX_IRQ_INDEX)
-        vfio_irq_intx_disable(dev);
+    vfio_irq_intx_disable(dev);
 
     /* Invalidate all IRQ vectors. */
     if (dev->irq.vectors) {
@@ -2374,69 +2054,49 @@ vfio_irq_disable(vfio_device_t *dev)
     thread_set_event(irq_thread_resume);
 }
 
+/* Enable INTx, the only interrupt type passed through, as MSI and MSI-X are hidden. */
 static void
-vfio_irq_enable(vfio_device_t *dev, int type)
+vfio_irq_enable(vfio_device_t *dev)
 {
     /* Disable any existing IRQs. */
     vfio_irq_disable(dev);
 
-    vfio_log("VFIO %s: irq_enable(%d)\n", dev->name, type);
-
-    /* Determine the number of vectors needed. */
-    switch (type) {
-        case VFIO_PCI_INTX_IRQ_INDEX:
-            /* Only one vector needed. */
-            dev->irq.vector_count = 1;
-            break;
-
-        case VFIO_PCI_MSI_IRQ_INDEX:
-            /* Up to the number of vectors read during init is needed. */
-            dev->irq.vector_count = dev->irq.msi.vector_count;
-            break;
-
-        case VFIO_PCI_MSIX_IRQ_INDEX:
-            /* The number of vectors read during init is needed. */
-            dev->irq.vector_count = dev->irq.msix.vector_count;
-            break;
-    }
+    vfio_log("VFIO %s: irq_enable(%d)\n", dev->name, VFIO_PCI_INTX_IRQ_INDEX);
 
     /* Prepare structure for enabling the interrupt type. */
+    dev->irq.vector_count = 1;
     size_t irq_set_size = sizeof(struct vfio_irq_set) + (dev->irq.vector_count * sizeof(int32_t));
     struct vfio_irq_set *irq_set = (struct vfio_irq_set *) calloc(1, irq_set_size);
     irq_set->argsz = irq_set_size;
     irq_set->flags = VFIO_IRQ_SET_DATA_EVENTFD | VFIO_IRQ_SET_ACTION_TRIGGER;
-    irq_set->index = type;
+    irq_set->index = VFIO_PCI_INTX_IRQ_INDEX;
     irq_set->start = 0;
     irq_set->count = dev->irq.vector_count;
     int32_t           *fd_list = (int32_t *) &irq_set->data;
-    struct epoll_event event   = { .events = EPOLLIN };
+    struct epoll_event event   = { .events = EPOLLIN | EPOLLONESHOT };
 
     /* Create interrupt vectors with their respective eventfds. */
     dev->irq.vectors = (vfio_irq_t *) calloc(dev->irq.vector_count, sizeof(vfio_irq_t));
     for (int i = 0; i < dev->irq.vector_count; i++) {
-        dev->irq.vectors[i].dev    = dev;
-        dev->irq.vectors[i].type   = type;
-        dev->irq.vectors[i].vector = i;
+        dev->irq.vectors[i].dev = dev;
         /* INTx eventfds are read by the CPU thread without blocking, and woken up on only once
            per trigger, as VFIO keeps INTx masked until vfio_irq_intx_sample unmasks it. */
-        fd_list[i] = dev->irq.vectors[i].fd = eventfd(0, (type == VFIO_PCI_INTX_IRQ_INDEX) ? EFD_NONBLOCK : 0);
+        fd_list[i] = dev->irq.vectors[i].fd = eventfd(0, EFD_NONBLOCK);
         if (fd_list[i] < 0)
             pclog("VFIO %s: IRQ eventfd %d failed (%d)\n", dev->name, i, errno);
         else {
             /* Add eventfd to epoll. */
-            event.events   = (type == VFIO_PCI_INTX_IRQ_INDEX) ? (EPOLLIN | EPOLLONESHOT) : EPOLLIN;
             event.data.ptr = &dev->irq.vectors[i];
             epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_list[i], &event);
         }
-        dev->irq.vectors[i].msix_offset = i << 4; /* pre-calculated value to save operations on MSI-X processing */
     }
 
     /* Enable interrupt type on VFIO. */
     if (ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, irq_set))
         pclog("VFIO %s: SET_IRQS(%d, %d) failed (%d)\n", dev->name,
-              type, dev->irq.vector_count, errno);
+              VFIO_PCI_INTX_IRQ_INDEX, dev->irq.vector_count, errno);
     free(irq_set);
-    dev->irq.type = type;
+    dev->irq.type = VFIO_PCI_INTX_IRQ_INDEX;
 }
 
 /* Copy the device's expansion ROM into the ROM shadow area. */
@@ -2777,9 +2437,9 @@ vfio_dev_postreset(vfio_device_t *dev)
 {
     vfio_log("VFIO %s: postreset()\n", dev->name);
 
-    /* Enable INTx interrupts. MSI(-X) can be enabled by the OS later. */
+    /* Enable INTx interrupts. */
     if (!closing)
-        vfio_irq_enable(dev, VFIO_PCI_INTX_IRQ_INDEX);
+        vfio_irq_enable(dev);
 
     /* Reset BARs, whatever this does. */
     uint32_t val = 0;
@@ -2902,7 +2562,6 @@ vfio_dev_init(vfio_device_t *dev)
     }
 
     /* Go through PCI capability list if the device declares one. */
-    dev->irq.msix.table_bar = dev->irq.msix.pba_bar = 0x07;
     uint8_t cap_ptr;
     uint8_t cap_id;
     if ((pread(dev->config.fd, &cap_ptr, sizeof(cap_ptr), dev->config.offset + 0x06) == sizeof(cap_ptr)) && (cap_ptr & 0x10)) {
@@ -2911,10 +2570,13 @@ vfio_dev_init(vfio_device_t *dev)
         /* Read pointer to the first capability. */
         if (pread(dev->config.fd, &cap_ptr, sizeof(cap_ptr), dev->config.offset + 0x34) != sizeof(cap_ptr))
             cap_ptr = 0;
+        uint8_t cap_link   = 0x34; /* pointer to the current capability */
+        uint8_t cap_hidden = 0;    /* whether any capability since the last shown one is hidden */
         while (cap_ptr && (cap_ptr != 0xff)) { /* check 0xff just in case */
             /* Read capability ID, and store pointers to ones we care about. */
             if (pread(dev->config.fd, &cap_id, sizeof(cap_id), dev->config.offset + cap_ptr) != sizeof(cap_id))
                 cap_id = 0;
+            uint8_t hide = 0;
             switch (cap_id) {
                 case 0x01:
                     vfio_log(" PM");
@@ -2922,90 +2584,16 @@ vfio_dev_init(vfio_device_t *dev)
                     break;
 
                 case 0x05:
-                    vfio_log(" MSI");
-                    if (dev->msi_cap) /* multiple copies not permitted by spec */
-                        break;
-                    dev->msi_cap = cap_ptr;
-
-                    /* Read control register. */
-                    if (pread(dev->config.fd, &dev->irq.msi.ctl, sizeof(dev->irq.msi.ctl),
-                              dev->config.offset + dev->msi_cap + 2)
-                        != sizeof(dev->irq.msi.ctl))
-                        dev->irq.msi.ctl = 0;
-
-                    /* Set vector count. */
-                    dev->irq.msi.vector_count = (dev->irq.msi.ctl >> 1) & 0x07;
+                case 0x11:
+                    /* Hide MSI and MSI-X: no emulated chipset delivers a message to the processor,
+                       and a guest which enables them anyway would never see an interrupt. */
+                    vfio_log((cap_id == 0x05) ? " MSI(hidden)" : " MSI-X(hidden)");
+                    hide = 1;
                     break;
 
                 case 0x10:
                     vfio_log(" PCIe");
                     dev->pcie_cap = cap_ptr;
-                    break;
-
-                case 0x11:
-                    vfio_log(" MSI-X");
-                    if (dev->msix_cap) /* multiple copies not permitted by spec */
-                        break;
-                    dev->msix_cap = cap_ptr;
-
-                    /* Read control register. */
-                    if (pread(dev->config.fd, &dev->irq.msix.ctl, sizeof(dev->irq.msix.ctl),
-                              dev->config.offset + dev->msix_cap + 2)
-                        != sizeof(dev->irq.msix.ctl))
-                        dev->irq.msix.ctl = 0;
-
-                    /* Set vector count. */
-                    dev->irq.msix.vector_count = (dev->irq.msix.ctl & 0x07ff) + 1;
-
-                    /* Read table and PBA BARs and offsets. */
-                    if (pread(dev->config.fd, &dev->irq.msix.table_offset, sizeof(dev->irq.msix.table_offset),
-                              dev->config.offset + dev->msix_cap + 4)
-                        != sizeof(dev->irq.msix.table_offset))
-                        dev->irq.msix.table_offset = 0x00000007;
-                    dev->irq.msix.table_bar = dev->irq.msix.table_offset & 0x00000007;
-                    dev->irq.msix.table_offset &= 0xfffffff8;
-
-                    if (pread(dev->config.fd, &dev->irq.msix.pba_offset, sizeof(dev->irq.msix.pba_offset),
-                              dev->config.offset + dev->msix_cap + 8)
-                        != sizeof(dev->irq.msix.pba_offset))
-                        dev->irq.msix.pba_offset = 0x00000007;
-                    dev->irq.msix.pba_bar = dev->irq.msix.pba_offset & 0x00000007;
-                    dev->irq.msix.pba_offset &= 0xfffffff8;
-
-                    /* Allocate table and PBA structures. */
-                    dev->irq.msix.table_size = dev->irq.msix.vector_count << 4;
-                    dev->irq.msix.table      = calloc(1, dev->irq.msix.table_size);
-                    if (!dev->irq.msix.table) {
-                        pclog("VFIO %s: MSI-X table calloc(1, %d) failed\n", dev->name, dev->irq.msix.table_size);
-                        dev->irq.msix.table_size = dev->irq.msix.vector_count = 0;
-                    }
-
-                    dev->irq.msix.pba_size = ((dev->irq.msix.vector_count - 1) >> 3) + 1;
-                    dev->irq.msix.pba      = calloc(1, dev->irq.msix.pba_size);
-                    if (!dev->irq.msix.pba) {
-                        pclog("VFIO %s: MSI-X PBA calloc(1, %d) failed\n", dev->name, dev->irq.msix.pba_size);
-                        dev->irq.msix.pba_size = dev->irq.msix.vector_count = 0;
-                    }
-
-                    /* Add table and PBA mappings.
-                       Being added after region setup, they should override the main BAR mapping. */
-                    mem_mapping_add(&dev->irq.msix.table_mapping, 0, 0,
-                                    vfio_irq_msix_table_readb,
-                                    vfio_irq_msix_table_readw,
-                                    vfio_irq_msix_table_readl,
-                                    vfio_irq_msix_table_writeb,
-                                    vfio_irq_msix_table_writew,
-                                    vfio_irq_msix_table_writel,
-                                    NULL, MEM_MAPPING_EXTERNAL, dev);
-
-                    mem_mapping_add(&dev->irq.msix.pba_mapping, 0, 0,
-                                    vfio_irq_msix_pba_readb,
-                                    vfio_irq_msix_pba_readw,
-                                    vfio_irq_msix_pba_readl,
-                                    vfio_irq_msix_pba_writeb,
-                                    vfio_irq_msix_pba_writew,
-                                    vfio_irq_msix_pba_writel,
-                                    NULL, MEM_MAPPING_EXTERNAL, dev);
                     break;
 
                 case 0x13:
@@ -3018,9 +2606,27 @@ vfio_dev_init(vfio_device_t *dev)
                     break;
             }
 
+            /* Point the last shown capability past any hidden ones before this one. */
+            if (hide) {
+                cap_hidden = 1;
+            } else {
+                if (cap_hidden && (dev->hidden_cap_links < (sizeof(dev->hidden_cap_link) / sizeof(dev->hidden_cap_link[0])))) {
+                    dev->hidden_cap_link[dev->hidden_cap_links][0]   = cap_link;
+                    dev->hidden_cap_link[dev->hidden_cap_links++][1] = cap_ptr;
+                }
+                cap_hidden = 0;
+                cap_link   = cap_ptr + 1;
+            }
+
             /* Read pointer to the next capability. */
             if (pread(dev->config.fd, &cap_ptr, sizeof(cap_ptr), dev->config.offset + cap_ptr + 1) != sizeof(cap_ptr))
                 cap_ptr = 0;
+        }
+
+        /* End the list at the last shown capability if the hidden ones were last. */
+        if (cap_hidden && (dev->hidden_cap_links < (sizeof(dev->hidden_cap_link) / sizeof(dev->hidden_cap_link[0])))) {
+            dev->hidden_cap_link[dev->hidden_cap_links][0]   = cap_link;
+            dev->hidden_cap_link[dev->hidden_cap_links++][1] = 0x00;
         }
 
         vfio_log("\n");
@@ -3061,10 +2667,6 @@ vfio_dev_close(vfio_device_t *dev)
     }
 
     /* Clean up. */
-    if (dev->irq.msix.table)
-        free(dev->irq.msix.table);
-    if (dev->irq.msix.pba)
-        free(dev->irq.msix.pba);
     free(dev->name);
 }
 
@@ -4014,7 +3616,6 @@ next: /* Clean up. */
     }
 
     /* Initialize and start IRQ thread. */
-    irq_event         = thread_create_event();
     irq_thread_resume = thread_create_event();
     thread_set_event(irq_thread_resume);
     irq_thread = thread_create(vfio_irq_thread, NULL);

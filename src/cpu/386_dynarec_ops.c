@@ -256,8 +256,9 @@ dynarec_dtr(uint32_t op)
 
 /*The compiled CALL far, direct and indirect: the interpreter's CALL_FAR
   macro, so the pushes in the call gate's size and the CS put back after a
-  faulting push are the op's. The target offset comes in cpu_state.pc;
-  ret_pc is the address after the instruction*/
+  faulting push are the op's, unless call_far_pm_fast() makes the call.
+  The target offset comes in cpu_state.pc; ret_pc is the address after the
+  instruction*/
 int
 dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc)
 {
@@ -268,8 +269,10 @@ dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc)
     uint32_t old_pc;
     uint16_t new_pc = cpu_state.pc;
 
-    cpu_state.pc = ret_pc;
-    CALL_FAR_w(new_cs, new_pc);
+    if (!call_far_pm_fast(new_cs, new_pc, ret_pc, 0)) {
+        cpu_state.pc = ret_pc;
+        CALL_FAR_w(new_cs, new_pc);
+    }
     /*A task switch can keep the RF it loads*/
     if (cpu_debug_regs_486)
         dynarec_rf_after_op();
@@ -286,8 +289,10 @@ dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc)
     uint32_t old_pc;
     uint32_t new_pc = cpu_state.pc;
 
-    cpu_state.pc = ret_pc;
-    CALL_FAR_l(new_cs, new_pc);
+    if (!call_far_pm_fast(new_cs, new_pc, ret_pc, 1)) {
+        cpu_state.pc = ret_pc;
+        CALL_FAR_l(new_cs, new_pc);
+    }
     if (cpu_debug_regs_486)
         dynarec_rf_after_op();
     return 0;

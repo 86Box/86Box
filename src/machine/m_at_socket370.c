@@ -1179,12 +1179,16 @@ machine_at_ms6318_init(const machine_t *model)
 int
 machine_at_m790mr_init(const machine_t *model)
 {
-    /* The 686A's I/O APIC has the ISA IRQs on their own inputs. The BIOS's
-       MP table puts each PCI interrupt on the input of the IRQ it steered
-       that PIRQ to (00:0A INTA# on INTIN5 with PIRQC# at IRQ5), level and
-       active low, so the steered PIRQs reach the I/O APIC there. */
+    /* The 686A's I/O APIC has the ISA IRQs on their own inputs, and PIRQ
+       A-D on INTIN16-19. The BIOS's MP table puts each PCI interrupt on the
+       input of the IRQ it steered that PIRQ to (00:0A INTA# on INTIN5 with
+       PIRQC# at IRQ5), level and active low, while its ACPI _PRT puts it on
+       the PIRQ's own input (00:09 INTA# on GSI 17), so the steered PIRQs
+       reach the I/O APIC both ways. */
     static const ioapic_legacy_irq_routing_t m790mr_irq_routing = {
-        .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_ISA
+        .irq_to_intin     = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin    = IOAPIC_PIRQ_ROUTE_82093AA,
+        .pirq_steered_isa = 1
     };
     void *pipc;
     void *ioapic;

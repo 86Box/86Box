@@ -344,9 +344,30 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
     memcpy(ram + PhysAddress, DataWrite, TotalSize);
 }
 
+/* The emulation thread, the one that registers the card (pci_add_card).
+   The emulator's I/O handler table and memory tables belong to it: the
+   processor reads them with no lock. Every I/O or memory handler change
+   made from another thread is counted in harness_maps_offthread, and
+   every change made from the emulation thread in harness_maps_calls, so
+   a vector can pin the first at zero and see the second move. */
+static pthread_t harness_cpu_thread;
+static int       harness_cpu_thread_set;
+uint64_t         harness_maps_offthread;
+uint64_t         harness_maps_calls;
+
+static void
+harness_map_call(void)
+{
+    if (harness_cpu_thread_set && !pthread_equal(pthread_self(), harness_cpu_thread))
+        harness_maps_offthread++;
+    else
+        harness_maps_calls++;
+}
+
 /* ---- I/O registration: the harness calls the device's handlers directly,
    so only WHICH ports carry a handler is recorded (a per-port count, the
-   real table is a list). Memory-mapping registration stays inert. ---- */
+   real table is a list). Memory-mapping registration stays inert apart
+   from the thread count above. ---- */
 static uint8_t harness_io_map[0x10000];
 
 int
@@ -362,6 +383,7 @@ io_sethandler(uint16_t base, uint16_t size,
               void (*outb)(uint16_t, uint8_t, void *), void (*outw)(uint16_t, uint16_t, void *),
               void (*outl)(uint16_t, uint32_t, void *), void *priv)
 {
+    harness_map_call();
     (void) inb; (void) inw; (void) inl;
     (void) outb; (void) outw; (void) outl; (void) priv;
     for (uint32_t p = base; p < (uint32_t) base + size && p < 0x10000; p++)
@@ -375,6 +397,7 @@ io_removehandler(uint16_t base, uint16_t size,
                  void (*outb)(uint16_t, uint8_t, void *), void (*outw)(uint16_t, uint16_t, void *),
                  void (*outl)(uint16_t, uint32_t, void *), void *priv)
 {
+    harness_map_call();
     (void) inb; (void) inw; (void) inl;
     (void) outb; (void) outw; (void) outl; (void) priv;
     for (uint32_t p = base; p < (uint32_t) base + size && p < 0x10000; p++)
@@ -411,6 +434,7 @@ mem_mapping_set_handler(mem_mapping_t *mapping,
                         void (*write_b)(uint32_t, uint8_t, void *), void (*write_w)(uint32_t, uint16_t, void *),
                         void (*write_l)(uint32_t, uint32_t, void *))
 {
+    harness_map_call();
     if (mapping) {
         mapping->read_b  = read_b;
         mapping->read_w  = read_w;
@@ -431,6 +455,7 @@ mem_mapping_set_p(mem_mapping_t *mapping, void *priv)
 void
 mem_mapping_set_addr(mem_mapping_t *mapping, uint32_t base, uint32_t size)
 {
+    harness_map_call();
     if (mapping) {
         mapping->base    = base;
         mapping->size    = size;
@@ -441,6 +466,7 @@ mem_mapping_set_addr(mem_mapping_t *mapping, uint32_t base, uint32_t size)
 void
 mem_mapping_enable(mem_mapping_t *mapping)
 {
+    harness_map_call();
     if (mapping)
         mapping->enable = 1;
 }
@@ -448,6 +474,7 @@ mem_mapping_enable(mem_mapping_t *mapping)
 void
 mem_mapping_disable(mem_mapping_t *mapping)
 {
+    harness_map_call();
     if (mapping)
         mapping->enable = 0;
 }
@@ -463,8 +490,6 @@ int     harness_irq_level; /* current INTA line state */
    the emulation thread may drive an interrupt line. Here that thread is
    the one that registers the card; every line update made from any
    other thread is counted, so a vector can pin the count at zero. */
-static pthread_t harness_cpu_thread;
-static int       harness_cpu_thread_set;
 uint64_t         harness_irq_offthread;
 
 /* The svga core belongs to the emulation thread as well: its timing

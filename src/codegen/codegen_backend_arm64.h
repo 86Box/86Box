@@ -43,6 +43,10 @@
    flat or wide 32-bit stack with the carry of its end. A backend without
    them makes those tests with an add and a compare (CHECK_STACK_LIMITS). */
 #define CODEGEN_BACKEND_HAS_STACK_LIMIT_UOPS
+/* codegen_retf_rout and codegen_call_far_rout, the protected-mode RETF and
+   CALL far at the same level on cs_load_cache. A backend without them calls
+   pmoderetf_pm_fast() and dynarec_call_far_w/l(). */
+#define CODEGEN_BACKEND_HAS_FAR_ROUT
 /* CALL far in real and virtual 8086 mode compiled in the IR (call_far_rm(),
    codegen_ops_jump.c). A backend without it calls dynarec_call_far_w/l. */
 #define CODEGEN_BACKEND_HAS_CALL_FAR_RM
@@ -69,6 +73,11 @@ void codegen_lazy_stubs_emit(codeblock_t *block);
 /* A slot whose target changes keeps the targets it held before in a set,
    tried after a key mismatch (codegen_link.h). */
 #    define CODEGEN_BACKEND_HAS_LINK_SETS
+/* A block whose bytes writes do not track (CODEBLOCK_CHECKED) starts with a
+   compare of those bytes with memory, which every entry, the dispatcher's
+   and a link's, goes through (codegen_entry_check). A backend without it
+   leaves every block tracked by writes. */
+#    define CODEGEN_BACKEND_HAS_ENTRY_CHECK
 void codegen_link_exit(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */
 extern int codegen_block_link;

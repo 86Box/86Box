@@ -35,6 +35,12 @@ void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page) { (void)addr;
 void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page) { (void)addr; (void)val; (void)page; }
 void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page) { (void)addr; (void)val; (void)page; }
 
+void mem_set_page_byte_masks(page_t *page, uint32_t mask_page)
+{
+    page->byte_dirty_mask = &byte_dirty_mask[mask_page * 64];
+    page->byte_code_present_mask = &byte_code_present_mask[mask_page * 64];
+}
+
 static uint32_t access_base, access_size;
 static uint16_t access_mode;
 static unsigned access_calls;

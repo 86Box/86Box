@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-23 18:54+0000\n"
+"PO-Revision-Date: 2026-11-24 12:46+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -1878,10 +1878,10 @@ msgid "Power &off"
 msgstr "&Desligar"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "Suspen&der"
 
 msgid "Suspend"
-msgstr ""
+msgstr "Suspender"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "Desligar a máquina virtual pode causar perda de dados. Você tem certeza que deseja continuar?"

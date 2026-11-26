@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-19 23:29+0000\n"
+"PO-Revision-Date: 2026-11-24 20:44+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -49,7 +49,7 @@ msgid "&Hide status bar"
 msgstr "&Statusbalk verbergen"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Toon US&B-activiteit"
 
 msgid "Hide &toolbar"
 msgstr "&Toolbar verbergen"
@@ -85,7 +85,7 @@ msgid "Force &4:3 display ratio"
 msgstr "Forceer &4:3 beeldverhouding"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "Forceer &machinebeeldverhouding"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Forceer &%1:%2 beeldverhouding"
@@ -304,13 +304,13 @@ msgid "&About 86Box…"
 msgstr "&Over 86Box…"
 
 msgid "&New image…"
-msgstr "&Nieuw imagebestand…"
+msgstr "&Nieuwe schijfkopie…"
 
 msgid "&Existing image…"
-msgstr "&Bestaand imagebestand…"
+msgstr "&Bestaande schijfkopie…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "Bestaand imagebestand (&Schrijfbeveiligd)…"
+msgstr "Bestaande schijfkopie (&Schrijfbeveiligd)…"
 
 msgid "&Record"
 msgstr "&Opnemen"
@@ -328,7 +328,7 @@ msgid "E&ject"
 msgstr "&Uitwerpen"
 
 msgid "&Image…"
-msgstr "&Imagebestand…"
+msgstr "&Schijfkopie…"
 
 msgid "E&xport to 86F…"
 msgstr "E&xporteer naar 86F…"
@@ -340,7 +340,7 @@ msgid "E&mpty"
 msgstr "&Leeg"
 
 msgid "Reload previous image"
-msgstr "Herlaad vorig imagebestand"
+msgstr "Herlaad vorige schijfkopie"
 
 msgid "Mount &folder…"
 msgstr "&Map aankoppelen…"
@@ -352,13 +352,13 @@ msgid "Sound Gain"
 msgstr "Geluidsversterking"
 
 msgid "New Image"
-msgstr "Nieuw imagebestand"
+msgstr "Nieuwe schijfkopie"
 
 msgid "Removable disk type:"
-msgstr ""
+msgstr "Verwisselbare schijftype:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "MO-type:"
 
 msgid "Settings"
 msgstr "Instellingen"
@@ -455,15 +455,19 @@ msgstr "FPU:"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr ""
+"Geheugengemapte floatingpoint-coprocessor op C0000000h. Compatibele "
+"programma's kunnen deze naast of in plaats van een 387 gebruiken."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 3167 coprocessor"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
 msgstr ""
+"Geheugengemapte floatingpoint-coprocessor op C0000000h voor compatibele 486 "
+"software."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Weitek WTL 4167 coprocessor"
 
 msgid "Internal"
 msgstr "Geïntegreerd"
@@ -523,10 +527,10 @@ msgid "Dynamic recompiler"
 msgstr "Dynamische recompiler"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Dynamische recompiler is actief"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Dynamische recompiler is niet actief"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Nauwkeurige FPU-omgeving voor de dynamische recompiler"
@@ -766,28 +770,30 @@ msgid "Channel:"
 msgstr "Kanaal:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (Geïntegreerd)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(geen)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "Geïntegreerd"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: geen beschikbare kanalen"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: %2 kanalen in gebruik"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "IDE-conflict"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
+"Deze IDE-controllers hebben kanalen nodig die al door een ander apparaat "
+"worden gebruikt en zullen daarom niet werken:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Wilt u de configuratie toch opslaan?"
 
 msgid "ID:"
 msgstr "ID:"
@@ -808,7 +814,7 @@ msgid "Type:"
 msgstr "Type:"
 
 msgid "Image Format:"
-msgstr "Imageformaat:"
+msgstr "Schijfkopieformaat:"
 
 msgid "Block Size:"
 msgstr "Blokgrootte:"
@@ -859,16 +865,16 @@ msgid "Check BPB"
 msgstr "Controleer BPB"
 
 msgid "CD-ROM drives"
-msgstr "CD-ROM-stations"
+msgstr "Cd-romstations"
 
 msgid "CD-ROM:"
 msgstr "CD-ROM:"
 
 msgid "MO drives"
-msgstr "MO-schijven"
+msgstr "MO-stations"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "MD DATA-stations"
 
 msgid "MO:"
 msgstr "MO:"
@@ -911,24 +917,26 @@ msgstr "Generieke ISA ROM-kaart"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"Geen apparaten gevonden. Controleer of VT-d of IOMMU is ingeschakeld op uw "
+"systeem."
 
 msgid "Custom ROM:"
-msgstr ""
+msgstr "Aangepast ROM:"
 
 msgid "Group"
-msgstr ""
+msgstr "Groep"
 
 msgid "Location"
-msgstr ""
+msgstr "Locatie"
 
 msgid "Name"
-msgstr ""
+msgstr "Naam"
 
 msgid "ROM images"
-msgstr ""
+msgstr "ROM-kopieën"
 
 msgid "Unknown device"
-msgstr ""
+msgstr "Onbekend apparaat"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Generieke dubbele ISA ROM-kaart"
@@ -955,13 +963,13 @@ msgid "Speed"
 msgstr "Snelheid"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "Verwijderbare schijf %1 (%2): %3"
+msgstr "Verwisselbare schijf %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "&Verwijderbare schijf %1 (%2): %3"
+msgstr "&Verwisselbare schijf %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "Verwijderbaar schijfimagebestand"
+msgstr "Schijfkopieën van verwisselbare schijven"
 
 msgid "Tape %1 (%2): %3"
 msgstr "Band %1 (%2): %3"
@@ -970,16 +978,16 @@ msgid "&Tape %1 (%2): %3"
 msgstr "&Band %1 (%2): %3"
 
 msgid "Tape images"
-msgstr "Bandimagebestand"
+msgstr "Bandkopieën"
 
 msgid "Image %1"
-msgstr "Image %1"
+msgstr "Schijfkopie %1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr ""
-"%1 kan geen bruikbare ROM imagebestanden vinden.\n"
+"%1 kan geen bruikbare ROM-bestanden vinden.\n"
 "\n"
-"<a href=\"%2\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
+"<a href=\"%2\">Download</a> een ROM-set en pak deze uit in de map \"roms\"."
 
 msgid "(empty)"
 msgstr "(leeg)"
@@ -1000,13 +1008,13 @@ msgid "Off"
 msgstr "Uit"
 
 msgid "All images"
-msgstr "Alle schijfimages"
+msgstr "Alle schijfkopieën"
 
 msgid "Basic sector images"
-msgstr "Basissectorimages"
+msgstr "Eenvoudige sector-schijfkopieën"
 
 msgid "Surface images"
-msgstr "Oppervlakte-images"
+msgstr "Oppervlakte-schijfkopieën"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Machine \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
@@ -1033,16 +1041,16 @@ msgid "Sound"
 msgstr "Geluid"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (niet gedetecteerd)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Hz (de host past de samplefrequentie aan)"
 
 msgid "Network"
 msgstr "Netwerk"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "IPv4 en ARP ontvangen als 802.3 LLC/SNAP-frames"
 
 msgid "Ports (COM & LPT)"
 msgstr "Poorten (COM & LPT)"
@@ -1105,7 +1113,7 @@ msgid "Controllers:"
 msgstr "Controllers:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Floppy- en CD-ROM-stations"
+msgstr "Floppy- en Cd-romstations"
 
 msgid "Other removable devices"
 msgstr "Andere verwijderbare apparaten"
@@ -1114,52 +1122,56 @@ msgid "Other peripherals"
 msgstr "Andere randapparatuur"
 
 msgid "empty"
-msgstr ""
+msgstr "leeg"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (Beveiligd tegen schrijven)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Leeg (neem de kaart uit)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Nieuwe CompactFlash-kaart…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Nieuwe CompactFlash-kaart"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "Plaats een CompactFlash-kaart"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "Ve&rwijder CompactFlash-kaart"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "Kan %1 niet gebruiken als CompactFlash-schijfkopie."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "PC Card-controller (Cirrus Logic CL-PD6722, ISA, poorten 3E0h-3E1h)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
+"Een Intel 82365SL-compatibele PC Card-controller (PCMCIA) met twee sleuven, "
+"zoals aangetroffen in laptops en op PC Card-adapterkaarten.\n"
+"DOS Card and Socket Services, Windows 95/98 en Linux (i82365) herkennen deze "
+"controller."
 
 msgid "Network:"
-msgstr ""
+msgstr "Netwerk:"
 
 msgid "Socket %1"
-msgstr ""
+msgstr "Sleuf %1"
 
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "Sleuf %1: %2"
 
 msgid "Other devices"
 msgstr "Andere apparaten"
@@ -1302,10 +1314,10 @@ msgid "&Floppy %1 (%2): %3"
 msgstr "&Floppy %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "Geavanceerde sector-images"
+msgstr "Geavanceerde sector-schijfkopieën"
 
 msgid "Flux images"
-msgstr "Flux images"
+msgstr "Flux-schijfkopieën"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Weet je zeker dat je de geëmuleerde machine wilt resetten?"
@@ -1326,16 +1338,16 @@ msgid "&MO %1 (%2): %3"
 msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
-msgstr "MO-images"
+msgstr "MO-schijfkopieën"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "MD DATA-schijfkopieën"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MD DATA %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "Welkom bij 86Box!"
@@ -1344,7 +1356,7 @@ msgid "Internal device"
 msgstr "Intern apparaat"
 
 msgid "External"
-msgstr ""
+msgstr "Extern"
 
 msgid "&File"
 msgstr "&Bestand"
@@ -1368,94 +1380,108 @@ msgid "No ROMs found"
 msgstr "Geen ROMs gevonden"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Niet ondersteunde hardware"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"De hardware in dit machineprofiel wordt niet ondersteund door deze versie "
+"van 86Box."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(en %i anderen)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine vervangen en de "
+"bestaande configuratie overschreven."
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
 msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine verwijderd en de "
+"bestaande configuratie overschreven."
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
 msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine vervangen, worden "
+"de overige componenten verwijderd en wordt de bestaande configuratie "
+"overschreven."
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "Wilt u doorgaan?"
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "Machinetype \"%s\""
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "Videokaart \"%s\""
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "Toetsenbord \"%s\""
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "Muis \"%s\""
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "Tablet \"%s\""
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "Joystick \"%s\""
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "Geluidskaart \"%s\""
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "MIDI-uitvoerapparaat \"%s\""
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "MIDI-invoerapparaat \"%s\""
 
 msgid "Network card \"%s\""
-msgstr ""
+msgstr "Netwerkkaart \"%s\""
 
 msgid "Serial port device \"%s\""
-msgstr ""
+msgstr "Seriëlepoortapparaat \"%s\""
 
 msgid "Parallel port device \"%s\""
-msgstr ""
+msgstr "Parallelepoortapparaat \"%s\""
 
 msgid "Game port \"%s\""
-msgstr ""
+msgstr "Gamepoort \"%s\""
 
 msgid "SCSI card \"%s\""
-msgstr ""
+msgstr "SCSI-kaart \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr ""
+msgstr "Floppycontroller \"%s\""
 
 msgid "Disk controller \"%s\""
-msgstr ""
+msgstr "Schijfcontroller \"%s\""
 
 msgid "CD-ROM interface \"%s\""
-msgstr ""
+msgstr "Cd-rominterface \"%s\""
 
 msgid "Memory expansion card \"%s\""
-msgstr ""
+msgstr "Geheugenuitbreidingskaart \"%s\""
 
 msgid "ROM expansion card \"%s\""
-msgstr ""
+msgstr "ROM-uibreidingskaart \"%s\""
 
 msgid "RTC card \"%s\""
-msgstr ""
+msgstr "RTC-kaart \"%s\""
 
 msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
 msgstr ""
+"De schijfkopie \"%s\" overschrijdt de maximale capaciteit van dit station en "
+"wordt genegeerd."
 
 msgid "%s was not connected: every USB port of this machine is in use."
 msgstr ""
+"%s is niet aangesloten: alle USB-poorten van deze machine zijn in gebruik."
 
 msgid "%s was not connected: this machine has no USB controller that can take devices."
 msgstr ""
+"%s is niet aangesloten: deze machine heeft geen USB-controller waarop "
+"apparaten kunnen worden aangesloten."
 
 msgid "Do you want to save the settings?"
 msgstr "Wil je de instellingen opslaan?"
@@ -1479,25 +1505,25 @@ msgid "Don't show this message again"
 msgstr "Dit bericht niet meer tonen"
 
 msgid "CD-ROM images"
-msgstr "CD-ROM-images"
+msgstr "Cd-romschijfkopie"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "&Nieuwe CD-R-schijfkopie…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "Nieuwe CD-R-schijfkopie…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "&CD-RW-schijfkopie"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "CD-R-schijfkopie"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Aaru-schijfkopie"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "Kan de schijfkopie niet aanmaken"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Apparaatconfiguratie"
@@ -1524,7 +1550,7 @@ msgid "C&assette: %1"
 msgstr "C&assette: %1"
 
 msgid "Cassette images"
-msgstr "Cassette-images"
+msgstr "Cassette-schijfkopieën"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartridge %1: %2"
@@ -1533,7 +1559,7 @@ msgid "Car&tridge %1: %2"
 msgstr "Car&tridge %1: %2"
 
 msgid "Cartridge images"
-msgstr "Cartridge-images"
+msgstr "Cartridge-schijfkopieën"
 
 msgid "Resume execution"
 msgstr "Hervat uitvoering"
@@ -1883,10 +1909,10 @@ msgid "Power &off"
 msgstr "&Uitschakelen"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "On&derbreken"
 
 msgid "Suspend"
-msgstr ""
+msgstr "Onderbreken"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -1915,13 +1941,13 @@ msgid "Add Existing Hard Disk"
 msgstr "Bestaande harde schijf toevoegen"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI-schijfimages kunnen niet groter zijn dan 4 GB."
+msgstr "HDI-schijfkopieën kunnen niet groter zijn dan 4 GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Schijfimages kunnen niet groter zijn dan 127 GB."
+msgstr "Schijfkopieën kunnen niet groter zijn dan 127 GB."
 
 msgid "Hard disk images"
-msgstr "Harde schijf-images"
+msgstr "Harde-schijfkopieën"
 
 msgid "Unable to read file"
 msgstr "Kan bestand niet lezen"
@@ -1930,16 +1956,18 @@ msgid "Unable to write file"
 msgstr "Kan bestand niet schrijven"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- of HDX-images met een andere sectorgrootte dan 512 worden niet ondersteund."
+msgstr ""
+"HDI- of HDX-schijfkopieën met een andere sectorgrootte dan 512 worden niet "
+"ondersteund."
 
 msgid "Disk image file already exists"
-msgstr "Schijfimagebestand bestaat al"
+msgstr "Schijfkopiebestand bestaat al"
 
 msgid "Please specify a valid file name."
 msgstr "Geef een geldige bestandsnaam op."
 
 msgid "Disk image created"
-msgstr "Schijfimage gemaakt"
+msgstr "Schijfkopie aangemaakt"
 
 msgid "Make sure the file exists and is readable."
 msgstr "Controleer of het bestand bestaat en leesbaar is."
@@ -1948,7 +1976,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Zorg ervoor dat het bestand wordt opgeslagen in een schrijfbare map."
 
 msgid "Disk image too large"
-msgstr "Schijfimage te groot"
+msgstr "Te grote schijfkopie"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Vergeet niet om de nieuw aangemaakte schijf te partitioneren en te formatteren."
@@ -1957,7 +1985,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Het geselecteerde bestand wordt overschreven. Weet u zeker dat u het wilt gebruiken?"
 
 msgid "Unsupported disk image"
-msgstr "Niet-ondersteunde schijfimage"
+msgstr "Niet-ondersteunde schijfkopie"
 
 msgid "Unable to read device"
 msgstr "Kan apparaat niet lezen"
@@ -1978,22 +2006,22 @@ msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads,
 msgstr "Gedetecteerd blokapparaat: %1\nGrootte: %2 MB\nGeometrie: %3 cilinders, %4 koppen, %5 sectoren"
 
 msgid "Failed to write the disk image."
-msgstr "Schrijven van de schijfimage mislukt."
+msgstr "Schrijven van de schijfkopie mislukt."
 
 msgid "Failed to read the disk image."
-msgstr "Lezen van de schijfimage mislukt."
+msgstr "Lezen van de schijfkopie mislukt."
 
 msgid "The disk image has been successfully created."
-msgstr "De schijfimage is succesvol aangemaakt."
+msgstr "De schijfkopie is succesvol aangemaakt."
 
 msgid "Raw image"
-msgstr "Ruw image"
+msgstr "Ruwe schijfkopie"
 
 msgid "HDI image"
-msgstr "HDI-image"
+msgstr "HDI-schijfkopie"
 
 msgid "HDX image"
-msgstr "HDX-image"
+msgstr "HDX-schijfkopie"
 
 msgid "Fixed-size VHD"
 msgstr "VHD met vaste grootte"
@@ -2008,13 +2036,13 @@ msgid "(N/A)"
 msgstr "(N/B)"
 
 msgid "Raw image (.img)"
-msgstr "Ruw image (.img)"
+msgstr "Ruwe schijfkopie (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI-image (.hdi)"
+msgstr "HDI-schijfkopie (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX-image (.hdx)"
+msgstr "HDX-schijfkopie (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "VHD met vaste grootte (.vhd)"
@@ -2038,7 +2066,16 @@ msgid "Select the parent VHD"
 msgstr "Selecteer de bovenliggende VHD"
 
 msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen. Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
+msgstr ""
+"Bovenliggende en onderliggende schijftijdstempels komen niet overeen. Dit "
+"kan betekenen dat de bovenliggende schijfkopie is gewijzigd nadat de "
+"verschil-schijfkopie is gemaakt.\n"
+"\n"
+"Dit kan ook gebeuren als de schijfkopiebestanden zijn verplaatst of "
+"gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt."
+"\n"
+"\n"
+"Wil je de tijdstempels herstellen?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen"
@@ -2131,7 +2168,7 @@ msgid "2% below perfect RPM"
 msgstr "2% onder perfecte RPM"
 
 msgid "Creating image…"
-msgstr "Image wordt gemaakt…"
+msgstr "Schijfkopie wordt aangemaakt…"
 
 msgid "(System Default)"
 msgstr "(Systeemstandaard)"
@@ -2143,7 +2180,7 @@ msgid "Mouse sensitivity:"
 msgstr "Muisgevoeligheid:"
 
 msgid "Select media images from program working directory"
-msgstr "Selecteer media-images uit de werkmap van het programma"
+msgstr "Selecteer mediaschijfkopieën uit de werkmap van het programma"
 
 msgid "PIT mode:"
 msgstr "PIT-modus:"
@@ -2221,7 +2258,7 @@ msgid "&Connected"
 msgstr "&Verbonden"
 
 msgid "Clear image &history"
-msgstr "Imagegeschiedenis verwijderen(&H)"
+msgstr "Schijfkopiegeschiedenis verwijderen(&H)"
 
 msgid "Create…"
 msgstr "Aanmaken…"
@@ -2284,7 +2321,11 @@ msgid "Falling back to software rendering."
 msgstr "Terugvallen op software rendering."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>Bij het selecteren van media-images (CD-ROM, floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op macOS.</p></body></html>"
+msgstr ""
+"<html><head/><body><p>Bij het selecteren van mediaschijfkopieën (CD-ROM, "
+"floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box "
+"configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op "
+"macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Deze machine is misschien verplaatst of gekopieerd."
@@ -2362,7 +2403,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 Toetsenbord"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "USB-toetsenbord"
 
 msgid "Keys"
 msgstr "Toetsen"
@@ -2395,13 +2436,13 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort muis"
 
 msgid "USB Mouse"
-msgstr ""
+msgstr "USB-muis"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serieel)"
 
 msgid "USB Tablet"
-msgstr ""
+msgstr "USB-tablet"
 
 msgid "Default Baud rate"
 msgstr "Standaard baudrate"
@@ -2428,7 +2469,7 @@ msgid "System MIDI"
 msgstr "Systeem MIDI"
 
 msgid "USB Speaker"
-msgstr ""
+msgstr "USB-luidspreker"
 
 msgid "MIDI Input Device"
 msgstr "MIDI-ingangsapparaat"
@@ -3723,16 +3764,16 @@ msgid "Dark"
 msgstr "Donker"
 
 msgid "Style:"
-msgstr ""
+msgstr "Stijl:"
 
 msgid "Windows 11"
-msgstr ""
+msgstr "Windows 11"
 
 msgid "Windows Native"
-msgstr ""
+msgstr "Windows Systeemeigen"
 
 msgid "Windows Classic"
-msgstr ""
+msgstr "Windows Klassiek"
 
 msgid "Force interpretation"
 msgstr "Interpretatie afdwingen"
@@ -3788,31 +3829,31 @@ msgid "System Default"
 msgstr "Systeemstandaard"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "Het bestand of de map „%s“ kan niet worden geopend."
+msgstr "Schijfkopie of de map \"%s\" kan niet worden geopend."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr "De cue-lijst „%s“ kan niet worden geopend."
+msgstr "De cue-lijst \"%s\" kan niet worden geopend."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr "Het MDS-bestand „%s“ kan niet worden geopend."
+msgstr "Het MDS-bestand \"%s\" kan niet worden geopend."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "De cd-rom-image „%s“ kan niet worden geladen."
+msgstr "De cd-romschijfkopie \"%s\" kan niet worden geladen."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
-"is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
+"Schijfkopie \"%s\" kan niet worden geladen: het bestand „%1“ ontbreekt, dat "
+"nodig is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
-"Laden van image \"%s\" niet mogelijk: %1 ontbreekt, welke vereist is voor "
-"Aaru image bestandstype ondersteuning."
+"Laden van schijfkopie \"%s\" niet mogelijk: %1 ontbreekt, welke vereist is "
+"voor Aaru-schijfkopie bestandstype ondersteuning."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
-"De DVD-image „%s“ is in een station geplaatst dat geen DVD-media ondersteunt "
-"en wordt daarom genegeerd."
+"DVD-schijfkopie \"%s\" is in een station geplaatst dat geen DVD-media "
+"ondersteunt en wordt daarom genegeerd."
 
 msgid "%s: Could not connect to %s: %s"
 msgstr "%s: Er kan geen verbinding worden gemaakt met %s: %s"
@@ -4758,7 +4799,7 @@ msgid "There are too many files in the top folder for the root directory of the 
 msgstr "Er staan te veel bestanden in de hoofdmap van het opslagmedium."
 
 msgid "The temporary image could not be written."
-msgstr "De tijdelijke schijfimage kan niet worden weggeschreven."
+msgstr "De tijdelijke schijfkopie kan niet worden weggeschreven."
 
 msgid "There is not enough memory to build the image."
 msgstr "Er is onvoldoende geheugen om de schijfkopie aan te maken."
@@ -4770,10 +4811,10 @@ msgid "Archives"
 msgstr "Archieven"
 
 msgid "New USB flash drive"
-msgstr "Nieuw USB-flashstation"
+msgstr "Nieuwe USB-stick"
 
 msgid "&New USB flash drive…"
-msgstr "&Nieuw USB-flashstation…"
+msgstr "&Nieuwe USB-stick…"
 
 msgid "unplugged"
 msgstr "losgekoppeld"
@@ -4821,16 +4862,16 @@ msgid "USB port"
 msgstr "USB-poort"
 
 msgid "%1 (write-protected)"
-msgstr ""
+msgstr "%1 (schrijfbeveiligd)"
 
 msgid "USB flash drive"
-msgstr ""
+msgstr "USB-stick"
 
 msgid "%1 is not a disk image."
-msgstr ""
+msgstr "%1 is geen schijfkopie."
 
 msgid "Flash drive images"
-msgstr ""
+msgstr "Schijfkopieën van USB-sticks"
 
 msgid "PCI card"
 msgstr "PCI-kaart"
