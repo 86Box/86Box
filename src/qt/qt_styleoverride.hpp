@@ -28,6 +28,8 @@ public:
 
 private:
     bool         isWindows11Style() const;
+    bool         isHighContrast() const;
+    void         drawMenuBarItemHighlight(const QStyleOptionMenuItem *option, QPainter *painter) const;
     mutable bool drawingMenuBarItem = false;
 };
 
