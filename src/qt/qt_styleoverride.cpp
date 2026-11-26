@@ -158,8 +158,12 @@ StyleOverride::drawMenuBarItemHighlight(const QStyleOptionMenuItem *option, QPai
     QColor fill;
     if (!(option->state & State_Enabled)) {
         /* AccentFillColorDisabled */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         const bool dark = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
-        fill            = dark ? QColor(0xff, 0xff, 0xff, 0x28) : QColor(0x00, 0x00, 0x00, 0x37);
+#else
+        const bool dark = false;
+#endif
+        fill = dark ? QColor(0xff, 0xff, 0xff, 0x28) : QColor(0x00, 0x00, 0x00, 0x37);
     } else {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         fill = option->palette.color(QPalette::Accent);
