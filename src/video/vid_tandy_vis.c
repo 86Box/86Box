@@ -328,18 +328,11 @@ tvis_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c5:
             if (svga->seqaddr > 0x3f)
                 return;
+            if (svga->seqaddr == 1)
+                break;
             o                                  = svga->seqregs[svga->seqaddr & 0x3f];
             svga->seqregs[svga->seqaddr & 0x3f] = val;
-            if (o != val && (svga->seqaddr & 0x3f) == 1) {
-                svga_recalctimings(svga);
-            }
             switch (svga->seqaddr & 0x3f) {
-                case 1:
-                    if (svga->scrblank && !(val & 0x20))
-                        svga->fullchange = 3;
-                    svga->scrblank = (svga->scrblank & ~0x20) | (val & 0x20);
-                    svga_recalctimings(svga);
-                    break;
                 case 2:
                     svga->writemask = val & 0xf;
                     break;
