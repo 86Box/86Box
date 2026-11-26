@@ -39,7 +39,7 @@ typedef struct sound_source_t {
     int                    pos;
     int                    gain;       /* Per-source gain in dB. */
     char                   key[64];    /* Configuration key of the gain. */
-    char                   label[160]; /* What the user sees. */
+    char                   label[192]; /* What the user sees. */
     char                   what[32];   /* What the source is of its device (FM, PCM...). */
 
     /* Sources of the same device, class and rate share one timer: the leader
