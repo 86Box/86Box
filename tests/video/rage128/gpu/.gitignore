@@ -4,3 +4,7 @@
 *.exe
 *.spv
 gputri.plcache
+# per-seed caches, child logs and interrupted cache writes of the default run
+gputri-*.plcache
+gputri-*.log
+*.plcache.*.tmp
