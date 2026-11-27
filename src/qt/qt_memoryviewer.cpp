@@ -2177,6 +2177,7 @@ MemoryViewer::onDump(uint32_t start, uint64_t len)
     fileRow->addWidget(browse);
 
     auto *form = new QFormLayout;
+    util::setupFormLayout(form);
     form->addRow(tr("Start (hex, register or seg:off):"), startEdit);
     form->addRow(tr("Length (hex bytes, up to 4 GiB):"), lenEdit);
     form->addRow(tr("Address space:"), space);
