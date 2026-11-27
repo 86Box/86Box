@@ -253,6 +253,31 @@ span_edge32(int si)
     return (spans[si].xw & 0x80000000u) != 0u;
 }
 
+/* A tiled target's span covers a whole row: drow or zrow is then the
+   tile row's base (the row's byte offset inside its tile row included)
+   and the column part of the tile transform is applied per pixel, as
+   the interpreter does (r128_tile_x in vid_ati_rage128.h: 64-byte tile
+   columns, 1 KB apart). Bit 22 of xw marks a tiled color row, bit 23 a
+   tiled depth row. */
+bool
+span_ctiled(int si)
+{
+    return (spans[si].xw & 0x00400000u) != 0u;
+}
+
+bool
+span_ztiled(int si)
+{
+    return (spans[si].xw & 0x00800000u) != 0u;
+}
+
+/* byte offset of byte xb of a row from the row base */
+uint
+row_xoff(bool tiled, uint xb)
+{
+    return tiled ? (((xb >> 6) << 10) + (xb & 63u)) : xb;
+}
+
 int
 span_py(int si)
 {
@@ -1392,8 +1417,8 @@ pixel(int si, int ti, uint i)
 
         zi    = zfx_quant(zfx_at(ti, px, py), zmax);
         zstg  = (zrw & 0x80000000u) != 0u;
-        zcell = zstg ? ((zrw & 0x7fffffffu) + uint(px) * zbpp)
-                     : ((zrw + uint(px) * zbpp) & pc.vram_mask);
+        zcell = zstg ? ((zrw & 0x7fffffffu) + row_xoff(span_ztiled(si), uint(px) * zbpp))
+                     : ((zrw + row_xoff(span_ztiled(si), uint(px) * zbpp)) & pc.vram_mask);
         /* straddling resident cell (Z_OFFSET not a multiple of the cell
            size): reads assemble bytes, writes below are byte-lane
            atomic */
@@ -1766,8 +1791,8 @@ pixel(int si, int ti, uint i)
     uint dbpp  = (DS(ti).dst_dt == 6u) ? 4u : 2u;
     uint drw   = spans[si].drow;
     bool dstg  = (drw & 0x80000000u) != 0u;
-    uint daddr = dstg ? ((drw & 0x7fffffffu) + uint(px) * dbpp)
-                      : ((drw + uint(px) * dbpp) & pc.vram_mask);
+    uint daddr = dstg ? ((drw & 0x7fffffffu) + row_xoff(span_ctiled(si), uint(px) * dbpp))
+                      : ((drw + row_xoff(span_ctiled(si), uint(px) * dbpp)) & pc.vram_mask);
 
     if (V_BLEND != 0 && !cdead) {
         uint          dst = dst_read(daddr, DS(ti).dst_dt, dstg);
@@ -1839,8 +1864,8 @@ pixel(int si, int ti, uint i)
             wshf  = DS(ti).zshift;
             wmax  = (wbpp == 4u) ? 0xffffffu : 0xffffu;
             wstg  = (wrw & 0x80000000u) != 0u;
-            wcell = wstg ? ((wrw & 0x7fffffffu) + uint(px) * wbpp)
-                         : ((wrw + uint(px) * wbpp) & pc.vram_mask);
+            wcell = wstg ? ((wrw & 0x7fffffffu) + row_xoff(span_ztiled(si), uint(px) * wbpp))
+                         : ((wrw + row_xoff(span_ztiled(si), uint(px) * wbpp)) & pc.vram_mask);
             wua   = !wstg && (wcell & (wbpp - 1u)) != 0u;
             wzi   = zfx_quant(zfx_at(ti, px, py), wmax);
         } else {
