@@ -286,7 +286,7 @@ sound_source_detach(sound_source_t *src)
 
         src->leader = NULL;
         src->fnext  = NULL;
-        src->pos    = ld->pos;
+        src->pos    = (ld->pos >= ld->buffer_size) ? 0 : ld->pos;
         src->latch  = ld->latch;
         timer_set_delay_u64(&src->timer, timer_is_enabled(&ld->timer) ? timer_get_remaining_u64(&ld->timer) : ld->latch);
     } else if (src->followers != NULL) {
@@ -300,7 +300,7 @@ sound_source_detach(sound_source_t *src)
         n->req_rate  = 0.0;
         n->req_seen  = 0;
         n->latch     = src->latch;
-        n->pos       = src->pos;
+        n->pos       = (src->pos >= src->buffer_size) ? 0 : src->pos;
         timer_set_delay_u64(&n->timer, timer_is_enabled(&src->timer) ? timer_get_remaining_u64(&src->timer) : src->latch);
         src->followers = NULL;
     }
@@ -444,8 +444,13 @@ sound_source_poll(void *priv)
     if (src->pos == src->buffer_size) {
         sound_source_block(src);
 
-        for (f = src->followers; f != NULL; f = f->fnext)
+        /* A card may split its source off from the group in its callback. */
+        for (f = src->followers; f != NULL;) {
+            sound_source_t *next = f->fnext;
+
             sound_source_block(f);
+            f = next;
+        }
 
         src->pos = 0;
         for (f = src->followers; f != NULL; f = f->fnext)
