@@ -508,7 +508,6 @@ runctl_thread_quantum_done(uint32_t us)
 
 /* Pacing: the CPU thread owes the guest the host time that has passed, and
    pays it back one quantum (1 ms, or 10 ms with force_10ms) per pass. */
-#define QUANTUM_NS  (force_10ms ? 10000000LL : 1000000LL)
 #define MAX_DEBT_NS 50000000LL
 
 static void
@@ -527,11 +526,10 @@ idle_hard_reset(void)
 void
 runctl_thread_run_loop(void (*pass)(void))
 {
-    const int64_t quantum_ns = QUANTUM_NS;
-    int64_t       old_ns     = (int64_t) plat_get_ns();
-    int64_t       debt_ns    = 0;
-    int           turbo_ok_passes = 0;
-    int           frames          = 0;
+    int64_t old_ns          = (int64_t) plat_get_ns();
+    int64_t debt_ns         = 0;
+    int     turbo_ok_passes = 0;
+    int     nvr_elapsed_ms  = 0;
 
     is_cpu_thread = 1;
     framecountx   = 0;
@@ -544,11 +542,17 @@ runctl_thread_run_loop(void (*pass)(void))
         old_ns = new_ns;
         if (debt_ns > MAX_DEBT_NS)
             debt_ns = MAX_DEBT_NS;
+
+        automation_poll();
+        /* Settings can change the block length while the CPU thread is parked.
+           Read it after observing the resumed state and use it for the entire
+           pass, including accounting after the next safe point. */
+        const int     quantum_ms = (runctl_state() == RUN_RUNNING) ? (force_10ms ? 10 : 1) : 0;
+        const int64_t quantum_ns = quantum_ms * 1000000LL;
         if (gdbstub_next_asap && (debt_ns < quantum_ns))
             debt_ns = quantum_ns;
 
-        automation_poll();
-        if (((debt_ns >= quantum_ns) || (runctl_mode() == RUN_MODE_FAST)) && !dopause) {
+        if (quantum_ms && ((debt_ns >= quantum_ns) || (runctl_mode() == RUN_MODE_FAST))) {
             /* One pc_run() per pass. No burst catch-up (a loop of quanta): it
                overshoots after dips and amplifies <100/>100 speed oscillation. */
 #ifdef USE_INSTRUMENT
@@ -568,10 +572,12 @@ runctl_thread_run_loop(void (*pass)(void))
             }
 #endif
             /* Every 2 emulated seconds we save the machine status. */
-            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
+            if (nvr_elapsed_ms < 2000)
+                nvr_elapsed_ms += quantum_ms;
+            if (nvr_elapsed_ms >= 2000 && nvr_dosave) {
                 nvr_save();
-                nvr_dosave = 0;
-                frames     = 0;
+                nvr_dosave     = 0;
+                nvr_elapsed_ms = 0;
             }
 
             if ((runctl_mode() != RUN_MODE_FAST) && (debt_ns >= quantum_ns))

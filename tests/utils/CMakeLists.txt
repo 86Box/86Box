@@ -20,6 +20,18 @@ if(BUILD_TESTING)
     )
     target_link_libraries(pc_block_tests PRIVATE GTest::gtest_main)
 
+    add_executable(runctl_pacing_tests
+        runctl_pacing_test.c
+        ../../src/runctl.c
+    )
+    target_include_directories(runctl_pacing_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME Runctl.SmallToLargeBlocks COMMAND runctl_pacing_tests small)
+    add_test(NAME Runctl.LargeToSmallBlocks COMMAND runctl_pacing_tests large)
+
     add_executable(random_tests
         random_test.cpp
         ../../src/utils/random.c
