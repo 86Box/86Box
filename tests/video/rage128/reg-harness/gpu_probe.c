@@ -266,7 +266,7 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         uint64_t         ns, np;
         uint32_t         clo, chi, zlo, zhi;
 
-        gpu_tri_need(rs, ta, tb, tc, &ns, &np);
+        gpu_tri_need(rs, ta, tb, tc, &ns, &np, NULL);
         res->need_spans += ns;
         res->need_px += np;
         prim_ranges(rs, dev->vram_mask, ta, tb, tc, &clo, &chi, &zlo, &zhi);
@@ -341,6 +341,8 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         out[i].py    = (int32_t) y;
         out[i].drow  = sp[i].drow;
         out[i].zrow  = sp[i].zrow;
+        out[i].ctiled = (sp[i].xw & 0x00400000u) != 0u;
+        out[i].ztiled = (sp[i].xw & 0x00800000u) != 0u;
         out[i].e0    = (int64_t) ((uint64_t) tt->e0o + y * (uint64_t) tt->e0dyi
                                   + x * (uint64_t) tt->e0dxi);
         out[i].e1    = (int64_t) ((uint64_t) tt->e1o + y * (uint64_t) tt->e1dyi
@@ -396,7 +398,7 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
         return 0;
     }
 
-    gpu_tri_need(rs, a, b, c, &res->bound_spans, &res->bound_px);
+    gpu_tri_need(rs, a, b, c, &res->bound_spans, &res->bound_px, &res->trip_spans);
 
     dev->gpu      = g;
     res->accepted = rage128_gpu_submit_tri(dev, rs, a, b, c);
@@ -451,7 +453,7 @@ harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
        tell a serial run from a parallel one. */
     atomic_store_explicit(&g->serial_ready, 1, memory_order_release);
 
-    gpu_tri_need(rs, a, b, c, &spans, &res->need_px);
+    gpu_tri_need(rs, a, b, c, &spans, &res->need_px, NULL);
 
     dev->gpu      = g;
     res->accepted = rage128_gpu_submit_tri(dev, rs, a, b, c);

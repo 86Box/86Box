@@ -85,6 +85,8 @@ int harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs);
 typedef struct harness_gpu_span_t {
     int32_t  x0, x1, py;
     uint32_t drow, zrow;
+    int      ctiled, ztiled; /* the kernel applies the tile column offset
+                                per pixel to drow (color) or zrow (Z) */
     int64_t  e0, e1, e2;
     int64_t  zline;
     int64_t  w_e0, w_e1, w_e2;
@@ -139,6 +141,7 @@ typedef struct harness_gpu_sub_t {
     int      accepted;    /* submit_tri return value                    */
     uint64_t bound_spans; /* cheap bbox bound, for the vector's context */
     uint64_t bound_px;
+    uint64_t trip_spans;  /* the count that decides the exact re-price  */
     uint64_t reprice;     /* exact re-price walks run                   */
     uint64_t toobig;      /* draws rejected after the exact count       */
     uint64_t miss;        /* reprice-consumption tripwire, must be 0    */

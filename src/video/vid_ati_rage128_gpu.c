@@ -706,16 +706,23 @@ _Static_assert(offsetof(seg_draw_t, stipple) == 964, "draw layout drift");
 /* The packed span fields: x0 and py in 14 bits (a scissor coordinate is
    14 bits wide, RRG: SC_BOTTOM_RIGHT, p. 3-162 / PDF 180, and the row
    cap covers the same range), the width less one in 8 bits (a span is
-   at most 256 pixels) and the triangle index in 13 bits. */
+   at most 256 pixels), the tiled-row flags (GPU_SPAN_CTILED and
+   GPU_SPAN_ZTILED) and the triangle index in 13 bits. */
 _Static_assert(GPU_ROW_CAP <= (1u << 14), "span py overflows its field");
 _Static_assert(GPU_TRI_CAP <= (1u << 18), "span tri overflows its field");
 
+/* A span on a tiled color or depth target covers its whole row: drow or
+   zrow holds the row's base inside its tile row, and the kernel adds the
+   tile column offset per pixel (row_xoff in the seg kernel). */
+#    define GPU_SPAN_CTILED 0x00400000u
+#    define GPU_SPAN_ZTILED 0x00800000u
+
 static inline void
 gpu_span_pack(seg_span_t *s, int32_t x0, int32_t x1, int32_t py, int32_t tri,
-              int edge32)
+              int edge32, uint32_t tiled)
 {
     s->xw = ((uint32_t) x0 & 0x3fffu) | (((uint32_t) (x1 - x0) & 0xffu) << 14)
-        | (edge32 ? 0x80000000u : 0u);
+        | tiled | (edge32 ? 0x80000000u : 0u);
     s->pt = ((uint32_t) py & 0x3fffu) | ((uint32_t) tri << 14);
 }
 
@@ -3569,19 +3576,24 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
    same subpixel slack prim_ranges uses. It can only overestimate: the
    raster walk clips to the bounding box and the scissor, so the real
    capture never exceeds it. Out-of-range float coordinates price as the
-   full 14-bit extent.
+   full 14-bit extent. A tiled row is one capture call too
+   (rage128_gpu_capture_span), so it prices the same as a linear one.
+   Pricing this too low gives a wrong image, not a slow one: the accept
+   bound is what reserves the span arena, and a capture that runs past
+   it drops the pixels it could not record.
 
-   On a tiled surface the row walk splits at every tile-column edge it
-   crosses, so its rows cost pieces, not 256 px chunks: one piece plus
-   one per crossing, per tiled surface. A column is 64 bytes, at most 32
-   pixels, so the 256 px chunk never binds there. Pricing this too low
-   gives a wrong image, not a slow one: the accept bound is what
-   reserves the span arena, and a capture that runs past it drops the
-   pixels it could not record. */
+   trip_spans, when asked for, is the count that decides whether the draw
+   is re-priced exactly (gpu_submit_prim). On a linear target it is the
+   estimate itself. On a tiled target it also charges one span per
+   64-byte tile column the box crosses, per tiled surface, so a tiled
+   draw is re-priced in exactly the cases where that per-column count
+   passes the span cap. The re-price is what gives the self-alias test
+   the draw's exact pixel count, so this keeps which tiled draws reach
+   the serial run independent of how the capture cuts a tiled row. */
 static void
 gpu_tri_need(const rage128_raster_state_t *rs, const r3d_vtx_t *a,
              const r3d_vtx_t *b, const r3d_vtx_t *c,
-             uint64_t *need_spans, uint64_t *need_px)
+             uint64_t *need_spans, uint64_t *need_px, uint64_t *trip_spans)
 {
     const r3d_vtx_t *v[3] = { a, b, c };
     int              ymin = INT32_MAX, ymax = INT32_MIN;
@@ -3646,21 +3658,26 @@ gpu_tri_need(const rage128_raster_state_t *rs, const r3d_vtx_t *a,
     if (ymax < ymin || xmax < xmin) {
         *need_spans = 0;
         *need_px    = 0;
+        if (trip_spans)
+            *trip_spans = 0;
         return;
     }
-    rows  = (uint64_t) (ymax - ymin + 1);
-    width = (uint64_t) (xmax - xmin + 1);
-    if (rs->d.c_tiled || rs->d.z_tiled) {
-        uint64_t per_row = 1;
+    rows        = (uint64_t) (ymax - ymin + 1);
+    width       = (uint64_t) (xmax - xmin + 1);
+    *need_spans = rows * ((width + 255u) / 256u);
+    *need_px    = rows * width;
+    if (trip_spans) {
+        *trip_spans = *need_spans;
+        if (rs->d.c_tiled || rs->d.z_tiled) {
+            uint64_t per_row = 1;
 
-        if (rs->d.c_tiled)
-            per_row += (width * (uint64_t) rs->d.bpp + 63u) / 64u;
-        if (rs->d.z_tiled)
-            per_row += (width * (uint64_t) rs->d.zbpp + 63u) / 64u;
-        *need_spans = rows * per_row;
-    } else
-        *need_spans = rows * ((width + 255u) / 256u);
-    *need_px = rows * width;
+            if (rs->d.c_tiled)
+                per_row += (width * (uint64_t) rs->d.bpp + 63u) / 64u;
+            if (rs->d.z_tiled)
+                per_row += (width * (uint64_t) rs->d.zbpp + 63u) / 64u;
+            *trip_spans = rows * per_row;
+        }
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -3820,13 +3837,12 @@ gpu_state_kernel(rage128_t *dev, const rage128_raster_state_t *rs)
        express; it stays as the explicit tie to those arrays */
     int row_ok = d->sy0 >= 0 && d->sy1 < (int) GPU_ROW_CAP;
     int czs_ok = gpu_czstage_ok(g, dev, rs);
-    /* A tiled color/Z surface needs no kernel transform: the capture
-       walks each row in tile-column pieces and
-       rebases the row address per piece, so the kernel's own (row base
-       + x * bpp) lands on the tiled byte with nothing changed in the
-       kernel. A tiled texture level has no per-row base to rebase,
-       since each access would need the tile transform, so an unstaged
-       one refuses. */
+    /* A tiled color/Z surface is addressed in place: the capture hands
+       the kernel each row's base inside its tile row and flags the span
+       tiled, and the kernel adds the tile column offset of each pixel
+       (row_xoff in the seg kernel). A tiled texture level has no such
+       path, since the sampler reads it with no per-row base, so an
+       unstaged one refuses. */
     int common = d->draw_ok && dst_ok && row_ok && czs_ok
         && !d->tex_tiled;
     /* The z axis means the z cell is live: depth test, stencil, or both
@@ -4128,8 +4144,8 @@ gpu_gate_census(rage128_t *dev)
     }
 
     /* 5. 64-byte x 16-row tiling. Color and Z are addressed in place
-       (the capture splits each row at the tile-column edges and rebases
-       each piece), so the gate must accept them. The Windows 98
+       (the kernel applies the tile column offset per pixel of a tiled
+       span), so the gate must accept them. The Windows 98
        Direct3D driver was seen setting Z_TILE on nearly every draw, so
        a gap here would send almost all of its draws back to the
        interpreter. A tiled texture level must still refuse: the sampler
@@ -5133,10 +5149,12 @@ gpu_bk_cells(r128_gpu_t *g, uint32_t lo, uint32_t hi)
     }
 }
 
-/* A span may store len bytes from local address a on: the kernel forms
-   each pixel's address as row + x * bpp and masks it, so a run that
-   passes the top of VRAM continues at the bottom, and the pixel that
-   straddles the top stores into the guard word. Both are marked. */
+/* A span may store len contiguous bytes from local address a on: one
+   linear row, or one tile column's run of a tiled row (gpu_bk_mark_row
+   passes each run separately). The kernel masks every address it forms,
+   so a run that passes the top of VRAM continues at the bottom, and the
+   pixel that straddles the top stores into the guard word. Both are
+   marked. */
 static void
 gpu_bk_mark(r128_gpu_t *g, uint32_t a, uint32_t len, uint32_t vram_mask)
 {
@@ -7337,12 +7355,59 @@ capture_run_texrange(r128_gpu_t *g, const rage128_t *dev,
     g->texq_memo_valid = 1;
 }
 
+/* The byte range [*lo, *hi) of pixels [x0, x0 + n) at b bytes each,
+   relative to the row base the span record carries. On a tiled row the
+   tile transform is applied to the first and last byte; it keeps a row's
+   bytes in x order (each 64-byte tile column of the row lies 1 KB past
+   the one before), so the range holds every byte of those pixels, and
+   of this row it holds no other byte. The bytes of the tile row's other
+   rows that fall between are never this row's: two spans of one row
+   overlap in such ranges exactly when their pixels share a byte, which
+   is what the leveler needs. */
+static inline void
+gpu_row_bytes(int tiled, uint32_t x0, uint32_t n, uint32_t b, uint32_t *lo,
+              uint32_t *hi)
+{
+    if (!tiled || !n || !b) {
+        *lo = x0 * b;
+        *hi = (x0 + n) * b;
+        return;
+    }
+    *lo = r128_tile_x(x0 * b);
+    *hi = r128_tile_x((x0 + n) * b - 1u) + 1u;
+}
+
+/* Mark the copy-back cells of pixels [x0, x0 + n) at b bytes each, on a
+   row whose kernel base is kbase. A tiled row's bytes are one run per
+   64-byte tile column, so each column's run is marked on its own: the
+   bytes between belong to other rows, and marking them would copy back
+   bytes this segment does not store. */
+static void
+gpu_bk_mark_row(r128_gpu_t *g, int tiled, uint32_t kbase, uint32_t x0,
+                uint32_t n, uint32_t b, uint32_t vram_mask)
+{
+    uint32_t xb = x0 * b, xe = (x0 + n) * b;
+
+    if (!tiled) {
+        gpu_bk_mark(g, kbase + xb, xe - xb, vram_mask);
+        return;
+    }
+    while (xb < xe) {
+        uint32_t ce = (xb | 63u) + 1u;
+
+        if (ce > xe)
+            ce = xe;
+        gpu_bk_mark(g, kbase + r128_tile_x(xb), ce - xb, vram_mask);
+        xb = ce;
+    }
+}
+
 /* Fill the host side tables for span si, pixels [cx, cx+cw). bb_of gets
    the span's color and z byte ranges for the leveler's alias test, in
    the address space the kernel stores to: kdrow and kzrow are the row
    bases the span record carries (a resident row masked into VRAM, a
-   staged one tagged with bit 31 and relative to its arena; both already
-   rebased to the tile column on a tiled surface). Color is sized by the
+   staged one tagged with bit 31 and relative to its arena), and a tiled
+   row's range comes from gpu_row_bytes. Color is sized by the
    destination bpp, z by zbpp even when z is off, which can only
    over-report an overlap. Comparing whole addresses rather than offsets
    within a row lets the leveler order spans of different rows, which a
@@ -7368,11 +7433,15 @@ capture_span_class(r128_gpu_t *g, uint32_t si, const rage128_draw_state_t *ds,
 {
     uint32_t cb   = (ds->dst_dt == 6) ? 4u : 2u;
     uint32_t size = vram_mask + 1u;
+    uint32_t lo, hi;
 
-    g->bb_of[si].c0 = kdrow + (uint32_t) cx * cb;
-    g->bb_of[si].c1 = kdrow + (uint32_t) (cx + cw) * cb;
-    g->bb_of[si].z0 = kzrow + (uint32_t) cx * (uint32_t) ds->zbpp;
-    g->bb_of[si].z1 = kzrow + (uint32_t) (cx + cw) * (uint32_t) ds->zbpp;
+    gpu_row_bytes(ds->c_tiled, (uint32_t) cx, (uint32_t) cw, cb, &lo, &hi);
+    g->bb_of[si].c0 = kdrow + lo;
+    g->bb_of[si].c1 = kdrow + hi;
+    gpu_row_bytes(ds->z_tiled, (uint32_t) cx, (uint32_t) cw, (uint32_t) ds->zbpp,
+                  &lo, &hi);
+    g->bb_of[si].z0 = kzrow + lo;
+    g->bb_of[si].z1 = kzrow + hi;
     /* a staged row base carries bit 31 and is never masked, so only a
        resident range (bit 31 clear, base below the size) can cross the
        top */
@@ -7445,24 +7514,27 @@ capture_run_bounds(r128_gpu_t *g, const r3d_texctx_t *tc, int32_t py,
     uint32_t                      size = tc->dev->vram_mask + 1u;
     int                           zlive = (rs->d.z_en || rs->d.sten_on) && rs->d.zrowpx;
     int                           wrap  = 0;
+    uint32_t                      lo, hi;
 
     if (py < ru->pymin)
         ru->pymin = py;
     if (py > ru->pymax)
         ru->pymax = py;
     if (!rs->c_staged) {
-        if (drow + (uint32_t) cx * cb < ru->c0)
-            ru->c0 = drow + (uint32_t) cx * cb;
-        if (drow + (uint32_t) (cx + cw) * cb > ru->c1)
-            ru->c1 = drow + (uint32_t) (cx + cw) * cb;
-        wrap |= drow + (uint32_t) (cx + cw) * cb > size;
+        gpu_row_bytes(rs->d.c_tiled, (uint32_t) cx, (uint32_t) cw, cb, &lo, &hi);
+        if (drow + lo < ru->c0)
+            ru->c0 = drow + lo;
+        if (drow + hi > ru->c1)
+            ru->c1 = drow + hi;
+        wrap |= drow + hi > size;
     }
     if (!rs->z_staged) {
-        if (zrow + (uint32_t) cx * zb < ru->z0)
-            ru->z0 = zrow + (uint32_t) cx * zb;
-        if (zrow + (uint32_t) (cx + cw) * zb > ru->z1)
-            ru->z1 = zrow + (uint32_t) (cx + cw) * zb;
-        wrap |= zlive && zrow + (uint32_t) (cx + cw) * zb > size;
+        gpu_row_bytes(rs->d.z_tiled, (uint32_t) cx, (uint32_t) cw, zb, &lo, &hi);
+        if (zrow + lo < ru->z0)
+            ru->z0 = zrow + lo;
+        if (zrow + hi > ru->z1)
+            ru->z1 = zrow + hi;
+        wrap |= zlive && zrow + hi > size;
     }
     if (!ru->rowalias
         && ((uint32_t) (cx + cw - 1) >= rs->dst_pitch
@@ -7473,32 +7545,13 @@ capture_run_bounds(r128_gpu_t *g, const r3d_texctx_t *tc, int32_t py,
     }
 }
 
-/* The covered columns of a whole row, before the tiled walk splits it
-   into tile-column pieces: the same accept test and the same edge clip
-   rage128_gpu_capture_span applies to each piece, run once on the full
-   row. The clip is exact per pixel (each edge keeps the columns where its
-   integer edge value is >= 0), so the row's range is exactly the union of
-   what the pieces would capture, and a piece outside it would capture
-   nothing. Returns 0 when the row has no covered column. */
-int
-rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri, int64_t e0,
-                              int64_t e1, int64_t e2, int32_t py,
-                              int32_t *cx0, int32_t *cx1)
-{
-    int32_t lo = 0, hi;
-
-    if (py < 0 || py >= (int32_t) GPU_ROW_CAP || tri->x1 < tri->x0)
-        return 0;
-    hi = tri->x1 - tri->x0;
-    if (!gpu_clip_edge(e0, tri->e0dxi, &lo, &hi)
-        || !gpu_clip_edge(e1, tri->e1dxi, &lo, &hi)
-        || !gpu_clip_edge(e2, tri->e2dxi, &lo, &hi))
-        return 0;
-    *cx0 = tri->x0 + lo;
-    *cx1 = tri->x0 + hi;
-    return 1;
-}
-
+/* Capture one row of a triangle: drow and zrow are the row bases the
+   walk computed, linear or, on a tiled target, the row's base inside its
+   tile row, and the row's whole bounding-box range [tri->x0, tri->x1] is
+   passed in one call on either layout. The kernel applies the tile
+   transform per pixel, so a tiled row is not split at its 64-byte tile
+   columns here; only the copy-back marks are made per tile column
+   (gpu_bk_mark_row). */
 uint64_t
 rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                          int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow,
@@ -7510,6 +7563,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     gpu_capw_t         *pw  = &g->cw;
     int32_t             x0 = tri->x0, x1 = tri->x1;
     int32_t             lo = 0, hi;
+    uint32_t            tiled;
 
     if (py < 0 || py >= (int32_t) GPU_ROW_CAP || x1 < x0)
         return 0xffffffffu; /* nothing to capture (rare: the walk clamps) */
@@ -7556,6 +7610,8 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
 
     /* Split the row into chunks of at most 256 pixels, one per kernel
        workgroup of 256 threads. */
+    tiled = (tc->rs->d.c_tiled ? GPU_SPAN_CTILED : 0u)
+        | (tc->rs->d.z_tiled ? GPU_SPAN_ZTILED : 0u);
     {
         int32_t cx = x0;
 
@@ -7585,7 +7641,8 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                     && gpu_edge32_span(e1 + tri->e1b, tri->e1dxi, cw)
                     && gpu_edge32_span(e2 + tri->e2b, tri->e2dxi, cw);
 
-                gpu_span_pack(sp, cx, cx + cw - 1, py, pw->cur_tri, edge32);
+                gpu_span_pack(sp, cx, cx + cw - 1, py, pw->cur_tri, edge32,
+                              tiled);
 #    ifdef R128_GPU_SPAN_TAP
                 /* the register harness's hook: the walked values the
                    plane seeds must reproduce */
@@ -7619,14 +7676,14 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                 const rage128_draw_state_t *dd = &tc->rs->d;
 
                 if (!(kdrow & 0x80000000u))
-                    gpu_bk_mark(g, kdrow + (uint32_t) cx * (uint32_t) dd->bpp,
-                                (uint32_t) cw * (uint32_t) dd->bpp,
-                                dev->vram_mask);
+                    gpu_bk_mark_row(g, dd->c_tiled, kdrow, (uint32_t) cx,
+                                    (uint32_t) cw, (uint32_t) dd->bpp,
+                                    dev->vram_mask);
                 if (((dd->z_en && dd->z_wr) || dd->sten_on)
                     && !(kzrow & 0x80000000u))
-                    gpu_bk_mark(g, kzrow + (uint32_t) cx * (uint32_t) dd->zbpp,
-                                (uint32_t) cw * (uint32_t) dd->zbpp,
-                                dev->vram_mask);
+                    gpu_bk_mark_row(g, dd->z_tiled, kzrow, (uint32_t) cx,
+                                    (uint32_t) cw, (uint32_t) dd->zbpp,
+                                    dev->vram_mask);
             }
             g->py_of[pw->nsp] = (uint16_t) py;
             capture_span_class(g, pw->nsp, &tc->rs->d, cx, cw, kdrow, kzrow,
@@ -8103,7 +8160,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
 {
     r128_gpu_t      *g = (r128_gpu_t *) dev->gpu;
     uint32_t         clo, chi, zlo, zhi;
-    uint64_t         need_spans, need_px;
+    uint64_t         need_spans, need_px, trip_spans;
     int              kern;
     int32_t          tup      = -1;
     int              serial   = 0;
@@ -8126,15 +8183,24 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
        off partway through capture after it was accepted, and the rest
        of its pixels would be drawn by no one. The quick estimate
        (gpu_tri_need) charges every bounding-box row at the full box
-       width, and on a tiled surface charges one span per tile-column
-       piece of each row, so a large triangle on a tiled target can
-       exceed the span cap while its real spans fit. A draw over a cap is
-       therefore counted exactly first, with a count-only walk through
+       width, so a large triangle can exceed the span cap while its real
+       spans fit. A draw whose re-price count (trip_spans) is over the cap
+       is therefore counted exactly first, with a count-only walk through
        the same rasterizer, clip and chunking the capture uses, and is
        refused to the CPU path only if the exact count is still over.
-       Only draws over a cap pay for the extra walk. */
-    gpu_tri_need(rs, a, b, c, &need_spans, &need_px);
-    if (need_spans > GPU_SPAN_CAP) {
+       Only those draws pay for the extra walk.
+
+       On a tiled target the re-price count also charges each tile
+       column the box crosses. A tiled draw is then re-priced whenever
+       that per-column count passes the cap, and the exact count gives
+       the self-alias test below its exact pixel count, so a large
+       aliasing tiled draw that covers few pixels still runs as a serial
+       run. The exact count itself is of whole-row spans, the capture's
+       own: a tiled draw whose per-column count is over the cap while its
+       whole-row count fits is accepted on the GPU, and only a whole-row
+       count over the cap goes to the CPU path. */
+    gpu_tri_need(rs, a, b, c, &need_spans, &need_px, &trip_spans);
+    if (trip_spans > GPU_SPAN_CAP) {
         g->dry_spans = 0;
         g->dry_px    = 0;
         if (line)
@@ -14102,19 +14168,6 @@ rage128_gpu_count_span(const r128_jit_tri_t *tri, int64_t e0,
     (void) zrow;
     (void) py;
     return 0;
-}
-int
-rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri, int64_t e0,
-                              int64_t e1, int64_t e2, int32_t py,
-                              int32_t *cx0, int32_t *cx1)
-{
-    (void) e0;
-    (void) e1;
-    (void) e2;
-    (void) py;
-    *cx0 = tri->x0;
-    *cx1 = tri->x1;
-    return 1;
 }
 
 #endif /* R128_GPU_HAVE_VULKAN */

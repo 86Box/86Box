@@ -1817,9 +1817,10 @@ typedef struct rage128_draw_state_t {
                          on clear bits; interpreter only     */
     int c_tiled;      /* dst tile bit: tiled addressing of the
                          color target, when it was not staged
-                         untiled; the JIT and GPU lanes reach
-                         it through the tile-column row walk
-                         (rage128_3d_jit_row)                */
+                         untiled; the JIT lane walks each row
+                         in tile-column pieces, the GPU lane
+                         captures the whole row and its kernel
+                         applies the tile offset per pixel   */
     int aux_on;
     /* aux scissors, enabled rectangles only (disabled ones stay zero so
        equal states compare equal): enable and mode bits as in
@@ -1842,8 +1843,8 @@ typedef struct rage128_draw_state_t {
     int      zshift;
     uint32_t zrowpx;
     int      z_tiled; /* Z_PITCH_C bit 16: tiled Z addressing,
-                         when Z was not staged untiled; same
-                         row walk as c_tiled                */
+                         when Z was not staged untiled;
+                         handled per lane as for c_tiled    */
     int      sten_on;
     uint32_t sfn, sfail_op, zpass_op, zfail_op;
     uint32_t sref, svmask, swmask;
@@ -2781,8 +2782,10 @@ r128_row_owned(int32_t y, int thr_id, int thr_mask)
    cache is used by one thread only (see rage128_jit_get_block). */
 /* Run one JIT row over a color or Z surface that may be tiled: the row
    is walked in 64-byte tile-column pieces, each with its base moved so
-   the block's own base + x * bpp lands on the tiled byte; a fully linear
-   row is a single jfn call. Restores jt->x0 / x1. Returns the block's
+   the block's own base + x * bpp lands on the tiled byte. A fully linear
+   row, and any row of the GPU capture or its count-only twin (whose
+   kernel applies the tile transform per pixel), is a single jfn call.
+   Restores jt->x0 / x1. Returns the block's
    packed written-column range. Exported for the JIT verify mode, which
    must run the JIT through the same walk it checks. */
 extern uint64_t rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn,
@@ -3023,13 +3026,6 @@ extern uint64_t rage128_gpu_capture_span(const r128_jit_tri_t *tri,
                                          int64_t e0, int64_t e1, int64_t e2,
                                          int64_t zline, uint32_t drow,
                                          uint32_t zrow, int32_t py);
-/* Covered columns [*cx0, *cx1] of one whole row under the capture's own
-   edge clip; 0 when the row has none. Lets the tiled row walk skip the
-   tile-column pieces the capture would reject. */
-extern int rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri,
-                                         int64_t e0, int64_t e1, int64_t e2,
-                                         int32_t py, int32_t *cx0,
-                                         int32_t *cx1);
 /* Counting version of the capture: the exact span and pixel count of a
    draw that the bounding-box estimate refused. It writes nothing, and
    the walker must not run the verify or statistics paths around it,
