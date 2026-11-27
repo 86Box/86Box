@@ -1909,6 +1909,8 @@ sscape_init(UNUSED(const device_t *info))
     ad1848_init(&dev->ad1848, AD1848_TYPE_DEFAULT);
     ad1848_setirq(&dev->ad1848, 7);
     ad1848_setdma(&dev->ad1848, 1);
+    ad1848_set_cd_audio_channel(&dev->ad1848, AD1848_AUX1);
+    sound_set_cd_audio_filter(ad1848_filter_cd_audio, &dev->ad1848);
 
     dev->gameport = gameport_add(&gameport_201_device);
     gameport_remap(dev->gameport, 0);
