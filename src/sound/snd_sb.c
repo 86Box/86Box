@@ -7246,7 +7246,7 @@ solo1_legacy_dma_writew(void *priv, uint16_t val)
 extern void sb_doreset(sb_dsp_t *dsp);
 
 /* The Solo-1 legacy core's Audio 1 interrupt: on the Solo-1's INTA pin
-   when it is attached there, else on the Sound Blaster ISA IRQ. */
+   when it is attached there, and on the Sound Blaster ISA IRQ. */
 static void
 ess_solo1_legacy_dsp_irq(void *priv, int set)
 {
@@ -7254,7 +7254,9 @@ ess_solo1_legacy_dsp_irq(void *priv, int set)
 
     if (ess->solo1_irq_update != NULL)
         ess->solo1_irq_update(ess->solo1_irq_priv, set);
-    else if (ess->dsp.sb_irqnum) {
+
+    /* Software that uses the Sound Blaster compatible interface (DOS) waits for the ISA IRQ. */
+    if (ess->dsp.sb_irqnum) {
         if (set)
             picint(1 << ess->dsp.sb_irqnum);
         else
