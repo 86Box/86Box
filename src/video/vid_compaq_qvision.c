@@ -17,7 +17,8 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define QVISION_ROM "roms/video/compaq_qvision/qvision1024-bank1.bin"
+#define QVISION_ROM_EVEN "roms/video/compaq_qvision/TMS27PC256@PLCC32_U40.bin"
+#define QVISION_ROM_ODD  "roms/video/compaq_qvision/TMS27PC256@PLCC32_U21.bin"
 
 typedef struct {
     bool     active, mono, transparent, primary_only, rop_enabled, invert, packed4;
@@ -30,6 +31,7 @@ typedef struct {
     rom_t          bios;
     mem_mapping_t  highmap;
     qvision_host_t host;
+    uint8_t        bios_data[0x10000], bios_vga[0x8000];
     uint8_t        registers[65536];
     uint8_t        board_control, setup, select, video_enable, option_select;
     uint8_t        pattern[8], pattern_count, slot;
@@ -67,11 +69,23 @@ qvision_dirty(qvision_t *s, uint32_t start, uint32_t size)
 }
 
 static void
+qvision_update_rom(qvision_t *s)
+{
+    /* C85.4 selects the extended ROM; the AVGA-only view leaves C6000-C67FF open. */
+    s->bios.rom = (s->setup & 0x10) ? s->bios_data + 0x8000 : s->bios_vga;
+    mem_mapping_set_exec(&s->bios.mapping, s->bios.rom);
+}
+
+static void
 qvision_update_map(qvision_t *s)
 {
     uint32_t base = ((uint32_t) s->svga.gdcreg[0x48] << 20) | ((uint32_t) (s->svga.gdcreg[0x49] & 15) << 28);
     mem_mapping_disable(&s->highmap);
     s->high_base = base;
+    if (s->board_control & 1)
+        mem_mapping_enable(&s->bios.mapping);
+    else
+        mem_mapping_disable(&s->bios.mapping);
     if (qvision_vga_enabled(s)) {
         mem_mapping_enable(&s->svga.mapping);
         if (base >= (1U << 20)) {
@@ -757,8 +771,12 @@ qvision_eisa_out(uint16_t p, uint8_t v, void *priv)
     qvision_t *s = priv;
     if ((p & 0xfff) == 0xc84)
         s->board_control = v & 1;
-    if ((p & 0xfff) == 0xc85)
-        s->setup = v & 0x1f;
+    if ((p & 0xfff) == 0xc85) {
+        uint8_t old = s->setup;
+        s->setup    = v & 0x1f;
+        if ((old ^ s->setup) & 0x10)
+            qvision_update_rom(s);
+    }
     qvision_update_map(s);
 }
 static void
@@ -767,13 +785,15 @@ qvision_reset(void *priv)
     qvision_t *s = priv;
     memset(&s->host, 0, sizeof(s->host));
     memset(s->registers, 0, sizeof(s->registers));
-    s->pattern_count     = 0;
-    s->board_control     = 1;
+    s->pattern_count = 0;
+    s->board_control = 1;
+    /* C85.4 follows the ECU default; its hardware reset value is unverified. */
     s->setup             = 0x10;
     s->video_enable      = 8;
     s->option_select     = 1;
     s->select            = 0;
     s->svga.gdcreg[0x0c] = 0x37;
+    qvision_update_rom(s);
     qvision_update_map(s);
 }
 static void *
@@ -782,6 +802,12 @@ qvision_init(const device_t *info)
     qvision_t             *s      = calloc(1, sizeof(*s));
     static const uint8_t   id[]   = { 0x0e, 0x11, 0x30, 0x11 };
     static video_timings_t timing = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
+    if (!rom_load_interleaved(QVISION_ROM_EVEN, QVISION_ROM_ODD, 0, sizeof(s->bios_data), 0, s->bios_data)) {
+        free(s);
+        return NULL;
+    }
+    memcpy(s->bios_vga, s->bios_data, sizeof(s->bios_vga));
+    memset(s->bios_vga + 0x6000, 0xff, 0x800);
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing);
     svga_init(info, &s->svga, s, 1U << 20, qvision_recalctimings, qvision_in, qvision_out, NULL, NULL);
     s->svga.ramdac            = device_add(&bt484_ramdac_device);
@@ -792,7 +818,11 @@ qvision_init(const device_t *info)
     mem_mapping_set_p(&s->svga.mapping, s);
     mem_mapping_add(&s->highmap, 0, 0, qvision_mem_read, qvision_mem_readw, qvision_mem_readl,
                     qvision_mem_write, qvision_mem_writew, qvision_mem_writel, NULL, MEM_MAPPING_EXTERNAL, s);
-    rom_init(&s->bios, QVISION_ROM, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    s->bios.rom  = s->bios_data + 0x8000;
+    s->bios.sz   = 0x8000;
+    s->bios.mask = 0x7fff;
+    mem_mapping_add(&s->bios.mapping, 0xc0000, 0x8000, rom_read, rom_readw, rom_readl,
+                    NULL, NULL, NULL, s->bios.rom, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, &s->bios);
     for (s->slot = 1; s->slot <= EISA_MAX_SLOTS; s->slot++) {
         if (!eisa_slot_occupied(s->slot) && eisa_add(s->slot, id, qvision_eisa_in, qvision_eisa_out, NULL, s))
             break;
@@ -829,7 +859,7 @@ qvision_force_redraw(void *p)
 static int
 qvision_available(void)
 {
-    return rom_present(QVISION_ROM);
+    return rom_present(QVISION_ROM_EVEN) && rom_present(QVISION_ROM_ODD);
 }
 
 const device_t compaq_qvision_1024e_device = {
