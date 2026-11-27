@@ -3756,18 +3756,6 @@ msgstr "允许重编译(&A)"
 msgid "&Fast forward"
 msgstr "快进(&F)"
 
-msgid "Fast forward at startup"
-msgstr "在启动时快进"
-
-msgid "Start new machines in fast forward"
-msgstr "在开始新机器时快进"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
-
-msgid "Fast forward at &startup"
-msgstr "启动时快进(&S)"
-
 msgid "Fast forward"
 msgstr "快进"
 

@@ -3772,20 +3772,6 @@ msgstr "&Tillåt omkompilering"
 msgid "&Fast forward"
 msgstr "&Spola fram"
 
-msgid "Fast forward at startup"
-msgstr "Snabbspola vid start"
-
-msgid "Start new machines in fast forward"
-msgstr "Starta nya maskiner i snabbspolning"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
-"Påverkar endast maskiner som skapas från och med nu. Varje maskin kan ändras "
-"i sina inställningar, under Maskin > Prestanda."
-
-msgid "Fast forward at &startup"
-msgstr "Snabbspola vid &start"
-
 msgid "Fast forward"
 msgstr "Spola fram"
 

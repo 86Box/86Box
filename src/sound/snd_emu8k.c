@@ -822,6 +822,11 @@ static void
 emu8k_voice_sync(emu8k_voice_t *voice, unsigned reg, int high)
 {
     switch (reg) {
+        case EMU8K_VOICE_CVCF:
+            /* Keep the volume slew in sync with writes to the current volume. */
+            if (high)
+                voice->volumeslide.last = voice->cvcf_curr_volume;
+            break;
         case EMU8K_VOICE_PSST:
             voice->loop_start.int_address = voice->psst & EMU8K_MEM_ADDRESS_MASK;
             if (high) {

@@ -135,6 +135,8 @@ int tracing_on = 0;
 /* Commandline options. */
 int dump_on_exit        = 0; /* (O) dump regs on exit */
 int start_in_fullscreen = 0; /* (O) start in fullscreen */
+int start_fast_forward  = 0; /* (O) start in fast forward mode */
+int start_paused        = 0; /* (O) start paused */
 #ifdef _WIN32
 int force_debug = 0; /* (O) force debug output */
 #endif
@@ -218,7 +220,6 @@ int      confirm_reset                          = 1;              /* (G) enable 
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
 int      chd_precache_level                     = 0;              /* (G) CHD precache level */
-int      fast_forward_new_machines              = 0;              /* (G) New machines start in fast forward */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
 int      open_dir_usr_path                      = 0;              /* (G) default file open dialog directory
@@ -229,7 +230,6 @@ int      do_auto_pause                          = 0;              /* (G) Auto-pa
                                                                          loss */
 int      do_auto_dialog_pause                   = 0;              /* (G) Auto-pause the emulator on dialog boxes */
 int      force_constant_mouse                   = 0;              /* (C) Force constant updating of the mouse */
-int      fast_forward_on_start                  = 0;              /* (C) Start the machine in fast forward */
 int      pause_on_sleep                         = 1;              /* (C) Pause the emulator while the guest
                                                                          is in an ACPI sleeping state */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
@@ -367,8 +367,6 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
 int  start_vmm = 1;
-static int start_fast_forward = 0;
-static int start_paused       = 0;
 
 /* Statistics. */
 extern int mmuflush;
@@ -1206,13 +1204,6 @@ usage:
     if (c != argc)
         goto usage;
 
-    /* Set before the CPU thread exists, so they apply from the first quantum;
-       the frontends pick the state up from runctl when the thread starts. */
-    if (start_fast_forward)
-        runctl_set_mode(RUN_MODE_FAST);
-    if (start_paused)
-        runctl_pause(RUN_PAUSE_USER);
-
     path_slash(usr_path);
     path_slash(rom_path);
     path_slash(asset_path);
@@ -1511,6 +1502,13 @@ usage:
         for (rom_path_t *cur_asset_path = &asset_paths; cur_asset_path != NULL; cur_asset_path = cur_asset_path->next) {
             pclog("# Asset path: %s\n", cur_asset_path->path);
         }
+
+        /* Set before the CPU thread exists, so they apply from the first quantum;
+           the frontends pick the state up from runctl when the thread starts. */
+        if (start_fast_forward)
+            runctl_set_mode(RUN_MODE_FAST);
+        if (start_paused)
+            runctl_pause(RUN_PAUSE_USER);
 
         /*
          * We are about to read the configuration file, which MAY
