@@ -41,6 +41,7 @@ extern "C" {
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_preferences.hpp"
 #include "qt_defs.hpp"
+#include "qt_util.hpp"
 
 const int ColumnBus       = 0;
 const int ColumnFilename  = 1;
@@ -458,6 +459,7 @@ SettingsHarddisks::on_pushButtonConfigure_clicked()
     QDialog dialog(this);
     dialog.setWindowTitle(tr("[Generic HDD] Device Configuration"));
     auto *layout = new QFormLayout(&dialog);
+    util::setupFormLayout(layout);
     auto *vendor = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomVendor).toString(), &dialog);
     auto *model = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomModel).toString(), &dialog);
     auto *version = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomVersion).toString(), &dialog);
