@@ -528,23 +528,8 @@ msgstr ""
 msgid "Dynamic recompiler is inactive"
 msgstr ""
 
-msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr "Přesné prostředí FPU při dynamickém překladu"
-
-msgid "Block linking on the dynamic recompiler"
-msgstr "Propojování bloků při dynamickém překladu"
-
 msgid "Debug registers on 486 and later processors"
 msgstr "Debugovací registry u procesorů 486 a novějších"
-
-msgid "CPU frame size"
-msgstr "Velikost rámců procesoru"
-
-msgid "Larger frames (less smooth)"
-msgstr "Větší rámce (méně plynulé)"
-
-msgid "Smaller frames (smoother)"
-msgstr "Menší rámce (plynulejší)"
 
 msgid "Video:"
 msgstr "Grafický adaptér:"
@@ -2232,9 +2217,6 @@ msgstr "Režim časovače:"
 msgid "Auto"
 msgstr "Automatický"
 
-msgid "Slow"
-msgstr "Pomalý"
-
 msgid "Fast"
 msgstr "Rychlý"
 
@@ -3414,11 +3396,9 @@ msgstr "&Vysunout %1"
 msgid "&Unmute"
 msgstr "&Zrušit ztlumení"
 
-msgid "Softfloat FPU"
+#, fuzzy
+msgid "Exact 80-bit FPU arithmetic (SoftFloat)"
 msgstr "Použít Softfloat pro emulaci koprocesoru"
-
-msgid "High performance impact"
-msgstr "Výrazný vliv na výkon"
 
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Obecný] RAM disk (max. rychlost)"
@@ -4870,4 +4850,34 @@ msgid "board"
 msgstr ""
 
 msgid "now in port %1"
+msgstr ""
+
+msgid "Accurate"
+msgstr ""
+
+msgid "Accuracy"
+msgstr ""
+
+msgid "These settings are only needed by software that depends on very specific hardware behavior. They can greatly reduce performance."
+msgstr ""
+
+msgid "Track FPU instruction and data pointers"
+msgstr ""
+
+msgid "How the emulated programmable interval timer (PIT) works.\nSome software reads its counters for precise timing.\n\nAuto: Chooses the recommended mode for the selected machine.\nAccurate: Advances the counters on every tick like the real chip, but is slower.\nFast: Only updates the counters on demand, which may break timing-sensitive software."
+msgstr ""
+
+msgid "Translates guest code into host code in blocks instead of interpreting it one instruction at a time. Much faster, and required by the fastest processors."
+msgstr ""
+
+msgid "Runs these processors on the faster interpreter used for the 486 instead of their own, more accurate one. Has no effect while the dynamic recompiler is on."
+msgstr ""
+
+msgid "Emulates the FPU's 80-bit arithmetic, rounding and exceptions exactly, instead of the faster but less precise 64-bit approximation."
+msgstr ""
+
+msgid "Keeps the FPU's last instruction and operand pointers, as saved by FNSTENV and FNSAVE, up to date in recompiled code. Some FPU exception handlers and diagnostics need them."
+msgstr ""
+
+msgid "Makes breakpoints set in the debug registers (DR0 to DR7) trigger on 486 and later processors. Only needed by debuggers and software that relies on them."
 msgstr ""
