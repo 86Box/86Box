@@ -102,10 +102,11 @@ qvision_update_map(qvision_t *s)
 static void
 qvision_render_4bpp(svga_t *svga)
 {
-    uint8_t bypass             = svga->force_shifter_bypass;
-    svga->force_shifter_bypass = 1;
-    svga_render_4bpp_highres(svga);
-    svga->force_shifter_bypass = bypass;
+    uint8_t packed_4bpp = svga->packed_4bpp;
+    /* The RAMDAC's packed pixel port bypasses the VGA attribute palette. */
+    svga->packed_4bpp = 1;
+    svga_render_8bpp_highres(svga);
+    svga->packed_4bpp = packed_4bpp;
 }
 
 static void
