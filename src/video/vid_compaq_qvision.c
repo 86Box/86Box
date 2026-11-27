@@ -728,12 +728,19 @@ qvision_mem_write_data(uint32_t a, uint32_t v, unsigned size, qvision_t *s)
             if (s->svga.bpp == 4) {
                 /* The CPU planar aperture preserves read/modify/write bit order. */
                 uint8_t data       = v >> (8 * i);
-                uint8_t plane_mask = (s->svga.gdcreg[0x5a] & 4) ? 15 : s->svga.gdcreg[8] & 15;
+                uint8_t datapath   = s->svga.gdcreg[0x5a];
+                uint8_t plane_mask = (datapath & 4) ? 15 : s->svga.gdcreg[8] & 15;
+                uint8_t control    = s->registers[0x63ca];
+                bool    expand     = control & 0x10;
                 for (unsigned bit = 0; bit < 8; bit++) {
-                    uint32_t pixel = offset * 8 + bit;
-                    uint8_t  old   = qvision_pixel_read(s, pixel, true);
-                    uint8_t  color = (data & (0x80 >> bit)) ? 15 : 0;
-                    if (s->svga.gdcreg[0x5a] & 0xc0)
+                    uint32_t pixel   = offset * 8 + bit;
+                    uint8_t  old     = qvision_pixel_read(s, pixel, true);
+                    bool     primary = !!(data & (0x80 >> bit)) ^ (expand && (control & 8));
+                    if (expand && (datapath & 0x10) && !primary)
+                        continue;
+                    uint8_t color = expand ? s->svga.gdcreg[primary ? 0x43 : 0x44] : primary ? 15 : 0;
+                    if ((!expand && (datapath & 0xc0)) || (datapath & 0xc0) == 0xc0 ||
+                        ((datapath & 0xc0) == 0x40 && primary) || ((datapath & 0xc0) == 0x80 && !primary))
                         color = qvision_rop(s->registers[0x33c7], color, old);
                     qvision_pixel_write(s, pixel, (old & ~plane_mask) | (color & plane_mask), true);
                 }
