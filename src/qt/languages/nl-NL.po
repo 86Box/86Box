@@ -3790,20 +3790,6 @@ msgstr "Recompilatie &toestaan"
 msgid "&Fast forward"
 msgstr "&Snel vooruitspoelen"
 
-msgid "Fast forward at startup"
-msgstr "Snel vooruitspoelen vanaf opstarten"
-
-msgid "Start new machines in fast forward"
-msgstr "Start nieuwe machines met versneld vooruitspoelen"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
-"Heeft alleen effect op vanaf nu gecreëerde machines. De instellingen van "
-"elke machine kunnen gewijzigd worden onder Machine > Prestaties."
-
-msgid "Fast forward at &startup"
-msgstr "Snel vooruitspoelen vanaf op&starten"
-
 msgid "Fast forward"
 msgstr "Snel vooruitspoelen"
 

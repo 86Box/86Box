@@ -3860,18 +3860,6 @@ msgstr "&Permetti ricompilazione"
 msgid "&Fast forward"
 msgstr "&Avanti veloce"
 
-msgid "Fast forward at startup"
-msgstr "Avanti veloce all'avvio"
-
-msgid "Start new machines in fast forward"
-msgstr "Avvia le nuove macchine in modalità avanzamento rapido"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr "Riguarda solo le macchine create da questo momento in poi. Per ogni macchina è possibile modificare le impostazioni in Macchina > Prestazioni."
-
-msgid "Fast forward at &startup"
-msgstr "Avanti veloce all'&avvio"
-
 msgid "Fast forward"
 msgstr "Avanti veloce"
 

@@ -3778,20 +3778,6 @@ msgstr "&Дозволити рекомпіляцію"
 msgid "&Fast forward"
 msgstr "&Перемотування вперед"
 
-msgid "Fast forward at startup"
-msgstr "Перемотування вперед при запуску"
-
-msgid "Start new machines in fast forward"
-msgstr "Запустити нові машини в режимі перемотування вперед"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
-"Стосується лише щойно створених машин. Кожну машину можна змінити в її "
-"налаштуванні, під вкладкою \"Машина\" > \"Продуктивність\"."
-
-msgid "Fast forward at &startup"
-msgstr "Перемотування вперед при зап&уску"
-
 msgid "Fast forward"
 msgstr "Перемотування вперед"
 

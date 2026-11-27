@@ -3769,18 +3769,6 @@ msgstr "允許重編譯(&A)"
 msgid "&Fast forward"
 msgstr "快轉(&F)"
 
-msgid "Fast forward at startup"
-msgstr "啟動時快轉"
-
-msgid "Start new machines in fast forward"
-msgstr "開始新機器時快轉"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr "僅影響現在及之後創建的機器。各別機器可於「機器 > 效能」設定頁中修改此一設定。"
-
-msgid "Fast forward at &startup"
-msgstr "啟動時快轉(&S)"
-
 msgid "Fast forward"
 msgstr "快轉"
 

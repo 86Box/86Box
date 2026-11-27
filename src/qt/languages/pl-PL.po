@@ -3754,20 +3754,6 @@ msgstr "&Zezwól na rekompilację"
 msgid "&Fast forward"
 msgstr "&Przyspiesz emulację"
 
-msgid "Fast forward at startup"
-msgstr "Przyspiesz emulację podczas uruchamiania"
-
-msgid "Start new machines in fast forward"
-msgstr "Uruchamiaj nowe maszyny z przyspieszeniem"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
-"Funkcja dotyczy wyłącznie konfiguracji powstałych od teraz. Można to zmienić "
-"w opcjach, w sekcji Maszyna > Wydajność."
-
-msgid "Fast forward at &startup"
-msgstr "Przyspiesz emulację podczas &uruchamiania"
-
 msgid "Fast forward"
 msgstr "Przyspiesz emulację"
 

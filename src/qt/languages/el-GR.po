@@ -3827,21 +3827,6 @@ msgstr "&Να επιτρέπεται ανασύνταξη"
 msgid "&Fast forward"
 msgstr "&Γρήγορα μπροστά"
 
-msgid "Fast forward at startup"
-msgstr "Γρήγορη προώθηση κατά την εκκίνηση"
-
-msgid "Start new machines in fast forward"
-msgstr "Ξεκινήστε νέα μηχανήματα σε γρήγορη προώθηση"
-
-msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
-"Επηρεάζει μόνο τα μηχανήματα που δημιουργούνται από εδώ και στο εξής. Οι "
-"ρυθμίσεις κάθε μηχανήματος μπορούν να τροποποιηθούν, στην ενότητα Μηχανή > "
-"Απόδοση."
-
-msgid "Fast forward at &startup"
-msgstr "Γρήγορη προώθηση κατά την &εκκίνηση"
-
 msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
