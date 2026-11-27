@@ -47,7 +47,6 @@ extern "C" {
 static Display            *disp       = nullptr;
 static QThread            *procThread = nullptr;
 static QWidget            *grab_widget = nullptr;
-static XIEventMask         ximask;
 static std::atomic<double> xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
 static int                 xi2opcode      = 0;
 static double              prev_coords[2] = { 0.0 };
@@ -78,7 +77,7 @@ parse_valuators(const double        *input_values,
 static bool exitthread = false;
 
 static int
-xinput2_get_xtest_pointer()
+xinput2_get_xtest_pointer(const XIDeviceInfo *info, int devs)
 {
     /* The XTEST pointer events injected by VNC servers to move the cursor always report
        absolute coordinates, despite XTEST declaring relative axes (related: SDL issue 1836).
@@ -86,8 +85,7 @@ xinput2_get_xtest_pointer()
 
        TigerVNC publishes both the XTEST pointer and a TigerVNC pointer, but actual
        RawMotion events are published using the TigerVNC pointer */
-    int           devs;
-    XIDeviceInfo *info = XIQueryDevice(disp, XIAllDevices, &devs), *dev;
+    const XIDeviceInfo *dev;
     for (int i = 0; i < devs; i++) {
         dev = &info[i];
         if ((dev->use == XISlavePointer) && !strcmp(dev->name, "TigerVNC pointer"))
@@ -108,23 +106,39 @@ xinput2_get_xtest_pointer()
     return -1;
 }
 
+static const XIDeviceInfo *
+xinput2_find_device(const XIDeviceInfo *info, int count, int deviceid)
+{
+    for (int i = 0; i < count; i++) {
+        if (info[i].deviceid == deviceid)
+            return &info[i];
+    }
+    return nullptr;
+}
+
 void
 xinput2_proc()
 {
     Window win;
     win = DefaultRootWindow(disp);
 
-    int xtest_pointer = xinput2_get_xtest_pointer();
+    XIDeviceInfo *devices = nullptr;
+    int           num_devices = 0;
+    int           xtest_pointer = -1;
+    Window        cached_window = None;
+    Window        cached_root = None;
 
-    ximask.deviceid = XIAllMasterDevices;
-    ximask.mask_len = XIMaskLen(XI_LASTEVENT);
-    ximask.mask     = (unsigned char *) calloc(ximask.mask_len, sizeof(unsigned char));
-
-    XISetMask(ximask.mask, XI_RawMotion);
-    XISetMask(ximask.mask, XI_Motion);
-    XISetMask(ximask.mask, XI_DeviceChanged);
-
-    XISelectEvents(disp, win, &ximask, 1);
+    unsigned char motion_mask[XIMaskLen(XI_LASTEVENT)] {};
+    unsigned char change_mask[XIMaskLen(XI_LASTEVENT)] {};
+    XISetMask(motion_mask, XI_RawMotion);
+    XISetMask(motion_mask, XI_Motion);
+    XISetMask(change_mask, XI_DeviceChanged);
+    XISetMask(change_mask, XI_HierarchyChanged);
+    XIEventMask masks[] = {
+        { XIAllMasterDevices, sizeof(motion_mask), motion_mask },
+        { XIAllDevices, sizeof(change_mask), change_mask }
+    };
+    XISelectEvents(disp, win, masks, 2);
 
     XSync(disp, False);
     while (true) {
@@ -132,13 +146,15 @@ xinput2_proc()
         XGenericEventCookie *cookie = (XGenericEventCookie *) &ev.xcookie;
         XNextEvent(disp, (XEvent *) &ev);
 
-        if (XGetEventData(disp, cookie) && (cookie->type == GenericEvent) && (cookie->extension == xi2opcode) && mouse_capture) {
+        if (XGetEventData(disp, cookie) && (cookie->type == GenericEvent) && (cookie->extension == xi2opcode)) {
             const XIRawEvent *rawev     = (const XIRawEvent *) cookie->data;
             double            coords[2] = { 0.0 };
 
             switch (cookie->evtype) {
                 case XI_Motion:
                     {
+                        if (!mouse_capture)
+                            break;
                         const XIDeviceEvent *devev = (const XIDeviceEvent *) cookie->data;
                         parse_valuators(devev->valuators.values, devev->valuators.mask, devev->valuators.mask_len, coords, 2);
 
@@ -149,19 +165,30 @@ xinput2_proc()
 
                 case XI_RawMotion:
                     {
+                        if (!mouse_capture)
+                            break;
                         parse_valuators(rawev->raw_values, rawev->valuators.mask, rawev->valuators.mask_len, coords, 2);
 common_motion:
                         /* Ignore duplicated events. */
                         if ((rawev->time == prev_time) && (coords[0] == prev_coords[0]) && (coords[1] == prev_coords[1]))
                             break;
 
-                        /* SDL2 queries the device on every event, so doing that should be fine. */
-                        int           i;
-                        XIDeviceInfo *xidevinfo = XIQueryDevice(disp, rawev->deviceid, &i);
+                        const XIDeviceInfo *xidevinfo = xinput2_find_device(devices, num_devices, rawev->deviceid);
+                        if (!xidevinfo) {
+                            if (devices)
+                                XIFreeDeviceInfo(devices);
+                            num_devices = 0;
+                            /* Query all devices: a queued event may refer to a removed device. */
+                            devices = XIQueryDevice(disp, XIAllDevices, &num_devices);
+                            if (!devices)
+                                num_devices = 0;
+                            xtest_pointer = xinput2_get_xtest_pointer(devices, num_devices);
+                            xidevinfo = xinput2_find_device(devices, num_devices, rawev->deviceid);
+                        }
                         if (xidevinfo) {
                             /* Process the device's axes. */
                             int axis = 0;
-                            for (i = 0; i < xidevinfo->num_classes; i++) {
+                            for (int i = 0; i < xidevinfo->num_classes; i++) {
                                 const XIValuatorClassInfo *v = (const XIValuatorClassInfo *) xidevinfo->classes[i];
                                 if (v->type == XIValuatorClass) {
                                     /* Is this an absolute or relative axis? */
@@ -214,10 +241,17 @@ common_motion:
                         }
 
                         prev_time = rawev->time;
-                        XWindowAttributes winattrib {};
-                        if (XGetWindowAttributes(disp, main_window->winId(), &winattrib)) {
+                        const Window window = main_window->winId();
+                        /* A native X11 window cannot change its root. A window on
+                           another X11 screen has a different native window ID. */
+                        if (window != cached_window || cached_root == None) {
+                            XWindowAttributes winattrib {};
+                            cached_window = window;
+                            cached_root = XGetWindowAttributes(disp, window, &winattrib) ? winattrib.root : None;
+                        }
+                        if (cached_root != None) {
                             auto globalPoint = main_window->mapToGlobal(QPoint(main_window->width() / 2, main_window->height() / 2));
-                            XWarpPointer(disp, XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), 0, 0, 0, 0, globalPoint.x(), globalPoint.y());
+                            XWarpPointer(disp, cached_root, cached_root, 0, 0, 0, 0, globalPoint.x(), globalPoint.y());
                             XFlush(disp);
                         }
 
@@ -225,12 +259,14 @@ common_motion:
                     }
 
                 case XI_DeviceChanged:
-                    {
-                        /* Re-scan for XTEST pointer, just in case. */
-                        xtest_pointer = xinput2_get_xtest_pointer();
-
-                        break;
-                    }
+                case XI_HierarchyChanged:
+                    /* Invalidate even when uncaptured; refresh on the next motion. */
+                    if (devices)
+                        XIFreeDeviceInfo(devices);
+                    devices = nullptr;
+                    num_devices = 0;
+                    xtest_pointer = -1;
+                    break;
             }
         }
 
@@ -238,6 +274,8 @@ common_motion:
         if (exitthread)
             break;
     }
+    if (devices)
+        XIFreeDeviceInfo(devices);
     XCloseDisplay(disp);
 }
 
