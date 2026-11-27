@@ -83,6 +83,9 @@ static const char *const pc98_86_rom_adpcm[] = {
 
 typedef struct pc98_86_t {
     pc98_opn_t *opn;
+    void       *src_fm;
+    void       *src_pcm;
+    const int  *clock_pcm;
     rom_t      *bios;
     int         has_rom;
 
@@ -295,7 +298,7 @@ pc98_86_dac_tick(void *priv)
         return;
 
     if (dev->count) {
-        pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
+        pc98_86_pcm_update(dev, (uint32_t) SOUND_CLOCK(dev->clock_pcm, sound_pos_global));
         pc98_86_dac_transfer(dev);
     }
 
@@ -315,6 +318,7 @@ pc98_86_set_rate(pc98_86_t *dev, uint8_t ctrl)
     dev->dac_period_us = 1000000.0 / hz;
     timer_stop(&dev->dac_timer);
     timer_on_auto(&dev->dac_timer, dev->dac_period_us);
+    sound_source_set_rate(dev->src_pcm, hz);
 }
 
 /* ------------------------------------------------------------------ */
@@ -572,7 +576,7 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             /* The PCM output is mixer line 5; its four-bit level is active
              * low. Keep the other line latches for their shared register
              * behavior, but only line 5 affects this board's PCM DAC. */
-            pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
+            pc98_86_pcm_update(dev, (uint32_t) SOUND_CLOCK(dev->clock_pcm, sound_pos_global));
             if ((val & 0xe0u) == 0xa0u)
                 dev->vol[5] = (uint8_t) ((~val) & 0x0fu);
             else
@@ -618,7 +622,7 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa66eu:
-            pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
+            pc98_86_pcm_update(dev, (uint32_t) SOUND_CLOCK(dev->clock_pcm, sound_pos_global));
             dev->pcm_mute = (uint8_t) (val & 1u);
             break;
 
@@ -631,7 +635,15 @@ static void
 pc98_86_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
+
     pc98_opn_generate(dev->opn, buffer, len);
+}
+
+static void
+pc98_86_get_pcm_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    pc98_86_t *dev = (pc98_86_t *) priv;
+
     pc98_86_pcm_update(dev, len);
 
     const uint32_t frames = (len < SOUNDBUFLEN) ? len : SOUNDBUFLEN;
@@ -676,7 +688,7 @@ pc98_86_reset(void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
 
-    pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
+    pc98_86_pcm_update(dev, (uint32_t) SOUND_CLOCK(dev->clock_pcm, sound_pos_global));
     pc98_opn_reset(dev->opn);
 
     /* A460h resets to OPN compatibility mode (three FM channels). */
@@ -722,6 +734,13 @@ pc98_86_init(UNUSED(const device_t *info))
         free(dev);
         return NULL;
     }
+
+    dev->src_fm = sound_source_add_stream(I_NORMAL, pc98_86_get_buffer, dev);
+    sound_source_set_label(dev->src_fm, "FM");
+    pc98_opn_set_clock(dev->opn, sound_source_get_pos_ptr(dev->src_fm));
+    dev->src_pcm = sound_source_add_stream(I_NORMAL, pc98_86_get_pcm_buffer, dev);
+    sound_source_set_label(dev->src_pcm, "PCM");
+    dev->clock_pcm = sound_source_get_pos_ptr(dev->src_pcm);
 
     /* The FIFO is separate from the OPNA's ADPCM-B memory bus. A stock
      * -86 has no RAM on that bus; Chibi-oto adds it as a modification. */
@@ -772,8 +791,6 @@ pc98_86_init(UNUSED(const device_t *info))
 
     timer_add(&dev->dac_timer, pc98_86_dac_tick, dev, 0);
 
-    sound_add_handler(pc98_86_get_buffer, dev);
-
     pc98_86_reset(dev);
 
     pclog("[PC98] 86: YM2608 at %03Xh, IRQ %d%s\n", dev->base, dev->irq,
@@ -804,6 +821,8 @@ pc98_86_close(void *priv)
     io_removehandler(0xa66e, 1, pc98_86_pcm_in, NULL, NULL, pc98_86_pcm_out,
                      NULL, NULL, dev);
 
+    sound_source_remove(dev->src_fm);
+    sound_source_remove(dev->src_pcm);
     pc98_opn_destroy(dev->opn);
     free(dev->adpcm_rom);
     if (dev->has_rom) {

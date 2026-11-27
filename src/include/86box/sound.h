@@ -241,8 +241,6 @@ extern void        al_set_midi(int freq, int buf_size);
 extern void        sound_reopen_input(void);
 extern void        sound_reopen_output(void);
 
-extern void        sound_add_handler(void *func, void *priv);
-
 extern unsigned long long src_freqs[I_MAX];
 
 /* Hands a block to the host backend, and first to the automation socket's

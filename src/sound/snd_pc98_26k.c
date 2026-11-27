@@ -113,6 +113,7 @@ static const uint32_t pc98_26k_rom_addr[8] = {
 
 typedef struct pc98_26k_t {
     pc98_opn_t *opn;
+    void       *src;
     rom_t      *bios;
     int         has_rom;
     uint16_t    base;
@@ -278,14 +279,15 @@ pc98_26k_init(UNUSED(const device_t *info))
         return NULL;
     }
 
+    dev->src = sound_source_add_stream(I_NORMAL, pc98_26k_get_buffer, dev);
+    pc98_opn_set_clock(dev->opn, sound_source_get_pos_ptr(dev->src));
+
     dev->has_rom = pc98_26k_load_rom(
         dev, pc98_26k_rom_addr[device_get_config_int("rom_addr") & 7]);
 
     /* 188h and 18Ah; the odd addresses in between are not decoded. */
     io_sethandler(dev->base, 4, pc98_26k_in, NULL, NULL, pc98_26k_out, NULL,
                   NULL, dev);
-
-    sound_add_handler(pc98_26k_get_buffer, dev);
 
     pclog("[PC98] 26K: YM2203 at %03Xh, INT%d (IRQ %d)%s\n", dev->base,
           dev->int_level, dev->irq, dev->has_rom ? ", sound BIOS mapped" : "");
@@ -304,6 +306,7 @@ pc98_26k_close(void *priv)
 
     io_removehandler(dev->base, 4, pc98_26k_in, NULL, NULL, pc98_26k_out, NULL,
                      NULL, dev);
+    sound_source_remove(dev->src);
     pc98_opn_destroy(dev->opn);
     if (dev->has_rom) {
         /* Mapping nodes are retained by the memory subsystem until reset. */
