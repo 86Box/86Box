@@ -1627,7 +1627,6 @@ solo1_reset(void *priv)
     dev->a1_irq_pending = 0;
     dev->a1_halted      = 0;
     solo1_a1_fifo_reset(dev);
-    sound_source_remove(dev->src_snd);
     timer_disable(&dev->a1_timer);
     solo1_stop_input(dev);
     solo1_update_irq(dev);
@@ -1668,6 +1667,7 @@ solo1_close(void *priv)
        freed by the gameport device.
      */
     ess->gameport = NULL;
+    sound_source_remove(dev->src_snd);
     timer_disable(&dev->a1_timer);
     solo1_stop_input(dev);
     solo1_update_native_mappings(dev);
