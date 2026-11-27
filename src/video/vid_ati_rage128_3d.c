@@ -408,8 +408,8 @@ r3d_decode_vertex(uint32_t fmt, const uint32_t *d, r3d_vtx_t *v)
 }
 
 /* Mark the VRAM pages of [addr, addr + len) changed for the display.
-   Runs on the raster workers, the GPU span capture's partitions and the
-   CCE thread without a lock: every writer stores the same value, and the
+   Runs on the raster workers and the CCE thread without a lock: every
+   writer stores the same value, and the
    only read-modify-write from another thread (the decrement in
    svga_poll) can at worst lose one mark until the page is written again.
    The stores are relaxed atomics, plain byte stores on every host, so
@@ -2858,8 +2858,6 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
 
     if (!r3d_setup(dev, rs, a, b, c, jfn, ln, &st, &tctx, &jt))
         return;
-    if (jfn == rage128_gpu_capture_span)
-        rage128_gpu_capture_begin(dev, &tctx, &jt, thr_id);
     {
         /* the loop's locals, copied from the setup */
         uint32_t dst_dt   = st.dst_dt;

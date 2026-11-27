@@ -71,18 +71,6 @@ unsigned harness_gpu_mirror_plan(uint32_t vram_mask, const uint32_t *ilo,
 void harness_gpu_rng_fold(uint32_t vram_mask, int staged, uint32_t *lo,
                           uint32_t *hi);
 
-/* gpu_group_wait() against two real capture threads, rounds times, each
-   round's grouping sized to finish where the submit thread turns from
-   spinning to sleeping. lost = rounds that stalled with every thread's
-   grouping done, no signal since the wait began and every capture
-   thread asleep (a missed wakeup, released by the probe so the loop
-   goes on); slept = waits on cap_done_cv; rows_lo..rows_hi =
-   the range of rows per partition the sizing used. 1 = ran, 0 = no
-   capture threads (no Vulkan headers), -1 = a round stalled with a
-   thread still grouping. */
-int harness_gpu_group_wake(uint32_t rounds, uint32_t *lost, uint32_t *slept,
-                           uint32_t *rows_lo, uint32_t *rows_hi);
-
 /* gpu_state_kernel() on a state: kernel id, or -1 for the CPU fallback.
    The fabricated backend reports both arena imports live, so the answer is
    the state's own shape and not a residency artifact. */
@@ -111,7 +99,7 @@ typedef struct harness_gpu_span_t {
 typedef struct harness_gpu_cap_t {
     uint32_t nspans;     /* records written (may exceed the caller's array) */
     uint32_t got;        /* records copied out                             */
-    uint64_t need_spans; /* probe_tri_need's accept-bound reservation       */
+    uint64_t need_spans; /* gpu_tri_need's accept-bound reservation         */
     uint64_t need_px;
     uint32_t clo, chi;   /* prim_ranges color hazard interval             */
     uint32_t zlo, zhi;   /* ... and z                                      */
