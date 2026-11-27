@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-26 08:57+0000\n"
+"PO-Revision-Date: 2026-11-27 02:27+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -456,7 +456,7 @@ msgstr "浮點運算器 (FPU):"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr "記憶空間映射浮點協同處理器位於 C000000h。相容程式可將其與 387 "
-"配使用，或取代之。"
+"搭配使用，或取代之。"
 
 msgid "Weitek WTL 3167 coprocessor"
 msgstr "Weitek WTL 3167 協同處理器"
