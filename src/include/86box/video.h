@@ -491,6 +491,9 @@ extern const device_t compaq_cga_device;
 extern const device_t compaq_cga_2_device;
 extern const device_t compaq_plasma_device;
 
+/* Compaq QVision */
+extern const device_t compaq_qvision_1024e_device;
+
 /* Olivetti OGC */
 extern const device_t ogc_device;
 extern const device_t ogc_m24_device;
