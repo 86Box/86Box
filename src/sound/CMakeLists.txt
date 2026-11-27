@@ -84,6 +84,10 @@ add_library(snd OBJECT
     snd_ymz263b.c
     snd_optimc.c
     snd_opl_esfm.c
+    snd_pc98_opn.cpp
+    snd_pc98_26k.c
+    snd_pc98_86.c
+    snd_pc98_spb.c
     snd_ps1_midi.c
     snd_sensation.c
     snd_ymf701.c

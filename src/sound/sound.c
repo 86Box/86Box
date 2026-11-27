@@ -145,6 +145,11 @@ static const SOUND_CARD sound_cards[] = {
     // clang-format off
     { &device_none                  },
     { &device_internal              },
+    /* NEC C-BUS, added by the PC-9801VX integration. */
+    { &pc98_26k_device              },
+    { &pc98_86_device               },
+    { &pc98_speakboard_device       },
+    { &pc98_sparkboard_device       },
     /* ISA */
     { &adgold_device                },
     { &soundmaster_device           },

@@ -241,6 +241,8 @@ extern void        al_set_midi(int freq, int buf_size);
 extern void        sound_reopen_input(void);
 extern void        sound_reopen_output(void);
 
+extern void        sound_add_handler(void *func, void *priv);
+
 extern unsigned long long src_freqs[I_MAX];
 
 /* Hands a block to the host backend, and first to the automation socket's
@@ -427,6 +429,12 @@ extern const device_t opti_82c931_device;
 
 /* PC Speaker */
 extern const device_t speaker_device;
+
+/* PC-98 C-BUS sound boards. */
+extern const device_t pc98_26k_device;
+extern const device_t pc98_86_device;
+extern const device_t pc98_speakboard_device;
+extern const device_t pc98_sparkboard_device;
 
 /* Pro Audio Spectrum, Plus, 16, and 16D */
 extern const device_t pas_device;
