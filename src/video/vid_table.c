@@ -135,6 +135,7 @@ video_cards[] = {
     { .device = &s3_86c805_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32i_isa_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &compaq_qvision_1024i_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
     /* EISA */
     { .device = &compaq_qvision_1024e_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
     /* MCA */

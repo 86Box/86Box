@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Compaq QVision 1024/E (CPQ3011), 1 MiB, single controller.
+ * Compaq QVision 1024/E (CPQ3011) and 1024/I (CPQ3021), 1 MiB, single controller.
  */
 #include <stdbool.h>
 #include <stdint.h>
@@ -17,6 +17,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
+/* The ISA variant currently reuses the available 1024/E ROM dump. */
 #define QVISION_ROM_EVEN "roms/video/compaq_qvision/TMS27PC256@PLCC32_U40.bin"
 #define QVISION_ROM_ODD  "roms/video/compaq_qvision/TMS27PC256@PLCC32_U21.bin"
 
@@ -802,7 +803,7 @@ static void *
 qvision_init(const device_t *info)
 {
     qvision_t             *s      = calloc(1, sizeof(*s));
-    static const uint8_t   id[]   = { 0x0e, 0x11, 0x30, 0x11 };
+    const uint8_t          id[]   = { 0x0e, 0x11, info->local >> 8, info->local & 0xff };
     static video_timings_t timing = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
     if (!rom_load_interleaved(QVISION_ROM_EVEN, QVISION_ROM_ODD, 0, sizeof(s->bios_data), 0, s->bios_data)) {
         free(s);
@@ -825,9 +826,11 @@ qvision_init(const device_t *info)
     s->bios.mask = 0x7fff;
     mem_mapping_add(&s->bios.mapping, 0xc0000, 0x8000, rom_read, rom_readw, rom_readl,
                     NULL, NULL, NULL, s->bios.rom, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, &s->bios);
-    for (s->slot = 1; s->slot <= EISA_MAX_SLOTS; s->slot++) {
-        if (!eisa_slot_occupied(s->slot) && eisa_add(s->slot, id, qvision_eisa_in, qvision_eisa_out, NULL, s))
-            break;
+    if (info->flags & DEVICE_EISA) {
+        for (s->slot = 1; s->slot <= EISA_MAX_SLOTS; s->slot++) {
+            if (!eisa_slot_occupied(s->slot) && eisa_add(s->slot, id, qvision_eisa_in, qvision_eisa_out, NULL, s))
+                break;
+        }
     }
     io_sethandler(0x3b0, 0x30, qvision_in, qvision_inw, qvision_inl, qvision_out, qvision_outw, qvision_outl, s);
     for (unsigned i = 0; i < sizeof(qvision_ports) / sizeof(qvision_ports[0]); i++) {
@@ -842,7 +845,8 @@ static void
 qvision_close(void *p)
 {
     qvision_t *s = p;
-    eisa_remove(s->slot);
+    if (s->slot)
+        eisa_remove(s->slot);
     svga_close(&s->svga);
     free(s);
 }
@@ -868,6 +872,20 @@ const device_t compaq_qvision_1024e_device = {
     .name          = "Compaq QVision 1024/E",
     .internal_name = "compaq_qvision_1024e",
     .flags         = DEVICE_EISA,
+    .local         = 0x3011,
+    .init          = qvision_init,
+    .close         = qvision_close,
+    .reset         = qvision_reset,
+    .available     = qvision_available,
+    .speed_changed = qvision_speed_changed,
+    .force_redraw  = qvision_force_redraw
+};
+
+const device_t compaq_qvision_1024i_device = {
+    .name          = "Compaq QVision 1024/I",
+    .internal_name = "compaq_qvision_1024i",
+    .flags         = DEVICE_ISA16,
+    .local         = 0x3021,
     .init          = qvision_init,
     .close         = qvision_close,
     .reset         = qvision_reset,
