@@ -155,6 +155,9 @@ add_library(vid OBJECT
     # Cirrus Logic
     vid_cl54xx.c
 
+    # Compaq QVision
+    vid_compaq_qvision.c
+
     # Tseng Labs
     vid_et3000.c
     vid_et4000.c
