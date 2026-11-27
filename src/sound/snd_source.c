@@ -644,39 +644,11 @@ sound_source_identify(sound_source_t *src)
     src->gain = config_get_int("Sound gains", src->key, 0);
 }
 
-/* Sources of the same device, class and rate do not need a timer each. */
-static void
-sound_source_merge(sound_source_t *src)
-{
-    if (src->dev == NULL)
-        return;
-
-    for (sound_source_t *o = first_sound_source; o != NULL; o = o->next) {
-        if ((o == src) || (o->leader != NULL) || (o->dev != src->dev) || (o->inst != src->inst) ||
-            (o->cls != src->cls) || (o->sample_rate != src->sample_rate) || (o->buffer_size != src->buffer_size))
-            continue;
-
-        timer_disable(&src->timer);
-
-        src->leader   = o;
-        src->fnext    = o->followers;
-        o->followers  = src;
-        src->pos      = o->pos;
-        src->latch    = o->latch;
-        return;
-    }
-}
-
 void *
 sound_source_add(const int sample_rate, const int frames,
                  void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
-    sound_source_t *src = (sound_source_t *) sound_source_add_unmerged(sample_rate, frames, get_buffer, priv);
-
-    if (src != NULL)
-        sound_source_merge(src);
-
-    return src;
+    return sound_source_add_unmerged(sample_rate, frames, get_buffer, priv);
 }
 
 static void *
@@ -730,8 +702,6 @@ sound_source_add_stream(const uint8_t stream,
 
     if (src != NULL) {
         src->cls = stream + 1;
-
-        sound_source_merge(src);
 
         /* Join the phase of the class, so that its blocks complete together. */
         if ((src->leader == NULL) && (peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
