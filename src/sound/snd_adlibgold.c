@@ -1063,7 +1063,7 @@ adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
 
-    for (uint16_t c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         adgold_buffer[c] = ((opl_buf[c] * adgold->fm_vol_l) >> 7) / 2;
         adgold_buffer[c + 1] = ((opl_buf[c + 1] * adgold->fm_vol_r) >> 7) / 2;
     }
@@ -1073,15 +1073,15 @@ adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 6) {
         case 0:
-            for (uint16_t c = 0; c < len * 2; c++)
+            for (int c = 0; c < len * 2; c++)
                 adgold_buffer[c] = 0;
             break;
         case 2: /*Left channel only*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 adgold_buffer[c + 1] = adgold_buffer[c];
             break;
         case 4: /*Right channel only*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] = adgold_buffer[c + 1];
             break;
         case 6: /*Left and right channels*/
@@ -1093,7 +1093,7 @@ adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 0x18) {
         case 0x00: /*Forced mono*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] = adgold_buffer[c + 1] = ((int32_t) adgold_buffer[c] + (int32_t) adgold_buffer[c + 1]) / 2;
             break;
         case 0x08: /*Linear stereo*/
@@ -1101,13 +1101,13 @@ adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         case 0x10: /*Pseudo stereo*/
             /*Filter left channel, leave right channel unchanged*/
             /*Filter cutoff is largely a guess*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] += adgold_pseudo_stereo_iir(0, adgold_buffer[c]);
             break;
         case 0x18: /*Spatial stereo*/
             /*Quite probably wrong, I only have the diagram in the TDA8425 datasheet
               and a very vague understanding of how op-amps work to go on*/
-            for (uint16_t c = 0; c < len * 2; c += 2) {
+            for (int c = 0; c < len * 2; c += 2) {
                 int16_t l = adgold_buffer[c];
                 int16_t r = adgold_buffer[c + 1];
 
@@ -1120,7 +1120,7 @@ adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
             break;
     }
 
-    for (uint16_t c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         int32_t temp;
         int32_t lowpass;
         int32_t highpass;
@@ -1187,15 +1187,15 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 6) {
         case 0:
-            for (uint16_t c = 0; c < len * 2; c++)
+            for (int c = 0; c < len * 2; c++)
                 mma_buffer[c] = 0;
             break;
         case 2: /*Left channel only*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 mma_buffer[c + 1] = mma_buffer[c];
             break;
         case 4: /*Right channel only*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 mma_buffer[c] = mma_buffer[c + 1];
             break;
         case 6: /*Left and right channels*/
@@ -1207,7 +1207,7 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 0x18) {
         case 0x00: /*Forced mono*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 mma_buffer[c] = mma_buffer[c + 1] = ((int32_t) mma_buffer[c] + (int32_t) mma_buffer[c + 1]) / 2;
             break;
         case 0x08: /*Linear stereo*/
@@ -1215,13 +1215,13 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
         case 0x10: /*Pseudo stereo*/
             /*Filter left channel, leave right channel unchanged*/
             /*Filter cutoff is largely a guess*/
-            for (uint16_t c = 0; c < len * 2; c += 2)
+            for (int c = 0; c < len * 2; c += 2)
                 mma_buffer[c] += adgold_pseudo_stereo_iir(1, mma_buffer[c]);
             break;
         case 0x18: /*Spatial stereo*/
             /*Quite probably wrong, I only have the diagram in the TDA8425 datasheet
               and a very vague understanding of how op-amps work to go on*/
-            for (uint16_t c = 0; c < len * 2; c += 2) {
+            for (int c = 0; c < len * 2; c += 2) {
                 int16_t l = mma_buffer[c];
                 int16_t r = mma_buffer[c + 1];
 
@@ -1234,7 +1234,7 @@ adgold_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
             break;
     }
 
-    for (uint16_t c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         int32_t temp;
         int32_t lowpass;
         int32_t highpass;
