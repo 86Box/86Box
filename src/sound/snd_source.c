@@ -83,12 +83,6 @@ typedef struct sound_class_mix_t {
 
 static sound_class_mix_t class_mix[I_MAX] = { 0 };
 
-static sound_source_t *
-sound_source_lead(sound_source_t *src)
-{
-    return (src->leader != NULL) ? src->leader : src;
-}
-
 static void sound_source_identify(sound_source_t *src);
 
 static int
@@ -276,6 +270,42 @@ sound_source_set_sample_rate(void *priv)
     timer_set_delay_u64(&src->timer, src->latch);
 }
 
+/* A source whose rate follows the guest cannot share a timer and a rate with
+   the others of its device, so it is split off first. */
+static void
+sound_source_detach(sound_source_t *src)
+{
+    if (src->leader != NULL) {
+        sound_source_t *ld = src->leader;
+        sound_source_t **pp = &ld->followers;
+
+        while ((*pp != NULL) && (*pp != src))
+            pp = &(*pp)->fnext;
+        if (*pp != NULL)
+            *pp = src->fnext;
+
+        src->leader = NULL;
+        src->fnext  = NULL;
+        src->pos    = ld->pos;
+        src->latch  = ld->latch;
+        timer_set_delay_u64(&src->timer, timer_is_enabled(&ld->timer) ? timer_get_remaining_u64(&ld->timer) : ld->latch);
+    } else if (src->followers != NULL) {
+        sound_source_t *n = src->followers;
+
+        n->leader    = NULL;
+        n->followers = n->fnext;
+        n->fnext     = NULL;
+        for (sound_source_t *f = n->followers; f != NULL; f = f->fnext)
+            f->leader = n;
+        n->req_rate  = 0.0;
+        n->req_seen  = 0;
+        n->latch     = src->latch;
+        n->pos       = src->pos;
+        timer_set_delay_u64(&n->timer, timer_is_enabled(&src->timer) ? timer_get_remaining_u64(&src->timer) : src->latch);
+        src->followers = NULL;
+    }
+}
+
 /* A card tells which rate its output is generated at. The change is applied at
    a block boundary, when it has been asked for twice in a row, so that the
    clock the card reads stays consistent and a guest that reprograms its rate
@@ -289,7 +319,8 @@ sound_source_set_rate(void *priv, const double rate)
     if (src == NULL)
         return;
 
-    src = sound_source_lead(src);
+    if ((src->leader != NULL) || (src->followers != NULL))
+        sound_source_detach(src);
 
     if ((r <= 0.0) || (r > (double) sound_sample_rate))
         r = (double) sound_sample_rate;
@@ -712,7 +743,7 @@ sound_source_get_pos_ptr(void *priv)
 {
     const sound_source_t *src = (sound_source_t *) priv;
 
-    return (src == NULL) ? NULL : &sound_source_lead((sound_source_t *) src)->pos;
+    return (src == NULL) ? NULL : &src->pos;
 }
 
 /* Safe to call on a source that has already been removed. */
