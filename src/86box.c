@@ -135,6 +135,8 @@ int tracing_on = 0;
 /* Commandline options. */
 int dump_on_exit        = 0; /* (O) dump regs on exit */
 int start_in_fullscreen = 0; /* (O) start in fullscreen */
+int start_fast_forward  = 0; /* (O) start in fast forward mode */
+int start_paused        = 0; /* (O) start paused */
 #ifdef _WIN32
 int force_debug = 0; /* (O) force debug output */
 #endif
@@ -366,8 +368,6 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
 int  start_vmm = 1;
-static int start_fast_forward = 0;
-static int start_paused       = 0;
 
 /* Statistics. */
 extern int mmuflush;
@@ -1205,13 +1205,6 @@ usage:
     if (c != argc)
         goto usage;
 
-    /* Set before the CPU thread exists, so they apply from the first quantum;
-       the frontends pick the state up from runctl when the thread starts. */
-    if (start_fast_forward)
-        runctl_set_mode(RUN_MODE_FAST);
-    if (start_paused)
-        runctl_pause(RUN_PAUSE_USER);
-
     path_slash(usr_path);
     path_slash(rom_path);
     path_slash(asset_path);
@@ -1510,6 +1503,13 @@ usage:
         for (rom_path_t *cur_asset_path = &asset_paths; cur_asset_path != NULL; cur_asset_path = cur_asset_path->next) {
             pclog("# Asset path: %s\n", cur_asset_path->path);
         }
+
+        /* Set before the CPU thread exists, so they apply from the first quantum;
+           the frontends pick the state up from runctl when the thread starts. */
+        if (start_fast_forward)
+            runctl_set_mode(RUN_MODE_FAST);
+        if (start_paused)
+            runctl_pause(RUN_PAUSE_USER);
 
         /*
          * We are about to read the configuration file, which MAY

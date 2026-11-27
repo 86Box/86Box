@@ -147,8 +147,10 @@ extern "C" {
 #endif
 
 /* Global variables. */
-extern int dump_on_exit;        /* (O) dump regs on exit*/
-extern int start_in_fullscreen; /* (O) start in fullscreen */
+extern int dump_on_exit;          /* (O) dump regs on exit */
+extern int start_in_fullscreen;   /* (O) start in fullscreen */
+extern int start_fast_forward;    /* (O) start in fast forward mode */
+extern int start_paused;          /* (O) start paused */
 #ifdef _WIN32
 extern int force_debug; /* (O) force debug output */
 #endif

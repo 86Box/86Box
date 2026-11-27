@@ -562,6 +562,10 @@ VMManagerSystem::launch86Box(bool settings)
         args << "--nohook";
     if (start_in_fullscreen)
         args << "--fullscreen";
+    if (start_fast_forward)
+        args << "--fast-forward";
+    if (start_paused)
+        args << "--paused";
     if (!confirm_exit_cmdl)
         args << "--noconfirm";
 #ifdef Q_OS_WINDOWS
