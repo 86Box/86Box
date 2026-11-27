@@ -375,6 +375,7 @@ typedef struct emu8k_t {
     uint16_t hwcf1;
     uint16_t hwcf2;
     uint16_t hwcf3;
+    uint8_t  hwcf3_written;
     uint32_t hwcf4;
     uint32_t hwcf5;
     uint32_t hwcf6;
