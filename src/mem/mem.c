@@ -194,7 +194,9 @@ mem_addr_is_ram(uint32_t addr)
 }
 
 /* Linear pages whose writes go through an AGP aperture to RAM, so that a
-   word or dword write there can skip the page walk and the GART lookup.
+   word, dword or aligned qword write there can skip the page walk and the GART lookup.
+   Aligned word reads may share entries only when both the aperture mapping
+   and the target host page agree for reads and writes.
    Each entry keeps every value the walk and the GART lookup read for that
    page, and a write uses it only while all of them still hold, so it does
    exactly what the walk and the aperture handler would do. Kept apart from
@@ -215,6 +217,7 @@ typedef struct mem_ap_entry_t {
     uint32_t          pte;
     uint32_t          gart;
     uint32_t          ra; /* target bus page */
+    int               read_ok; /* read mapping reaches the same host page */
 } mem_ap_entry_t;
 
 static mem_ap_entry_t mem_ap[MEM_AP_ENTRIES];
@@ -632,7 +635,7 @@ mem_held_promote(void)
     mem_held_num      = 0;
 }
 
-static void mem_ap_fill(uint32_t addr);
+static void mem_ap_fill(uint32_t addr, int read);
 
 /* The aperture entry for a write at linear addr, while every value it was
    made from still holds; NULL for the walk and the handler to run. */
@@ -668,6 +671,7 @@ mem_ap_walked(const mem_ap_entry_t *e, uint32_t addr)
 static void
 flush_read_lookup(void)
 {
+    mem_ap_clear();
     /* The page tables may have changed (CR3 load, INVLPG), so the last walk
        no longer describes them. */
     mmu_walk_page        = 0xffffffff;
@@ -1930,6 +1934,7 @@ readmemwl(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t       a;
+    uint32_t       va;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
@@ -1972,6 +1977,15 @@ readmemwl(uint32_t addr)
     }
 
     if (cr0 >> 31) {
+        const mem_ap_entry_t *ap = (!(addr & 1) && cpu_use_exec && !(cr4 & CR4_PAE) && !GDBSTUB_WATCHED(addr)) ? mem_ap_lookup(addr) : NULL;
+
+        if (ap && ap->read_ok) {
+            mem_ap_walked(ap, addr);
+            /* The aperture read uses mem_readw_phys(), which forgets both
+               recorded walk frames and clears the logical address. */
+            mmu_walk_forget();
+            return *(const uint16_t *) (ap->host + addr);
+        }
         a          = mmutranslate_read(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -1980,12 +1994,18 @@ readmemwl(uint32_t addr)
     } else
         addr64a[0] = (uint64_t) addr;
 
+    va   = addr;
     addr = addr64a[0] & mem_read_rammask(addr);
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
-    if (map && map->read_w)
-        return map->read_w(addr, map->priv);
+    if (map && map->read_w) {
+        const uint16_t val = map->read_w(addr, map->priv);
+
+        if (!(va & 1) && (cr0 >> 31) && (map->flags & MEM_MAPPING_EXTERNAL) && agpgart_is_aperture(map))
+            mem_ap_fill(va, 1);
+        return val;
+    }
 
     if (map && map->read_b) {
         return map->read_b(addr, map->priv) | ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
@@ -2085,7 +2105,7 @@ writememwl(uint32_t addr, uint16_t val)
     if (map && map->write_w) {
         map->write_w(addr, val, map->priv);
         if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31) && agpgart_is_aperture(map))
-            mem_ap_fill(va);
+            mem_ap_fill(va, 0);
         return;
     }
 
@@ -2418,7 +2438,7 @@ writememll(uint32_t addr, uint32_t val)
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);
         if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31) && agpgart_is_aperture(map))
-            mem_ap_fill(va);
+            mem_ap_fill(va, 0);
         return;
     }
     if (map && map->write_w) {
@@ -2678,6 +2698,7 @@ writememql(uint32_t addr, uint64_t val)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+    uint32_t       va;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 7) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
@@ -2750,11 +2771,29 @@ writememql(uint32_t addr, uint64_t val)
     }
 
     if (cr0 >> 31) {
+        /* An aligned QWORD stays in one page. Use the same aperture cache
+           as word/DWORD stores, preserving the two DWORD dirty marks.
+           If the first store would rewrite its own GART entry, leave both
+           stores to the handlers so the second is translated again. */
+        const mem_ap_entry_t *ap = (addr & 7) ? NULL : mem_ap_lookup(addr);
+
+        if (ap && ((uintptr_t) ap->gart_ptr != (ap->host + addr))) {
+            uint32_t ra = ap->ra | (addr & 0xfff);
+
+            mem_ap_walked(ap, addr);
+            *(uint32_t *) (ap->host + addr) = (uint32_t) val;
+            mem_phys_written(ra, 4);
+            *(uint32_t *) (ap->host + addr + 4) = (uint32_t) (val >> 32);
+            mem_phys_written(ra + 4, 4);
+            return;
+        }
+
         addr64a[0] = mmutranslate_write(addr);
         if (addr64a[0] > 0xffffffffULL)
             return;
     }
 
+    va   = addr;
     addr = addr64a[0] & rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
@@ -2762,6 +2801,8 @@ writememql(uint32_t addr, uint64_t val)
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);
         map->write_l(addr + 4, val >> 32, map->priv);
+        if (!(va & 7) && (map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31) && agpgart_is_aperture(map))
+            mem_ap_fill(va, 0);
         return;
     }
     if (map && map->write_w) {
@@ -2934,20 +2975,21 @@ mem_phys_exec(const mem_mapping_t *map, uint32_t addr, uint32_t len)
     return p;
 }
 
-/* After a write at linear addr took the walk and a mapping's handler: when
+/* After an access at linear addr took the walk and a mapping's handler: when
    the page goes through an AGP aperture to RAM, record it for the next
    write. Everything is read again here under the map lock and tested as
    the walk and the aperture handler test it, so the entry holds what the
    next walk and handler would find while its values stay the same. Only
    pages the walk lets any CPL write, with the accessed and dirty bits
    already set, so its stores to the paging entries change nothing. The
-   callers make it only for a write that went through an aperture's
-   mapping. A write to any other mapping, such as a framebuffer store,
+   callers make it only for an access that went through an aperture's
+   mapping. Reads must additionally resolve to the same host page.
+   A write to any other mapping, such as a framebuffer store,
    skips this fill, its lock and its second page-table read, and makes
    no new entry, even where that store itself rewrote its page tables to
    point into an aperture. */
 static __attribute__((noinline)) void
-mem_ap_fill(uint32_t addr)
+mem_ap_fill(uint32_t addr, int read)
 {
     mem_ap_entry_t      *e = &mem_ap[(addr >> 12) & (MEM_AP_ENTRIES - 1)];
     const mem_mapping_t *map;
@@ -2962,6 +3004,7 @@ mem_ap_fill(uint32_t addr)
     uint32_t             gart;
     uint32_t             ra;
     uint8_t             *host;
+    int                  read_ok;
 
     if (cpu_state.abrt || !(cr0 >> 31) || (cr4 & CR4_PAE) || cpu_dr_armed || !cpu_use_exec || GDBSTUB_WATCHED(addr))
         return;
@@ -2996,6 +3039,18 @@ mem_ap_fill(uint32_t addr)
     if ((host == NULL) || (mem_phys_exec(write_mapping_bus[ra >> MEM_GRANULARITY_BITS], ra | 0xffc, 4) != (host + 0xffc)))
         goto done;
 
+    /* Only share the entry with reads when the CPU aperture mapping and
+       the bus target are identical in both directions. The existing PTE
+       test requires a writable, user-accessible page with A/D already set,
+       so a read cannot populate an entry that would skip a first dirty-bit
+       update or a write permission check. */
+    read_ok = (read_mapping[((pte & ~0xfff) & rammask) >> MEM_GRANULARITY_BITS] == map) &&
+              (mem_phys_exec(read_mapping_bus[ra >> MEM_GRANULARITY_BITS], ra, 2) == host) &&
+              (mem_phys_exec(read_mapping_bus[ra >> MEM_GRANULARITY_BITS], ra | 0xffe, 2) == host + 0xffe);
+    if (read && !read_ok)
+        goto done;
+
+    e->read_ok  = read_ok;
     e->tag      = (addr >> 12) | MEM_AP_VALID;
     e->gen      = mem_mapping_gen;
     e->host     = (uintptr_t) host - (addr & ~0xfff);
