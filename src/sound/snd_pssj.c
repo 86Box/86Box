@@ -411,6 +411,8 @@ pssj_init(UNUSED(const device_t *info))
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
     pssj->source = sound_source_add_stream(I_NORMAL, pssj_get_buffer, pssj);
     pssj->clock  = sound_source_get_pos_ptr(pssj->source);
+    sound_source_set_label(pssj->source, "PCM");
+    sound_source_set_label(pssj->sn76489.source, "PSG");
     sound_in_add_handler(pssj_put_buffer, pssj);
     sound_in_start_input();
 
@@ -428,6 +430,8 @@ pssj_1e0_init(UNUSED(const device_t *info))
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
     pssj->source = sound_source_add_stream(I_NORMAL, pssj_get_buffer, pssj);
     pssj->clock  = sound_source_get_pos_ptr(pssj->source);
+    sound_source_set_label(pssj->source, "PCM");
+    sound_source_set_label(pssj->sn76489.source, "PSG");
     sound_in_add_handler(pssj_put_buffer, pssj);
     sound_in_start_input();
 
@@ -447,6 +451,8 @@ pssj_isa_init(UNUSED(const device_t *info))
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
     pssj->source = sound_source_add_stream(I_NORMAL, pssj_get_buffer, pssj);
     pssj->clock  = sound_source_get_pos_ptr(pssj->source);
+    sound_source_set_label(pssj->source, "PCM");
+    sound_source_set_label(pssj->sn76489.source, "PSG");
     sound_in_add_handler(pssj_put_buffer, pssj);
     sound_in_start_input();
 
