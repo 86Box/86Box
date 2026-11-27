@@ -344,7 +344,6 @@ sound_source_apply_rate(sound_source_t *src)
     sound_source_alloc_buffers(src);
     sound_source_do_init(src);
 }
-}
 
 /* The gain of a source in dB, as a factor. */
 static double
