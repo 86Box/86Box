@@ -42,11 +42,6 @@ typedef struct sound_source_t {
     char                   label[192]; /* What the user sees. */
     char                   what[32];   /* What the source is of its device (FM, PCM...). */
 
-    /* Sources of the same device, class and rate share one timer: the leader
-       runs it and delivers the blocks of its followers as well. */
-    struct sound_source_t *leader;
-    struct sound_source_t *followers;
-    struct sound_source_t *fnext;
     int                    inst;
     int                    sample_rate;
     int                    buffer_size;
@@ -100,7 +95,7 @@ static sound_source_t *
 sound_source_class_first(const int cls)
 {
     for (sound_source_t *src = first_sound_source; src != NULL; src = src->next) {
-        if ((src->cls == cls) && (src->leader == NULL))
+        if (src->cls == cls)
             return src;
     }
 
@@ -270,42 +265,6 @@ sound_source_set_sample_rate(void *priv)
     timer_set_delay_u64(&src->timer, src->latch);
 }
 
-/* A source whose rate follows the guest cannot share a timer and a rate with
-   the others of its device, so it is split off first. */
-static void
-sound_source_detach(sound_source_t *src)
-{
-    if (src->leader != NULL) {
-        sound_source_t *ld = src->leader;
-        sound_source_t **pp = &ld->followers;
-
-        while ((*pp != NULL) && (*pp != src))
-            pp = &(*pp)->fnext;
-        if (*pp != NULL)
-            *pp = src->fnext;
-
-        src->leader = NULL;
-        src->fnext  = NULL;
-        src->pos    = (ld->pos >= ld->buffer_size) ? 0 : ld->pos;
-        src->latch  = ld->latch;
-        timer_set_delay_u64(&src->timer, timer_is_enabled(&ld->timer) ? timer_get_remaining_u64(&ld->timer) : ld->latch);
-    } else if (src->followers != NULL) {
-        sound_source_t *n = src->followers;
-
-        n->leader    = NULL;
-        n->followers = n->fnext;
-        n->fnext     = NULL;
-        for (sound_source_t *f = n->followers; f != NULL; f = f->fnext)
-            f->leader = n;
-        n->req_rate  = 0.0;
-        n->req_seen  = 0;
-        n->latch     = src->latch;
-        n->pos       = (src->pos >= src->buffer_size) ? 0 : src->pos;
-        timer_set_delay_u64(&n->timer, timer_is_enabled(&src->timer) ? timer_get_remaining_u64(&src->timer) : src->latch);
-        src->followers = NULL;
-    }
-}
-
 /* A card tells which rate its output is generated at. The change is applied at
    a block boundary, when it has been asked for twice in a row, so that the
    clock the card reads stays consistent and a guest that reprograms its rate
@@ -318,9 +277,6 @@ sound_source_set_rate(void *priv, const double rate)
 
     if (src == NULL)
         return;
-
-    if ((src->leader != NULL) || (src->followers != NULL))
-        sound_source_detach(src);
 
     if ((r <= 0.0) || (r > (double) sound_sample_rate))
         r = (double) sound_sample_rate;
@@ -375,20 +331,19 @@ sound_source_apply_rate(sound_source_t *src)
         return;
     }
 
-    for (sound_source_t *s = src; s != NULL; s = (s == src) ? src->followers : s->fnext) {
-        old      = s->src;
-        s->src   = NULL;
-        sound_backend_close_source(old);
+    old = src->src;
+    src->src = NULL;
+    sound_backend_close_source(old);
 
-        sound_source_dealloc_buffers(s);
+    sound_source_dealloc_buffers(src);
 
-        s->sample_rate = rate;
-        s->buffer_size = rate / 50;
-        s->latch       = latch;
+    src->sample_rate = rate;
+    src->buffer_size = rate / 50;
+    src->latch       = latch;
 
-        sound_source_alloc_buffers(s);
-        sound_source_do_init(s);
-    }
+    sound_source_alloc_buffers(src);
+    sound_source_do_init(src);
+}
 }
 
 /* The gain of a source in dB, as a factor. */
@@ -433,28 +388,14 @@ sound_source_poll(void *priv)
 {
     sound_source_t *src = (sound_source_t *) priv;
 
-    sound_source_t *f;
-
     timer_advance_u64(&src->timer, src->latch);
 
     src->pos++;
-    for (f = src->followers; f != NULL; f = f->fnext)
-        f->pos = src->pos;
 
     if (src->pos == src->buffer_size) {
         sound_source_block(src);
 
-        /* A card may split its source off from the group in its callback. */
-        for (f = src->followers; f != NULL;) {
-            sound_source_t *next = f->fnext;
-
-            sound_source_block(f);
-            f = next;
-        }
-
         src->pos = 0;
-        for (f = src->followers; f != NULL; f = f->fnext)
-            f->pos = 0;
 
         if (src->req_rate != 0.0)
             sound_source_apply_rate(src);
@@ -521,30 +462,6 @@ sound_source_close(void *priv)
     sound_source_t *src = (sound_source_t *) priv;
 
     sound_source_do_close(src);
-
-    if (src->leader != NULL) {
-        sound_source_t **pp = &src->leader->followers;
-
-        while ((*pp != NULL) && (*pp != src))
-            pp = &(*pp)->fnext;
-        if (*pp != NULL)
-            *pp = src->fnext;
-    } else if (src->followers != NULL) {
-        /* Hand the timer over to the first follower. */
-        sound_source_t *n = src->followers;
-        const uint64_t  rem = timer_is_enabled(&src->timer) ? timer_get_remaining_u64(&src->timer) : src->latch;
-
-        n->leader    = NULL;
-        n->followers = n->fnext;
-        n->fnext     = NULL;
-        for (sound_source_t *f = n->followers; f != NULL; f = f->fnext)
-            f->leader = n;
-        n->req_rate  = src->req_rate;
-        n->req_seen  = src->req_seen;
-        n->latch     = src->latch;
-        n->pos       = src->pos;
-        timer_set_delay_u64(&n->timer, rem);
-    }
 
     if (src->prev != NULL)
         src->prev->next    = src->next;
@@ -704,7 +621,7 @@ sound_source_add_stream(const uint8_t stream,
         src->cls = stream + 1;
 
         /* Join the phase of the class, so that its blocks complete together. */
-        if ((src->leader == NULL) && (peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
+        if ((peer != NULL) && (peer != src) && timer_is_enabled(&peer->timer)) {
             src->pos = (int) (((int64_t) peer->pos * src->buffer_size) / peer->buffer_size);
             timer_set_delay_u64(&src->timer, timer_get_remaining_u64(&peer->timer));
         }
