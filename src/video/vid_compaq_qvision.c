@@ -80,6 +80,8 @@ static void
 qvision_update_map(qvision_t *s)
 {
     uint32_t base = ((uint32_t) s->svga.gdcreg[0x48] << 20) | ((uint32_t) (s->svga.gdcreg[0x49] & 15) << 28);
+    /* VGA output uses the RAMDAC's separate 8-bit input port. */
+    bt48x_set_port_select(s->svga.ramdac, qvision_packed(s), &s->svga);
     mem_mapping_disable(&s->highmap);
     s->high_base = base;
     if (s->board_control & 1)
@@ -588,7 +590,7 @@ qvision_out(uint16_t port, uint8_t value, void *priv)
         svga->gdcreg[index] = value;
         if (index == 0x10 && (value & 0x40))
             qvision_host_stop(s);
-        if (index == 0x48 || index == 0x49)
+        if (index == 0x40 || index == 0x48 || index == 0x49)
             qvision_update_map(s);
         svga->fullchange = changeframecount;
         svga_recalctimings(svga);

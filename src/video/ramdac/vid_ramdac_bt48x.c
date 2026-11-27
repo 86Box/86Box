@@ -41,6 +41,7 @@ typedef struct bt48x_ramdac_t {
     uint8_t  cmd_r4;
     uint8_t  status;
     uint8_t  type;
+    uint8_t  port_select;
 } bt48x_ramdac_t;
 
 enum {
@@ -54,7 +55,7 @@ enum {
 static void
 bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
 {
-    if ((!(ramdac->cmd_r2 & 0x20)) || ((ramdac->type >= BT485A) && ((ramdac->cmd_r3 & 0x60) == 0x60)))
+    if (!ramdac->port_select || (!(ramdac->cmd_r2 & 0x20)) || ((ramdac->type >= BT485A) && ((ramdac->cmd_r3 & 0x60) == 0x60)))
         svga->bpp = 8;
     else if ((ramdac->type >= BT485A) && ((ramdac->cmd_r3 & 0x60) == 0x20))
         svga->bpp = 24;
@@ -84,6 +85,17 @@ bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
         }
     }
     svga_recalctimings(svga);
+}
+
+void
+bt48x_set_port_select(void *priv, int selected, svga_t *svga)
+{
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
+
+    if (ramdac->port_select != !!selected) {
+        ramdac->port_select = !!selected;
+        bt48x_set_bpp(ramdac, svga);
+    }
 }
 
 void
@@ -502,7 +514,9 @@ bt48x_ramdac_init(const device_t *info)
 {
     bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) calloc(1, sizeof(bt48x_ramdac_t));
 
-    ramdac->type = info->local;
+    ramdac->type        = info->local;
+    /* Preserve the input selection of cards which do not model PORTSEL. */
+    ramdac->port_select = 1;
 
     /* Set the RAM DAC status byte to the correct ID bits.
 
