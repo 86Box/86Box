@@ -260,6 +260,7 @@ extern uint8_t  hdd_image_get_type(uint8_t id);
 extern void     hdd_image_unload(uint8_t id, int fn_preserve);
 extern void     hdd_image_close(uint8_t id);
 extern void     hdd_image_sync(uint8_t id);
+extern int      hdd_image_flush(uint8_t id);
 extern void     hdd_image_sync_all(void);
 extern void     hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);
 

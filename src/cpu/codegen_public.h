@@ -46,8 +46,22 @@ extern void codegen_flush(void);
 struct page_t;
 extern void codegen_invalidate_page_masks(struct page_t *page);
 
+/*Moves on whenever a translation, the memory map or a block may have
+  changed (codegen_link_epoch_bump()): a link record whose checks passed at
+  this epoch need not check its page's translation or mem_exec (or the
+  target block) again until it does. Never 0, which no record passes*/
+extern uint32_t codegen_link_epoch;
+extern void     codegen_link_epoch_wrap(void);
+static inline void
+codegen_link_epoch_bump(void)
+{
+    if (!++codegen_link_epoch)
+        codegen_link_epoch_wrap();
+}
+
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
 extern uint32_t recomp_page;
 extern int      codegen_in_recompile;
+extern int      codegen_follow_near(void);
 
 #endif

@@ -2833,6 +2833,15 @@ kbc_at_port_1_write(uint16_t port, uint8_t val, void *priv)
 
     dev->ib = val;
     dev->status |= STAT_IFULL;
+
+    /* The 8042 puts a D2/D3 byte in its output buffer within microseconds, and some BIOSes
+       (e.g. Award's for the SiS 85C496) read it back and enable interrupts right after
+       writing it, expecting the IRQ to come at once, before they go on to remap the
+       shadowed BIOS. Waiting for the poll timer delivers it up to 200 us late, by which
+       time the handler may not be mapped in. Taking the parameter now fills the buffer. */
+    if (dev->wantdata && (dev->state == STATE_KBC_PARAM) &&
+        ((dev->command == 0xd2) || (dev->command == 0xd3)))
+        kbc_param_take(dev);
 }
 
 static void

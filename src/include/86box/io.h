@@ -112,6 +112,24 @@ extern int io_turbo_throttle;
 
 extern void io_set_turbo(uint16_t port, int turbo);
 
+/* The block form of word string I/O a device may give one of its ports, for
+   REP INSW and REP OUTSW: moves up to n words as n calls of the port's word
+   handler would, and answers how many it moved. That is at least one when n
+   is not 0; it stops after a word whose handler does more than move data
+   through the device's buffer (the end of a sector or a transfer), and moves
+   that one through the handler. */
+typedef uint32_t (*io_insw_t)(uint16_t port, uint16_t *dst, uint32_t n, void *priv);
+typedef uint32_t (*io_outsw_t)(uint16_t port, const uint16_t *src, uint32_t n, void *priv);
+
+/* Registers the port's block forms (both NULL: none), for the device whose
+   handlers have this priv */
+extern void io_set_string(uint16_t port, io_insw_t insw, io_outsw_t outsw, void *priv);
+/* The port's block reader (write 0) or writer (write 1) and its priv, when
+   a word access there would reach that device's word handler and nothing
+   else; NULL otherwise. With one found, the port access state is as
+   inw()/outw() set it. */
+extern void *io_string_get(uint16_t port, int write, void **priv);
+
 extern uint8_t  inb(uint16_t port);
 extern void     outb(uint16_t port, uint8_t val);
 extern uint16_t inw(uint16_t port);
