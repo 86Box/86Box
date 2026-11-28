@@ -5044,7 +5044,7 @@ ess_dac2_update(void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
-    const int clk = (ess->dsp.clock != NULL) ? *ess->dsp.clock : sound_pos_global;
+    const int clk = (ess->dac2_clock != NULL) ? *ess->dac2_clock : sound_pos_global;
 
     for (; ess->ess_dac2_pos < clk; ess->ess_dac2_pos++) {
         ess->ess_dac2_buffer[ess->ess_dac2_pos * 2]     = *(int16_t *) &ess->ess_dac2_datl;
@@ -5060,6 +5060,13 @@ ess_dac2_poll(void *priv)
     int32_t temp;
 
     timer_advance_u64(&ess->ess_dac2_timer, (uint64_t) ess->ess_dac2_latcho);
+
+    /* Let the host source run at the rate the guest programmed. */
+    if (ess->ess_dac2_enable && (ess->ess_dac2_latcho != ess->dac2_rate_latch) && (ess->ess_dac2_latcho > 0.0)) {
+        ess->dac2_rate_latch = ess->ess_dac2_latcho;
+        sound_source_set_rate(ess->src_dac2, (1000000.0 * (double) TIMER_USEC) / ess->ess_dac2_latcho);
+    }
+
     if (ess->ess_dac2_enable && !ess->ess_dac2_suspend) {
         uint8_t format = ess->ess_dac2_signed ? 0x01 : 0;
         format |= ess->ess_dac2_stereo ? 0x02 : 0;
@@ -5266,6 +5273,16 @@ sb_add_snd_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, vo
     sb->src_snd   = sound_source_add_stream(I_NORMAL, get_buffer, sb);
     sound_source_set_label(sb->src_snd, "Sound Blaster");
     sb->dsp.clock = sound_source_get_pos_ptr(sb->src_snd);
+}
+
+/* The secondary DAC runs on a source of its own, with its own clock, so it
+   must not take the place of the DSP's. */
+static void
+sb_add_dac2_source(sb_t *sb)
+{
+    sb->src_dac2   = sound_source_add_stream(I_NORMAL, sb_get_buffer_ess_dac2, sb);
+    sound_source_set_label(sb->src_dac2, "DAC2");
+    sb->dac2_clock = sound_source_get_pos_ptr(sb->src_dac2);
 }
 
 static void
@@ -6970,7 +6987,7 @@ ess_1x88_onboard_init(const device_t *info)
     }
     /* ES188x secondary DAC */
     if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888) {
-        sb_add_snd_source(ess, sb_get_buffer_ess_dac2);
+        sb_add_dac2_source(ess);
         timer_add(&ess->ess_dac2_timer, ess_dac2_poll, ess, 0);
         if ((is_compaq) || (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1887)) { /* 1887 and Compaq 1888 */
             ess->ess_dac2_irq = 0; /* Use shared IRQ */
@@ -7115,7 +7132,7 @@ ess_186x_init(const device_t *info)
     if (ess->has_ide)
         ide_remove_handlers(3);
 
-    sb_add_snd_source(ess, sb_get_buffer_ess_dac2);
+    sb_add_dac2_source(ess);
     timer_add(&ess->ess_dac2_timer, ess_dac2_poll, ess, 0);
     ess->ess_dac2_irq = 0; /* Use shared IRQ */
     ess->ess_dac2_dma = ISAPNP_DMA_DISABLED;
@@ -7639,6 +7656,7 @@ sb_close(void *priv)
     sound_source_remove(sb->src_cms);
     sound_source_remove(sb->src_music);
     sound_source_remove(sb->src_wt);
+    sound_source_remove(sb->src_dac2);
 
     sb_dsp_close(&sb->dsp);
 

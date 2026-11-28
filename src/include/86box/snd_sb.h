@@ -270,6 +270,11 @@ typedef struct sb_t {
     void   *src_cms;
     void   *src_music;
     void   *src_wt;
+    void   *src_dac2;
+
+    /* The ES188x/ES186x secondary DAC's own source clock and period. */
+    const int *dac2_clock;
+    double     dac2_rate_latch;
 } sb_t;
 
 typedef struct goldfinch_t {
