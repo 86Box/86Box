@@ -25354,11 +25354,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-#ifdef USE_AIC7890
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB | MACHINE_SCSI,
-#else
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB,
-#endif
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB | MACHINE_SCSI, /* Machine has internal SCSI: Adaptec AIC-7890AB */
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -25382,9 +25378,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = &i82558b_onboard_device,
-#ifdef USE_AIC7890
         .scsi_device              = &aic7890_pci_device,
-#endif
         .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -26855,11 +26849,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-#ifdef USE_AIC7890
         .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
-#else
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
-#endif
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -26883,9 +26873,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-#ifdef USE_AIC7890
         .scsi_device              = &aic7890_pci_device,
-#endif
         .aliases                  = { "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -26911,11 +26899,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-#ifdef USE_AIC7890
         .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
-#else
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
-#endif
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -26939,9 +26923,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-#ifdef USE_AIC7890
         .scsi_device              = &aic7890_pci_device,
-#endif
         .aliases                  = { "Supermicro S2DGE", "Supermicro S2DGU", "" }
     },
 

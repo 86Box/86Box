@@ -109,9 +109,7 @@ static SCSI_CARD scsi_cards[] = {
     { &aha2940_pci_device,       },
     { &aha2940u_pci_device,      },
     { &aha2944uw_pci_device,     },
-#ifdef USE_AIC7890
     { &aha2940u2w_pci_device,    },
-#endif /* USE_AIC7890 */
     { &am53c974_pci_device,      },
     { &am53c974a_pci_device,     },
     { &buslogic_958d_pci_device, },

@@ -7082,7 +7082,6 @@ static const device_config_t aha2944uw_config[] = {
     // clang-format on
 };
 
-#ifdef USE_AIC7890
 static const device_config_t aha2940u2w_config[] = {
     // clang-format off
     {
@@ -7121,7 +7120,6 @@ static const device_config_t aha2940u2w_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
-#endif
 
 /* The bare chip, as found on a motherboard. It is not in the card list:
    a machine that has one adds it itself. */
@@ -7141,7 +7139,6 @@ const device_t aic7880_pci_device = {
     .scsi_buses    = aic_scsi_buses
 };
 
-#ifdef USE_AIC7890
 /* The AIC-7890 on a motherboard. It answers as 9005:001F with no
    subsystem ID, and the board's own firmware is where its BIOS lives, so
    it brings no option ROM of its own. */
@@ -7160,7 +7157,6 @@ const device_t aic7890_pci_device = {
     .short_name    = "AIC-7890",
     .scsi_buses    = aic_scsi_buses
 };
-#endif
 
 /* Until the models became options each board had an entry of its own. A
    configuration naming one of those becomes the entry that covers it, with
@@ -7296,7 +7292,6 @@ const device_t aha2944uw_pci_device = {
     .scsi_buses    = aic_scsi_buses
 };
 
-#ifdef USE_AIC7890
 /* The AIC-7890A card: Ultra2 Wide, the first of the family with the
    command channel and the scatter/gather shadow layer. */
 const device_t aha2940u2w_pci_device = {
@@ -7314,4 +7309,3 @@ const device_t aha2940u2w_pci_device = {
     .short_name    = "AHA-2940U2W",
     .scsi_buses    = aic_scsi_buses
 };
-#endif

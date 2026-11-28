@@ -20,16 +20,12 @@
 #define SCSI_AIC7XXX_H
 
 extern const device_t aic7880_pci_device;
-#ifdef USE_AIC7890
 extern const device_t aic7890_pci_device;
-#endif /* USE_AIC7890 */
 extern const device_t aha274x_device;
 extern const device_t aha2940_pci_device;
 extern const device_t aha2940u_pci_device;
 extern const device_t aha2944uw_pci_device;
-#ifdef USE_AIC7890
 extern const device_t aha2940u2w_pci_device;
-#endif /* USE_AIC7890 */
 
 /* A card entry from before the models became options: the internal name it
    is now, with its settings moved over (or NULL for any other name). */
