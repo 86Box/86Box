@@ -63,6 +63,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     int         j                   = 0;
     int         cur_j               = 0;
     const void *miname;
+    QSignalBlocker machineTypeSignals(ui->comboBoxMachineType);
     Models::Batch machineTypeRows(machineTypesModel);
     do {
         miname = machine_get_internal_name_ex(j);
@@ -89,12 +90,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     machineTypeRows.commit();
 
     auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
-    ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
-    ui->softFloatWarningIcon->setVisible(false);
-    ui->softFloatWarningText->setVisible(false);
-    ui->debugRegs486WarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
-    ui->debugRegs486WarningIcon->setVisible(false);
-    ui->debugRegs486WarningText->setVisible(false);
+    ui->accuracyWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
 
     auto *waitStatesModel = ui->comboBoxWaitStates->model();
     waitStatesModel->insertRows(0, 9);
@@ -107,20 +103,12 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         waitStatesModel->setData(idx, i + 1, Qt::UserRole);
     }
 
-    auto *pitModeModel = ui->comboBoxPitMode->model();
-    pitModeModel->insertRows(0, 3);
-    idx = pitModeModel->index(0, 0);
-    pitModeModel->setData(idx, tr("Auto"), Qt::DisplayRole);
-    pitModeModel->setData(idx, -1, Qt::UserRole);
-    idx = pitModeModel->index(1, 0);
-    pitModeModel->setData(idx, tr("Slow"), Qt::DisplayRole);
-    pitModeModel->setData(idx, 0, Qt::UserRole);
-    idx = pitModeModel->index(2, 0);
-    pitModeModel->setData(idx, tr("Fast"), Qt::DisplayRole);
-    pitModeModel->setData(idx, 1, Qt::UserRole);
-
-    ui->comboBoxPitMode->setCurrentIndex(-1);
-    ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
+    if (pit_mode == 0)
+        ui->radioButtonPitModeAccurate->setChecked(true);
+    else if (pit_mode == 1)
+        ui->radioButtonPitModeFast->setChecked(true);
+    else
+        ui->radioButtonPitModeAuto->setChecked(true);
 
     ui->groupBoxTimeSync->setChecked(time_sync & TIME_SYNC_ENABLED);
     if (time_sync & TIME_SYNC_UTC)
@@ -173,11 +161,23 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     updateTimeControlsEnabled();
     updateGuestYearLabel();
 
-    ui->comboBoxMachineType->setCurrentIndex(-1);
-    ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
+    preferredWaitStates = cpu_waitstates;
+    preferSoftFloat = fpu_softfloat != 0;
+    connect(ui->comboBoxWaitStates, QOverload<int>::of(&QComboBox::activated), this,
+            [this](int index) { preferredWaitStates = index; });
+    connect(ui->checkBoxFPUSoftfloat, &QCheckBox::clicked, this,
+            [this](bool checked) { preferSoftFloat = checked; });
+#ifdef USE_DYNAREC
+    preferDynarec = cpu_use_dynarec != 0;
+    connect(ui->checkBoxDynamicRecompiler, &QCheckBox::clicked, this,
+            [this](bool checked) { preferDynarec = checked; });
+#endif
+    ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
+    ui->checkBoxBlockLinking->setChecked(cpu_dyn_block_link);
 
-    ui->radioButtonLargerFrames->setChecked(force_10ms);
-    ui->radioButtonSmallerFrames->setChecked(!force_10ms);
+    ui->comboBoxMachineType->setCurrentIndex(-1);
+    machineTypeSignals.unblock();
+    ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
 
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
     ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
@@ -187,9 +187,8 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
     ui->checkBoxDynamicRecompiler->setVisible(false);
-    ui->checkBoxBlockLinking->setVisible(false);
-#else
-    ui->checkBoxBlockLinking->setVisible(codegen_has_block_link);
+    ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
+    ui->checkBoxAccurateFPUEnvironment->setVisible(false);
 #endif
 }
 
@@ -218,26 +217,10 @@ SettingsMachine::changed()
 #ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
     has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
-    has_changed |= (cpu_dyn_block_link         != (ui->checkBoxBlockLinking->isChecked() ? 1 : 0));
 #endif
     has_changed |= (fpu_softfloat              != (ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0));
-    has_changed |= (force_10ms                 != (ui->radioButtonLargerFrames->isChecked() ? 1 : 0));
 
-    int64_t temp_mem_size;
-    if (machine_get_ram_granularity(machine) < 1024)
-        temp_mem_size = ui->spinBoxRAM->value();
-    else
-        temp_mem_size = ui->spinBoxRAM->value() * 1024;
-
-    const int gran = machine_get_ram_granularity(machine);
-    const int min  = machine_get_min_ram(machine);
-    if (temp_mem_size > min)
-        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
-    if (temp_mem_size < machine_get_min_ram(machine))
-        temp_mem_size = machine_get_min_ram(machine);
-    else if (temp_mem_size > machine_get_max_ram(machine))
-        temp_mem_size = machine_get_max_ram(machine);
-    has_changed |= (mem_size                   != static_cast<uint32_t>(temp_mem_size));
+    has_changed |= (mem_size                   != selectedRamKiB());
 
     if (ui->comboBoxWaitStates->isEnabled())
         temp = ui->comboBoxWaitStates->currentData().toInt();
@@ -245,7 +228,7 @@ SettingsMachine::changed()
         temp = 0;
     has_changed |= (cpu_waitstates             != temp);
 
-    has_changed |= (pit_mode                   !=  ui->comboBoxPitMode->currentData().toInt());
+    has_changed |= (pit_mode                   != pitMode());
 
     int sync;
     int offset_years;
@@ -271,6 +254,19 @@ SettingsMachine::currentMachineId() const
     return ui->comboBoxMachine->currentData().toInt();
 }
 
+uint32_t
+SettingsMachine::selectedRamKiB() const
+{
+    const int machineId = currentMachineId();
+    const int granularity = machine_get_ram_granularity(machineId);
+    const int minimum = machine_get_min_ram(machineId);
+    const int maximum = machine_get_max_ram(machineId);
+    const int ram = qBound(minimum, ui->spinBoxRAM->value() * ramUnitKiB, maximum);
+    if (granularity == 0)
+        return ram;
+    return minimum + ((ram - minimum) / granularity) * granularity;
+}
+
 void
 SettingsMachine::save(int soft)
 {
@@ -288,35 +284,30 @@ SettingsMachine::save(int soft)
 #ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
-    cpu_dyn_block_link       = ui->checkBoxBlockLinking->isChecked() ? 1 : 0;
 #endif
     fpu_softfloat            = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
-    force_10ms               = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
 
-    int64_t temp_mem_size;
-    if (machine_get_ram_granularity(machine) < 1024)
-        temp_mem_size = ui->spinBoxRAM->value();
-    else
-        temp_mem_size = ui->spinBoxRAM->value() * 1024;
-
-    const int gran = machine_get_ram_granularity(machine);
-    const int min  = machine_get_min_ram(machine);
-    if (temp_mem_size > min)
-        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
-    if (temp_mem_size < machine_get_min_ram(machine))
-        temp_mem_size = machine_get_min_ram(machine);
-    else if (temp_mem_size > machine_get_max_ram(machine))
-        temp_mem_size = machine_get_max_ram(machine);
-    mem_size = static_cast<uint32_t>(temp_mem_size);
+    mem_size = selectedRamKiB();
 
     if (ui->comboBoxWaitStates->isEnabled())
         cpu_waitstates = ui->comboBoxWaitStates->currentData().toInt();
     else
         cpu_waitstates = 0;
 
-    pit_mode = ui->comboBoxPitMode->currentData().toInt();
+    pit_mode = pitMode();
 
     timeSyncSettings(time_sync, time_offset_years, time_fixed_year, time_keep_date);
+}
+
+/* The PIT mode the page selects: -1 auto, 0 accurate, 1 fast. */
+int
+SettingsMachine::pitMode() const
+{
+    if (ui->radioButtonPitModeAccurate->isChecked())
+        return 0;
+    if (ui->radioButtonPitModeFast->isChecked())
+        return 1;
+    return -1;
 }
 
 /* The time sync settings the page currently describes. At most one date mode
@@ -383,8 +374,37 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
         const auto *device    = machine_get_device(machineId);
         ui->pushButtonConfigure->setEnabled((device != nullptr) && (device->config != nullptr));
 
-        refreshCpuChoices(machineId, cpu_f ? static_cast<int>(cpu_f - cpu_families) : -1, cpu);
+        const QVariant currentFamily = ui->comboBoxCPU->currentData();
+        const auto *preferredFamily = currentFamily.isValid() ? &cpu_families[currentFamily.toInt()] : cpu_f;
+        const QVariant currentSpeed = ui->comboBoxSpeed->currentData();
+        const int preferredSpeed = currentSpeed.isValid() ? currentSpeed.toInt() : cpu;
 
+        auto *modelCpu   = ui->comboBoxCPU->model();
+        int   removeRows = modelCpu->rowCount();
+        QSignalBlocker cpuSignals(ui->comboBoxCPU);
+
+        int i                    = 0;
+        int eligibleRows         = 0;
+        int selectedCpuFamilyRow = 0;
+        Models::Batch cpuRows(modelCpu);
+        while (cpu_families[i].package != 0) {
+            if (cpu_family_is_eligible(&cpu_families[i], machineId)) {
+                cpuRows.add(QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
+                if (&cpu_families[i] == preferredFamily)
+                    selectedCpuFamilyRow = eligibleRows;
+                ++eligibleRows;
+            }
+            ++i;
+        }
+        cpuRows.commit();
+        modelCpu->removeRows(0, removeRows);
+        ui->comboBoxCPU->setEnabled(eligibleRows > 1);
+        ui->comboBoxCPU->setCurrentIndex(selectedCpuFamilyRow);
+        cpuSignals.unblock();
+        const auto *selectedFamily = &cpu_families[ui->comboBoxCPU->currentData().toInt()];
+        updateCpuSpeeds(selectedFamily == preferredFamily ? preferredSpeed : 0);
+
+        const int pendingRam = ramUnitKiB ? ui->spinBoxRAM->value() * ramUnitKiB : mem_size;
         int divisor;
         if (machine_get_ram_granularity(machineId) < 1024) {
             divisor = 1;
@@ -396,7 +416,8 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
         ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId) / divisor);
         ui->spinBoxRAM->setMaximum(machine_get_max_ram(machineId) / divisor);
         ui->spinBoxRAM->setSingleStep(machine_get_ram_granularity(machineId) / divisor);
-        ui->spinBoxRAM->setValue(mem_size / divisor);
+        ui->spinBoxRAM->setValue(pendingRam / divisor);
+        ramUnitKiB = divisor;
         ui->spinBoxRAM->setEnabled(machine_get_min_ram(machineId) != machine_get_max_ram(machineId));
 
         emit currentMachineChanged(machineId);
@@ -438,33 +459,37 @@ void
 SettingsMachine::on_comboBoxCPU_currentIndexChanged(int index)
 {
     if (index >= 0) {
-        int         machineId   = ui->comboBoxMachine->currentData().toInt();
-        int         cpuFamilyId = ui->comboBoxCPU->currentData().toInt();
-        const auto *cpuFamily   = &cpu_families[cpuFamilyId];
-
-        auto *modelSpeed = ui->comboBoxSpeed->model();
-        int   removeRows = modelSpeed->rowCount();
-
-        // win_settings_machine_recalc_cpu_m
-        int i                = 0;
-        int eligibleRows     = 0;
-        int selectedSpeedRow = 0;
-        Models::Batch speedRows(modelSpeed);
-        while (cpuFamily->cpus[i].cpu_type != 0) {
-            if (cpu_is_eligible(cpuFamily, i, machineId)) {
-                speedRows.add(QString("%1").arg(cpuFamily->cpus[i].name), i);
-                if (cpu == i)
-                    selectedSpeedRow = eligibleRows;
-                ++eligibleRows;
-            }
-            ++i;
-        }
-        speedRows.commit();
-        modelSpeed->removeRows(0, removeRows);
-        ui->comboBoxSpeed->setEnabled(eligibleRows > 1);
-        ui->comboBoxSpeed->setCurrentIndex(-1);
-        ui->comboBoxSpeed->setCurrentIndex(selectedSpeedRow);
+        const auto *family = &cpu_families[ui->comboBoxCPU->currentData().toInt()];
+        updateCpuSpeeds(family == cpu_f ? cpu : 0);
     }
+}
+
+void
+SettingsMachine::updateCpuSpeeds(int preferredSpeed)
+{
+    const int machineId = currentMachineId();
+    const auto *cpuFamily = &cpu_families[ui->comboBoxCPU->currentData().toInt()];
+    auto *model = ui->comboBoxSpeed->model();
+    const int removeRows = model->rowCount();
+    QSignalBlocker speedSignals(ui->comboBoxSpeed);
+
+    int eligibleRows = 0;
+    int selectedRow = 0;
+    Models::Batch rows(model);
+    for (int i = 0; cpuFamily->cpus[i].cpu_type != 0; ++i) {
+        if (cpu_is_eligible(cpuFamily, i, machineId)) {
+            rows.add(QString::fromUtf8(cpuFamily->cpus[i].name), i);
+            if (i == preferredSpeed)
+                selectedRow = eligibleRows;
+            ++eligibleRows;
+        }
+    }
+    rows.commit();
+    model->removeRows(0, removeRows);
+    ui->comboBoxSpeed->setEnabled(eligibleRows > 1);
+    ui->comboBoxSpeed->setCurrentIndex(selectedRow);
+    speedSignals.unblock();
+    on_comboBoxSpeed_currentIndexChanged(ui->comboBoxSpeed->currentIndex());
 }
 
 void
@@ -481,7 +506,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         /* The Tandy VIS has no wait states. */
         if ((cpuType >= CPU_286) && (cpuType < CPU_386DX) && machines[machineId].init != machine_at_tandy_vis_init) {
             ui->comboBoxWaitStates->setEnabled(true);
-            ui->comboBoxWaitStates->setCurrentIndex(cpu_waitstates);
+            ui->comboBoxWaitStates->setCurrentIndex(preferredWaitStates);
         } else {
             ui->comboBoxWaitStates->setCurrentIndex(0);
             ui->comboBoxWaitStates->setEnabled(false);
@@ -493,22 +518,18 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
             ui->checkBoxDynamicRecompiler->setChecked(false);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
-            ui->checkBoxBlockLinking->setEnabled(false);
         } else if ((flags & CPU_REQUIRES_DYNAREC) && !cpu_override) {
             ui->checkBoxDynamicRecompiler->setChecked(true);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(true);
-            ui->checkBoxBlockLinking->setEnabled(true);
         } else {
-            ui->checkBoxDynamicRecompiler->setChecked(cpu_use_dynarec);
+            ui->checkBoxDynamicRecompiler->setChecked(preferDynarec);
             ui->checkBoxDynamicRecompiler->setEnabled(true);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(cpu_use_dynarec);
-            ui->checkBoxBlockLinking->setEnabled(cpu_use_dynarec);
         }
 #endif
 
         ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
-        ui->checkBoxBlockLinking->setChecked(cpu_dyn_block_link);
 
         if ((cpuType < CPU_286) || (cpuType == CPU_IBM486SLC) || (cpuType == CPU_IBM486BL) ||
             !strcmp(cpuFamily->manufacturer, "Cyrix") || !strcmp(cpuFamily->manufacturer, "ST") ||
@@ -524,6 +545,9 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         ui->checkBoxWeitek4167->setEnabled(weitek_4167_supported(cpuFamily, machineId));
         auto *modelFpu    = ui->comboBoxFPU->model();
         int   removeRows  = modelFpu->rowCount();
+        const QVariant currentFpu = ui->comboBoxFPU->currentData();
+        const int preferredFpu = currentFpu.isValid() ? currentFpu.toInt() : fpu_type;
+        QSignalBlocker fpuSignals(ui->comboBoxFPU);
 
         int i              = 0;
         int row            = 0;
@@ -535,7 +559,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
             if (noFpuSocket && (fpuType != FPU_NONE) && (fpuType != FPU_INTERNAL))
                 continue;
             fpuRows.add(tr(fpuName), fpuType);
-            if (fpu_type == fpuType)
+            if (preferredFpu == fpuType)
                 selectedFpuRow = row;
             row++;
         }
@@ -543,8 +567,9 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         fpuRows.commit();
         modelFpu->removeRows(0, removeRows);
         ui->comboBoxFPU->setEnabled(modelFpu->rowCount() > 1);
-        ui->comboBoxFPU->setCurrentIndex(-1);
         ui->comboBoxFPU->setCurrentIndex(selectedFpuRow);
+        fpuSignals.unblock();
+        on_comboBoxFPU_currentIndexChanged(ui->comboBoxFPU->currentIndex());
     }
 }
 
@@ -560,7 +585,7 @@ SettingsMachine::on_comboBoxFPU_currentIndexChanged(int index)
             ui->checkBoxFPUSoftfloat->setChecked(false);
             ui->checkBoxFPUSoftfloat->setEnabled(false);
         } else {
-            ui->checkBoxFPUSoftfloat->setChecked(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ? true : fpu_softfloat);
+            ui->checkBoxFPUSoftfloat->setChecked(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) || preferSoftFloat);
             ui->checkBoxFPUSoftfloat->setEnabled(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ? false : true);
         }
     }
@@ -607,43 +632,11 @@ SettingsMachine::on_pushButtonConfigure_clicked()
 }
 
 void
-SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state)
-{
-    if (state == Qt::Checked) {
-        ui->softFloatWarningIcon->setVisible(true);
-        ui->softFloatWarningText->setVisible(true);
-    } else {
-        ui->softFloatWarningIcon->setVisible(false);
-        ui->softFloatWarningText->setVisible(false);
-    }
-}
-
-void
-SettingsMachine::on_checkBoxDebugRegs486_stateChanged(int state)
-{
-    ui->debugRegs486WarningIcon->setVisible(state == Qt::Checked);
-    ui->debugRegs486WarningText->setVisible(state == Qt::Checked);
-}
-
-void
 SettingsMachine::on_checkBoxDynamicRecompiler_stateChanged(int state)
 {
 #ifdef USE_DYNAREC
     ui->checkBoxAccurateFPUEnvironment->setEnabled(state);
-    ui->checkBoxBlockLinking->setEnabled(state);
 #endif
-}
-
-void
-SettingsMachine::on_radioButtonSmallerFrames_clicked()
-{
-    ui->radioButtonLargerFrames->setChecked(false);
-}
-
-void
-SettingsMachine::on_radioButtonLargerFrames_clicked()
-{
-    ui->radioButtonSmallerFrames->setChecked(false);
 }
 
 void

@@ -15,6 +15,7 @@
  *          Copyright 2021 Joakim L. Gilje
  */
 #include <cstdint>
+#include <QSignalBlocker>
 
 extern "C" {
 #include <inttypes.h>
@@ -384,21 +385,73 @@ SettingsFloppyCDROM::~SettingsFloppyCDROM()
 void
 SettingsFloppyCDROM::onCurrentMachineChanged(int machineId)
 {
-    const bool fixed = machines[machineId].init == machine_ibm5140_init;
-    auto *model = ui->treeViewFloppy->model();
-    ui->comboBoxFloppyType->setEnabled(!fixed);
-    ui->checkBoxTurboTimings->setEnabled(!fixed);
-    for (int i = 0; i < FDD_NUM; i++) {
-        ui->treeViewFloppy->setRowHidden(i, QModelIndex(), fixed && i >= 2);
-        if (fixed) {
+    const auto init = machines[machineId].init;
+    auto layout = FloppyLayout::Configurable;
+    if (init == machine_ibm5140_init)
+        layout = FloppyLayout::Convertible;
+    else if (init == machine_at_tandy_vis_init)
+        layout = FloppyLayout::NoDrives;
+
+    if (layout != floppyLayout) {
+        const bool configurable = layout == FloppyLayout::Configurable;
+        const bool noDrives = layout == FloppyLayout::NoDrives;
+        const bool wasConfigurable = floppyLayout == FloppyLayout::Configurable;
+        const bool hadNoDrives = floppyLayout == FloppyLayout::NoDrives;
+        auto *view = ui->treeViewFloppy;
+        auto *model = view->model();
+        const QSignalBlocker selectionSignals(view->selectionModel());
+        if (wasConfigurable)
+            pendingFloppies.resize(FDD_NUM);
+
+        const int fixedType = fdd_get_from_internal_name((char *) "35_2dd");
+        for (int i = 0; i < FDD_NUM; ++i) {
             const auto idx = model->index(i, 0);
-            setFloppyType(model, idx, i < 2 ? fdd_get_from_internal_name((char *) "35_2dd") : 0);
-            model->setData(idx.siblingAtColumn(1), tr("Off"));
+            const auto turbo = idx.siblingAtColumn(1);
+            const int oldType = idx.data(Qt::UserRole).toInt();
+            auto &pending = pendingFloppies[i];
+            if (wasConfigurable)
+                pending = { oldType, turbo.data() == tr("On"), ifa[i] };
+            else if (noDrives && oldType == pending.type)
+                pending.audioProfile = ifa[i];
+
+            int type = 0;
+            if (configurable)
+                type = pending.type;
+            else if (!noDrives && i < 2)
+                type = fixedType;
+
+            if (noDrives)
+                ifa[i] = 0;
+            else if (hadNoDrives || type != oldType)
+                ifa[i] = type == pending.type ? pending.audioProfile : 0;
+            setFloppyType(model, idx, type);
+            model->setData(turbo, configurable && pending.turbo ? tr("On") : tr("Off"));
+            view->setRowHidden(i, QModelIndex(), noDrives || (!configurable && i >= 2));
+            Harddrives::busTrackClass->device_track(type != 0, DEV_FDD, TAPE_BUS_FDC, i);
         }
+
+        if (!noDrives && (!configurable || !view->currentIndex().isValid()))
+            view->setCurrentIndex(model->index(0, 0));
+        if (configurable)
+            pendingFloppies.clear();
+
+        ui->comboBoxFloppyType->setEnabled(configurable);
+        ui->checkBoxTurboTimings->setEnabled(configurable);
+        if (noDrives != hadNoDrives) {
+            auto *tabs = ui->tabWidgetFloppyCDROM;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+            tabs->setTabVisible(tabs->indexOf(ui->tabFloppy), !noDrives);
+#else
+            if (noDrives)
+                tabs->removeTab(tabs->indexOf(ui->tabFloppy));
+            else
+                tabs->insertTab(0, ui->tabFloppy, QIcon(":/settings/qt/icons/floppy_tab.ico"), tr("Floppy drives"));
+#endif
+        }
+        floppyLayout = layout;
     }
-    if (fixed)
-        ui->treeViewFloppy->setCurrentIndex(model->index(0, 0));
-    onFloppyRowChanged(ui->treeViewFloppy->currentIndex());
+    if (layout != FloppyLayout::NoDrives)
+        onFloppyRowChanged(ui->treeViewFloppy->currentIndex());
 }
 
 int
@@ -491,6 +544,9 @@ SettingsFloppyCDROM::save(int soft)
 void
 SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
 {
+    if (!current.isValid())
+        return;
+
     int type = current.siblingAtColumn(0).data(Qt::UserRole).toInt();
     ui->comboBoxFloppyType->setCurrentIndex(type);
     ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == tr("On"));
@@ -666,13 +722,10 @@ SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 void
 SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 {
-    auto    idx  = ui->treeViewFloppy->selectionModel()->currentIndex();
-    int     prof = ui->comboBoxFloppyAudio->currentData().toInt();
-
 #ifndef DISABLE_FDD_AUDIO
-    ifa[idx.row()] = prof;
-#else
-    ifa[i] = 0;
+    const auto idx = ui->treeViewFloppy->currentIndex();
+    if (idx.isValid())
+        ifa[idx.row()] = ui->comboBoxFloppyAudio->currentData().toInt();
 #endif
 }
 

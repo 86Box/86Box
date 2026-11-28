@@ -111,6 +111,8 @@ SettingsPcmcia::SettingsPcmcia(QWidget *parent)
                 k.host->setCurrentIndex(k.host->count() - 1);
         }
         form->addRow(k.hostLabel, k.host);
+        k.slirpFwd = new QPushButton(tr("Port Forwarding…"));
+        form->addRow(QString(), k.slirpFwd);
 
         layout->addWidget(k.group);
 
@@ -121,6 +123,15 @@ SettingsPcmcia::SettingsPcmcia(QWidget *parent)
         connect(k.netType, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, s](int) { updateSocket(s); });
         connect(k.configure, &QPushButton::clicked, this, [this, s]() {
             sock[s].cfgChanged |= DeviceConfig::ConfigureDevice(pcmcia_card_get_device(sock[s].card->currentData().toInt()), s + 1);
+        });
+        connect(k.slirpFwd, &QPushButton::clicked, this, [this, s]() {
+            /* The PC Card sockets follow the four adapters of the
+               Network settings in the forwarding rule numbering. */
+            SlirpForwardingDialog dlg(NET_CARD_MAX + s, this);
+            if (dlg.exec() == QDialog::Accepted) {
+                fwdNew[s]     = dlg.rules();
+                fwdChanged[s] = dlg.changed();
+            }
         });
     }
     layout->addStretch();
@@ -156,12 +167,14 @@ SettingsPcmcia::updateSocket(int s)
     const int  c   = k.card->currentData().toInt();
     const bool net = pcmcia_card_is_network(c);
     const bool cap = net && (k.netType->currentData().toInt() == NET_TYPE_PCAP);
+    const bool slirp = net && (k.netType->currentData().toInt() == NET_TYPE_SLIRP);
 
     k.configure->setEnabled(pcmcia_card_has_config(c));
     k.netLabel->setVisible(net);
     k.netType->setVisible(net);
     k.hostLabel->setVisible(cap);
     k.host->setVisible(cap);
+    k.slirpFwd->setVisible(slirp);
 }
 
 int
@@ -181,6 +194,7 @@ SettingsPcmcia::cardSettingsChanged(int s) const
     if (pcmcia_card_is_network(c)) {
         const int t = sock[s].netType->currentData().toInt();
         changed |= (t != pcmcia_net_type[s]);
+        changed |= fwdChanged[s];
         if ((t == NET_TYPE_PCAP) && (hostIndex(s) >= 0))
             changed |= strcmp(network_devs[hostIndex(s)].device, pcmcia_net_host[s]) != 0;
     }
@@ -228,6 +242,14 @@ SettingsPcmcia::save(int soft)
     for (int s = 0; s < PCMCIA_SOCKETS; s++) {
         type[s]  = sock[s].card->currentData().toInt();
         again[s] = (type[s] == pcmcia_card_type[s]) && (type[s] > 0) && cardSettingsChanged(s);
+    }
+
+    /* Write the port forwarding rules the dialog accepted, before the
+       requests below (re-)attach a card whose SLiRP reads them. */
+    for (int s = 0; s < PCMCIA_SOCKETS; s++) {
+        if (fwdChanged[s])
+            SlirpForwardingDialog::writeRules(NET_CARD_MAX + s, fwdNew[s]);
+        fwdChanged[s] = false;
     }
 
     pcmcia_enabled = hasIsaBus(machineId) && enable->isChecked();

@@ -462,51 +462,6 @@
        </item>
  
        <item>
-        <layout class="QHBoxLayout" name="softFloatLayout">
-         <item>
-          <widget class="QCheckBox" name="checkBoxFPUSoftfloat">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>3</horstretch>
-             <verstretch>3</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string>Softfloat FPU</string>
-            </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="softFloatWarningIcon">
-           <property name="text">
-            <string/>
-           </property>
-          </widget>
-         </item>
-          <item>
-          <widget class="QLabel" name="softFloatWarningText">
-           <property name="text">
-            <string>High performance impact</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="softFloatHorizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-
-       <item>
         <widget class="QCheckBox" name="checkBoxWeitek">
          <property name="enabled">
           <bool>false</bool>
@@ -560,230 +515,177 @@
       <layout class="QVBoxLayout" name="verticalLayoutPerformance">
 
        <item>
-        <widget class="QWidget" name="widget_5" native="true">
-         <layout class="QGridLayout" name="gridLayout_3">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="labelPITMode">
-            <property name="text">
-             <string>PIT mode:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QComboBox" name="comboBoxPitMode">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maxVisibleItems">
-             <number>30</number>
-            </property>
-           </widget>
-          </item>
+        <layout class="QHBoxLayout" name="pitModeRowLayout">
+         <item>
+          <widget class="QWidget" name="widgetPitMode" native="true">
+           <property name="toolTip">
+            <string>How the emulated programmable interval timer (PIT) works.
+Some software reads its counters for precise timing.
 
-         </layout>
+Auto: Chooses the recommended mode for the selected machine.
+Accurate: Advances the counters on every tick like the real chip, but is slower.
+Fast: Only updates the counters on demand, which may break timing-sensitive software.</string>
+           </property>
+           <layout class="QHBoxLayout" name="pitModeLayout">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="labelPITMode">
+              <property name="text">
+               <string>PIT mode:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radioButtonPitModeAuto">
+              <property name="text">
+               <string>Auto</string>
+              </property>
+              <attribute name="buttonGroup">
+               <string notr="true">buttonGroupPitMode</string>
+              </attribute>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radioButtonPitModeAccurate">
+              <property name="text">
+               <string>Accurate</string>
+              </property>
+              <attribute name="buttonGroup">
+               <string notr="true">buttonGroupPitMode</string>
+              </attribute>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radioButtonPitModeFast">
+              <property name="text">
+               <string>Fast</string>
+              </property>
+              <attribute name="buttonGroup">
+               <string notr="true">buttonGroupPitMode</string>
+              </attribute>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="pitModeHorizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+
+       <item>
+        <widget class="QCheckBox" name="checkBoxDynamicRecompiler">
+         <property name="toolTip">
+          <string>Translates guest code into host code in blocks instead of interpreting it one instruction at a time. Much faster, and required by the fastest processors.</string>
+         </property>
+         <property name="text">
+          <string>Dynamic recompiler</string>
+         </property>
         </widget>
        </item>
 
        <item>
-       <layout class="QHBoxLayout" name="overrideInterpreterLayout">
-        <item>
         <widget class="QCheckBox" name="checkBoxOverrideInterpreter">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>2</horstretch>
-           <verstretch>2</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Use the 486 interpreter for 286 and 386 processors</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
+         <property name="toolTip">
+          <string>Runs these processors on the faster interpreter used for the 486 instead of their own, more accurate one. Has no effect while the dynamic recompiler is on.</string>
+         </property>
+         <property name="text">
+          <string>Use the 486 interpreter for 286 and 386 processors</string>
+         </property>
+        </widget>
+       </item>
 
-      <item>
-       <layout class="QHBoxLayout" name="dynamicRecompilerLayout">
-        <item>
-        <widget class="QCheckBox" name="checkBoxDynamicRecompiler">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>2</horstretch>
-           <verstretch>2</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Dynamic recompiler</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-
-      <item>
-       <layout class="QHBoxLayout" name="accurateFPUEnvironmentLayout">
-        <item>
-        <widget class="QCheckBox" name="checkBoxAccurateFPUEnvironment">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>2</horstretch>
-           <verstretch>2</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Accurate FPU environment on the dynamic recompiler</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-
-      <item>
-       <layout class="QHBoxLayout" name="blockLinkingLayout">
-        <item>
-        <widget class="QCheckBox" name="checkBoxBlockLinking">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>2</horstretch>
-           <verstretch>2</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Block linking on the dynamic recompiler</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-
-      <item>
-       <layout class="QHBoxLayout" name="debugRegs486Layout">
-        <item>
-        <widget class="QCheckBox" name="checkBoxDebugRegs486">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>2</horstretch>
-           <verstretch>2</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Debug registers on 486 and later processors</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="debugRegs486WarningIcon">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="debugRegs486WarningText">
-          <property name="text">
-           <string>High performance impact</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="debugRegs486HorizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-
-      <item>
-       <layout class="QHBoxLayout" name="groupBoxesLayout_2">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayoutCPUFrameSize">
+       <item>
+        <widget class="QGroupBox" name="groupBoxAccuracy">
+         <property name="title">
+          <string>Accuracy</string>
+         </property>
+         <layout class="QVBoxLayout" name="groupBoxAccuracyLayout">
           <item>
-           <widget class="QGroupBox" name="groupBoxCPUFrameSize">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
+           <layout class="QHBoxLayout" name="accuracyWarningLayout">
+            <item>
+             <widget class="QLabel" name="accuracyWarningIcon">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="accuracyWarningText">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>These settings are only needed by software that depends on very specific hardware behavior. They can greatly reduce performance.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxFPUSoftfloat">
+            <property name="toolTip">
+             <string>Emulates the FPU's 80-bit arithmetic, rounding and exceptions exactly, instead of the faster but less precise 64-bit approximation.</string>
             </property>
-            <property name="title">
-             <string>CPU frame size</string>
+            <property name="text">
+             <string>Exact 80-bit FPU arithmetic (SoftFloat)</string>
             </property>
-            <layout class="QVBoxLayout" name="groupBoxCPUFrameSizeLayout">
-             <item>
-              <widget class="QRadioButton" name="radioButtonLargerFrames">
-               <property name="text">
-                <string>Larger frames (less smooth)</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QRadioButton" name="radioButtonSmallerFrames">
-               <property name="text">
-                <string>Smaller frames (smoother)</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
            </widget>
           </item>
-
           <item>
-           <spacer name="frameSizeVerticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+           <widget class="QCheckBox" name="checkBoxAccurateFPUEnvironment">
+            <property name="toolTip">
+             <string>Keeps the FPU's last instruction and operand pointers, as saved by FNSTENV and FNSAVE, up to date in recompiled code. Some FPU exception handlers and diagnostics need them.</string>
             </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
+            <property name="text">
+             <string>Track FPU instruction and data pointers</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxDebugRegs486">
+            <property name="toolTip">
+             <string>Makes breakpoints set in the debug registers (DR0 to DR7) trigger on 486 and later processors. Only needed by debuggers and software that relies on them.</string>
             </property>
-           </spacer>
+            <property name="text">
+             <string>Debug registers on 486 and later processors</string>
+            </property>
+           </widget>
           </item>
          </layout>
-        </item>
-
-        <item>
-         <spacer name="groupBoxesHorizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
+        </widget>
+       </item>
 
       <item row="2" column="1">
         <spacer name="verticalSpacerPerformance">
@@ -814,18 +716,22 @@
   <tabstop>comboBoxFPU</tabstop>
   <tabstop>comboBoxWaitStates</tabstop>
   <tabstop>spinBoxRAM</tabstop>
-  <tabstop>checkBoxDynamicRecompiler</tabstop>
-  <tabstop>checkBoxAccurateFPUEnvironment</tabstop>
-  <tabstop>checkBoxBlockLinking</tabstop>
-  <tabstop>checkBoxDebugRegs486</tabstop>
-  <tabstop>checkBoxFPUSoftfloat</tabstop>
   <tabstop>checkBoxWeitek</tabstop>
   <tabstop>checkBoxWeitek4167</tabstop>
+  <tabstop>radioButtonPitModeAuto</tabstop>
+  <tabstop>radioButtonPitModeAccurate</tabstop>
+  <tabstop>radioButtonPitModeFast</tabstop>
+  <tabstop>checkBoxDynamicRecompiler</tabstop>
+  <tabstop>checkBoxOverrideInterpreter</tabstop>
+  <tabstop>checkBoxFPUSoftfloat</tabstop>
+  <tabstop>checkBoxAccurateFPUEnvironment</tabstop>
+  <tabstop>checkBoxDebugRegs486</tabstop>
        </tabstops>
  <resources/>
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroupClock"/>
   <buttongroup name="buttonGroupDate"/>
+  <buttongroup name="buttonGroupPitMode"/>
  </buttongroups>
 </ui>

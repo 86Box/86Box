@@ -70,6 +70,14 @@
 #define NET_CONF_MAX       (NET_CARD_MAX + 2)
 #define NET_HOST_INTF_MAX  64
 
+/* SLiRP port forwarding rules are stored in their own configuration file
+   sections, one per (0-based) adapter slot, as "<i>_protocol" ("tcp" or
+   "udp"), "<i>_external" and "<i>_internal" (host and guest ports). The
+   rule list ends at the first index whose external and internal ports
+   are both unset. */
+#define NET_SLIRP_FWD_MAX     64
+#define NET_SLIRP_FWD_SECTION "SLiRP Port Forwarding #%d"
+
 #define NET_PERIOD_10M     0.8
 #define NET_PERIOD_100M    0.08
 

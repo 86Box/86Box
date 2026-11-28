@@ -225,6 +225,13 @@
            </property>
           </widget>
          </item>
+         <item row="7" column="0" colspan="2">
+          <widget class="QPushButton" name="pushButtonSlirpFwd1">
+           <property name="text">
+            <string>Port Forwarding…</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item row="4" column="0" colspan="3">
@@ -432,6 +439,13 @@
           <widget class="QCheckBox" name="boxSlirp8023Rx2">
            <property name="text">
             <string>Receive IPv4 and ARP as 802.3 LLC/SNAP</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0" colspan="2">
+          <widget class="QPushButton" name="pushButtonSlirpFwd2">
+           <property name="text">
+            <string>Port Forwarding…</string>
            </property>
           </widget>
          </item>
@@ -645,6 +659,13 @@
            </property>
           </widget>
          </item>
+         <item row="7" column="0" colspan="2">
+          <widget class="QPushButton" name="pushButtonSlirpFwd3">
+           <property name="text">
+            <string>Port Forwarding…</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item row="4" column="0" colspan="3">
@@ -852,6 +873,13 @@
           <widget class="QCheckBox" name="boxSlirp8023Rx4">
            <property name="text">
             <string>Receive IPv4 and ARP as 802.3 LLC/SNAP</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0" colspan="2">
+          <widget class="QPushButton" name="pushButtonSlirpFwd4">
+           <property name="text">
+            <string>Port Forwarding…</string>
            </property>
           </widget>
          </item>
