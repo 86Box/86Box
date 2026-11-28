@@ -958,14 +958,13 @@ MachineStatus::refreshIcons()
             ui_sb_update_icon_write(SB_MD | i, 0);
     }
 
-    for (size_t i = 0; i < HDD_BUS_MAX; i++) {
+    for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
         d->hdds[i].setWriteActive(machine_status.hdd[i].write_active);
-        const int tag = (i == HDD_BUS_SASI) ? SB_SASI : (SB_HDD | i);
         if (machine_status.hdd[i].active)
-            ui_sb_update_icon(tag, 0);
+            ui_sb_update_icon(SB_HDD | i, 0);
         if (machine_status.hdd[i].write_active)
-            ui_sb_update_icon_write(tag, 0);
+            ui_sb_update_icon_write(SB_HDD | i, 0);
     }
 
     for (size_t i = 0; i < NET_CONF_MAX; i++) {
@@ -1020,14 +1019,6 @@ MachineStatus::refresh(QStatusBar *sbar)
     bool has_esdi = machine_has_flags(machine, MACHINE_ESDI) > 0;
 
     int c_mfm   = hdd_count(HDD_BUS_MFM);
-    int  c_sasi       = hdd_count(HDD_BUS_SASI);
-    bool has_sasi_hdc = false;
-    for (int i = 0; i < HDC_MAX; i++) {
-        if (QString(hdc_get_internal_name(hdc_current[i])) == QStringLiteral("pc9801_27")) {
-            has_sasi_hdc = true;
-            break;
-        }
-    }
     int c_esdi  = hdd_count(HDD_BUS_ESDI);
     int c_xta   = hdd_count(HDD_BUS_XTA);
     int c_ide   = hdd_count(HDD_BUS_IDE);
@@ -1328,26 +1319,6 @@ MachineStatus::refresh(QStatusBar *sbar)
         }
         d->hdds[HDD_BUS_MFM].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_MFM].label.get());
-    }
-    if (has_sasi_hdc && (c_sasi > 0)) {
-        d->hdds[HDD_BUS_SASI].label = std::make_unique<QLabel>();
-        d->hdds[HDD_BUS_SASI].setActive(false);
-        d->hdds[HDD_BUS_SASI].setWriteActive(false);
-        d->hdds[HDD_BUS_SASI].refresh();
-        d->hdds[HDD_BUS_SASI].label->setToolTip(tr("Hard disk (%1)").arg("SASI"));
-        auto tooltip = d->hdds[HDD_BUS_SASI].label->toolTip();
-        tooltip.append("\n");
-        for (int i = 0; i < HDD_NUM; i++) {
-            if (hdd[i].bus_type == HDD_BUS_SASI && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\nUnit %2: %1 (%3 %4)")
-                                   .arg(QString::fromUtf8(hdd[i].fn))
-                                   .arg(QString::number(hdd[i].sasi_channel))
-                                   .arg(QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull))
-                                   .arg(tr("MB")));
-            }
-        }
-        d->hdds[HDD_BUS_SASI].label->setToolTip(tooltip);
-        sbar->addWidget(d->hdds[HDD_BUS_SASI].label.get());
     }
     if ((has_esdi || (hdc_name.left(4) == QStringLiteral("esdi"))) && (c_esdi > 0)) {
         d->hdds[HDD_BUS_ESDI].label = std::make_unique<QLabel>();

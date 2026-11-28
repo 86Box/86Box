@@ -51,12 +51,6 @@ fdc_ctrl_is_pcjx(void *priv)
 }
 
 static int
-fdc_ctrl_is_pc98(void *priv)
-{
-    return (((fdc_t *) priv)->flags & FDC_FLAG_PC98) ? 1 : 0;
-}
-
-static int
 fdc_ctrl_is_ibm5140(void *priv)
 {
     return (((fdc_t *) priv)->flags & FDC_FLAG_IBM5140) ? 1 : 0;
@@ -264,7 +258,6 @@ const fdd_ctrl_t fdc_ctrl = {
     .get_swwp                = fdc_ctrl_get_swwp,
     .get_pcn                 = fdc_ctrl_get_pcn,
     .is_pcjx                 = fdc_ctrl_is_pcjx,
-    .is_pc98                 = fdc_ctrl_is_pc98,
     .is_ibm5140              = fdc_ctrl_is_ibm5140,
     .is_interface_gated      = fdc_ctrl_is_interface_gated,
     .seek_complete_interrupt = fdc_ctrl_seek_complete_interrupt,

@@ -718,8 +718,6 @@ MediaMenu::floppySelectImage(int i, bool wp)
 void
 MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 {
-    runctl_pause(RUN_PAUSE_REMOTE);
-
     fdd_drive_t *drv = &drives[i];
 
     auto previous_image = QFileInfo(drv->image_path);
@@ -773,8 +771,6 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 void
 MediaMenu::floppyEject(int i)
 {
-    runctl_pause(RUN_PAUSE_REMOTE);
-
     fdd_drive_t *drv = &drives[i];
 
     mhm.addImageToHistory(i, ui::MediaType::Floppy, drv->image_path, QString());

@@ -621,9 +621,8 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
     }
 
     prefetch_prefixes = 0;
-    int capacity      = cpu_pc98_vx_bus_active() ? 6 : 16;
-    if (prefetch_bytes > capacity)
-        prefetch_bytes = capacity;
+    if (prefetch_bytes > 16)
+        prefetch_bytes = 16;
 }
 
 void

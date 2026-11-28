@@ -1351,7 +1351,7 @@ machine_at_pb680_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&pc87306_device, (void *) PCX730X_AMI_ROM);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;

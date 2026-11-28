@@ -229,29 +229,6 @@ const OpFn x86_2386_illegal_op = ILLEGAL;
 const OpFn x86_2386_fpu_illegal_op[2] = { FPU_ILLEGAL_a16, FPU_ILLEGAL_a32 };
 
 void
-cpu_bus_stall(int clocks)
-{
-    if (clocks <= 0)
-        return;
-    cycles -= clocks;
-    /* A memory grant advances device time immediately, including inside an
-     * opcode. Interpreter retirement and dynarec accounting subtract this
-     * interim TSC delta instead of charging it a second time. */
-    tsc += (uint32_t) clocks;
-}
-
-static int32_t
-cpu_bus_period(void)
-{
-    /* RESET can leave the instruction loop before its timer epilogue.
-     * A synchronous bus wait may already have crossed the deadline: dispatch
-     * it before computing a period, otherwise a negative period spins forever. */
-    if (TIMER_VAL_LESS_THAN_VAL(timer_target, tsc))
-        timer_process();
-    return (int32_t) (timer_target - tsc) + 1;
-}
-
-void
 exec386_2386(int32_t cycs)
 {
     int      ol;
@@ -262,13 +239,12 @@ exec386_2386(int32_t cycs)
     int32_t  oldcyc;
     int32_t  cycle_period;
     int32_t  ins_cycles;
-    uint64_t ins_tsc;
     uint32_t addr;
 
     cycles += cycs;
 
     while (cycles > 0) {
-        cycle_period = cpu_bus_period();
+        cycle_period = (timer_target - (uint64_t) tsc) + 1;
 
         x86_was_reset = 0;
         cycdiff       = 0;
@@ -276,7 +252,6 @@ exec386_2386(int32_t cycs)
         while (cycdiff < cycle_period) {
             int ins_fetch_fault = 0;
             ins_cycles = cycles;
-            ins_tsc             = tsc;
 
             oldcs  = CS;
             oldcpl = CPL;
@@ -412,7 +387,6 @@ exec386_2386(int32_t cycs)
                 nmi = 0;
 #endif
             } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
-                cpu_pc98_interrupt_wait();
                 vector = x86_external_interrupt_vector();
                 if (vector != -1) {
                     flags_rebuild();
@@ -445,7 +419,7 @@ exec386_2386(int32_t cycs)
             }
 
             ins_cycles -= cycles;
-            cpu_bus_retire(ins_cycles, ins_tsc);
+            tsc += ins_cycles;
 
             cycdiff = oldcyc - cycles;
 

@@ -87,7 +87,6 @@ extern void pic_mouse_latch(int enable);
 extern void pic_handler(int set, uint16_t base, int size);
 extern uint8_t pic_any_pending(void);
 extern void pic_init(void);
-extern void    pic_init_pc98(void);
 extern void pic_init_pcjr(void);
 extern void pic_init_ibm5140(void (*wake)(void));
 extern uint8_t pic_ibm5140_diag_read(uint8_t selector);

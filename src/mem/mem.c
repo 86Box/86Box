@@ -1588,10 +1588,7 @@ getpccache(uint32_t a)
 
     if (_mem_exec[a64 >> MEM_GRANULARITY_BITS]) {
         if (is286) {
-            int pc98_cycles = cpu_pc98_prefetch_cycles((uint32_t) a64);
-            if (pc98_cycles)
-                cpu_prefetch_cycles = pc98_cycles;
-            else if (read_mapping[a64 >> MEM_GRANULARITY_BITS] && (read_mapping[a64 >> MEM_GRANULARITY_BITS]->flags & MEM_MAPPING_ROM_WS))
+            if (read_mapping[a64 >> MEM_GRANULARITY_BITS] && (read_mapping[a64 >> MEM_GRANULARITY_BITS]->flags & MEM_MAPPING_ROM_WS))
                 cpu_prefetch_cycles = cpu_rom_prefetch_cycles;
             else
                 cpu_prefetch_cycles = cpu_mem_prefetch_cycles;
@@ -4868,7 +4865,7 @@ mem_init(void)
 }
 
 static void
-mem_remap_top_ex_common(int kb, uint32_t start, int mid, int extended)
+mem_remap_top_ex_common(int kb, uint32_t start, int mid)
 {
     uint32_t   c;
     int        offset;
@@ -4889,23 +4886,18 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid, int extended)
         sis_mode = 1;
     }
 
-    /* Legacy chipset relocation is confined to the 24-bit address space. */
-    if (!extended && (kb != 0) && (mem_size >= (16384 - kb)))
+    /* Do not remap if we're have more than (16 MB - RAM) memory. */
+    if ((kb != 0) && (mem_size >= (16384 - kb)))
         return;
 
     if (kb == 0) {
         kb  = old_kb;
         set = 0;
-    }
+    } else
+        old_kb = kb;
 
     if (size > kb)
         size = kb;
-
-    if (((uint64_t) start + size) > ((uint64_t) pages_sz << 2))
-        return;
-
-    if (set)
-        old_kb = kb;
 
     remap_start_addr  = start << 10;
     remap_start_addr2 = (start << 10) + 0x00020000;
@@ -4992,26 +4984,19 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid, int extended)
 void
 mem_remap_top_ex(int kb, uint32_t start)
 {
-    mem_remap_top_ex_common(kb, start, 1, 0);
+    mem_remap_top_ex_common(kb, start, 1);
 }
 
 void
 mem_remap_top_ex_nomid(int kb, uint32_t start)
 {
-    mem_remap_top_ex_common(kb, start, 0, 0);
+    mem_remap_top_ex_common(kb, start, 0);
 }
 
 void
 mem_remap_top(int kb)
 {
     mem_remap_top_ex(kb, (mem_size >= 1024) ? mem_size : 1024);
-}
-
-void
-mem_remap_top_extended(int kb)
-{
-    mem_remap_top_ex_common(kb, (mem_size >= 1024) ? mem_size : 1024,
-                            1, !cpu_16bitbus);
 }
 
 void

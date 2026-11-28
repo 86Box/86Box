@@ -57,17 +57,9 @@ log_set_dev_name(void *priv, char *dev_name)
     log_t *log = (log_t *) priv;
 
     if (dev_name)
-        snprintf(log->dev_name, sizeof(log->dev_name), "%s", dev_name);
+        memcpy(log->dev_name, dev_name, strlen(dev_name) + 1);
     else
         log->dev_name[0] = '\0';
-}
-
-void
-log_set_suppr_seen(void *priv, int suppr_seen)
-{
-    log_t *log = (log_t *) priv;
-
-    log->suppr_seen = suppr_seen;
 }
 
 #ifndef RELEASE_BUILD
@@ -91,6 +83,14 @@ log_ensure_stdlog_open(void)
         } else
             stdlog = stdout;
     }
+}
+
+void
+log_set_suppr_seen(void *priv, int suppr_seen)
+{
+    log_t *log = (log_t *) priv;
+
+    log->suppr_seen = suppr_seen;
 }
 
 /*

@@ -31,9 +31,6 @@
 
 int hdc_current[HDC_MAX] = { 0, 0 };
 
-/* NEC PC-9801-27 SASI interface. */
-extern const device_t pc98_sasi_device;
-
 int hdc_onboard_enabled  = 1;
 
 #ifdef ENABLE_HDC_LOG
@@ -63,8 +60,6 @@ static const struct {
     // clang-format off
     { &device_none                          },
     { &device_internal                      },
-    /* NEC C-BUS, added by the PC-9801VX integration. */
-    { &pc98_sasi_device                     },
     /* ISA */
     { &xtide_acculogic_device               },
     { &st506_xt_dtc5150x_device,          HDD_BUS_MFM  },

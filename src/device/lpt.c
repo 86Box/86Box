@@ -1467,9 +1467,7 @@ lpt_init(const device_t *info)
                 lpt_port_irq(dev, (info->local >> 16) & 0xF);
                 next_inst          = orig_inst;
             } else {
-                if (info->local & 1u) {
-                    /* Native (for example PC-98 PPI) board: backend only. */
-                } else if ((dev->id == 2) && (lpt_3bc_used)) {
+                if ((dev->id == 2) && (lpt_3bc_used)) {
                     lpt_port_setup(dev, LPT1_ADDR);
                     lpt_port_irq(dev, LPT1_IRQ);
                 } else {
@@ -1570,15 +1568,4 @@ const device_t lpt_port_device = {
     .speed_changed = lpt_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
-};
-
-const device_t lpt_port_native_device = {
-    .name          = "Native Parallel Port Backend",
-    .internal_name = "lpt_native",
-    .flags         = DEVICE_ONBOARD,
-    .local         = 1,
-    .init          = lpt_init,
-    .close         = lpt_close,
-    .reset         = lpt_reset,
-    .speed_changed = lpt_speed_changed
 };

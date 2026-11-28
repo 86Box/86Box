@@ -21,8 +21,6 @@
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
 
-#include <86box/timer.h>
-
 #define FDD_NUM              8
 #define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     (-999)
@@ -150,7 +148,6 @@ typedef struct fdd_ctrl_t {
     uint8_t     (*get_swwp)(void *priv);
     /* Chip configuration the mechanical paths branch on. */
     int         (*is_pcjx)(void *priv);
-    int         (*is_pc98)(void *priv);
     int         (*is_ibm5140)(void *priv);
     int         (*is_interface_gated)(void *priv);
     void        (*seek_complete_interrupt)(void *priv, int drive);
@@ -284,9 +281,6 @@ typedef struct fdd_drive_t {
 
     pc_timer_t         poll_time;
     pc_timer_t         seek_timer;
-    pc_timer_t         ready_timer;
-    int                ready_spinup;
-    int                notfound;
 
     int                type;
     int                track;
@@ -378,7 +372,6 @@ extern void fdd_boot_status_reset(void);
 extern int fdd_is_post_complete(void);
 
 extern int      motorspin;
-extern int      fdd_is_ready(void *priv);
 
 extern int swwp;
 extern int disable_write;

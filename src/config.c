@@ -733,11 +733,6 @@ load_machine(void)
     if (mem_size > machine_get_max_ram(machine))
         mem_size = machine_get_max_ram(machine);
 
-    /* PC-98 factory RAM includes 640 KiB conventional memory.  In particular
-       the RA must not inherit the generic 64 KiB default from an empty INI. */
-    if (IS_ARCH(machine, MACHINE_PC98) && mem_size < machine_get_min_ram(machine))
-        mem_size = machine_get_min_ram(machine);
-
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
     if ((fpu_type != FPU_NONE) && machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
@@ -1885,14 +1880,6 @@ load_hard_disks(void)
                 max_tracks = 2047;
                 break;
 
-            case HDD_BUS_SASI:
-                /* Host-image CHS only.  The PC-9801-27 wrapper
-                 * supplies the guest-visible SASI geometry. */
-                max_spt    = 255;
-                max_hpc    = 255;
-                max_tracks = 266305;
-                break;
-
             case HDD_BUS_XTA:
                 max_spt    = 63;
                 max_hpc    = 16;
@@ -1959,13 +1946,6 @@ load_hard_disks(void)
         sprintf(temp, "hdd_%02i_xta_channel", c + 1);
         if (hdd[c].bus_type == HDD_BUS_XTA)
             hdd[c].xta_channel = !!ini_section_get_int(cat, temp, c & 1);
-        else
-            ini_section_delete_var(cat, temp);
-
-        /* SASI */
-        sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
-        if (hdd[c].bus_type == HDD_BUS_SASI)
-            hdd[c].sasi_channel = !!ini_section_get_int(cat, temp, c & 1);
         else
             ini_section_delete_var(cat, temp);
 
@@ -2075,9 +2055,6 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_xta_channel", c + 1);
-            ini_section_delete_var(cat, temp);
-
-            sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_esdi_channel", c + 1);
@@ -4955,12 +4932,6 @@ save_hard_disks(void)
         sprintf(temp, "hdd_%02i_xta_channel", c + 1);
         if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_XTA))
             ini_section_set_int(cat, temp, hdd[c].xta_channel);
-        else
-            ini_section_delete_var(cat, temp);
-
-        sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
-        if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_SASI))
-            ini_section_set_int(cat, temp, hdd[c].sasi_channel);
         else
             ini_section_delete_var(cat, temp);
 

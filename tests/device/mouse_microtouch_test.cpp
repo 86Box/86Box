@@ -52,7 +52,7 @@ monitor_t monitors[MONITORS_NUM];
 int       enable_overscan;
 int       mouse_tablet_in_proximity;
 
-void(pclog)(const char *, ...) { }
+void pclog(const char *, ...) { }
 
 void
 fatal(const char *fmt, ...)

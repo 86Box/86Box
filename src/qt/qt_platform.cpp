@@ -23,7 +23,6 @@
 #endif
 
 #include <cstdio>
-#include <cstring>
 
 #include <atomic>
 #include <mutex>
@@ -84,8 +83,6 @@
 #endif
 
 #ifdef Q_OS_WINDOWS
-#    include <io.h>
-#    include <fcntl.h>
 #    ifndef NOMINMAX
 #        define NOMINMAX
 #    endif
@@ -263,28 +260,6 @@ plat_fopen(const char *path, const char *mode)
     QString   filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
     return fopen(filename.toUtf8().constData(), mode);
 #else
-#    ifdef Q_OS_WINDOWS
-    /* The legacy Windows CRT used by some MinGW builds rejects fopen's
-     * C11 "x" mode. Preserve exclusive creation with the descriptor API. */
-    if (std::strchr(mode, 'x')) {
-        const QString filename = QString::fromUtf8(path);
-        const int     access   = std::strchr(mode, '+') ? _O_RDWR : _O_WRONLY;
-        const int     fd       = _wopen(reinterpret_cast<const wchar_t *>(filename.utf16()),
-                                        _O_CREAT | _O_EXCL | _O_BINARY | access,
-                                        _S_IREAD | _S_IWRITE);
-        if (fd < 0)
-            return nullptr;
-        char   stream_mode[16] = { 0 };
-        size_t n               = 0;
-        for (const char *p = mode; *p && n + 1 < sizeof(stream_mode); ++p)
-            if (*p != 'x')
-                stream_mode[n++] = *p;
-        FILE *stream = _fdopen(fd, stream_mode);
-        if (!stream)
-            _close(fd);
-        return stream;
-    }
-#    endif
     return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
 #endif
 }

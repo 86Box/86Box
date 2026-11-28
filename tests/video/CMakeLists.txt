@@ -1,5 +1,4 @@
 if(BUILD_TESTING)
-    add_subdirectory(pc98)
     add_executable(s3_display_tests
         vid_s3_display_test.c
         vid_s3_test_stubs.c

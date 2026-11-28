@@ -1110,7 +1110,7 @@ VMManagerSystem::setupVars()
     // Input (Mouse)
     auto mouse_internal_name                       = input_config["mouse_type"];
     auto mouse_dev                                 = mouse_get_from_internal_name(mouse_internal_name.toUtf8().data());
-    auto mouse_dev_name                            = DeviceConfig::MouseName(mouse_dev, ci);
+    auto mouse_dev_name                            = DeviceConfig::DeviceName(mouse_get_device(mouse_dev), mouse_get_internal_name(mouse_dev), 0);
     display_table[VMManager::Display::Name::Mouse] = mouse_dev_name;
 
     // Input (Tablet)

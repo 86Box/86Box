@@ -57,22 +57,20 @@ Harddrives::populateBuses(QAbstractItemModel *model)
     model->insertRows(0, 7);
 
     model->setData(model->index(0, 0), "ST-506/ST-412 (MFM/RLL)");
-    model->setData(model->index(1, 0), "SASI");
-    model->setData(model->index(2, 0), "XTA");
-    model->setData(model->index(3, 0), "ESDI");
-    model->setData(model->index(4, 0), "IDE");
-    model->setData(model->index(5, 0), "ATAPI");
-    model->setData(model->index(6, 0), "SCSI");
-    model->setData(model->index(7, 0), "LPT");
+    model->setData(model->index(1, 0), "XTA");
+    model->setData(model->index(2, 0), "ESDI");
+    model->setData(model->index(3, 0), "IDE");
+    model->setData(model->index(4, 0), "ATAPI");
+    model->setData(model->index(5, 0), "SCSI");
+    model->setData(model->index(6, 0), "LPT");
 
     model->setData(model->index(0, 0), HDD_BUS_MFM, Qt::UserRole);
-    model->setData(model->index(1, 0), HDD_BUS_SASI, Qt::UserRole);
-    model->setData(model->index(2, 0), HDD_BUS_XTA, Qt::UserRole);
-    model->setData(model->index(3, 0), HDD_BUS_ESDI, Qt::UserRole);
-    model->setData(model->index(4, 0), HDD_BUS_IDE, Qt::UserRole);
-    model->setData(model->index(5, 0), HDD_BUS_ATAPI, Qt::UserRole);
-    model->setData(model->index(6, 0), HDD_BUS_SCSI, Qt::UserRole);
-    model->setData(model->index(7, 0), HDD_BUS_LPT, Qt::UserRole);
+    model->setData(model->index(1, 0), HDD_BUS_XTA, Qt::UserRole);
+    model->setData(model->index(2, 0), HDD_BUS_ESDI, Qt::UserRole);
+    model->setData(model->index(3, 0), HDD_BUS_IDE, Qt::UserRole);
+    model->setData(model->index(4, 0), HDD_BUS_ATAPI, Qt::UserRole);
+    model->setData(model->index(5, 0), HDD_BUS_SCSI, Qt::UserRole);
+    model->setData(model->index(6, 0), HDD_BUS_LPT, Qt::UserRole);
 }
 
 void
@@ -130,7 +128,6 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int
 
     switch (bus) {
         case HDD_BUS_MFM:
-        case HDD_BUS_SASI:
         case HDD_BUS_XTA:
         case HDD_BUS_ESDI:
         case HDD_BUS_IDE:
@@ -187,15 +184,6 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     const bool  is_hdc  = (bus == HDD_BUS_MFM) || (bus == HDD_BUS_XTA) || (bus == HDD_BUS_ESDI);
     switch (bus) {
         case HDD_BUS_MFM:
-            owned   = hdcPlan(owners, bus);
-            busRows = 2;
-            busesToCheck.append(HDD_BUS_MFM);
-            break;
-        case HDD_BUS_SASI:
-            owned   = hdcPlan(owners, bus);
-            busRows = 2;
-            busesToCheck.append(HDD_BUS_SASI);
-            break;
         case HDD_BUS_XTA:
         case HDD_BUS_ESDI:
             /* The one controller of the bus, to name on its channels. */
@@ -294,8 +282,6 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         auto idx = model->index(i, 0);
         if (bus == TAPE_BUS_LPT)
             model->setData(idx, QString("LPT%1").arg(i + 1));
-        else if (bus == HDD_BUS_SASI)
-            model->setData(idx, QString("Unit %1").arg(i));
         else if (is_ide)
             model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ownerName(i >> 1, owners, owned, conflicts, conflictCount)));
         else if (is_scsi)
@@ -341,28 +327,13 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
         case HDD_BUS_DISABLED:
             busName = QString(QObject::tr("Disabled"));
             break;
-        case HDD_BUS_MFM: {
-            bus_owner_t owner;
-            const int   owned = hdcPlan(&owner, bus);
-
-            busName = QString("MFM/RLL %1:%2 %3").arg(channel >> 1).arg(channel & 1)
-                          .arg(ownerName(channel >> 1, &owner, owned));
-            break;
-        }
-        case HDD_BUS_SASI: {
-            bus_owner_t owner;
-            const int   owned = hdcPlan(&owner, bus);
-
-            busName = QString("SASI %1:%2 %3").arg(channel >> 1).arg(channel & 1)
-                          .arg(ownerName(channel >> 1, &owner, owned));
-            break;
-        }
+        case HDD_BUS_MFM:
         case HDD_BUS_XTA:
         case HDD_BUS_ESDI: {
             bus_owner_t owner;
             const int   owned = hdcPlan(&owner, bus);
 
-            busName = QString("%1 %2:%3 %4").arg((bus == HDD_BUS_XTA) ? "XTA" : "ESDI")
+            busName = QString("%1 %2:%3 %4").arg((bus == HDD_BUS_MFM) ? "MFM/RLL" : ((bus == HDD_BUS_XTA) ? "XTA" : "ESDI"))
                           .arg(channel >> 1).arg(channel & 1)
                           .arg(ownerName(channel >> 1, &owner, owned));
             break;

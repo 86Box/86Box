@@ -45,7 +45,6 @@
 #endif
 
 #define HAVE_STDARG_H
-#define PCLOG_IMPLEMENTATION
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/mem.h>

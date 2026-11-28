@@ -88,9 +88,7 @@ if(AUTOMATION)
 endif()
 
 if(RELEASE)
-    # Explicit Debug configurations retain diagnostics even in a release
-    # packaging checkout.
-    add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:RELEASE_BUILD>")
+    add_compile_definitions(RELEASE_BUILD)
 endif()
 
 if(DYNAREC)

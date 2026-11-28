@@ -570,9 +570,6 @@ ui_sb_update_icon(int tag, int active)
         case SB_HDD:
             machine_status.hdd[item].active = active > 0 ? true : false;
             break;
-        case SB_SASI:
-            machine_status.hdd[HDD_BUS_SASI].active = active > 0 ? true : false;
-            break;
         case SB_NETWORK:
             machine_status.net[item].active = active > 0 ? true : false;
             break;
@@ -614,9 +611,6 @@ ui_sb_update_icon_write(int tag, int write)
             break;
         case SB_HDD:
             machine_status.hdd[item].write_active = write > 0 ? true : false;
-            break;
-        case SB_SASI:
-            machine_status.hdd[HDD_BUS_SASI].write_active = write > 0 ? true : false;
             break;
         case SB_NETWORK:
             machine_status.net[item].write_active = write > 0 ? true : false;

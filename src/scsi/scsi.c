@@ -47,7 +47,6 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_qlogic.h>
 #include <86box/scsi_spock.h>
-#include <86box/scsi_pc98.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
 #include <86box/timer.h>
@@ -127,8 +126,6 @@ static SCSI_CARD scsi_cards[] = {
     { &qla1280_device,           },
     { &qla12160a_device,         },
     { &dc390_pci_device,         },
-    /* NEC PC-98 C-BUS */
-    { &scsi_pc9801_55_device,    },
     { NULL,                      },
     // clang-format on
 };

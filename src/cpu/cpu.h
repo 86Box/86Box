@@ -780,19 +780,6 @@ extern uint64_t cpu_apic_base_msr_read_current(void);
 extern void     cpu_apic_base_msr_write_current(uint64_t val);
 
 extern void exec386_2386(int32_t cycs);
-extern void cpu_bus_stall(int clocks);
-extern int  cpu_pc98_vx_bus_active(void);
-extern void cpu_pc98_memory_wait(uint32_t addr, unsigned size);
-extern void cpu_pc98_io_wait(uint16_t port, unsigned size);
-extern void cpu_pc98_interrupt_wait(void);
-extern int  cpu_pc98_prefetch_cycles(uint32_t addr);
-static inline void
-cpu_bus_retire(int clocks, uint64_t instruction_tsc)
-{
-    uint64_t advanced = tsc - instruction_tsc;
-    if (clocks > 0 && (uint64_t) clocks > advanced)
-        tsc += (uint64_t) clocks - advanced;
-}
 /* Intel Inboard 386/PC POST fix-ups - shared by both interpreter loops, and gated
    on the card actually being present (inboard386.c). */
 extern int  inboard386_present;

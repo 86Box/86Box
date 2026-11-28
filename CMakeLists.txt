@@ -167,11 +167,9 @@ option(SDL2         "Use SDL2 instead of SDL3"                                  
 option(BUILD_TESTING "Build the unit test suite"                                  OFF)
 option(BUILD_BENCHMARKS "Build performance benchmarks"                            OFF)
 
-if(DEV_BRANCH)
-    add_compile_definitions(PC98_EXPERIMENTAL)
-endif()
 option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" OFF)
 option(ENABLE_VORTEX2_LOG "Enable Aureal Vortex 2 logging"                  OFF)
+
 
 if(BUILD_TESTING)
     enable_testing()
@@ -283,9 +281,6 @@ if(QT)
 endif()
 
 # Determine the build type
-# CMake's Release configuration must also silence diagnostics, including with
-# multi-configuration generators and when the packaging RELEASE option is off.
-add_compile_definitions("$<$<CONFIG:Release>:RELEASE_BUILD>")
 set(RELEASE_BUILD   OFF)
 set(BETA_BUILD      OFF)
 set(ALPHA_BUILD     OFF)
@@ -294,7 +289,7 @@ string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE_LOWER)
 if(BUILD_TYPE_LOWER STREQUAL "release")
     # Release build
     set(RELEASE_BUILD ON)
-    add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:RELEASE_BUILD>")
+    add_compile_definitions(RELEASE_BUILD)
 elseif(BUILD_TYPE_LOWER STREQUAL "beta")
     # Beta build
     set(BETA_BUILD ON)

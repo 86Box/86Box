@@ -575,22 +575,6 @@ reset_common(int hard, int src)
             if (is6117 || is386ex)
                 rammask |= 0x3000000;
             mem_a20_key = mem_a20_alt = mem_a20_state = 0;
-            /* NEC PC-9801VX reset starts in its 20-bit compatibility address
-               state.  The high 286 reset vector is fetched through the
-               existing one-shot bypass; F2h later opens the full 24-bit bus. */
-            if (IS_ARCH(machine, MACHINE_PC98)) {
-                mem_a20_chipset = 0;
-                rammask         = 0x000fffffU;
-                mem_a20_reset_vector_bypass_once();
-            }
-        } else if (IS_ARCH(machine, MACHINE_PC98)) {
-            /* A PC-98 soft reset returns the 286 to its 20-bit power-on
-               address state too.  This includes the emulator/UI reset path;
-               the F0h protected-mode escape also calls softresetx86(). */
-            mem_a20_key = mem_a20_alt = mem_a20_state = mem_a20_chipset = 0;
-            rammask                                                     = 0x000fffffU;
-            mem_a20_reset_vector_bypass_once();
-            flushmmucache();
         }
     }
     idt.base        = 0;

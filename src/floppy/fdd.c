@@ -37,7 +37,6 @@
 
 #include <86box/fdd_86f.h>
 #include <86box/fdd_fdi.h>
-#include <86box/fdd_d88.h>
 #include <86box/fdd_imd.h>
 #include <86box/fdd_img.h>
 #include <86box/fdd_pcjs.h>
@@ -88,33 +87,6 @@ static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
 
 fdd_drive_t drives[FDD_NUM];
 
-static void
-fdd_ready_cancel(fdd_drive_t *drv)
-{
-    timer_disable(&drv->ready_timer);
-    drv->ready_spinup = 0;
-}
-
-static void
-fdd_ready_start_spinup(fdd_drive_t *drv)
-{
-    if (!drv->motoron || drv->empty || !fdd_get_flags(drv)) {
-        fdd_ready_cancel(drv);
-        return;
-    }
-    const int      rpm       = fdd_getrpm(drv);
-    const uint64_t spinup_us = rpm > 0 ? 120000000ULL / (uint64_t) rpm : 400000ULL;
-    drv->ready_spinup        = 1;
-    timer_set_delay_u64(&drv->ready_timer, spinup_us * TIMER_USEC);
-}
-
-int
-fdd_is_ready(void *priv)
-{
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    return drv && fdd_get_flags(drv) && drv->motoron && !drv->empty && !drv->ready_spinup;
-}
-
 static const struct
 {
     const char *ext;
@@ -140,7 +112,6 @@ static const struct
     { "BIN",  img_load,  img_close,  -1 },
     { "CQ",   img_load,  img_close,  -1 },
     { "CQM",  img_load,  img_close,  -1 },
-    { "D88",  d88_load,  d88_close,  -1 },
     { "DDI",  img_load,  img_close,  -1 },
     { "DSK",  img_load,  img_close,  -1 },
     { "FDI",  fdi_load,  fdi_close,  -1 },
@@ -927,14 +898,12 @@ fdd_load(void *priv, char *fn)
 
         if (drv->image_path[0] == '\0') {
             drv->empty = 1;
-            fdd_ready_cancel(drv);
             fdd_set_head(drv, 0);
             ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
             return;
         }
 
         drv->empty = 0;
-        fdd_ready_start_spinup(drv);
 
         fdd_forced_seek(drv, 0);
         drv->changed = 1;
@@ -968,7 +937,6 @@ fdd_load(void *priv, char *fn)
                 }
                 d86f_setup(drv);
                 loaders[c].load(drv, drv->image_path + offs);
-                fdd_ready_start_spinup(drv);
                 fdd_media_inserted(drv);
                 return;
             }
@@ -977,7 +945,6 @@ fdd_load(void *priv, char *fn)
     }
 load_failed:
     drv->empty = 1;
-    fdd_ready_cancel(drv);
     fdd_set_head(drv, 0);
     memset(drv->image_path, 0, sizeof(drv->image_path));
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
@@ -1097,16 +1064,12 @@ fdd_set_motor_enable(void *priv, int motor_enable)
     fdd_log("fdd_set_motor_enable(%d, %d)\n", drv->id, motor_enable);
     fdd_audio_set_motor_enable(drv, motor_enable);
 
-    if (motor_enable && !drv->motoron) {
+    if (motor_enable && !drv->motoron)
         timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
-        drv->motoron = 1;
-        fdd_ready_start_spinup(drv);
-    } else if (!motor_enable && drv->motoron) {
+    else if (!motor_enable && drv->motoron)
         timer_disable(&drv->poll_time);
-        drv->motoron = 0;
-        fdd_ready_cancel(drv);
-    } else
-        drv->motoron = motor_enable;
+
+    drv->motoron = motor_enable;
 }
 
 static void
@@ -1346,8 +1309,7 @@ fdd_stop(void *priv)
     if (drv == NULL)
         return;
 
-    if ((drv->ctrl != NULL) && (drv->ctrl->is_pc98(drv->ctrl_priv) ||
-                                drv->ctrl->is_pcjx(drv->ctrl_priv))) {
+    if ((drv->ctrl != NULL) && drv->ctrl->is_pcjx(drv->ctrl_priv)) {
         /* Abort the pending operation, not the physical head position. */
         const int was_seeking = drv->seek_in_progress;
         timer_disable(&drv->seek_timer);

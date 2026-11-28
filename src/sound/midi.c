@@ -493,7 +493,6 @@ midi_in_handler(int set,
             mih_first = mih_last = temp;
         else {
             temp->prev = mih_last;
-            mih_last->next = temp;
             mih_last   = temp;
         }
     } else if ((mih_first != NULL) && (mih_last != NULL)) {
@@ -503,21 +502,30 @@ midi_in_handler(int set,
             if (temp == NULL)
                 break;
 
-            next = temp->next;
-            if ((temp->msg == msg) && (temp->sysex == sysex) && (temp->remain == remain) && (temp->priv == priv)) {
+            if ((temp->msg == msg) && (temp->sysex == sysex) && (temp->priv == priv)) {
                 if (temp->prev != NULL)
                     temp->prev->next = temp->next;
-                else
-                    mih_first = temp->next;
 
                 if (temp->next != NULL)
                     temp->next->prev = temp->prev;
-                else
-                    mih_last = temp->prev;
+
+                next = temp->next;
+
+                if (temp == mih_first) {
+                    mih_first = NULL;
+                    if (next == NULL)
+                        mih_last = NULL;
+                }
+
+                if (temp == mih_last)
+                    mih_last = NULL;
 
                 free(temp);
+                temp = next;
+
+                if (next == NULL)
+                    break;
             }
-            temp = next;
         }
     }
 }

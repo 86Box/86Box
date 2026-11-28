@@ -1731,9 +1731,7 @@ mpu401_device_add(void)
     if (!mpu401_standalone_enable)
         return;
 
-    if (machine_has_bus(machine, MACHINE_PC98))
-        device_add(&mpu401_pc98_device);
-    else if (machine_has_bus(machine, MACHINE_BUS_MCA))
+    if (machine_has_bus(machine, MACHINE_BUS_MCA))
         device_add(&mpu401_mca_device);
     else
         device_add(&mpu401_device);
@@ -1824,76 +1822,6 @@ mpu401_standalone_close(void *priv)
 
     free(mpu);
 }
-
-/* C-BUS uses the even byte lane: data at E0D0h, command/status at E0D2h.
- * Port/IRQ jumper wiring: https://github.com/AZO234/NP2kai/blob/master/cbus/mpu98ii.c
- * Decode the physical port into the shared MPU-401's register selector. */
-static uint8_t
-mpu401_pc98_read(uint16_t port, void *priv)
-{
-    return mpu401_read((port >> 1) & 1, priv);
-}
-
-static void
-mpu401_pc98_write(uint16_t port, uint8_t value, void *priv)
-{
-    mpu401_write((port >> 1) & 1, value, priv);
-}
-
-static void
-mpu401_pc98_reset(void *priv)
-{
-    mpu_t *mpu = priv;
-    timer_disable(&mpu->mpu401_eoi_callback);
-    timer_disable(&mpu->mpu401_reset_callback);
-    mpu->state.reset = mpu->state.cmd_pending = 0;
-    MPU401_ClrQueue(mpu);
-    MPU401_Reset(mpu);
-}
-
-static void *
-mpu401_pc98_init(UNUSED(const device_t *info))
-{
-    mpu_t *mpu = calloc(1, sizeof(*mpu));
-    if (!mpu)
-        return NULL;
-    const uint16_t base = device_get_config_hex16("base");
-    /* Initialize the protocol engine without its PC/AT I/O decode. */
-    mpu401_init(mpu, 0, device_get_config_int("irq"), M_INTELLIGENT,
-                device_get_config_int("receive_input"));
-    io_removehandler(0x2a20, 16, NULL, NULL, NULL, imf_write, NULL, NULL, mpu);
-    mpu->addr = base;
-    for (unsigned reg = 0; reg < 2; reg++)
-        io_sethandler(base + reg * 2, 1, mpu401_pc98_read, NULL, NULL,
-                      mpu401_pc98_write, NULL, NULL, mpu);
-    return mpu;
-}
-
-static void
-mpu401_pc98_close(void *priv)
-{
-    mpu_t *mpu = priv;
-    timer_disable(&mpu->mpu401_event_callback);
-    timer_disable(&mpu->mpu401_eoi_callback);
-    timer_disable(&mpu->mpu401_reset_callback);
-    MPU401_UpdateIRQ(mpu, 0);
-    midi_in_handler(0, MPU401_InputMsg, MPU401_InputSysex, MPU401_InputQueueRemain, mpu);
-    for (unsigned reg = 0; reg < 2; reg++)
-        io_removehandler(mpu->addr + reg * 2, 1, mpu401_pc98_read, NULL, NULL,
-                         mpu401_pc98_write, NULL, NULL, mpu);
-    free(mpu);
-}
-
-static const device_config_t mpu401_pc98_config[] = {
-    { .name = "base", .description = "MPU-401 Address", .type = CONFIG_HEX16, .default_int = 0xe0d0, .selection = { { .description = "0xC0D0", .value = 0xc0d0 }, { .description = "0xC4D0", .value = 0xc4d0 }, { .description = "0xC8D0", .value = 0xc8d0 }, { .description = "0xCCD0", .value = 0xccd0 }, { .description = "0xD0D0", .value = 0xd0d0 }, { .description = "0xD4D0", .value = 0xd4d0 }, { .description = "0xD8D0", .value = 0xd8d0 }, { .description = "0xDCD0", .value = 0xdcd0 }, { .description = "0xE0D0", .value = 0xe0d0 }, { .description = "0xE4D0", .value = 0xe4d0 }, { .description = "0xE8D0", .value = 0xe8d0 }, { .description = "0xECD0", .value = 0xecd0 }, { .description = "0xF0D0", .value = 0xf0d0 }, { .description = "0xF4D0", .value = 0xf4d0 }, { .description = "0xF8D0", .value = 0xf8d0 }, { .description = "0xFCD0", .value = 0xfcd0 }, { .description = "" } } },
-    { .name = "irq", .description = "MPU-401 IRQ", .type = CONFIG_SELECTION, .default_int = 6, .selection = { { .description = "INT0 (IRQ 3)", .value = 3 }, { .description = "INT1 (IRQ 5)", .value = 5 }, { .description = "INT2 (IRQ 6)", .value = 6 }, { .description = "INT5 (IRQ 12)", .value = 12 }, { .description = "" } } },
-    { .name = "receive_input", .description = "Receive MIDI input", .type = CONFIG_BINARY, .default_int = 1 },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-const device_t mpu401_pc98_device = {
-    .name = "Roland MPU-PC98", .internal_name = "mpu401_pc98", .flags = DEVICE_CBUS, .init = mpu401_pc98_init, .close = mpu401_pc98_close, .reset = mpu401_pc98_reset, .config = mpu401_pc98_config
-};
 
 static const device_config_t mpu401_standalone_config[] = {
   // clang-format off

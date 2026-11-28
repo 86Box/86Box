@@ -552,9 +552,7 @@ main(int argc, char *argv[])
     util::applyStyle();
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
-#ifndef RELEASE_BUILD
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
-#endif
     Preferences::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
     QApplication::setFont(Preferences::getUIFont());

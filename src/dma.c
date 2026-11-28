@@ -91,14 +91,14 @@ static struct dma_ps2_t {
 /* 86BOX_XT8237_EXACT_INSTALLER_V1
  * NOCONA_XT_DMA_CONSOLIDATED_V1
  *
- * Cycle-aware Intel 8237 path for native PC-98 and selected PC/XT machines.
+ * Cycle-aware Intel 8237 path for 8088/8086 PC/XT-class machines.
  *
  * The public 86Box DMA API is peripheral-pull rather than pin-clocked, so the
  * controller cannot expose every intermediate S0-S4 bus state. This state
  * machine nevertheless preserves the externally observable 8237 semantics:
  * request arbitration, fixed/rotating priority, demand/single/block service,
  * software requests, terminal count, EOP, auto-init, verify, address wrapping,
- * masks, status, the temporary register, and board-specific bus occupancy.
+ * masks, status, the temporary register, and XT bus occupancy.
  */
 typedef struct dma_xt8237_state_t {
     uint8_t sw_request;
@@ -109,9 +109,6 @@ typedef struct dma_xt8237_state_t {
     uint8_t temp;
     uint8_t dack;
     uint8_t in_mem_to_mem;
-    uint8_t pc98_address_valid;
-    uint8_t pc98_bus_channel;
-    uint8_t pc98_address_high;
 } dma_xt8237_state_t;
 
 static dma_xt8237_state_t dma_xt8237;
@@ -123,15 +120,13 @@ static void dma_xt_refresh_try_schedule(void);
 static void dma_xt_refresh_reconcile(void);
 
 static int dma_xt8237_mem_to_mem(void);
-static void dma_pc98_adjust_page(int channel, uint32_t old_ac);
-static void dma_pc98_bus_occupancy(int channel);
 
 /* Persistent override for machines where the usual is286-driven AT/XT DMA
    detection is wrong: a genuine single-8237 XT board paired with a 286-or-
    higher accelerator CPU (e.g. the Intel Inboard 386/PC on a stock 5150/
    5160). Set once via dma_set_force_xt() by the owning device at init time;
-   other ordinary PC machines keep their established DMA selection. Native
-   PC-98 and the IBM 5140 opt in independently of this override. */
+   every other machine's behavior is completely unchanged (dma_xt8237_active()
+   still always returns 0, as before, when this is left at its default). */
 static int dma_force_xt = 0;
 
 void
@@ -155,10 +150,6 @@ dma_page_is_xt(void)
 int
 dma_xt8237_active(void)
 {
-    /* Native PC-98 has one 8-bit 8237, even with a 286/486 CPU. Opt in
-     * by motherboard architecture, never by the global XT rewrite option. */
-    if (IS_ARCH(machine, MACHINE_PC98))
-        return !dma_advanced && !dma_ps2.is_ps2;
     if (dma_ibm5140)
         return 1;
 #ifdef DMA_FORCE_REWRITE
@@ -245,11 +236,10 @@ dma_xt8237_can_service(int channel)
      * and retried later.
      *
      * Do not let another queued hardware request (especially PIT refresh on
-     * channel 0) make a synchronous peripheral callback return DMA_NODATA.
-     * Native PC-98 channel 0 is also a peripheral: the PC-9801-27 SASI board.
+     * channel 0) make a synchronous channel 1-3 callback return DMA_NODATA.
      * Software requests retain actual 8237 priority arbitration.
      */
-    if (((channel != 0) || IS_ARCH(machine, MACHINE_PC98)) && !dma_req_is_soft)
+    if ((channel != 0) && !dma_req_is_soft)
         requests &= (uint8_t) (1u << channel);
 
     if (!(requests & (1u << channel)))
@@ -268,8 +258,6 @@ dma_xt8237_release_owner(int channel)
     dma_xt8237.demand_active &= ~bit;
     dma_xt8237.block_active &= ~bit;
     dma_xt8237.dack &= ~bit;
-    if (dma_xt8237.pc98_bus_channel == channel)
-        dma_xt8237.pc98_address_valid = 0;
 
     if (dma_command[0] & 0x10)
         dma_xt8237.last_service = channel;
@@ -292,10 +280,6 @@ dma_xt8237_begin_service(int channel)
 static void
 dma_xt8237_charge_bus(int channel)
 {
-    if (IS_ARCH(machine, MACHINE_PC98)) {
-        dma_pc98_bus_occupancy(channel);
-        return; /* No IBM channel-zero refresh or XT four/five-clock charge. */
-    }
     if (channel == 0) {
         /* The exact Marty adapter owns HOLD/HLDA and DMAWAIT. Calling
          * refreshread() here would add a second fixed four-clock charge. */
@@ -313,7 +297,6 @@ static void
 dma_xt8237_advance_address(int channel)
 {
     dma_t *dma_c = &dma[channel];
-    uint32_t old_ac = dma_c->ac;
 
     if (dma_c->mode & 0x20)
         dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) |
@@ -321,8 +304,6 @@ dma_xt8237_advance_address(int channel)
     else
         dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) |
                     ((dma_c->ac + 1) & 0xffff);
-    if (IS_ARCH(machine, MACHINE_PC98))
-        dma_pc98_adjust_page(channel, old_ac);
 }
 
 static int
@@ -358,8 +339,6 @@ dma_xt8237_finish_transfer(int channel)
 
     if (service_mode == 1) {
         dma_xt8237.dack &= ~bit;
-        if (IS_ARCH(machine, MACHINE_PC98))
-            dma_xt8237.pc98_address_valid = 0;
         if (dma_command[0] & 0x10)
             dma_xt8237.last_service = channel;
     }
@@ -1199,7 +1178,6 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
                 dma_xt8237.demand_active = 0;
                 dma_xt8237.block_active = 0;
                 dma_xt8237.dack = 0;
-                dma_xt8237.pc98_address_valid = 0;
             }
             break;
 
@@ -1238,8 +1216,6 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
             dma_xt8237.block_active &= (uint8_t)~bit;
             dma_xt8237.external_eop &= (uint8_t)~bit;
             dma_xt8237.dack &= (uint8_t)~bit;
-            if (dma_xt8237.pc98_bus_channel == channel)
-                dma_xt8237.pc98_address_valid = 0;
             break;
 
         case 0x0c:
@@ -1259,8 +1235,6 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
             dma_xt8237.demand_active &= (uint8_t)~dma_m;
             dma_xt8237.block_active &= (uint8_t)~dma_m;
             dma_xt8237.dack &= (uint8_t)~dma_m;
-            if (dma_m & (1u << dma_xt8237.pc98_bus_channel))
-                dma_xt8237.pc98_address_valid = 0;
             break;
 
         default:
@@ -2198,9 +2172,7 @@ dma_reset_legacy(void)
         dma[c].sg_status = DMA_SG_BASE; /* 08h after reset (3.2.22) */
     dma_stop_en   = 0x00;
 
-    /* A hard reset also calls this after motherboard initialization, so keep
-     * the PC-98 board's normal 0439h MSK=1 state in the generic DMA core. */
-    dma_mask = IS_ARCH(machine, MACHINE_PC98) ? 0x000fffff : 0x00ffffff;
+    dma_mask = 0x00ffffff;
 
     /* A reset clears the registers, not the controller's kind. The power-on
        reset comes after the chipset has said what it has, so an EISA
@@ -2421,9 +2393,7 @@ dma_reset(void)
 {
     dma_reset_legacy();
     if (dma_ibm5140)
-        dma_e = 0x0e; /* The IBM 5140 has no channel-zero refresh DMA. */
-    if (IS_ARCH(machine, MACHINE_PC98))
-        dma_m |= 0x0f; /* Discrete 8237 RESET sets all four mask bits. */
+        dma_e = 0x0e; /* RESET cannot create the absent refresh channel. */
 
     dma_command[0] = dma_command[1] = 0;
     memset(&dma_xt8237, 0, sizeof(dma_xt8237));
@@ -2442,92 +2412,6 @@ dma_reset(void)
 
     if (dma_page_is_xt())
         dma_m = (dma_m & 0xf0) | 0x0f;
-}
-
-/* PC-98 puts the 8237 on the odd byte lane at 01h,03h,...,1fh.  CPU A1
- * becomes the controller's A0, so physical port N maps to register N>>1. */
-static uint8_t
-dma_pc98_read(uint16_t addr, void *priv)
-{
-    return dma_read((addr >> 1) & 0x0f, priv);
-}
-
-static void
-dma_pc98_write(uint16_t addr, uint8_t val, void *priv)
-{
-    dma_write((addr >> 1) & 0x0f, val, priv);
-}
-
-void
-dma_init_pc98(void)
-{
-    dma_ibm5140 = dma_ibm5140_diag = 0;
-    dma_ps2.is_ps2                 = 0;
-    dma_eisa                       = 0;
-    dma_sg_count_mask              = 0x0000fffe;
-    dma_reset();
-
-    /* VX-class machines latch all eight page bits, but normally mask A23-A20.
-     * Software clears 0439h MSK explicitly for DMA above 1 MiB. */
-    dma_set_mask(0x000fffff);
-
-    for (uint16_t port = 0x0001; port <= 0x001f; port += 2)
-        io_sethandler(port, 0x0001, dma_pc98_read, NULL, NULL,
-                      dma_pc98_write, NULL, NULL, NULL);
-}
-
-/* PC-9801VM/VX port 29h extends the 8237 page register on 286-class
- * machines.  At a 64 KiB address wrap it can increment either nibble (or the
- * full byte) of the selected channel's page register. */
-static uint8_t dma_pc98_autoinc_mask[4];
-
-void
-dma_set_pc98_autoinc(uint8_t channel, uint8_t mode)
-{
-    static const uint8_t masks[4] = { 0x00, 0x0f, 0xf0, 0xff };
-
-    if (channel < 4)
-        dma_pc98_autoinc_mask[channel] = masks[mode & 3];
-}
-
-static void
-dma_pc98_adjust_page(int channel, uint32_t old_ac)
-{
-    dma_t  *dev;
-    uint8_t mask;
-    uint8_t page;
-    uint8_t add;
-    int     wrapped;
-
-    if (channel < 0 || channel >= 4)
-        return;
-    mask = dma_pc98_autoinc_mask[channel];
-    if (!mask)
-        return;
-
-    dev     = &dma[channel];
-    wrapped = (dev->mode & 0x20)
-        ? ((old_ac & 0xffff) == 0x0000 && (dev->ac & 0xffff) == 0xffff)
-        : ((old_ac & 0xffff) == 0xffff && (dev->ac & 0xffff) == 0x0000);
-    if (!wrapped)
-        return;
-
-    page      = dev->page_l;
-    add       = (dev->mode & 0x20) ? 0xff : 0x01;
-    page      = (uint8_t) ((page & (uint8_t) ~mask) + ((page + add) & mask));
-    dev->page = dev->page_l = page;
-
-    /* The page register is an external latch.  Keep its complete read-back
-     * value, but present only address bits enabled by the current PC-98 DMA
-     * mask.  Updating only AC with the unmasked page recreated the V23
-     * first-byte corruption at every 64 KiB auto-increment boundary.  AB also
-     * carries the page latch in 86Box's combined-address representation, so it
-     * must follow the latch as well (notably for 8237 auto-init reloads). */
-    {
-        const uint32_t page_addr = (((uint32_t) page << 16) & dma_mask);
-        dev->ab                  = (dev->ab & 0x0000ffffu) | page_addr;
-        dev->ac                  = (dev->ac & 0x0000ffffu) | page_addr;
-    }
 }
 
 /*
@@ -2795,29 +2679,6 @@ static int dma_channel_advance_legacy(int channel);
 static int dma_channel_read_legacy(int channel);
 static int dma_channel_write_legacy(int channel, uint16_t val);
 
-static void
-dma_pc98_bus_occupancy(int channel)
-{
-    /* NEC Technical Data Book, hardware (1993), p. 330: the stock VX
-     * DMAC state spans two 286 processor periods. Intel 8237A pp. 5-7:
-     * block/demand omit S1 until A8-A15 changes; compressed omits S3;
-     * verify ignores READY, so has no SW. Acquisition S0/HOLD/HLDA still
-     * needs a deferred CPU bus interface. */
-    if (!IS_ARCH(machine, MACHINE_PC98))
-        return;
-    uint8_t high   = (uint8_t) (dma[channel].ac >> 8);
-    int     s1     = !dma_xt8237.pc98_address_valid || dma_xt8237.pc98_bus_channel != channel || dma_xt8237.pc98_address_high != high;
-    int     states = (dma_command[0] & 8) ? 2 : 3; /* S2/S3/S4 or S2/S4. */
-    states += s1;
-    if (dma[channel].mode & 0x0c)
-        states++; /* Board READY wait for data. */
-    dma_xt8237.pc98_address_valid = 1;
-    dma_xt8237.pc98_bus_channel   = (uint8_t) channel;
-    dma_xt8237.pc98_address_high  = high;
-    if (is286 && !is386)
-        cpu_bus_stall(states * 2);
-}
-
 static int
 dma_xt8237_mem_to_mem(void)
 {
@@ -3009,18 +2870,15 @@ dma_channel_read_only(int channel)
     if (!dma_xt8237_active())
         return dma_channel_read_only_legacy(channel);
 
-    if ((channel < 0) || (channel > 3))
-        return DMA_NODATA;
-
-    if (dma_stat_adv_pend & (1 << channel))
-        (void) dma_channel_advance(channel);
-
     if (!dma_xt8237_can_service(channel))
         return DMA_NODATA;
 
     type = dma[channel].mode & 0x0c;
     if ((type != 0x08) && (type != 0x00))
         return DMA_NODATA;
+
+    if (dma_stat_adv_pend & (1 << channel))
+        (void) dma_channel_advance(channel);
 
     dma_c = &dma[channel];
     dma_xt8237_begin_service(channel);
@@ -3300,7 +3158,6 @@ dma_channel_read_only_legacy(int channel)
 {
     dma_t   *dma_c = &dma[channel];
     uint16_t temp;
-    uint32_t old_ac;
 
     if (dma_group_disabled(channel))
         return (DMA_NODATA);
@@ -3318,7 +3175,6 @@ dma_channel_read_only_legacy(int channel)
     if (!dma_at && !channel)
         is_nec ? refreshread_vx0() : refreshread();
 
-    old_ac = dma_c->ac;
     if (dma_eisa) {
         /* An EISA channel moves its width, or less at an odd start or the
            end of a count by bytes, and steps the address by what it moved. */
@@ -3367,8 +3223,6 @@ dma_channel_read_only_legacy(int channel)
                 dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
         }
     }
-
-    dma_pc98_adjust_page(channel, old_ac);
 
     dma_stat_rq |= (1 << channel);
 
@@ -3401,7 +3255,6 @@ dma_channel_read_legacy(int channel)
 {
     dma_t   *dma_c = &dma[channel];
     uint16_t temp;
-    uint32_t old_ac;
     int      tc = 0;
 
     if (dma_group_disabled(channel))
@@ -3421,7 +3274,6 @@ dma_channel_read_legacy(int channel)
     if (!dma_at && !channel)
         is_nec ? refreshread_vx0() : refreshread();
 
-    old_ac = dma_c->ac;
     if (dma_eisa) {
         /* An EISA channel moves its width, or less at an odd start or the
            end of a count by bytes, and steps the address by what it moved. */
@@ -3470,8 +3322,6 @@ dma_channel_read_legacy(int channel)
                 dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
         }
     }
-
-    dma_pc98_adjust_page(channel, old_ac);
 
     dma_stat_rq |= (1 << channel);
 

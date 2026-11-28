@@ -153,8 +153,7 @@ SettingsPorts::updateLptPortControls(int i)
         return;
 
     const bool enabled = checkBox->isChecked();
-    const bool available = !machine_has_bus(machineId, MACHINE_PC98) || i == 0;
-    comboBox->setEnabled(available && enabled && comboBox->model()->rowCount() > 1
+    comboBox->setEnabled(enabled && comboBox->model()->rowCount() > 1
                          && !port_used_by_network_or_mouse(true, i));
     if (buttonCfg) {
         const int device = comboBox->currentData().toInt();
@@ -172,9 +171,7 @@ SettingsPorts::updateComPortControls(int i)
         return;
 
     const bool enabled = checkBox->isChecked();
-    /* The native 8251 registers exist, but have no host connection yet. */
-    const bool available = !machine_has_bus(machineId, MACHINE_PC98);
-    comboBox->setEnabled(available && enabled && comboBox->model()->rowCount() > 1
+    comboBox->setEnabled(enabled && comboBox->model()->rowCount() > 1
                          && !port_used_by_network_or_mouse(false, i));
     if (buttonCfg) {
         const int device = comboBox->currentData().toInt();

@@ -26,7 +26,6 @@ public:
     static int     ConfigureDevice(const _device_ *device, int instance = 0,
                                    Settings *settings = qobject_cast<Settings *>(Settings::settings));
     static QString DeviceName(const _device_ *device, const char *internalName = nullptr, int bus = 0);
-    static QString MouseName(int mouseId, int machineId);
 
 private:
     Ui::DeviceConfig * ui;
