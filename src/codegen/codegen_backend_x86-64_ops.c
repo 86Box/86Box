@@ -466,6 +466,11 @@ host_x86_LEA_REG_REG(codeblock_t *block, int dst_reg, int src_reg_a, int src_reg
     emit_mem(block, 0, 0, 0, 1, 0x8d, dst_reg, src_reg_a, src_reg_b, 0, 0, DISP_AUTO, 0, 0); /*LEA dst_reg, [Rsrc_reg_a + Rsrc_reg_b]*/
 }
 void
+host_x86_LEA32_REG_DISP(codeblock_t *block, int dst_reg, int base_reg, int index_reg, uint32_t disp)
+{
+    emit_mem(block, 0, 0, 0, 1, 0x8d, dst_reg, base_reg, index_reg, 0, (int32_t) disp, DISP_AUTO, 0, 0); /*LEA dst_reg, [base_reg + index_reg + disp]*/
+}
+void
 host_x86_LEA_REG_REG_SHIFT(codeblock_t *block, int dst_reg, int src_reg_a, int src_reg_b, int shift)
 {
     emit_mem(block, 0, 0, 0, 1, 0x8d, dst_reg, src_reg_a, src_reg_b, shift, 0, DISP_AUTO, 0, 0); /*LEA dst_reg, [Rsrc_reg_a + Rsrc_reg_b * (1 << shift)]*/

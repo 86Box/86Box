@@ -379,6 +379,13 @@ codegen_check_regs(void)
     }
 }
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*The host registers at the jump to a UOP_NOP_JOIN, after its order barrier
+  wrote them back*/
+static ir_reg_t join_regs[CODEGEN_HOST_REGS];
+static int      join_valid;
+#endif
+
 void
 codegen_reg_reset(void)
 {
@@ -388,6 +395,9 @@ codegen_reg_reset(void)
     host_reg_set.dirty       = _host_reg_dirty;
     host_reg_set.reg_list    = codegen_host_reg_list;
     host_reg_set.locked      = 0;
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    join_valid               = 0;
+#endif
     host_reg_set.nr_regs     = CODEGEN_HOST_REGS;
     host_fp_reg_set.regs     = host_fp_regs;
     host_fp_reg_set.dirty    = host_fp_reg_dirty;
@@ -1064,7 +1074,9 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
     int             c;
 
-    if (!reg_is_native_size(ir_reg)) {
+    /*A temporary's value on block entry is undefined, so its first partial
+      write in the block has no parent to read in*/
+    if (!reg_is_native_size(ir_reg) && !(ireg_data[IREG_GET_REG(ir_reg.reg)].is_volatile && ir_reg.version == 1)) {
         /*Read in parent register so we can do partial accesses to it*/
         ir_reg_t parent_reg;
 
@@ -1109,10 +1121,28 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
         }
 
         if (c == reg_set->nr_regs) {
-            /*No unused registers. Search for an unlocked register*/
-            for (c = 0; c < reg_set->nr_regs; c++) {
-                if (!(reg_set->locked & (1 << c)) && host_reg_can_hold(reg_set, c, ir_reg))
-                    break;
+            /*No unused registers. Take an unlocked register, preferring one
+              no uop reads any more (it is not loaded again later), and of
+              those one that needs no writeback*/
+            int best = 3;
+
+            for (int s = 0; s < reg_set->nr_regs; s++) {
+                int cost;
+
+                if ((reg_set->locked & (1 << s)) || !host_reg_can_hold(reg_set, s, ir_reg))
+                    continue;
+                if (ir_get_refcount(reg_set->regs[s]))
+                    cost = 2;
+                else if (reg_set->dirty[s] && !ireg_data[IREG_GET_REG(reg_set->regs[s].reg)].is_volatile)
+                    cost = 1;
+                else
+                    cost = 0;
+                if (cost < best) {
+                    best = cost;
+                    c    = s;
+                    if (!cost)
+                        break;
+                }
             }
 #ifndef RELEASE_BUILD
             if (c == reg_set->nr_regs)
@@ -1152,6 +1182,45 @@ codegen_reg_is_loaded(ir_reg_t ir_reg)
     return 0;
 }
 #endif
+
+/*dest was just loaded from its own location in cpu_state at its native size,
+  so memory already holds it and it need not be stored back. Leaving it dirty
+  would store it again before the next order barrier, where a helper may then
+  change that location and the generated code reload it: a store and reload
+  around another store that host store forwarding predicts badly.*/
+void
+codegen_reg_loaded_from_home(ir_reg_t dest, const void *p, int bytes)
+{
+    const int       reg_idx = IREG_GET_REG(dest.reg);
+    host_reg_set_t *reg_set;
+    int             native_bytes;
+
+    if (ireg_data[reg_idx].p != p || ireg_data[reg_idx].type != REG_INTEGER || !reg_is_native_size(dest))
+        return;
+    switch (ireg_data[reg_idx].native_size) {
+        case REG_BYTE:
+            native_bytes = 1;
+            break;
+        case REG_WORD:
+            native_bytes = 2;
+            break;
+        case REG_DWORD:
+            native_bytes = 4;
+            break;
+        default:
+            return;
+    }
+    if (native_bytes != bytes)
+        return;
+
+    reg_set = get_reg_set(dest);
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->regs[c].reg == dest.reg && reg_set->regs[c].version == dest.version) {
+            reg_set->dirty[c] = 0;
+            return;
+        }
+    }
+}
 
 void
 codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
@@ -1472,6 +1541,47 @@ codegen_reg_cold_rejoin(codeblock_t *block)
     codegen_reg_cold_restore();
 }
 
+#endif
+
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+void
+codegen_reg_join_snapshot(int usable)
+{
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++)
+        join_regs[c] = host_reg_set.regs[c];
+    join_valid = usable;
+}
+
+/*At a UOP_NOP_JOIN, after the jump destination's flush wrote back the path
+  that falls through: memory is current on both paths, so a host register
+  that holds the same version of a register on both holds the same value and
+  stays loaded. One the jump's path does not have it in is forgotten, to be
+  loaded from memory, which holds what each path left there*/
+void
+codegen_reg_join(ir_data_t *ir, codeblock_t *block)
+{
+    host_reg_set_t *reg_set = &host_reg_set;
+
+    if (!join_valid) {
+        codegen_reg_flush_invalidate(ir, block);
+        return;
+    }
+    join_valid = 0;
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        if (ir_reg_is_invalid(reg_set->regs[c]))
+            continue;
+        if (reg_set->dirty[c] || (reg_set->regs[c].reg != join_regs[c].reg) || (reg_set->regs[c].version != join_regs[c].version)) {
+            host_reg_assign(reg_set, c, invalid_ir_reg);
+            reg_set->dirty[c] = 0;
+        }
+    }
+
+    reg_set = &host_fp_reg_set;
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
+    }
+}
 #endif
 
 void

@@ -46,6 +46,13 @@ typedef struct codegen_link_slot_t {
     uint8_t      top_mask;    /*7 if the block has a static TOP, otherwise 0*/
     uint8_t      top;         /*block->TOP if top_mask is 7, otherwise 0*/
     uint8_t      two_page;    /*1 if block->page_mask2 is set*/
+#ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+    /*Read only in a codegen_link_mcache record: 1 while the target is on one
+      page and has used 1 and runs_left 0, so the routine need not touch its
+      codeblock_t at all. Set by codegen_link_patch() and by the routine
+      when it settles the block; the eviction sweep clears it with used.*/
+    uint8_t      settled;
+#endif
 #if defined(CODEGEN_BACKEND_HAS_LINK_SETS) && (defined(__aarch64__) || defined(_M_ARM64))
     /*In the padding of the word block_nr starts, which the routine's hit
       path tests only below bit 33. Every slot record of a set holds the
@@ -78,7 +85,10 @@ extern codegen_link_slot_t codegen_link_slots[BLOCK_SIZE][CODEGEN_LINK_SLOTS];
 
 typedef struct codegen_link_set_t {
     uint8_t             order;   /*codegen_link_set_mtf state*/
-    uint8_t             pad[7];
+    uint8_t             pad[3];
+    /*x86-64: offset in codegen_link_mcache of the record the routine last
+      found there for this set's exit; set 0 stands for exits with none*/
+    uint32_t            last_mcache;
     codegen_link_slot_t e[3];
 } codegen_link_set_t;
 
@@ -93,6 +103,53 @@ extern const uint8_t codegen_link_set_mtf[6][4];
   set.*/
 #    define CODEGEN_LINK_SET_ONE 0xffff
 extern uint16_t codegen_link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
+#endif
+
+#ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+/*An exit with more targets than its slot and set hold (an indirect call or
+  jump through a table, a RET shared by many callers) would miss every time
+  and go back to C. After a set miss the routine also tries the record at
+  the target's index in this table, shared by every exit, with the same
+  checks as for a slot. codegen_link_patch() copies a record here when it
+  fills a slot that has a set. A record is checked on every use like any
+  other except for link_gen: codegen_link_block_changed() empties the
+  block's record instead (block->link_mcache), so the routine skips that
+  load from the target's codeblock_t, often a cache miss here.*/
+#    define CODEGEN_LINK_MCACHE_BITS 13
+#    define CODEGEN_LINK_MCACHE_SIZE (1 << CODEGEN_LINK_MCACHE_BITS)
+#    define CODEGEN_LINK_MCACHE_MUL  0x9e3779b1u
+/*Index of the record for the target at virt (cs + pc)*/
+#    define CODEGEN_LINK_MCACHE_INDEX(virt) ((uint32_t) ((uint32_t) (virt) * CODEGEN_LINK_MCACHE_MUL) >> (32 - CODEGEN_LINK_MCACHE_BITS))
+/*Each record on its own aligned pair of cache lines*/
+#    define CODEGEN_LINK_MCACHE_SHIFT 7
+/*hint_rec and hint_entry: the record found after this one the last time
+  an exit went on to this one's target and then (from the same exit, or
+  another with no set) to another, and its link entry. The routine
+  prefetches both when it finds this record, so an exit that goes through
+  its targets in the same order as before finds the next one's record and
+  code in cache. Only ever prefetched; neither is checked.*/
+typedef union codegen_link_mcache_t {
+    struct {
+        codegen_link_slot_t r;
+        void               *hint_rec;
+        uint8_t            *hint_entry;
+    };
+    uint8_t pad[1 << CODEGEN_LINK_MCACHE_SHIFT];
+} codegen_link_mcache_t;
+extern codegen_link_mcache_t codegen_link_mcache[CODEGEN_LINK_MCACHE_SIZE];
+/*Stands in for the target of a settled record: used 1, runs_left 0*/
+extern codeblock_t codegen_link_settled_block;
+/*The block's used is about to be cleared: its record is no longer settled*/
+static inline void
+codegen_link_unsettle(codeblock_t *block)
+{
+    if (block->link_mcache) {
+        codegen_link_slot_t *rec = &codegen_link_mcache[block->link_mcache - 1].r;
+
+        if (rec->block == block)
+            rec->settled = 0;
+    }
+}
 #endif
 
 /*Byte offset of the link entry from &block->data[BLOCK_START]: the first

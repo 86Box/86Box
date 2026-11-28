@@ -60,6 +60,7 @@
 
 #define EM_FLAG    0x00004 /* in CR0 */
 #define WP_FLAG    0x10000 /* in CR0 */
+#define AM_FLAG    0x40000 /* in CR0 */
 
 #define CR4_VME    (1 << 0) /* Virtual 8086 Mode Extensions */
 #define CR4_PVI    (1 << 1) /* Protected-mode Virtual Interrupts */
@@ -625,6 +626,10 @@ extern uint64_t star;
 
 #define cr0                  cpu_state.CR0.l
 #define msw                  cpu_state.CR0.w
+/* Alignment checking is on: CR0.AM and EFLAGS.AC. A misaligned data access
+   then raises #AC at CPL 3 (Pentium Vol. 3, 14.17, Interrupt 17); the 386
+   has no AC flag, so this never holds on it. */
+#define CPU_AC_ARMED()       ((cr0 & AM_FLAG) && (cpu_state.eflags & AC_FLAG))
 extern uint32_t cr2;
 extern uint32_t cr3;
 extern uint32_t cr4;
@@ -679,6 +684,12 @@ extern int cpu_cycles_write_l;
 extern int cpu_prefetch_cycles;
 extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
+extern int cpu_code_miss_cycles;
+/* Code lines fetched lately, for the code fetch miss cost (386_dynarec.c). */
+#define CPU_CODE_LINE_SHIFT 6
+#define CPU_CODE_LINES      8192
+extern uint32_t cpu_code_line_tags[CPU_CODE_LINES];
+extern void     cpu_code_line_miss(uint32_t tag);
 extern int cpu_rom_prefetch_cycles;
 /* The machine has an MCA bus: set by cpu_set(), which every machine change
    reaches before an instruction runs. */
@@ -1139,7 +1150,22 @@ extern int  inrecomp;
 extern void mmx_init(void);
 extern void prefetch_flush(void);
 
-extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32);
+extern void prefetch_run(int instr_cycles, int mem_cycles, int bytes);
+
+extern const uint8_t prefetch_ea16_len[256];
+extern const uint8_t prefetch_ea32_len[2048];
+
+/* The operands are mostly constants: what folds with them stays in the
+   handler. */
+static __attribute__((always_inline)) inline void
+prefetch_run_inline(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
+{
+    int mem_cycles = reads * cpu_cycles_read + reads_l * cpu_cycles_read_l + writes * cpu_cycles_write + writes_l * cpu_cycles_write_l;
+
+    if (modrm != -1)
+        bytes += ea32 ? prefetch_ea32_len[modrm & 0x7ff] : prefetch_ea16_len[modrm & 0xff];
+    prefetch_run(instr_cycles, mem_cycles, bytes);
+}
 
 extern int lock_legal[256];
 extern int lock_legal_0f[256];

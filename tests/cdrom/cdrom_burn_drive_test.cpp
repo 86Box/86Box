@@ -63,14 +63,11 @@ protected:
             drv->type     = cdrom_get_from_internal_name("yamaha_crw8424");
         }
 
-        /* cdrom_hard_reset() works this out, which takes all the rest of the machine. */
-        drv->is_yamaha = !std::strcmp(cdrom_get_vendor(drv->type), "YAMAHA");
-
         scsi_cdrom_drive_reset(0);
 
         dev = static_cast<scsi_cdrom_t *>(drv->priv);
         ASSERT_NE(dev, nullptr);
-        ASSERT_TRUE(drv->is_yamaha);
+        ASSERT_TRUE(cdrom_is_writable(drv->type));
 
         if (GetParam() == Bus::AtapiDma)
             dev->tf->features = 1;
@@ -390,7 +387,7 @@ TEST_F(ReadOnlyDriveTest, OnlyRecordersGetTheNewCommands)
     uint8_t cdb[12] = { 0x23 };
 
     ASSERT_NE(dev, nullptr);
-    EXPECT_FALSE(cdrom[0].is_yamaha);
+    EXPECT_FALSE(cdrom_is_writable(cdrom[0].type));
 
     cdrom[0].cd_status = CD_STATUS_DATA_ONLY;
     dev->unit_attention = 0;
@@ -405,6 +402,7 @@ scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 ide_t        *ide_drives[IDE_NUM];
 
 ide_t *ide_get_drive(int) { return &test_ide; }
+int    ide_lpt_channel(int) { return 0; }
 void   ide_atapi_attach(ide_t *) {}
 double ide_atapi_get_period(uint8_t) { return 1.0; }
 void   ide_set_callback(ide_t *, double) {}

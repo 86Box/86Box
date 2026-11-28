@@ -76,6 +76,9 @@ void codegen_lazy_stubs_emit(codeblock_t *block);
    and a link's, goes through (codegen_entry_check). A backend without it
    leaves every block tracked by writes. */
 #    define CODEGEN_BACKEND_HAS_ENTRY_CHECK
+/* After a set miss too, the routine tries a record keyed by the target in a
+   table shared by every exit (codegen_link.h). */
+#    define CODEGEN_BACKEND_HAS_LINK_MCACHE
 void codegen_link_exit(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */
 extern int codegen_block_link;

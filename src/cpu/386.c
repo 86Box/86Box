@@ -181,7 +181,7 @@ fetch_ea_16_long(uint32_t rmdat)
 #define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32)      \
     do {                                                                                      \
         if (cpu_prefetch_cycles)                                                              \
-            prefetch_run(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); \
+            prefetch_run_inline(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); \
     } while (0)
 
 #define PREFETCH_PREFIX()        \

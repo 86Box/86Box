@@ -3596,6 +3596,16 @@ codegen_STORE_PTR_IMM_8(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_ADD_PTR_IMM(codeblock_t *block, uop_t *uop)
+{
+    host_arm64_MOVX_IMM(block, REG_TEMP, (uint64_t) uop->p);
+    host_arm64_LDR_IMM_W(block, REG_TEMP2, REG_TEMP, 0);
+    host_arm64_ADD_IMM(block, REG_TEMP2, REG_TEMP2, uop->imm_data);
+    host_arm64_STR_IMM_W(block, REG_TEMP2, REG_TEMP, 0);
+    return 0;
+}
+
+static int
 codegen_SUB(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -4013,6 +4023,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_STORE_P_IMM_8 &
         UOP_MASK]
     = codegen_STORE_PTR_IMM_8,
+    [UOP_ADD_P_IMM &
+        UOP_MASK]
+    = codegen_ADD_PTR_IMM,
 
     [UOP_MEM_LOAD_ABS &
         UOP_MASK]
@@ -4510,6 +4523,10 @@ const uOpFn uop_handlers[UOP_MAX] = {
     = codegen_PUNPCKLDQ,
 
     [UOP_NOP_BARRIER &
+        UOP_MASK]
+    = codegen_NOP,
+
+    [UOP_NOP_JOIN &
         UOP_MASK]
     = codegen_NOP
 };

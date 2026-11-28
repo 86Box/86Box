@@ -47,10 +47,19 @@ codegen_accumulate_record(int type, int pos, uint32_t a, uint32_t b, uint32_t c,
 static codegen_timing_state_t block_start_state;
 static codegen_timing_state_t block_end_state;
 
+/*The model's state before the timing of the opcode recorded at event
+  probe_event, and once that opcode is timed, for the probes*/
+static codegen_timing_snapshot_t probe_before;
+static codegen_timing_snapshot_t probe_after;
+static int                       probe_event = -1;
+static int                       probe_after_saved;
+
 void
 codegen_accumulate_begin(void)
 {
     cycle_event_count = 0;
+    probe_event       = -1;
+    probe_after_saved = 0;
     if (codegen_timing_save)
         codegen_timing_save(&block_start_state);
 }
@@ -70,6 +79,21 @@ codegen_accumulate_jump(UNUSED(ir_data_t *ir), int scale, int fallback)
 
     codegen_accumulate_record(ACC_JUMP, scale, fallback, 0, 0, 0);
     acc_regs[ACCREG_cycles].count += scale * jump_cycles;
+}
+
+void
+codegen_accumulate_block_end(void)
+{
+    codegen_accumulate_record(ACC_BLOCK_END, 0, 0, 0, 0, 0);
+    codegen_timing_block_end();
+}
+
+void
+codegen_accumulate_block_start(void)
+{
+    codegen_accumulate_record(ACC_BLOCK_START, 0, 0, 0, 0, 0);
+    codegen_block_cycles = 0;
+    codegen_timing_block_start();
 }
 
 static void
@@ -161,6 +185,13 @@ codegen_accumulate_unroll(ir_data_t *ir, int first, int start, int branch)
                 copy_cycles[event->pos].imm_data2 = pending + deferred -
                     ((event->a && codegen_timing_jump_cycles) ? codegen_timing_jump_cycles() : 0);
                 break;
+            case ACC_BLOCK_END:
+                codegen_timing_block_end();
+                break;
+            case ACC_BLOCK_START:
+                codegen_block_cycles = 0;
+                codegen_timing_block_start();
+                break;
             case ACC_ROUTE:
                 copy_cycles[event->pos].imm_data2 = deferred;
                 break;
@@ -176,6 +207,126 @@ codegen_accumulate_unroll(ir_data_t *ir, int first, int start, int branch)
     codegen_block_cycles = saved_cycles;
     codegen_accumulate_reset();
     return taken;
+}
+
+/*Replays the timing events of the block so far, from its start, with the
+  last instruction's opcode replaced by opcode (when opcode >= 0), and with a
+  block end after it if end. Returns the cycles the model charges.*/
+static int
+codegen_accumulate_replay(int opcode, int end)
+{
+    int last  = -1;
+    int total = 0;
+
+    for (int c = cycle_event_count - 1; c >= 0; c--) {
+        if (cycle_events[c].type == ACC_OPCODE) {
+            last = c;
+            break;
+        }
+    }
+    codegen_timing_peek = 1;
+    if (codegen_timing_load)
+        codegen_timing_load(&block_start_state);
+    codegen_block_cycles = 0;
+    codegen_timing_block_start();
+    for (int c = 0; c < cycle_event_count; c++) {
+        const struct cycle_event_t *event = &cycle_events[c];
+
+        switch (event->type) {
+            case ACC_START:
+                codegen_timing_start();
+                break;
+            case ACC_PREFIX:
+                codegen_timing_prefix(event->a, event->b);
+                break;
+            case ACC_OPCODE:
+                codegen_timing_opcode(((c == last) && (opcode >= 0)) ? opcode : event->a, event->b, event->c, event->d);
+                break;
+            case ACC_TIMING:
+                total += codegen_block_cycles;
+                codegen_block_cycles = 0;
+                break;
+            case ACC_BLOCK_END:
+                codegen_timing_block_end();
+                break;
+            case ACC_BLOCK_START:
+                total += codegen_block_cycles;
+                codegen_block_cycles = 0;
+                codegen_timing_block_start();
+                break;
+            default:
+                break;
+        }
+    }
+    if (end)
+        codegen_timing_block_end();
+    total += codegen_block_cycles;
+    codegen_block_cycles = 0;
+    codegen_timing_peek = 0;
+    return total;
+}
+
+void
+codegen_accumulate_probe_mark(void)
+{
+    if (codegen_timing_snapshot) {
+        codegen_timing_snapshot(&probe_before, 0);
+        probe_event = cycle_event_count;
+    }
+}
+
+/*Whether the last opcode recorded is the one the snapshot was taken before*/
+static int
+codegen_accumulate_probe_marked(void)
+{
+    if ((probe_event < 0) || (probe_event >= cycle_event_count) || (cycle_events[probe_event].type != ACC_OPCODE))
+        return 0;
+    for (int c = probe_event + 1; c < cycle_event_count; c++) {
+        if (cycle_events[c].type == ACC_OPCODE)
+            return 0;
+    }
+    return 1;
+}
+
+int
+codegen_accumulate_probe(int opcode)
+{
+    const struct cycle_event_t *event;
+    int                         saved_cycles;
+    int                         charged;
+
+    if (!codegen_accumulate_probe_marked())
+        return codegen_accumulate_replay(opcode, 1);
+
+    event        = &cycle_events[probe_event];
+    saved_cycles = codegen_block_cycles;
+    if (!probe_after_saved) {
+        codegen_timing_snapshot(&probe_after, 0);
+        probe_after_saved = 1;
+    }
+    codegen_timing_snapshot(&probe_before, 1);
+    codegen_timing_peek  = 1;
+    codegen_block_cycles = 0;
+    codegen_timing_opcode(opcode, event->b, event->c, event->d);
+    codegen_timing_block_end();
+    charged              = codegen_block_cycles;
+    codegen_timing_peek  = 0;
+    codegen_block_cycles = saved_cycles;
+    return charged;
+}
+
+void
+codegen_accumulate_probe_done(void)
+{
+    int saved_cycles = codegen_block_cycles;
+
+    if (probe_after_saved) {
+        codegen_timing_snapshot(&probe_after, 1);
+        probe_after_saved = 0;
+    } else
+        codegen_accumulate_replay(-1, 0);
+    probe_event          = -1;
+    codegen_block_cycles = saved_cycles;
 }
 
 void

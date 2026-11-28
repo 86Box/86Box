@@ -68,7 +68,13 @@
 /*UOP_JMP_DEST - jump to ptr*/
 #define UOP_JMP_DEST       (UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x17 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 #define UOP_NOP_BARRIER    (UOP_TYPE_BARRIER | 0x18)
+/*UOP_NOP_JOIN - destination of the one jump over the uops before it: the
+  host registers that hold the same register version on both paths stay
+  loaded (codegen_reg_join), the others are forgotten*/
+#define UOP_NOP_JOIN (UOP_TYPE_ORDER_BARRIER | 0x1c)
 #define UOP_STORE_P_IMM_16 (UOP_TYPE_PARAMS_IMM | 0x19)
+/*UOP_ADD_P_IMM - add imm to the 32-bit word at p*/
+#define UOP_ADD_P_IMM (UOP_TYPE_PARAMS_IMM | 0x1b)
 /*UOP_CALL_FUNC_RESULT_ORDERED - dest_reg = C function at p, with registers written back but left
   loaded. The function must only read guest state*/
 #define UOP_CALL_FUNC_RESULT_ORDERED (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x1a | UOP_TYPE_ORDER_BARRIER)
@@ -565,6 +571,14 @@ uop_type_can_fault(uint32_t uop_type)
     }
 }
 
+/*The first source of a uop that may be a segment base, which a flat segment
+  leaves out (codegen_mem_base)*/
+static inline ir_reg_t
+codegen_reg_read_base(int reg)
+{
+    return (reg == IREG_INVALID) ? invalid_ir_reg : codegen_reg_read(reg);
+}
+
 static inline uop_t *
 uop_alloc(ir_data_t *ir, uint32_t uop_type)
 {
@@ -762,7 +776,7 @@ uop_gen_reg_dst_src2_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src
 
     uop->type       = uop_type;
     uop->is_a16     = 0;    
-    uop->src_reg_a  = codegen_reg_read(src_reg_a);
+    uop->src_reg_a  = codegen_reg_read_base(src_reg_a);
     if (src_reg_b == IREG_eaa16) {
         uop->src_reg_b  = codegen_reg_read(IREG_eaaddr);
         uop->is_a16     = 1;
@@ -791,7 +805,7 @@ uop_gen_reg_dst_src_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_
     uop_t *uop = uop_alloc(ir, uop_type);
 
     uop->type       = uop_type;
-    uop->src_reg_a  = codegen_reg_read(src_reg);
+    uop->src_reg_a  = codegen_reg_read_base(src_reg);
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
     uop->imm_data   = imm;
 }
@@ -814,7 +828,7 @@ uop_gen_reg_src2_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
     uop_t *uop = uop_alloc(ir, uop_type);
 
     uop->type      = uop_type;
-    uop->src_reg_a = codegen_reg_read(src_reg_a);
+    uop->src_reg_a = codegen_reg_read_base(src_reg_a);
     uop->src_reg_b = codegen_reg_read(src_reg_b);
     uop->imm_data  = imm;
 }
@@ -838,7 +852,7 @@ uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
     uop_t *uop = uop_alloc(ir, uop_type);
 
     uop->type      = uop_type;
-    uop->src_reg_a = codegen_reg_read(src_reg_a);
+    uop->src_reg_a = codegen_reg_read_base(src_reg_a);
     uop->src_reg_b = codegen_reg_read(src_reg_b);
     uop->src_reg_c = codegen_reg_read(src_reg_c);
     uop->imm_data  = imm;
@@ -1177,20 +1191,41 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 
 #define uop_LOAD_SEG(ir, p, src_reg)                                     uop_gen_reg_src_pointer(UOP_LOAD_SEG, ir, src_reg, p)
 
-#define uop_MEM_LOAD_ABS(ir, dst_reg, seg_reg, imm)                      uop_gen_reg_dst_src_imm(UOP_MEM_LOAD_ABS, ir, dst_reg, seg_reg, imm)
-#define uop_MEM_LOAD_REG(ir, dst_reg, seg_reg, addr_reg)                 uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, 0)
-#define uop_MEM_LOAD_REG_OFFSET(ir, dst_reg, seg_reg, addr_reg, offset)  uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, offset)
-#define uop_MEM_LOAD_REG_EA(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG_EA, ir, dst_reg, seg_reg, addr_reg, 0)
-#define uop_MEM_LOAD_SINGLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_SINGLE, ir, dst_reg, seg_reg, addr_reg, 0)
-#define uop_MEM_LOAD_DOUBLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_DOUBLE, ir, dst_reg, seg_reg, addr_reg, 0)
-#define uop_MEM_STORE_ABS(ir, seg_reg, imm, src_reg)                     uop_gen_reg_src2_imm(UOP_MEM_STORE_ABS, ir, seg_reg, src_reg, imm)
-#define uop_MEM_STORE_REG(ir, seg_reg, addr_reg, src_reg)                uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, 0)
-#define uop_MEM_STORE_REG_OFFSET(ir, seg_reg, addr_reg, offset, src_reg) uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, offset)
-#define uop_MEM_STORE_IMM_8(ir, seg_reg, addr_reg, imm)                  uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_8, ir, seg_reg, addr_reg, imm)
-#define uop_MEM_STORE_IMM_16(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_16, ir, seg_reg, addr_reg, imm)
-#define uop_MEM_STORE_IMM_32(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_32, ir, seg_reg, addr_reg, imm)
-#define uop_MEM_STORE_SINGLE(ir, seg_reg, addr_reg, src_reg)             uop_gen_reg_src3_imm(UOP_MEM_STORE_SINGLE, ir, seg_reg, addr_reg, src_reg, 0)
-#define uop_MEM_STORE_DOUBLE(ir, seg_reg, addr_reg, src_reg)             uop_gen_reg_src3_imm(UOP_MEM_STORE_DOUBLE, ir, seg_reg, addr_reg, src_reg, 0)
+/*The segment base an access adds: none (IREG_INVALID) for a flat DS, ES or
+  SS, whose base is 0. A block runs only with the flat status it was compiled
+  with (its NOTFLAT bits), and a load of the segment register clears
+  codegen_flat_* for the rest of the compile, as for CHECK_SEG_LIMITS.
+  Backends whose MEM uops take an invalid src_reg_a as no base: x86-64. The
+  test is here rather than in the backend header, which the ops files don't
+  include, so every file builds the same uops.*/
+#if defined __amd64__ || defined _M_X64
+#    define CODEGEN_BACKEND_HAS_FLAT_BASE
+#endif
+#ifdef CODEGEN_BACKEND_HAS_FLAT_BASE
+#    define codegen_mem_base(seg_reg)                                                                       \
+        ((((seg_reg) == IREG_DS_base && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS))     \
+          || ((seg_reg) == IREG_ES_base && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))  \
+          || ((seg_reg) == IREG_SS_base && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) \
+             ? IREG_INVALID                                                                              \
+             : (seg_reg))
+#else
+#    define codegen_mem_base(seg_reg) (seg_reg)
+#endif
+
+#define uop_MEM_LOAD_ABS(ir, dst_reg, seg_reg, imm)                      uop_gen_reg_dst_src_imm(UOP_MEM_LOAD_ABS, ir, dst_reg, codegen_mem_base(seg_reg), imm)
+#define uop_MEM_LOAD_REG(ir, dst_reg, seg_reg, addr_reg)                 uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, codegen_mem_base(seg_reg), addr_reg, 0)
+#define uop_MEM_LOAD_REG_OFFSET(ir, dst_reg, seg_reg, addr_reg, offset)  uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, codegen_mem_base(seg_reg), addr_reg, offset)
+#define uop_MEM_LOAD_REG_EA(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG_EA, ir, dst_reg, codegen_mem_base(seg_reg), addr_reg, 0)
+#define uop_MEM_LOAD_SINGLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_SINGLE, ir, dst_reg, codegen_mem_base(seg_reg), addr_reg, 0)
+#define uop_MEM_LOAD_DOUBLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_DOUBLE, ir, dst_reg, codegen_mem_base(seg_reg), addr_reg, 0)
+#define uop_MEM_STORE_ABS(ir, seg_reg, imm, src_reg)                     uop_gen_reg_src2_imm(UOP_MEM_STORE_ABS, ir, codegen_mem_base(seg_reg), src_reg, imm)
+#define uop_MEM_STORE_REG(ir, seg_reg, addr_reg, src_reg)                uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, codegen_mem_base(seg_reg), addr_reg, src_reg, 0)
+#define uop_MEM_STORE_REG_OFFSET(ir, seg_reg, addr_reg, offset, src_reg) uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, codegen_mem_base(seg_reg), addr_reg, src_reg, offset)
+#define uop_MEM_STORE_IMM_8(ir, seg_reg, addr_reg, imm)                  uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_8, ir, codegen_mem_base(seg_reg), addr_reg, imm)
+#define uop_MEM_STORE_IMM_16(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_16, ir, codegen_mem_base(seg_reg), addr_reg, imm)
+#define uop_MEM_STORE_IMM_32(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_32, ir, codegen_mem_base(seg_reg), addr_reg, imm)
+#define uop_MEM_STORE_SINGLE(ir, seg_reg, addr_reg, src_reg)             uop_gen_reg_src3_imm(UOP_MEM_STORE_SINGLE, ir, codegen_mem_base(seg_reg), addr_reg, src_reg, 0)
+#define uop_MEM_STORE_DOUBLE(ir, seg_reg, addr_reg, src_reg)             uop_gen_reg_src3_imm(UOP_MEM_STORE_DOUBLE, ir, codegen_mem_base(seg_reg), addr_reg, src_reg, 0)
 
 #define uop_MOV(ir, dst_reg, src_reg)                                    uop_gen_reg_dst_src1(UOP_MOV, ir, dst_reg, src_reg)
 #define uop_MOV_IMM(ir, reg, imm)                                        uop_gen_reg_dst_imm(UOP_MOV_IMM, ir, reg, imm)
@@ -1205,6 +1240,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_MOV_INT_DOUBLE_64(ir, dst_reg, src_reg_d, src_reg_q, tag)    uop_gen_reg_dst_src3(UOP_MOV_INT_DOUBLE_64, ir, dst_reg, src_reg_d, src_reg_q, tag)
 
 #define uop_NOP_BARRIER(ir)                                              uop_gen(UOP_NOP_BARRIER, ir)
+#define uop_NOP_JOIN(ir)                                                 uop_gen(UOP_NOP_JOIN, ir)
 
 #define uop_PACKSSWB(ir, dst_reg, src_reg_a, src_reg_b)                  uop_gen_reg_dst_src2(UOP_PACKSSWB, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PACKSSDW(ir, dst_reg, src_reg_a, src_reg_b)                  uop_gen_reg_dst_src2(UOP_PACKSSDW, ir, dst_reg, src_reg_a, src_reg_b)
@@ -1277,6 +1313,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_STORE_PTR_IMM(ir, p, imm)                                    uop_gen_pointer_imm(UOP_STORE_P_IMM, ir, p, imm)
 #define uop_STORE_PTR_IMM_8(ir, p, imm)                                  uop_gen_pointer_imm(UOP_STORE_P_IMM_8, ir, p, imm)
 #define uop_STORE_PTR_IMM_16(ir, p, imm)                                 uop_gen_pointer_imm(UOP_STORE_P_IMM_16, ir, p, imm)
+#define uop_ADD_PTR_IMM(ir, p, imm)                                      uop_gen_pointer_imm(UOP_ADD_P_IMM, ir, p, imm)
 
 #define uop_TEST_JNS_DEST(ir, src_reg)                                   uop_gen_reg_src1(UOP_TEST_JNS_DEST, ir, src_reg)
 #define uop_TEST_JS_DEST(ir, src_reg)                                    uop_gen_reg_src1(UOP_TEST_JS_DEST, ir, src_reg)

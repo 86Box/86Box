@@ -250,13 +250,15 @@ codegen_flags_is_rebuild_zpna(const void *p)
     }
 
 /*After INC, DEC and FLAGS_UNKNOWN flags_rebuild_c() leaves flags as they
-  are: CF_SET() is the C bit in flags itself*/
-#define JIT_FLAGS_REBUILD_C_KEPT(op)                   \
-    static JIT_WRAPPER_OP void                         \
-    jit_flags_rebuild_c_##op(void)                     \
-    {                                                  \
-        if (cpu_state.flags_op != op)                  \
-            jit_flags_rebuild_c();                     \
+  are: CF_SET() is the C bit in flags itself. That holds for any of them,
+  not only the op the block was compiled after*/
+#define JIT_FLAGS_REBUILD_C_KEPT(op)                                                   \
+    static JIT_WRAPPER_OP void                                                         \
+    jit_flags_rebuild_c_##op(void)                                                     \
+    {                                                                                  \
+        if ((cpu_state.flags_op != FLAGS_UNKNOWN) &&                                   \
+            ((unsigned) (cpu_state.flags_op - FLAGS_INC8) > (FLAGS_DEC32 - FLAGS_INC8))) \
+            jit_flags_rebuild_c();                                                     \
     }
 
 JIT_FLAGS_REBUILD_C_KEPT(FLAGS_UNKNOWN)
@@ -1048,6 +1050,10 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     uint8_t head_tag_valid;
     uint8_t head_tag_empty;
 
+    /*Not over a short forward Jcc's jump inside the block (codegen_fwd_arm)*/
+    if ((codegen_fwd_jump >= 0) || codegen_fwd_used)
+        return 0;
+
     /*Check that dest instruction was actually compiled into block*/
     start = codegen_get_instruction_uop(block, dest_addr, &first_instruction, &TOP);
 
@@ -1064,6 +1070,17 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
 
     if (TOP != cpu_state.TOP)
         return 0;
+
+    /*A byte-mask block's page is written as code: a loop that wrote its own
+      bytes would run the copies stale, where the branch's exit would have
+      seen them dirty. So there only a loop that reaches neither memory nor
+      a helper, whose uops other than jumps are no barriers*/
+    if (block->flags & CODEBLOCK_BYTE_MASK) {
+        for (int c = start; c < ir->wr_pos; c++) {
+            if ((ir->uops[c].type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER)) && !(ir->uops[c].type & UOP_TYPE_JUMP))
+                return 0;
+        }
+    }
 
     /*An x87 or MMX instruction compiled after the block has entered the FPU
       or MMX leaves out its entry check (and MMX's, its setting of every tag
@@ -1160,7 +1177,7 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     codegen_ir_set_unroll(max_unroll, start, first_instruction);
     /*Each run goes round the loop several times: one run from block->data
       pays for the compile (codeblock_t::runs_left).*/
-    block->runs_left = 1;
+    block->runs_left = CODEBLOCK_RUNS_UNROLLED;
 
     return 1;
 }

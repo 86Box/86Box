@@ -48,6 +48,7 @@ extern void codegen_invalidate_page_masks(struct page_t *page);
 
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
 extern uint32_t recomp_page;
+extern uint32_t recomp_page2;
 extern int      codegen_in_recompile;
 
 #endif

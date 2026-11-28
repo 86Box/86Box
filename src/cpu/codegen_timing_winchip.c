@@ -454,11 +454,24 @@ codegen_timing_winchip_block_end(void)
     //
 }
 
+static void
+codegen_timing_winchip_snapshot(codegen_timing_snapshot_t *snap, int load)
+{
+    size_t pos = 0;
+
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, timing_count);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, last_prefix);
+    CODEGEN_TIMING_SNAPSHOT_VAR(snap, pos, load, regmask_modified);
+}
+
 codegen_timing_t codegen_timing_winchip = {
     codegen_timing_winchip_start,
     codegen_timing_winchip_prefix,
     codegen_timing_winchip_opcode,
     codegen_timing_winchip_block_start,
     codegen_timing_winchip_block_end,
-    NULL
+    NULL,
+    NULL,
+    NULL,
+    codegen_timing_winchip_snapshot
 };
