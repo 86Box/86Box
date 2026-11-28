@@ -70,6 +70,7 @@ tndlpt_close(void *priv)
     if (tndlpt->log)
         log_close(tndlpt->log);
 
+    sn76489_close(tndlpt->sn76489);
     free(tndlpt->sn76489);
     timer_disable(&tndlpt->ready_timer);
     free(tndlpt);

@@ -73,7 +73,7 @@ sn76489_update(sn76489_t *const sn76489)
     const double psgconst = sn76489->psgconst;
     const int    type     = sn76489->type;
 
-    for (; sn76489->pos < sound_pos_global; sn76489->pos++) {
+    for (; sn76489->pos < SOUND_CLOCK(sn76489->clock, sound_pos_global); sn76489->pos++) {
         int16_t result = 0;
 
         /* Tone Channels */
@@ -247,8 +247,6 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
 {
     sn76489_log("sn76489_init: base=%04x, type=%d, freq=%d\n", base, type, freq);
 
-    sound_add_handler(sn76489_get_buffer, sn76489);
-
     if (type == SN76496) {
         sn76489->white_noise_tap_1 = 0;
         sn76489->white_noise_tap_2 = 1;
@@ -275,11 +273,22 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
 
     sn76489_mute = 0;
 
+    sn76489->source = sound_source_add_stream(I_NORMAL, sn76489_get_buffer, sn76489);
+    sn76489->clock  = sound_source_get_pos_ptr(sn76489->source);
+
     if (base != 0x0000)
         io_sethandler(base, size,
                       NULL, NULL, NULL,
                       sn76489_write, NULL, NULL,
                       sn76489);
+}
+
+void
+sn76489_close(sn76489_t *sn76489)
+{
+    sound_source_remove(sn76489->source);
+    sn76489->source = NULL;
+    sn76489->clock  = NULL;
 }
 
 void *
@@ -320,6 +329,8 @@ sn76489_device_close(void *priv)
     sn76489_t *const sn76489 = (sn76489_t *) priv;
 
     sn76489_log("sn76489_device_close\n");
+
+    sn76489_close(sn76489);
 
     free(sn76489);
 }

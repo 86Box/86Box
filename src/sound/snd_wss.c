@@ -54,6 +54,8 @@ typedef struct wss_t {
 
     ad1848_t ad1848;
     fm_drv_t opl;
+    void    *src_snd;
+    void    *src_music;
 
     int     opl_enabled;
     uint8_t pos_regs[8];
@@ -120,7 +122,7 @@ wss_put_buffer(int16_t *buffer, int len, void *priv)
     wss_t                *wss = (wss_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = wss->ad1848.freq;
 
@@ -236,6 +238,7 @@ wss_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
 
+    sound_source_set_rate(wss->src_snd, (wss->ad1848.enable && wss->ad1848.freq > 0) ? (double) wss->ad1848.freq : 0.0);
     ad1848_update(&wss->ad1848);
     for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += wss->ad1848.buffer[c] / 2;
@@ -290,12 +293,17 @@ wss_init(UNUSED(const device_t *info))
                   ad1848_write, NULL, NULL,
                   &wss->ad1848);
 
-    sound_add_handler(wss_get_buffer, wss);
+    wss->src_snd      = sound_source_add_stream(I_NORMAL, wss_get_buffer, wss);
+    sound_source_set_label(wss->src_snd, "WSS");
+    wss->ad1848.clock = sound_source_get_pos_ptr(wss->src_snd);
     sound_in_add_handler(wss_put_buffer, wss);
     sound_in_start_input();
 
-    if (wss->opl_enabled)
-        music_add_handler(wss_get_music_buffer, wss);
+    if (wss->opl_enabled) {
+        wss->src_music = sound_source_add_stream(I_MUSIC, wss_get_music_buffer, wss);
+        if (wss->opl.set_clock != NULL)
+            wss->opl.set_clock(wss->opl.priv, sound_source_get_pos_ptr(wss->src_music));
+    }
 
     int c = 0;
     double  attenuation;
@@ -395,12 +403,17 @@ ncr_audio_init(UNUSED(const device_t *info))
     wss->pos_regs[0] = 0x16;
     wss->pos_regs[1] = 0x51;
 
-    sound_add_handler(wss_get_buffer, wss);
+    wss->src_snd      = sound_source_add_stream(I_NORMAL, wss_get_buffer, wss);
+    sound_source_set_label(wss->src_snd, "WSS");
+    wss->ad1848.clock = sound_source_get_pos_ptr(wss->src_snd);
     sound_in_add_handler(wss_put_buffer, wss);
     sound_in_start_input();
 
-    if (wss->opl_enabled)
-        music_add_handler(wss_get_music_buffer, wss);
+    if (wss->opl_enabled) {
+        wss->src_music = sound_source_add_stream(I_MUSIC, wss_get_music_buffer, wss);
+        if (wss->opl.set_clock != NULL)
+            wss->opl.set_clock(wss->opl.priv, sound_source_get_pos_ptr(wss->src_music));
+    }
 
     int c = 0;
     double  attenuation;
@@ -427,6 +440,9 @@ void
 wss_close(void *priv)
 {
     wss_t *wss = (wss_t *) priv;
+
+    sound_source_remove(wss->src_snd);
+    sound_source_remove(wss->src_music);
     free(wss);
 }
 

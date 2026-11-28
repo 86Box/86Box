@@ -31,9 +31,8 @@ if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
-if(NOT DEFINED OPENAL OR OPENAL)
-    list(APPEND VCPKG_MANIFEST_FEATURES "openal")
-endif()
+# OpenAL is always built; the old OPENAL option is obsolete and ignored.
+list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 
 if(MUNT_EXTERNAL)
     list(APPEND VCPKG_MANIFEST_FEATURES "munt")
@@ -122,10 +121,6 @@ if(STATIC_BUILD AND MINGW)
     endif()
 endif()
 
-if(HAIKU)
-    set(OPENAL ON)
-endif()
-
 include(DetectTargetArch)
 include(CompilerFlags)
 
@@ -135,7 +130,6 @@ include(CompilerFlags)
 #      ------       -----------                                                  ----
 option(RELEASE      "Release build"                                              OFF)
 option(DYNAREC      "Dynamic recompiler"                                         ON)
-option(OPENAL       "OpenAL"                                                     ON)
 option(RTMIDI       "RtMidi"                                                     ON)
 option(FLUIDSYNTH   "FluidSynth"                                                 ON)
 option(MUNT         "MUNT"                                                       ON)
@@ -190,15 +184,26 @@ if(BUILD_TESTING OR BUILD_BENCHMARKS)
     add_subdirectory(tests)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
-    option(AUDIO4 "Use audio(4) as sound backend" ON)
+# Optional sound backends, built when the platform provides them.
+if(CMAKE_SYSTEM_NAME MATCHES "^(Linux|NetBSD|OpenBSD|FreeBSD|DragonFly)$")
+    include(CheckIncludeFile)
+    check_include_file("sys/audioio.h" HAVE_SYS_AUDIOIO_H)
+    option(AUDIO4 "Use audio(4) as sound backend" ${HAVE_SYS_AUDIOIO_H})
+
+    find_package(PkgConfig QUIET)
+    set(SNDIO_DEFAULT OFF)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(SNDIO_PROBE QUIET sndio)
+        if(SNDIO_PROBE_FOUND)
+            set(SNDIO_DEFAULT ON)
+        endif()
+    endif()
+    if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+        set(SNDIO_DEFAULT ON)
+    endif()
+    option(SNDIO "Use sndio as sound backend" ${SNDIO_DEFAULT})
 else()
     set(AUDIO4 OFF)
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-    option(SNDIO "Use sndio as sound backend" ON)
-else()
     set(SNDIO OFF)
 endif()
 
@@ -234,7 +239,6 @@ endif()
 #
 #                      Option         Description                                Def.  Condition     Otherwise
 #                      ------         -----------                                ----  ------------  ---------
-cmake_dependent_option(AIC7890        "Adaptec AIC-7890"                         ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(AMD_K5         "AMD K5"                                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(G100           "Matrox Productiva G100"                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                              ON    "DEV_BRANCH"  OFF)

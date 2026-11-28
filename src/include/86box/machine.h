@@ -1257,6 +1257,10 @@ extern int             machine_at_d823_init(const machine_t *);
 extern const device_t  td3_device;
 #endif
 extern int             machine_at_td3_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  m5pe_device;
+#endif
+extern int             machine_at_m5pe_init(const machine_t *);
 
 /* m_at_socket7.c */
 /* i430HX */

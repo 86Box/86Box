@@ -184,6 +184,8 @@ typedef struct cs5530_t {
     int32_t    abm_out_r;
     int32_t    abm_buffer[SOUNDBUFLEN * 2];
     int        abm_pos;
+    const int *abm_clock;
+    void      *src_snd;
     mem_mapping_t f3_mapping;
     void    *audio_trap[AT_TRAPS];
 
@@ -720,7 +722,9 @@ cs5530_abm_update_buffer(cs5530_t *dev)
     else if (r > 32767)
         r = 32767;
 
-    for (; dev->abm_pos < sound_pos_global; dev->abm_pos++) {
+    const int clk = SOUND_CLOCK(dev->abm_clock, sound_pos_global);
+
+    for (; dev->abm_pos < clk; dev->abm_pos++) {
         dev->abm_buffer[dev->abm_pos * 2]     = l;
         dev->abm_buffer[dev->abm_pos * 2 + 1] = r;
     }
@@ -826,6 +830,9 @@ cs5530_abm_timer(void *priv)
         freq = (double) ac97_codec_getrate(dev->codec, 0x2c);
         if (freq < 1.0)
             freq = (double) SOUND_FREQ;
+        /* Let the host source run at the DAC rate the codec is set to. */
+        if ((dev->abm_cmd[0] & 0x01) && dev->abm[0].loaded)
+            sound_source_set_rate(dev->src_snd, freq);
         timer_advance_u64(&dev->abm_timer, (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq)));
     }
 }
@@ -2150,6 +2157,8 @@ cs5530_close(void *priv)
     cs5530_midi_uart_enabled = NULL;
     cs5530            = NULL;
 
+    sound_source_remove(dev->src_snd);
+
     for (int i = 0; i < PM_DEVICES; i++)
         for (int j = 0; j < 6; j++)
             if (dev->pm_trap[i][j] != NULL)
@@ -2218,7 +2227,8 @@ cs5530_init(UNUSED(const device_t *info))
     timer_add(&dev->vga_timer, cs5530_vga_timer, dev, 0);
     timer_add(&dev->acpi_timer, cs5530_acpi_timer, dev, 0);
     timer_add(&dev->abm_timer, cs5530_abm_timer, dev, 0);
-    sound_add_handler(cs5530_abm_get_buffer, dev);
+    dev->src_snd   = sound_source_add_stream(I_NORMAL, cs5530_abm_get_buffer, dev);
+    dev->abm_clock = sound_source_get_pos_ptr(dev->src_snd);
     midi_in_handler(1, cs5530_midi_input_msg, cs5530_midi_input_sysex, cs5530_midi_input_remain, dev);
     timer_set_delay_u64(&dev->acpi_timer, (uint64_t) ((double) TIMER_USEC * 8388608.0 * 1000000.0 / ACPI_TIMER_FREQ));
 

@@ -52,9 +52,13 @@ typedef struct sn76489_s {
     uint16_t pos;
 
     double psgconst;
+
+    void      *source;
+    const int *clock;
 } sn76489_t;
 
 extern void sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int freq);
+extern void sn76489_close(sn76489_t *sn76489);
 extern void sn76489_write(uint16_t port, uint8_t data, void *priv);
 extern void sn76489_set_extra_divide(sn76489_t *sn76489, uint8_t enable);
 

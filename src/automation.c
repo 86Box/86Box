@@ -991,7 +991,7 @@ aud_close_seg(aud_t *a)
 }
 
 void
-automation_audio(int src, const void *buf, int size, int is_float)
+automation_audio(int src, const void *buf, int size)
 {
     aud_t *a;
     int    n = size / 2;
@@ -1011,14 +1011,7 @@ automation_audio(int src, const void *buf, int size, int is_float)
         aud_scratch     = realloc(aud_scratch, size * sizeof(int16_t));
         aud_scratch_len = size;
     }
-    if (is_float) {
-        const float *f = (const float *) buf;
-        for (int i = 0; i < size; i++) {
-            float v = f[i] * 32768.0f;
-            aud_scratch[i] = (v >= 32767.0f) ? 32767 : ((v <= -32768.0f) ? -32768 : (int16_t) v);
-        }
-    } else
-        memcpy(aud_scratch, buf, size * sizeof(int16_t));
+    memcpy(aud_scratch, buf, size * sizeof(int16_t));
 
     if (!a->ring || (a->rate != rate)) {
         if (a->open) {

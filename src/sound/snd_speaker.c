@@ -36,6 +36,9 @@ typedef struct speaker_t {
     uint8_t pin_driven;
     uint8_t pin_enabled;
     uint8_t pin_output;
+
+    void      *source;
+    const int *clock;
 } speaker_t;
 
 speaker_t *speaker = NULL;
@@ -69,10 +72,12 @@ speaker_update(void)
         if (amplitude > 5120.0)
             amplitude = 5120.0;
 
-        if (speaker->pos < music_pos_global) {
+        const int clk = SOUND_CLOCK(speaker->clock, music_pos_global);
+
+        if (speaker->pos < clk) {
             int32_t val;
 
-            for (; speaker->pos < music_pos_global; speaker->pos++) {
+            for (; speaker->pos < clk; speaker->pos++) {
                 if (speaker->pin_driven) {
                     /* PC-98 drives the speaker from PIT OUT1 and /BUZ.
                      * The IBM channel-2 count/PWM shortcuts do not apply. */
@@ -131,6 +136,8 @@ speaker_close(void *priv)
 {
     speaker_t *dev = (speaker_t *) priv;
 
+    sound_source_remove(dev->source);
+
     free(dev);
 
     speaker = NULL;
@@ -144,7 +151,8 @@ speaker_init(const device_t *info)
     if (dev == NULL)
         return NULL;
 
-    music_add_handler(speaker_get_buffer, dev);
+    dev->source = sound_source_add_stream(I_MUSIC, speaker_get_buffer, dev);
+    dev->clock  = sound_source_get_pos_ptr(dev->source);
 
     speaker_mute       = 0;
     speaker_gated      = 0;

@@ -19,42 +19,98 @@
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
 
+#include <86box/timer.h>
+
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
 typedef struct _sound_backend_ {
     const char *name;
     const char *internal_name;
 
+    /* Output. Sizes are in values (2 per stereo frame). */
     void        (*give_buffer)(void *priv, void *src, const void *buf, int size, int gain);
     void *      (*init_source)(void *priv, int sample_rate, int buffer_size);
     void        (*close_source)(void *priv, void *src);
     const char *(*get_output_devices)(void);
     void       *(*init)(void);
     void        (*close)(void *priv);
+
+    /* Input. Captured data is always interleaved 16-bit stereo. */
+    const char *(*get_input_devices)(void);
+    void *      (*init_input)(void *priv, int sample_rate);
+    void        (*close_input)(void *priv, void *in);
+    void        (*start_input)(void *priv, void *in);
+    void        (*stop_input)(void *priv, void *in);
+    int         (*get_input_rate)(void *priv, void *in);
+    void        (*get_input_data)(void *priv, void *in, int16_t *buf, size_t *len);
+
+    /* Probes which of the candidate rates a device supports; returns count. */
+    int         (*get_device_supported_rates)(const char *device_name, int *rates_out, int max);
 } sound_backend_t;
 
-extern sound_backend_t       sound_cur_backend;
-
-#ifdef AUDIO4
 extern const sound_backend_t sound_backend_audio4;
-#endif
-#if !defined(AUDIO4) && !defined(SNDIO)
 extern const sound_backend_t sound_backend_openal;
-#endif
-#if !defined(AUDIO4) && !defined(SNDIO)
 extern const sound_backend_t sound_backend_xaudio2;
-#endif
-#ifdef SNDIO
 extern const sound_backend_t sound_backend_sndio;
-#endif
+
+extern int                   sound_backend_current;
+
+extern int                   sound_backend_get_count(void);
+extern const char *          sound_backend_get_name(int backend);
+extern const char *          sound_backend_get_internal_name(int backend);
+extern int                   sound_backend_get_from_internal_name(const char *s);
+extern int                   sound_backend_get_default(void);
+extern const char *          sound_backend_get_output_devices_of(int backend);
+extern const char *          sound_backend_get_input_devices_of(int backend);
+extern int                   sound_backend_get_supported_rates_of(int backend, const char *device_name,
+                                                                  int *rates_out, int max_rates);
 
 extern void                  sound_backend_give_buffer(void *src, const void *buf,
                                                        int size, int gain);
 extern void                  sound_backend_close_source(void *src);
 extern void *                sound_backend_init_source(int sample_rate, int buffer_size);
-extern const char *          sound_backend_get_output_devices(void);
 extern void                  sound_backend_close(void);
 extern void                  sound_backend_init(void);
+
+extern void                  sound_backend_input_open(void);
+extern void                  sound_backend_input_close(void);
+extern int                   sound_backend_input_available(void);
+extern void                  sound_backend_input_start(void);
+extern void                  sound_backend_input_stop(void);
+extern int                   sound_backend_input_get_rate(void);
+extern void                  sound_backend_input_get_data(int16_t *buf, size_t *len);
+
+/* Sources owned by sound cards: each has its own clock and timer. get_buffer
+   is called once per block, when the clock reaches the block's length. */
+extern void *          sound_source_add(int sample_rate, int frames,
+                                        void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
+                                        void *priv);
+extern void *          sound_source_add_stream(uint8_t stream,
+                                               void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
+                                               void *priv);
+extern const int *     sound_source_get_pos_ptr(void *src);
+extern void            sound_source_set_rate(void *src, double rate);
+extern void            sound_source_set_rate_by_clock(const int *clock, double rate);
+extern int             sound_source_get_rate(void *src);
+extern int             sound_source_class_pending(uint8_t stream);
+extern uint64_t        sound_source_offset_delay(pc_timer_t *timer, uint64_t latch);
+
+/* The position of a card-owned source's clock, or fallback (a shared clock)
+   for a card that has none. */
+#define SOUND_CLOCK(clk, fallback) (((clk) != NULL) ? *(clk) : (fallback))
+extern void            sound_source_remove(void *src);
+extern int             sound_source_get_count(void);
+extern void            sound_source_set_label(void *src, const char *what);
+extern const char *    sound_source_get_label(int n);
+extern int             sound_source_get_gain(int n);
+extern void            sound_source_set_gain(int n, int gain);
+extern void            sound_source_save_gains(void);
+extern int             sound_stream_extra_count(void);
+extern const char *    sound_stream_extra_label(int n);
+extern int             sound_stream_extra_get_gain(int n);
+extern void            sound_stream_extra_set_gain(int n, int gain);
+extern void            sound_stream_extra_save_gains(void);
+extern void            sound_source_remove_all(void);
 
 extern void            sound_source_close_all(void);
 extern void            sound_source_reopen_all(void);
@@ -83,6 +139,7 @@ enum {
 
 #define SOUND_FREQ   FREQ_48000
 #define SOUNDBUFLEN  (SOUND_FREQ / 50)
+#define SOUND_MIN_RATE 4000
 
 #define MUSIC_FREQ   FREQ_49716
 #define MUSICBUFLEN  (MUSIC_FREQ / 36)
@@ -114,12 +171,6 @@ extern int wavetable_pos_global;
 
 extern int sound_card_current[SOUND_CARD_MAX];
 
-extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 uint16_t len, void *priv),
-                              void *priv);
-extern void sound_remove_handler(void (*get_buffer)(int32_t *buffer,
-                                                     uint16_t len, void *priv),
-                                 void *priv);
 
 extern void sound_in_add_handler(void (*put_buffer)(int16_t *buffer,
                                                      int len, void *priv),
@@ -135,17 +186,8 @@ extern void sound_in_start_input(void);
 extern void sound_in_stop_input(void);
 extern void sound_in_set_test_tone(double hz, double dbfs); /* automation "audio tone" */
 
-extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 uint16_t len, void *priv),
-                              void *priv);
 
-extern void ym2151_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                  uint16_t len, void *priv),
-                               void *priv);
 
-extern void wavetable_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                     uint16_t len, void *priv),
-                                  void *priv);
 
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
                                                      double *buffer, void *priv),
@@ -192,26 +234,15 @@ extern void sound_fdd_thread_end(void);
 extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
-extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
-extern const char *sound_get_input_devices(void);  /* returns double-null-terminated list, or NULL */
-extern void        al_capture_open(void);
-extern void        al_capture_close(void);
-extern int         al_capture_get_rate(void);
-extern int         sound_get_device_sample_rate(const char *device_name);   /* probe native rate, 0 = unknown */
-extern int         sound_get_device_supported_rates(const char *device_name, /* probe supported rates into rates_out; returns count */
-                                                    int *rates_out, int max_rates);
-extern void        closeal(void);
-extern void        inital(void);
+extern void        sound_output_init(void);
+extern int         sound_output_is_open(void);
+extern void        sound_output_close(void);
+extern void        al_set_midi(int freq, int buf_size);
 extern void        sound_reopen_input(void);
 extern void        sound_reopen_output(void);
-extern int         al_capture_available(void);
-extern void        al_capture_start(void);
-extern void        al_capture_stop(void);
-extern void        al_capture_get_data(int16_t *buf, size_t *len);
 
 extern unsigned long long src_freqs[I_MAX];
 
-extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);
 /* Hands a block to the host backend, and first to the automation socket's
    audio capture when it is built in. size counts values (2 per frame). */
 extern void        sound_give(const void *buf, const uint8_t src, const int size);
@@ -397,6 +428,12 @@ extern const device_t opti_82c931_device;
 /* PC Speaker */
 extern const device_t speaker_device;
 extern const device_t speaker_pc98_device;
+
+/* PC-98 C-BUS sound boards. */
+extern const device_t pc98_26k_device;
+extern const device_t pc98_86_device;
+extern const device_t pc98_speakboard_device;
+extern const device_t pc98_sparkboard_device;
 
 /* PC-98 C-BUS sound boards. */
 extern const device_t pc98_26k_device;

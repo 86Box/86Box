@@ -59,8 +59,12 @@ void pc98_opn_set_extended(pc98_opn_t *chip, int enabled);
 void pc98_opn_set_output_enabled(pc98_opn_t *chip, int enabled);
 int  pc98_opn_set_adpcm_ram(pc98_opn_t *chip, int enabled);
 
-/* Add `frames` stereo frames at SOUND_FREQ into buf, which is interleaved. */
+/* Add `frames` stereo frames at the host rate into buf, which is interleaved. */
 void pc98_opn_generate(pc98_opn_t *chip, int32_t *buf, uint32_t frames);
+
+/* The position of the card's source clock; without one the shared sound
+   position is used. */
+void pc98_opn_set_clock(pc98_opn_t *chip, const int *clock);
 
 /* OPN port A/B, the joystick and jumper lines on both boards. */
 void    pc98_opn_set_port_a(pc98_opn_t *chip, uint8_t value);

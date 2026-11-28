@@ -55,6 +55,7 @@ typedef struct {
     int16_t samples[2];
 
     int     pos;
+    const int *clock;
     int32_t buffer[MUSICBUFLEN * 2];
 } esfm_drv_t;
 
@@ -204,6 +205,14 @@ esfm_timer_2(void *priv)
 }
 
 static void
+esfm_drv_set_clock(void *priv, const int *clock)
+{
+    esfm_drv_t *dev = (esfm_drv_t *) priv;
+
+    dev->clock = clock;
+}
+
+static void
 esfm_drv_set_do_cycles(void *priv, int8_t do_cycles)
 {
     esfm_drv_t *dev = (esfm_drv_t *) priv;
@@ -242,15 +251,16 @@ static int32_t *
 esfm_drv_update(void *priv)
 {
     esfm_drv_t *dev = (esfm_drv_t *) priv;
+    const int clk = (dev->clock != NULL) ? *dev->clock : music_pos_global;
 
-    if (dev->pos >= music_pos_global)
+    if (dev->pos >= clk)
         return dev->buffer;
 
     esfm_drv_generate_stream(dev,
                              &dev->buffer[dev->pos * 2],
-                             music_pos_global - dev->pos);
+                             clk - dev->pos);
 
-    for (; dev->pos < music_pos_global; dev->pos++) {
+    for (; dev->pos < clk; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }
@@ -394,6 +404,7 @@ const fm_drv_t esfmu_opl_drv = {
     .update        = &esfm_drv_update,
     .reset_buffer  = &esfm_drv_reset_buffer,
     .set_do_cycles = &esfm_drv_set_do_cycles,
+    .set_clock     = &esfm_drv_set_clock,
     .priv          = NULL,
     .generate      = NULL,
 };

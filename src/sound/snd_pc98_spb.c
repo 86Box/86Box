@@ -50,6 +50,7 @@ static const uint32_t pc98_spb_rom_addrs[5] = {
 typedef struct pc98_spb_t {
     pc98_opn_t *opna;
     pc98_opn_t *extra_fm;
+    void       *src;
     rom_t      *bios;
     uint8_t    *rhythm;
     uint16_t    base;
@@ -148,6 +149,9 @@ pc98_spb_init(const device_t *info)
         if (!dev->extra_fm)
             goto fail;
     }
+    dev->src = sound_source_add_stream(I_NORMAL, pc98_spb_mix, dev);
+    pc98_opn_set_clock(dev->opna, sound_source_get_pos_ptr(dev->src));
+    pc98_opn_set_clock(dev->extra_fm, sound_source_get_pos_ptr(dev->src));
 
     char path[PC98_ROM_PATH_MAX];
     if (pc98_rom_find_quiet(pc98_spb_rhythm_paths, path, sizeof(path))) {
@@ -176,10 +180,10 @@ pc98_spb_init(const device_t *info)
     io_sethandler(dev->base, 8, pc98_spb_in, NULL, NULL, pc98_spb_out, NULL, NULL, dev);
     if (dev->extra_fm)
         io_sethandler(dev->base + 0x400u, 8, pc98_spb_in, NULL, NULL, pc98_spb_out, NULL, NULL, dev);
-    sound_add_handler(pc98_spb_mix, dev);
     pc98_spb_reset(dev);
     return dev;
 fail:
+    sound_source_remove(dev->src);
     pc98_opn_destroy(dev->extra_fm);
     pc98_opn_destroy(dev->opna);
     free(dev);
@@ -196,6 +200,7 @@ pc98_spb_close(void *priv)
     if (dev->extra_fm)
         io_removehandler(dev->base + 0x400u, 8, pc98_spb_in, NULL, NULL, pc98_spb_out, NULL, NULL, dev);
     pc98_spb_irq(dev, 0);
+    sound_source_remove(dev->src);
     pc98_opn_destroy(dev->opna);
     pc98_opn_destroy(dev->extra_fm);
     free(dev->rhythm);

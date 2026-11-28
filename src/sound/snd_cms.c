@@ -52,7 +52,9 @@ cms_log(const char *fmt, ...)
 void
 cms_update(cms_t *cms)
 {
-    for (; cms->pos < sound_pos_global; cms->pos++) {
+    const int clk = (cms->clock != NULL) ? *cms->clock : sound_pos_global;
+
+    for (; cms->pos < clk; cms->pos++) {
         int16_t out_l = 0;
         int16_t out_r = 0;
 
@@ -236,7 +238,8 @@ cms_init(UNUSED(const device_t *info))
                   cms_write, NULL, NULL,
                   cms);
 
-    sound_add_handler(cms_get_buffer, cms);
+    cms->source = sound_source_add_stream(I_NORMAL, cms_get_buffer, cms);
+    cms->clock  = sound_source_get_pos_ptr(cms->source);
 
     return cms;
 }
@@ -247,6 +250,8 @@ cms_close(void *priv)
     cms_t *const cms = (cms_t *) priv;
 
     cms_log("cms_close\n");
+
+    sound_source_remove(cms->source);
 
     free(cms);
 }

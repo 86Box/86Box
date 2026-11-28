@@ -87,6 +87,8 @@ typedef struct _ac97_via_ {
     ac97_codec_t  *audio_codec;
     ac97_codec_t  *modem_codec;
     ac97_via_sgd_t sgd[6];
+    void          *src_snd;
+    const int     *clock;
 
     int master_vol_l;
     int master_vol_r;
@@ -651,7 +653,9 @@ ac97_via_update_stereo(ac97_via_t *dev, ac97_via_sgd_t *sgd)
     else if (r > 32767)
         r = 32767;
 
-    for (; sgd->pos < sound_pos_global; sgd->pos++) {
+    const int clk = SOUND_CLOCK(dev->clock, sound_pos_global);
+
+    for (; sgd->pos < clk; sgd->pos++) {
         sgd->buffer[sgd->pos * 2]     = l;
         sgd->buffer[sgd->pos * 2 + 1] = r;
     }
@@ -1120,7 +1124,7 @@ static void
 ac97_via_put_buffer(int16_t *buffer, int len, void *priv)
 {
     ac97_via_t *dev      = (ac97_via_t *) priv;
-    const int   cap_rate = al_capture_get_rate();
+    const int   cap_rate = sound_backend_input_get_rate();
     uint32_t    keep;
 
     if (!dev->in_started)
@@ -1187,6 +1191,8 @@ ac97_via_speed_changed(void *priv)
         freq = (double) SOUND_FREQ;
 
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
+    if (dev->src_snd != NULL)
+        sound_source_set_rate(dev->src_snd, freq);
     dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0)); /* FM operates at a fixed 24 KHz */
 
     /* the record channel runs at the codec's PCM L/R ADC rate, which
@@ -1246,7 +1252,9 @@ ac97_via_init(UNUSED(const device_t *info))
     timer_set_delay_u64(&dev->sgd[2].poll_timer, dev->sgd[2].timer_latch / 2);
 
     /* Set up playback handler. */
-    sound_add_handler(ac97_via_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, ac97_via_get_buffer, dev);
+    ac97_via_speed_changed(dev);
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
 
     /* and the record channel's input. */
     sound_in_add_handler(ac97_via_put_buffer, dev);
@@ -1262,6 +1270,7 @@ ac97_via_close(void *priv)
     ac97_via_log("AC97 VIA: close()\n");
 
     ac97_via_record_input(dev, 0); /* */
+    sound_source_remove(dev->src_snd);
 
     free(dev);
 }

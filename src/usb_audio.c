@@ -171,6 +171,7 @@ typedef struct usb_audio_t {
     int       fill_set;    /* fill_avg and fill_target hold for this playback */
     double    fill_avg;    /* queue fill at each mixer call, smoothed */
     double    fill_target; /* the fill playback started at */
+    void     *source;
 } usb_audio_t;
 
 static void
@@ -466,7 +467,7 @@ usb_audio_init(const device_t *info)
     dev->usb.priv      = dev;
     usb_dev_init(&dev->usb);
 
-    sound_add_handler(usb_audio_get_buffer, dev);
+    dev->source = sound_source_add_stream(I_NORMAL, usb_audio_get_buffer, dev);
 
     usb_dev_add(&dev->usb, info);
 
@@ -478,6 +479,7 @@ usb_audio_close(void *priv)
 {
     usb_audio_t *dev = (usb_audio_t *) priv;
 
+    sound_source_remove(dev->source);
     usb_dev_remove(&dev->usb);
     free(dev);
 }

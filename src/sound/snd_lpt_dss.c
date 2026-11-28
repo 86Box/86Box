@@ -19,6 +19,7 @@
 #ifdef ENABLE_LPT_DSS_LOG
 #include <stdarg.h>
 #endif
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +69,18 @@ typedef struct dss_s {
     uint16_t pos;
 
     void *log;
+
+    void      *source;
+    const int *clock;
+
+    /* 3.2 kHz low-pass, designed for the rate the source runs at. */
+    int    iir_rate;
+    float  iir_a0;
+    float  iir_a1;
+    float  iir_b1;
+    float  iir_b2;
+    float  iir_x[2];
+    float  iir_y[2];
 } dss_t;
 
 #ifdef ENABLE_LPT_DSS_LOG
@@ -81,7 +94,7 @@ dss_fifo_level(const dss_t *dss)
 static void
 dss_update(dss_t *const dss)
 {
-    for (; dss->pos < sound_pos_global; dss->pos++)
+    for (; dss->pos < SOUND_CLOCK(dss->clock, sound_pos_global); dss->pos++)
         dss->buffer[dss->pos] = (int8_t) (dss->dac_val ^ 0x80) * 0x40;
 }
 
@@ -144,14 +157,47 @@ dss_read_status(void *priv)
 }
 
 static void
+dss_iir_design(dss_t *const dss, const int rate)
+{
+    const double k = tan(M_PI * 3200.0 / (double) rate);
+    const double q = 1.4142135623730951;
+    const double n = 1.0 / (1.0 + (q * k) + (k * k));
+
+    dss->iir_rate = rate;
+    dss->iir_a0   = (float) (k * k * n);
+    dss->iir_a1   = (float) (2.0 * k * k * n);
+    dss->iir_b1   = (float) (2.0 * ((k * k) - 1.0) * n);
+    dss->iir_b2   = (float) ((1.0 - (q * k) + (k * k)) * n);
+}
+
+static float
+dss_filter(dss_t *const dss, const float in)
+{
+    const float out = (dss->iir_a0 * in) + (dss->iir_a1 * dss->iir_x[0]) + (dss->iir_a0 * dss->iir_x[1]) -
+                      (dss->iir_b1 * dss->iir_y[0]) - (dss->iir_b2 * dss->iir_y[1]);
+
+    dss->iir_x[1] = dss->iir_x[0];
+    dss->iir_x[0] = in;
+    dss->iir_y[1] = dss->iir_y[0];
+    dss->iir_y[0] = out;
+
+    return out;
+}
+
+static void
 dss_get_buffer(int32_t *const buffer, const uint16_t len, void *priv)
 {
     dss_t *const dss = (dss_t *) priv;
 
+    const int rate = sound_source_get_rate(dss->source);
+
     dss_update(dss);
 
+    if (rate != dss->iir_rate)
+        dss_iir_design(dss, rate);
+
     for (uint16_t c = 0; c < len * 2; c += 2) {
-        const float sample = dss_iir((float) dss->buffer[c >> 1]);
+        const float sample = dss_filter(dss, (float) dss->buffer[c >> 1]);
 
         buffer[c] += (int32_t) sample;
         buffer[c + 1] += (int32_t) sample;
@@ -173,6 +219,9 @@ dss_callback(void *priv)
         lpt_dss_log(dss->log, "Output dac_val=0x%02x from FIFO (level=%u)\n",
                     dss->dac_val, dss_fifo_level(dss));
         dss_update_status(dss);
+
+        /* Let the host source run at the fixed 7 kHz sample rate while playing. */
+        sound_source_set_rate(dss->source, 7000.0);
     }
 
     timer_advance_u64(&dss->timer, sample_period);
@@ -192,7 +241,9 @@ dss_init(UNUSED(const device_t *info))
                           NULL,
                           dss);
 
-    sound_add_handler(dss_get_buffer, dss);
+    dss_iir_design(dss, SOUND_FREQ);
+    dss->source = sound_source_add_stream(I_NORMAL, dss_get_buffer, dss);
+    dss->clock  = sound_source_get_pos_ptr(dss->source);
     timer_add(&dss->timer, dss_callback, dss, 1);
     fifo8_create(&dss->dss_fifo, 16);
 
@@ -211,6 +262,7 @@ dss_close(void *priv)
     if (dss->log)
         log_close(dss->log);
 
+    sound_source_remove(dss->source);
     free(dss);
 }
 

@@ -44,6 +44,7 @@ public:
     virtual uint8_t read(uint32_t addr)                     = 0;
     virtual void    write(uint32_t addr, uint8_t data)      = 0;
     virtual void    generate(int32_t *buf, uint32_t frames) = 0;
+    virtual void    set_clock_ptr(const int *clock)         = 0;
 
     virtual void set_adpcm_rom(const uint8_t *rom, uint32_t len) = 0;
     virtual void set_extended(bool enabled)                      = 0;
@@ -128,14 +129,14 @@ public:
     uint8_t
     read(uint32_t addr) override
     {
-        update_to((uint32_t) sound_pos_global);
+        update_to(now());
         return m_chip.read(addr);
     }
 
     void
     write(uint32_t addr, uint8_t data) override
     {
-        update_to((uint32_t) sound_pos_global);
+        update_to(now());
         if ((addr == 0u) || (addr == 2u)) {
             m_address_port = addr;
             m_address_data = data;
@@ -152,7 +153,7 @@ public:
     set_extended(bool enabled) override
     {
         if constexpr (ChipType::OUTPUTS == 3) {
-            update_to((uint32_t) sound_pos_global);
+            update_to(now());
             m_extended = enabled;
             /* Board mode selects three or six FM channels. Preserve the
              * guest's IRQ mask and the chip's current address latch. */
@@ -165,14 +166,14 @@ public:
     void
     set_output_enabled(bool enabled) override
     {
-        update_to((uint32_t) sound_pos_global);
+        update_to(now());
         m_output_enabled = enabled;
     }
 
     bool
     set_adpcm_ram(bool enabled) override
     {
-        update_to((uint32_t) sound_pos_global);
+        update_to(now());
         if (enabled && !m_ram)
             m_ram = (uint8_t *) std::calloc(1, PC98_OPNA_RAM_SIZE);
         else if (!enabled) {
@@ -213,6 +214,18 @@ public:
 
         m_buffer_pos = 0;
         std::memset(m_buffer, 0, sizeof(m_buffer));
+    }
+
+    void
+    set_clock_ptr(const int *clock) override
+    {
+        m_clock_ptr = clock;
+    }
+
+    uint32_t
+    now() const
+    {
+        return (uint32_t) SOUND_CLOCK(m_clock_ptr, sound_pos_global);
     }
 
     void
@@ -399,7 +412,7 @@ private:
     timer0(void *priv)
     {
         pc98_opn_chip *self = (pc98_opn_chip *) priv;
-        self->update_to((uint32_t) sound_pos_global);
+        self->update_to(self->now());
         self->m_engine->engine_timer_expired(0);
     }
 
@@ -407,7 +420,7 @@ private:
     timer1(void *priv)
     {
         pc98_opn_chip *self = (pc98_opn_chip *) priv;
-        self->update_to((uint32_t) sound_pos_global);
+        self->update_to(self->now());
         self->m_engine->engine_timer_expired(1);
     }
 
@@ -428,6 +441,7 @@ private:
     int32_t  m_oldsamples[2] = { 0, 0 };
     int32_t  m_buffer[SOUNDBUFLEN * 2] { };
     uint32_t m_buffer_pos = 0;
+    const int *m_clock_ptr = nullptr;
 
     void (*m_irq)(void *, int) = nullptr;
     void *m_priv               = nullptr;
@@ -541,6 +555,13 @@ int
 pc98_opn_set_adpcm_ram(pc98_opn_t *chip, int enabled)
 {
     return chip && chip->chip && chip->chip->set_adpcm_ram(enabled != 0);
+}
+
+void
+pc98_opn_set_clock(pc98_opn_t *chip, const int *clock)
+{
+    if (chip && chip->chip)
+        chip->chip->set_clock_ptr(clock);
 }
 
 void

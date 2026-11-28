@@ -222,6 +222,7 @@ typedef struct sscape_t {
     double  ring_pos;
 
     ad1848_t ad1848;
+    void    *src_snd;
     void    *gameport;
     int      capture_rate;
     int      capture_freq;
@@ -1761,7 +1762,7 @@ sscape_capture(int16_t *buffer, int len, void *priv)
 {
     sscape_t *dev       = (sscape_t *) priv;
     ad1848_t *codec     = &dev->ad1848;
-    const int host_rate = al_capture_get_rate();
+    const int host_rate = sound_backend_input_get_rate();
     const int rate      = host_rate > 0 ? host_rate : SOUND_FREQ;
     const int freq      = codec->freq;
     double    gain[2];
@@ -1826,7 +1827,12 @@ static void
 sscape_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     sscape_t    *dev  = (sscape_t *) priv;
-    const double step = (double) dev->otto_rate / (double) SOUND_FREQ;
+    int           host_rate;
+    double        step;
+
+    sound_source_set_rate(dev->src_snd, (dev->ad1848.enable && dev->ad1848.freq > 0) ? (double) dev->ad1848.freq : 0.0);
+    host_rate = sound_source_get_rate(dev->src_snd);
+    step      = (double) dev->otto_rate / (double) ((host_rate > 0) ? host_rate : SOUND_FREQ);
 
     ad1848_update(&dev->ad1848);
     for (int c = 0; c < len * 2; c++)
@@ -1923,7 +1929,8 @@ sscape_init(UNUSED(const device_t *info))
     timer_add(&dev->tick_timer, sscape_tick, dev, 0);
     timer_set_delay_u64(&dev->tick_timer, dev->tick_period);
 
-    sound_add_handler(sscape_get_buffer, dev);
+    dev->src_snd      = sound_source_add_stream(I_NORMAL, sscape_get_buffer, dev);
+    dev->ad1848.clock = sound_source_get_pos_ptr(dev->src_snd);
     sound_in_add_handler(sscape_capture, dev);
 
     if (dev->midi_in)
@@ -1940,6 +1947,7 @@ sscape_close(void *priv)
     if (sscape_cur == dev)
         sscape_cur = NULL;
 
+    sound_source_remove(dev->src_snd);
     sound_in_remove_handler(sscape_capture, dev);
     if (dev->ad1848.rec_enable)
         sound_in_stop_input();
