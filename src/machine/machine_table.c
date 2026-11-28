@@ -15332,7 +15332,7 @@ const machine_t machines[] = {
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
-        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
+        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2, /* PS/2 only supported by the IBM OEM BIOS */
         .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
