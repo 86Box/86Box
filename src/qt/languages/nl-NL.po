@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-28 07:57+0000\n"
+"PO-Revision-Date: 2026-11-28 08:25+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -560,13 +560,13 @@ msgid "Monitor"
 msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
-msgstr "Voodoo 1 of 2 graphics"
+msgstr "Voodoo 1 of 2 Graphics"
 
 msgid "IBM 8514/A Graphics"
-msgstr "IBM 8514/A-graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
-msgstr "XGA-graphics"
+msgstr "XGA Graphics"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
@@ -3354,7 +3354,7 @@ msgid "&Unmute"
 msgstr "&Dempen opheffen"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "Softfloat-FPU"
 
 msgid "High performance impact"
 msgstr "Hoge prestatie-impact"
@@ -3591,7 +3591,7 @@ msgid "SoundFont files"
 msgstr "SoundFont-bestanden"
 
 msgid "Local Switch"
-msgstr "Lokale-switch"
+msgstr "Lokale Switch"
 
 msgid "Remote Switch"
 msgstr "Externe-switch"
@@ -4103,10 +4103,10 @@ msgid "Unlimited capacity"
 msgstr "Ongelimiteerde capaciteit"
 
 msgid "CD speed:"
-msgstr "CD-snelheid:"
+msgstr "Cdsnelheid:"
 
 msgid "DVD speed:"
-msgstr "DVD-snelheid:"
+msgstr "Dvdsnelheid:"
 
 msgid "HD/BD speed:"
 msgstr "HD/BD-snelheid:"
