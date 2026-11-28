@@ -341,22 +341,22 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
         case HDD_BUS_DISABLED:
             busName = QString(QObject::tr("Disabled"));
             break;
-        case HDD_BUS_MFM:
+        case HDD_BUS_MFM: {
             bus_owner_t owner;
             const int   owned = hdcPlan(&owner, bus);
 
-            busName = QString("MFM/RLL %1:%2 %3")
-                          .arg(channel >> 1).arg(channel & 1)
+            busName = QString("MFM/RLL %1:%2 %3").arg(channel >> 1).arg(channel & 1)
                           .arg(ownerName(channel >> 1, &owner, owned));
             break;
-        case HDD_BUS_SASI:
+        }
+        case HDD_BUS_SASI: {
             bus_owner_t owner;
             const int   owned = hdcPlan(&owner, bus);
 
-            busName = QString("SASI %1:%2 %3")
-                          .arg(channel >> 1).arg(channel & 1)
+            busName = QString("SASI %1:%2 %3").arg(channel >> 1).arg(channel & 1)
                           .arg(ownerName(channel >> 1, &owner, owned));
             break;
+        }
         case HDD_BUS_XTA:
         case HDD_BUS_ESDI: {
             bus_owner_t owner;

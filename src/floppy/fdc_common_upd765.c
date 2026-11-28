@@ -3376,7 +3376,6 @@ fdc_close(void *priv)
         timer_disable(&drv->ready_timer);
         drv->seek_in_progress = 0;
         memset(&drv->pending, 0, sizeof(drv->pending));
-        drv->fdc = NULL;
         drives[fdc->bus + i].ctrl      = NULL;
         drives[fdc->bus + i].ctrl_priv = NULL;
     }

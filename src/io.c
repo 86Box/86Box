@@ -434,7 +434,6 @@ inb_slow(uint16_t port)
     int     m;
     int     delay;
 
-<<<<<<< HEAD
     cpu_pc98_io_wait(port, 1);
     io_port = port;
     io_cycle = 1;
@@ -442,10 +441,7 @@ inb_slow(uint16_t port)
     io_size = 1;
     io_write = 0;
 
-    if (cpu_dr_armed)
-=======
     if (cpu_dr_io_armed)
->>>>>>> upstream/master
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -486,17 +482,11 @@ inb_slow(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-<<<<<<< HEAD
-    if (!cpu_pc98_vx_bus_active() && (!found ||
-        (machines[machine].init == machine_xt_ibm5550_init) ||
-        (machines[machine].init == machine_xt_ibm5535_init)))
-=======
     m     = machine;
     delay = (machines[m].init == machine_xt_ibm5550_init) ||
             (machines[m].init == machine_xt_ibm5535_init);
     io_fast_machine = delay ? -2 : m;
-    if (!found || delay)
->>>>>>> upstream/master
+    if (!cpu_pc98_vx_bus_active() && (!found || delay))
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */

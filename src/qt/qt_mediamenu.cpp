@@ -718,7 +718,6 @@ MediaMenu::floppySelectImage(int i, bool wp)
 void
 MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 {
-    const int was_paused = dopause;
     runctl_pause(RUN_PAUSE_REMOTE);
 
     fdd_drive_t *drv = &drives[i];
@@ -774,7 +773,6 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 void
 MediaMenu::floppyEject(int i)
 {
-    const int was_paused = dopause;
     runctl_pause(RUN_PAUSE_REMOTE);
 
     fdd_drive_t *drv = &drives[i];

@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-/* Intel UPI-42 core used by ROM-backed keyboard controllers. */
-=======
 /*
  * 86Box    A hypervisor and IBM PC system emulator that specializes in
  *          running old operating systems and software designed for IBM
@@ -17,30 +14,11 @@
  *          Copyright 2022 RichardG.
  *          Copyright 2026 WNT50.
  */
->>>>>>> upstream/master
 #ifndef EMU_UPI42_H
 #define EMU_UPI42_H
 
 #include <stdint.h>
 
-<<<<<<< HEAD
-#define UPI42_ROM_8042 0x01ff07ffu
-
-void    *upi42_init(uint32_t type, uint8_t *rom);
-void     upi42_free(void *priv);
-void     upi42_reset(void *priv);
-void     upi42_exec(void *priv);
-void     upi42_cmd_write(uint16_t port, uint8_t val, void *priv);
-void     upi42_dbb_write(uint16_t port, uint8_t val, void *priv);
-uint8_t  upi42_dbb_read(uint16_t port, void *priv);
-uint8_t  upi42_sts_read(uint16_t port, void *priv);
-void     upi42_port_write(void *priv, int port, uint8_t val);
-uint8_t  upi42_port_output(void *priv, int port);
-uint16_t upi42_pc(void *priv);
-void     upi42_set_test_inputs(void *priv, int t0, int t1);
-
-#endif
-=======
 #define UPI42_ROM_SHIFT         0  /* actually the mask */
 #define UPI42_RAM_SHIFT         16 /* actually the mask */
 #define UPI42_TYPE_MCS          (0u << 24)
@@ -92,4 +70,3 @@ uint8_t  upi42_get_psw(upi42_t *upi42);
 uint8_t  upi42_get_ram(upi42_t *upi42, uint8_t addr);
 
 #endif /* EMU_UPI42_H */
->>>>>>> upstream/master

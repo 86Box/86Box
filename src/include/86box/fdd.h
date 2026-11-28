@@ -150,6 +150,7 @@ typedef struct fdd_ctrl_t {
     uint8_t     (*get_swwp)(void *priv);
     /* Chip configuration the mechanical paths branch on. */
     int         (*is_pcjx)(void *priv);
+    int         (*is_pc98)(void *priv);
     int         (*is_ibm5140)(void *priv);
     int         (*is_interface_gated)(void *priv);
     void        (*seek_complete_interrupt)(void *priv, int drive);

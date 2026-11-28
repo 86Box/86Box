@@ -21,10 +21,6 @@
 #include <86box/upi42.h>
 #include <86box/plat_unused.h>
 
-#ifndef UPI42_STANDALONE
-#    define UPI42_ROM_DEVICE
-#endif
-
 #ifdef UPI42_STANDALONE
 #    define fatal(...)              \
         {                           \
@@ -215,14 +211,14 @@ upi42_op_MOV_Rr_A(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_MOV_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->a = upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask];
+    upi42->a = upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask];
     return 1;
 }
 
 static int
 upi42_op_MOV_indRr_A(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask] = upi42->a;
+    upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask] = upi42->a;
     return 1;
 }
 
@@ -237,7 +233,7 @@ upi42_op_MOV_Rr_imm(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_MOV_indRr_imm(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask] = fetchdat >> 8;
+    upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask] = fetchdat >> 8;
     upi42->cycs--;
     return 2;
 }
@@ -314,7 +310,7 @@ static int
 upi42_op_XCH_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
     uint8_t temp = upi42->a;
-    uint8_t addr     = UPI42_REG(upi42, fetchdat, ) & upi42->rammask;
+    uint8_t addr = upi42->ram[fetchdat & 1] & upi42->rammask;
     upi42->a         = upi42->ram[addr];
     upi42->ram[addr] = temp;
     return 1;
@@ -324,7 +320,7 @@ static int
 upi42_op_XCHD_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
     uint8_t temp = upi42->a;
-    uint8_t addr     = UPI42_REG(upi42, fetchdat, ) & upi42->rammask;
+    uint8_t addr = upi42->ram[fetchdat & 1] & upi42->rammask;
     upi42->a         = (upi42->a & 0xf0) | (upi42->ram[addr] & 0x0f);
     upi42->ram[addr] = (upi42->ram[addr] & 0xf0) | (temp & 0x0f);
     return 1;
@@ -424,21 +420,21 @@ upi42_op_XRL_A_Rr(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ANL_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->a &= upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask];
+    upi42->a &= upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask];
     return 1;
 }
 
 static int
 upi42_op_ORL_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->a |= upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask];
+    upi42->a |= upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask];
     return 1;
 }
 
 static int
 upi42_op_XRL_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->a ^= upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask];
+    upi42->a ^= upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask];
     return 1;
 }
 
@@ -557,7 +553,7 @@ upi42_op_INC_Rr(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_INC_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ram[UPI42_REG(upi42, fetchdat, ) & upi42->rammask]++;
+    upi42->ram[upi42->ram[fetchdat & 1] & upi42->rammask]++;
     return 1;
 }
 
@@ -747,7 +743,6 @@ static int
 upi42_op_STRT_T(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->run_timer      = 1;
-    upi42->run_counter    = 0;
     upi42->prescaler      = 0;
     upi42->skip_timer_inc = 1;
     return 1;
@@ -757,7 +752,6 @@ static int
 upi42_op_STRT_CNT(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->run_counter    = 1;
-    upi42->run_timer      = 0;
     upi42->skip_timer_inc = 1;
     return 1;
 }
@@ -861,14 +855,13 @@ upi42_op_JMPP_indA(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 
 #define UPI42_COND_JMP_IMM(insn, cond, post)                               \
     static int                                                             \
-    upi42_op_##insn##_imm(upi42_t *upi42, uint32_t fetchdat)               \
+        upi42_op_##insn##_imm(upi42_t *upi42, uint32_t fetchdat)           \
     {                                                                      \
-        int taken = !!(cond);                                              \
-        if (taken)                                                         \
+        if (cond)                                                          \
             upi42->pc = (upi42->pc & 0xff00) | ((fetchdat >> 8) & 0x00ff); \
         post;                                                              \
         upi42->cycs--;                                                     \
-        return 2 * !taken;                                                 \
+        return 2 * !(cond);                                                \
     }
 UPI42_COND_JMP_IMM(JC, upi42->psw & 0x80, )
 UPI42_COND_JMP_IMM(JNC, !(upi42->psw & 0x80), )
@@ -1174,7 +1167,7 @@ upi42_get_ram(upi42_t *upi42, uint8_t addr)
 }
 
 void
-upi42_reset(void *priv)
+upi42_reset(upi42_t *upi42)
 {
     upi42->pc      = 0;   /* program counter */
     upi42->psw     = 0;   /* stack pointer, register bank and F0 */
@@ -1263,7 +1256,6 @@ upi42_attach(upi42_t *upi42, const upi42_hooks *hooks, void *priv)
 }
 
 #ifdef UPI42_STANDALONE
-#    ifndef UPI42_NO_MAIN
 static const char *flags_8042[] = { "OBF", "IBF", "F0", "F1", "ST4", "ST5", "ST6", "ST7" };
 
 int
@@ -1286,7 +1278,7 @@ main(int argc, char **argv)
     fclose(fp);
 
     /* Determine chip type from ROM. */
-    upi42_log("%zu-byte ROM, ", rom_size);
+    upi42_log("%d-byte ROM, ", rom_size);
     uint32_t type;
     switch (rom_size) {
         case 0 ... 1024:
@@ -1313,54 +1305,8 @@ main(int argc, char **argv)
     /* Initialize emulator. */
     upi42_t *upi42 = upi42_create(type, rom);
 
-    if ((argc >= 4) && !strcmp(argv[2], "--batch")) {
-        int     cycles     = atoi(argv[3]);
-        uint8_t old_status = upi42->sts;
-        uint8_t old_output = upi42->dbb_out;
-        uint8_t old_p1     = upi42->ports_out[1];
-        uint8_t old_p2     = upi42->ports_out[2];
-        for (int cycle = 0; cycle < cycles; cycle++) {
-            if ((argc >= 8) && (cycle == ((argc >= 6) ? atoi(argv[5]) : 100) + 20100)) {
-                unsigned int data = 0;
-                sscanf(argv[7], "%x", &data);
-                upi42_dbb_write(0, (uint8_t) data, upi42);
-                old_status = upi42->sts;
-                printf("host cycle=%d data=%02X sts=%02X\n", cycle, data, upi42->sts);
-            }
-            if ((argc >= 7) && (cycle == ((argc >= 6) ? atoi(argv[5]) : 100) + 20000)) {
-                unsigned int command = 0;
-                sscanf(argv[6], "%x", &command);
-                printf("host cycle=%d read=%02X\n", cycle, upi42_dbb_read(0, upi42));
-                upi42_cmd_write(0, (uint8_t) command, upi42);
-                old_status = upi42->sts;
-                printf("host cycle=%d cmd=%02X sts=%02X\n", cycle, command, upi42->sts);
-            }
-            if ((argc >= 5) && (cycle == ((argc >= 6) ? atoi(argv[5]) : 100))) {
-                unsigned int command = 0;
-                sscanf(argv[4], "%x", &command);
-                upi42_cmd_write(0, (uint8_t) command, upi42);
-                old_status = upi42->sts;
-                printf("host cycle=%d cmd=%02X sts=%02X\n", cycle, command, upi42->sts);
-            }
-            upi42_exec(upi42);
-            if ((upi42->sts != old_status) || (upi42->dbb_out != old_output) || (upi42->ports_out[1] != old_p1) || (upi42->ports_out[2] != old_p2)) {
-                printf("cycle=%d pc=%03X sts=%02X dbb=%02X p1=%02X p2=%02X\n",
-                       cycle, upi42->pc, upi42->sts, upi42->dbb_out,
-                       upi42->ports_out[1], upi42->ports_out[2]);
-                old_status = upi42->sts;
-                old_output = upi42->dbb_out;
-                old_p1     = upi42->ports_out[1];
-                old_p2     = upi42->ports_out[2];
-            }
-        }
-        printf("final cycles=%d pc=%03X sts=%02X dbb=%02X p1=%02X p2=%02X\n",
-               cycles, upi42->pc, upi42->sts, upi42->dbb_out,
-               upi42->ports_out[1], upi42->ports_out[2]);
-        return 0;
-    }
-
     /* Start execution. */
-    char cmd;
+    char cmd, cmd_buf[256];
     int  val, go_until = -1;
     while (1) {
         /* Output status. */
@@ -1405,7 +1351,7 @@ retry:
                     goto retry;
 
                 case 'g': /* go until */
-                    if (!scanf("%X%*c", &go_until))
+                    if (!scanf("%X%*c", &go_until, &cmd_buf))
                         go_until = -1;
                     break;
 
@@ -1430,7 +1376,7 @@ retry:
                     upi42_log("- cXX - Write hex value XX to command port\n");
                     upi42_log("- r - Read from data port and reset OBF\n");
 skip_and_retry:
-                    scanf("%*c");
+                    scanf("%*c", &cmd_buf);
                     goto retry;
             }
         }

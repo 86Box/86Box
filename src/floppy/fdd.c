@@ -88,15 +88,6 @@ static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
 
 fdd_drive_t drives[FDD_NUM];
 
-/* READY and command state belong to each physical drive, including drives
- * attached to a secondary controller. */
-static void
-fdd_ready_spinup_complete(void *priv)
-{
-    fdd_drive_t *drv  = (fdd_drive_t *) priv;
-    drv->ready_spinup = 0;
-}
-
 static void
 fdd_ready_cancel(fdd_drive_t *drv)
 {
@@ -932,7 +923,6 @@ fdd_load(void *priv, char *fn)
 
         d86f_setup(drv);
 
-        drv->image_close = img_close;
         img_load_raw_device(drv, device_path);
 
         if (drv->image_path[0] == '\0') {
@@ -977,7 +967,6 @@ fdd_load(void *priv, char *fn)
                     drv->image_path[sizeof(drv->image_path) - 1] = '\0';
                 }
                 d86f_setup(drv);
-                drv->image_close = loaders[c].close;
                 loaders[c].load(drv, drv->image_path + offs);
                 fdd_ready_start_spinup(drv);
                 fdd_media_inserted(drv);
@@ -1040,25 +1029,7 @@ fdd_close(void *priv)
         return;
     }
 
-    /* Stop every callback before releasing the backend it can access. The
-     * motor may remain on, but its empty-drive poll is restarted afterwards. */
-    const int was_polling = timer_is_enabled(&drv->poll_time);
-    /* A mechanical SEEK does not depend on the medium. Its delayed completion
-     * still belongs to the FDC after eject, but a deferred data command cannot
-     * retain a callback into the image being released. */
-    const int keep_seek = drv->fdc && (((fdc_t *) drv->fdc)->flags & FDC_FLAG_PC98) && drv->seek_in_progress && !drv->pending.pending;
-    timer_disable(&drv->poll_time);
-    if (!keep_seek)
-        timer_disable(&drv->seek_timer);
-    fdd_ready_cancel(drv);
-    if (!keep_seek)
-        drv->seek_in_progress = 0;
-    drv->notfound = 0;
-    memset(&drv->pending, 0, sizeof(drv->pending));
-
     d86f_stop(drv); /* Call this first of all to make sure the 86F poll is back to idle state. */
-    if (drv->fdc && !drv->empty)
-        fdc_media_removed(drv->fdc, drv->id & 3);
 
     fdd_format_clear(drv);
     drv->seek_in_progress = 0;
@@ -1073,13 +1044,10 @@ fdd_close(void *priv)
         loaders[drv->driveloader].close(drv);
 
     drv->empty = 1;
-    fdd_ready_cancel(drv);
+    drv->read_only = 0;
     fdd_set_head(drv, 0);
     drv->image_path[0] = 0;
     d86f_destroy(drv);
-    if (was_polling && drv->motoron && drv->fdc)
-        timer_set_delay_u64(&drv->poll_time, 32ULL * TIMER_USEC);
-    drv->read_only = 0;
     ui_sb_update_icon_wp(SB_FLOPPY | drv->id, 0);
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
 }
@@ -1148,7 +1116,6 @@ fdd_poll(void *priv)
 
     if (drv == NULL)
         return;
-    fdc_t *fdc = (fdc_t *) drv->fdc;
 
     timer_advance_u64(&drv->poll_time, fdd_byteperiod((void *) drv));
 
@@ -1195,15 +1162,6 @@ fdd_reset(void)
         fdd_drive_t *drv = &drives[i];
 
         drives[i].id = i;
-        timer_disable(&drv->seek_timer);
-        timer_disable(&drv->ready_timer);
-        drv->notfound = 0;
-        memset(&drv->pending, 0, sizeof(drv->pending));
-        if (drv->stop)
-            drv->stop(drv);
-        drv->ready_spinup = 0;
-        timer_add(&drv->ready_timer, fdd_ready_spinup_complete, drv, 0);
-
         /* timer_add() only clears the struct, so re-adding a timer that is still
            armed leaves the timer list pointing at a node whose links have just
            been zeroed; the list is then truncated when that node is popped
@@ -1388,9 +1346,7 @@ fdd_stop(void *priv)
     if (drv == NULL)
         return;
 
-    fdc_t *fdc = (fdc_t *) drv->fdc;
-
-    if ((drv->ctrl != NULL) && ((fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_PC98)) ||
+    if ((drv->ctrl != NULL) && (drv->ctrl->is_pc98(drv->ctrl_priv) ||
                                 drv->ctrl->is_pcjx(drv->ctrl_priv))) {
         /* Abort the pending operation, not the physical head position. */
         const int was_seeking = drv->seek_in_progress;

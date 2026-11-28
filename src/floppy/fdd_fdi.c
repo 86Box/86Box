@@ -330,7 +330,6 @@ fdi_load(void *priv, char *fn)
         fdi_log("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
         fclose(dev->fp);
         free(dev);
-        drv->image_close = img_close;
         img_load(drv, fn);
         return;
     }

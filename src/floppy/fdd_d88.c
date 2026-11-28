@@ -626,7 +626,13 @@ d88_load(void *priv, char *fn)
     drv->d86f_handler.check_crc         = 1;
     d86f_set_version(drv, D86FVER);
     d86f_common_handlers(drv);
-    drv->seek = d88_seek;
+
+    const fdd_format_t ops = {
+        .seek        = d88_seek,
+        .readaddress = NULL
+    };
+
+    fdd_format_set(drv, &ops);
 
     /* Populate the first track immediately, matching the other sector-image
      * loaders and avoiding a blank revolution before the first seek. */
@@ -657,7 +663,7 @@ d88_close(void *priv)
 
     d88_writeback(drv);
     d86f_unregister(drv);
-    drv->seek = NULL;
+    drv->fmt.seek = NULL;
 
     d88_free_tracks(dev);
     free(dev->image);
