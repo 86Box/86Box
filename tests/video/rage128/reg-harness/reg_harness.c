@@ -9939,15 +9939,16 @@ vectors_ck_aen(rage128_t *dev)
 #undef CK_PX
 
 /* ------------------------------------------------------------------ */
-/* A tiled color/Z target reaches the GPU kernel through tile-column
-   spans. The kernel addresses each span as row base + x * bytes per
-   pixel; these vectors check the host-side state gate and span capture
-   that supply those bases (gpu_probe.c). */
+/* A tiled color/Z target reaches the GPU kernel as whole-row spans. The
+   kernel addresses a pixel of a tiled span as row base + the tile column
+   offset of x * bytes per pixel (row_xoff in the seg kernel); these
+   vectors check the host-side state gate and span capture that supply
+   those bases and flags (gpu_probe.c). */
 /*                                                                     */
 /* Four properties, one per moving part, so a regression names itself: */
 /*   gate      -- the tiled state reaches a kernel at all              */
-/*   addresses -- every span's (base + x * bpp) is the tiled byte      */
-/*   bound     -- the accept reservation covers the split's spans      */
+/*   addresses -- every span's base plus the tile offset is the byte  */
+/*   bound     -- the accept reservation covers the whole-row spans   */
 /*   ranges    -- the hazard interval covers every byte they write     */
 /* ------------------------------------------------------------------ */
 #define GT_SPANS 1024u
@@ -9972,7 +9973,7 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
 
     /* Right triangle: the top row covers the full width (4 color tile
        columns, 2 Z columns) and each row below ends one pixel earlier, so
-       the last piece of a row is a partial one. */
+       most rows end partway through a tile column. */
     memset(v, 0, sizeof(v));
     for (int k = 0; k < 3; k++) {
         v[k].z       = 0.25f;
@@ -9994,8 +9995,9 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
         /* the whole contract: the address the kernel forms from this
            record is the byte the tile transform names */
         for (int e = 0; e < 2; e++) {
-            uint32_t ca = (sp[i].drow + (uint32_t) xs[e] * 4u) & mask;
-            uint32_t za = (sp[i].zrow + (uint32_t) xs[e] * 2u) & mask;
+            uint32_t cx = (uint32_t) xs[e] * 4u, zx = (uint32_t) xs[e] * 2u;
+            uint32_t ca = (sp[i].drow + (sp[i].ctiled ? r128_tile_x(cx) : cx)) & mask;
+            uint32_t za = (sp[i].zrow + (sp[i].ztiled ? r128_tile_x(zx) : zx)) & mask;
 
             if (ca != ((HZ_A + tl_off((uint32_t) xs[e] * 4u,
                                       (uint32_t) sp[i].py, 256)) & mask))
@@ -10008,8 +10010,8 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
             if (za < blo) blo = za;
             if (za + 2u > bhi) bhi = za + 2u;
         }
-        /* pieces of one row must partition its covered range: in x order,
-           adjacent, no gap and no overlap */
+        /* the spans of one row must partition its covered range: in x
+           order, adjacent, no gap and no overlap */
         if (sp[i].py == prev_py) {
             if (sp[i].x0 != prev_x1 + 1)
                 bad_seq++;
@@ -10018,8 +10020,8 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
         if (sp[i].x1 < sp[i].x0)
             bad_seq++;
         /* past color tile column 0, where the x transform is the identity
-           and a rebase bug is invisible */
-        if ((uint32_t) sp[i].x0 * 4u >= 64u)
+           and a wrong transform is invisible */
+        if ((uint32_t) sp[i].x1 * 4u >= 64u)
             crossed++;
         prev_py = sp[i].py;
         prev_x1 = sp[i].x1;
@@ -10028,13 +10030,12 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
     check32(nm, bad_c, 0);
     snprintf(nm, sizeof(nm), "gpu: %s span address is the tiled Z cell", leg);
     check32(nm, bad_z, 0);
-    snprintf(nm, sizeof(nm), "gpu: %s row pieces partition the range", leg);
+    snprintf(nm, sizeof(nm), "gpu: %s row spans partition the range", leg);
     check32(nm, bad_seq, 0);
     snprintf(nm, sizeof(nm), "gpu: %s spans reach past tile column 0", leg);
     check_true(nm, crossed > 0);
-    /* the split emits far more, finer spans than a linear row would; the
-       accept bound is what reserves them, and a capture that runs past it
-       drops the pixels it could not record */
+    /* the accept bound is what reserves the spans, and a capture that
+       runs past it drops the pixels it could not record */
     snprintf(nm, sizeof(nm), "gpu: %s accept bound covers the spans", leg);
     check_true(nm, cap.need_spans >= cap.nspans);
     snprintf(nm, sizeof(nm), "gpu: %s hazard range covers color writes", leg);
@@ -10122,20 +10123,18 @@ vectors_zfx_helpers(void)
 }
 
 /* Seeds of rows whose coverage starts and ends inside the triangle's
-   bounding box. The tiled row walk does not call the capture on the
-   tile-column pieces left of a row's covered columns, but each piece's
-   depth seed must still account for the columns before it, and the walk
-   stops after the piece holding the last covered column. The reference
+   bounding box. The capture takes a tiled row whole, like a linear one,
+   and clips it to its covered columns itself, so each span's seeds must
+   account for the columns left of its first covered one. The reference
    is the same triangle on a linear target: one span per row (the target
    is narrower than a 256-px chunk), seeded by the capture's own clip
-   walk. Every tiled piece of that row must then (a) partition the linear
-   span's columns exactly, (b) carry the linear edge values stepped by
-   k * step, and (c) carry the linear fixed-point depth seed plus k times
-   the per-pixel step. All three are exact integer math, so the values
-   must be equal. A walk that seeded a piece without the k columns before
-   it fails (c); one that stopped early fails (a). A walk that
-   still called the empty pieces would pass: the capture emits nothing
-   for them, so only a call count (not a span record) can see it. */
+   walk. The spans of that row on the tiled target must then (a)
+   partition the linear span's columns exactly, (b) carry the linear
+   edge values stepped by k * step, and (c) carry the linear fixed-point
+   depth seed plus k times the per-pixel step. All three are exact
+   integer math, so the values must be equal. A capture that seeded a
+   span without the k columns before it fails (c); one that dropped or
+   added columns fails (a). */
 static void
 gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
             const rage128_raster_state_t *lrs)
@@ -10177,9 +10176,9 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
         int32_t                   next = L->x0;
 
         if (L->x0 >= 16)
-            skipped++; /* at least one uncalled piece left of coverage */
+            skipped++; /* covered columns start past the first color tile column */
         if (L->x1 < 48)
-            stopped++; /* at least one piece right of it never walked */
+            stopped++; /* ... and end before the last one */
         for (; ti < tc.got && ts[ti].py == L->py; ti++) {
             const harness_gpu_span_t *P = &ts[ti];
             int64_t                   k = (int64_t) P->x0 - L->x0;
@@ -10187,7 +10186,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
             if (P->x0 != next || P->x1 < P->x0 || P->x1 > L->x1)
                 bad_part++;
             next = P->x1 + 1;
-            /* the walked seeds of every tiled piece step from the linear
+            /* the walked seeds of every tiled span step from the linear
                row's, and the plane seeds reproduce the walk on both */
             if (P->w_e0 != L->w_e0 + k * tc.edx[0]
                 || P->w_e1 != L->w_e1 + k * tc.edx[1]
@@ -10205,11 +10204,11 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
     if (ti != tc.got)
         bad_part++; /* a tiled row the linear capture does not have */
 
-    check_true("gpu tiled seeds: inset leg has rows covered right of an empty piece",
+    check_true("gpu tiled seeds: inset leg has rows covered right of an empty tile column",
                skipped > 0);
-    check_true("gpu tiled seeds: inset leg has rows covered left of an empty piece",
+    check_true("gpu tiled seeds: inset leg has rows covered left of an empty tile column",
                stopped > 0);
-    check32("gpu tiled seeds: inset tiled pieces partition the linear row exactly",
+    check32("gpu tiled seeds: inset tiled spans partition the linear row exactly",
             bad_part, 0);
     check32("gpu tiled seeds: inset tiled edge seeds equal the linear ones stepped",
             bad_e, 0);
@@ -10231,8 +10230,9 @@ vectors_gpu_tiled(rage128_t *dev)
 
     /* 64x64 context: tiled ARGB8888 dst at HZ_A (256 B rows) and tiled
        16-bit Z at HZ_Z (128 B rows), both transforms live at once. The
-       two tile columns are 16 px (color) and 32 px (Z) wide, so the row
-       walk has to split on the finer of the two and stay right on both. */
+       two tile columns are 16 px (color) and 32 px (Z) wide, so a row
+       crosses both kinds of column edge, and each surface's span base and
+       tile flag must name the right bytes on both sides of each edge. */
     wr(dev, 0x16e8, 0x1fff1fff);
     wr(dev, 0x16ec, 0x00000000);
     wr(dev, 0x16f0, 0x003f003f);
@@ -10335,11 +10335,54 @@ ra_hit(uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, uint32_t size)
         || (at1 && bt1);
 }
 
+/* The byte runs pixels [x0, x1] of a span store at b bytes each, from
+   its row base: one run on a linear row, one per 64-byte tile column on
+   a tiled one, where the kernel adds the tile column offset per pixel.
+   Returns the run count; r0 and r1 need room for 17 runs (a 256-px
+   span at 4 bytes per pixel crosses at most 16 columns, plus one). */
+static unsigned
+ra_runs(uint32_t base, int tiled, int32_t x0, int32_t x1, uint32_t b,
+        uint32_t *r0, uint32_t *r1)
+{
+    uint32_t xb = (uint32_t) x0 * b, xe = (uint32_t) (x1 + 1) * b;
+    unsigned n  = 0;
+
+    if (!tiled) {
+        r0[0] = base + xb;
+        r1[0] = base + xe;
+        return 1;
+    }
+    while (xb < xe && n < 17u) {
+        uint32_t ce = (xb | 63u) + 1u;
+
+        if (ce > xe)
+            ce = xe;
+        r0[n] = base + r128_tile_x(xb);
+        r1[n] = r0[n] + (ce - xb);
+        n++;
+        xb = ce;
+    }
+    return n;
+}
+
+/* Whether any run of one list shares a byte with any run of the other,
+   each wrapped at the top of VRAM (ra_hit). */
+static int
+ra_runs_hit(const uint32_t *a0, const uint32_t *a1, unsigned na,
+            const uint32_t *b0, const uint32_t *b1, unsigned nb, uint32_t size)
+{
+    for (unsigned i = 0; i < na; i++)
+        for (unsigned j = 0; j < nb; j++)
+            if (ra_hit(a0[i], a1[i], b0[j], b1[j], size))
+                return 1;
+    return 0;
+}
+
 /* Capture ntri triangles (v[3k..3k+2]) into one segment and grade them.
-   Byte ranges come from the span records (row base + column * bpp),
-   computed here, not from the backend's own range shadow, and compared
-   wrapped at the top of VRAM. wide = the draw passes the pitch or the
-   top of VRAM, so its rows share bytes. */
+   Byte ranges come from the span records (row base plus each pixel's
+   column offset, ra_runs), computed here, not from the backend's own
+   range shadow, and compared wrapped at the top of VRAM. wide = the
+   draw passes the pitch or the top of VRAM, so its rows share bytes. */
 static void
 ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
          const r3d_vtx_t *v, uint32_t ntri, int wide)
@@ -10361,44 +10404,44 @@ ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
     if (!ran)
         return; /* nothing below can be graded on a missing or cut capture */
     for (uint32_t i = 0; i < cap.got; i++) {
-        uint32_t a0 = sp[i].drow + (uint32_t) sp[i].x0 * 4u;
-        uint32_t a1 = sp[i].drow + (uint32_t) (sp[i].x1 + 1) * 4u;
+        uint32_t a0[17], a1[17], b0[17], b1[17];
+        unsigned na = ra_runs(sp[i].drow, sp[i].ctiled, sp[i].x0, sp[i].x1, 4u, a0, a1);
+        unsigned nb = zon ? ra_runs(sp[i].zrow, sp[i].ztiled, sp[i].x0, sp[i].x1,
+                                    zbpp, b0, b1)
+                          : 0;
 
         /* coverage: a span wrapped at the top of VRAM needs the whole
            card, which is how the backend folds such a range */
-        if (a1 > size) {
-            clo = 0;
-            chi = size;
+        for (unsigned k = 0; k < na; k++) {
+            if (a1[k] > size) {
+                clo = 0;
+                chi = size;
+            }
+            if (a0[k] < clo)
+                clo = a0[k];
+            if (a1[k] > chi && a1[k] <= size)
+                chi = a1[k];
         }
-        if (a0 < clo)
-            clo = a0;
-        if (a1 > chi && a1 <= size)
-            chi = a1;
-        if (zon) {
-            uint32_t b0 = sp[i].zrow + (uint32_t) sp[i].x0 * zbpp;
-            uint32_t b1 = sp[i].zrow + (uint32_t) (sp[i].x1 + 1) * zbpp;
-
-            if (b1 > size) {
+        for (unsigned k = 0; k < nb; k++) {
+            if (b1[k] > size) {
                 zlo = 0;
                 zhi = size;
             }
-            if (b0 < zlo)
-                zlo = b0;
-            if (b1 > zhi && b1 <= size)
-                zhi = b1;
+            if (b0[k] < zlo)
+                zlo = b0[k];
+            if (b1[k] > zhi && b1[k] <= size)
+                zhi = b1[k];
         }
         for (uint32_t j = 0; j < i; j++) {
-            uint32_t c0 = sp[j].drow + (uint32_t) sp[j].x0 * 4u;
-            uint32_t c1 = sp[j].drow + (uint32_t) (sp[j].x1 + 1) * 4u;
-            int      ov = ra_hit(a0, a1, c0, c1, size);
+            uint32_t c0[17], c1[17], d0[17], d1[17];
+            unsigned nc = ra_runs(sp[j].drow, sp[j].ctiled, sp[j].x0, sp[j].x1, 4u, c0, c1);
+            int      ov = ra_runs_hit(a0, a1, na, c0, c1, nc, size);
 
             if (zon) {
-                uint32_t d0 = sp[j].zrow + (uint32_t) sp[j].x0 * zbpp;
-                uint32_t d1 = sp[j].zrow + (uint32_t) (sp[j].x1 + 1) * zbpp;
-                uint32_t b0 = sp[i].zrow + (uint32_t) sp[i].x0 * zbpp;
-                uint32_t b1 = sp[i].zrow + (uint32_t) (sp[i].x1 + 1) * zbpp;
+                unsigned nd = ra_runs(sp[j].zrow, sp[j].ztiled, sp[j].x0, sp[j].x1,
+                                      zbpp, d0, d1);
 
-                ov |= ra_hit(b0, b1, d0, d1, size);
+                ov |= ra_runs_hit(b0, b1, nb, d0, d1, nd, size);
             }
             if (!ov)
                 continue;
@@ -10879,13 +10922,14 @@ vectors_gpu_stencil_class(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
-/* Two-tier accept pricing. The bbox bound charges every row at full   */
-/* bbox width; a tiled Z multiplies that by its per-row piece count,   */
-/* so a fullscreen-bbox triangle at 1280x1024x32 prices 83106 spans    */
-/* against a 65536 cap while its real spans fit easily. A cap trip     */
-/* must therefore re-price exactly (count-only walk of the production  */
-/* rasterizer) and accept; only a draw over cap on the exact count     */
-/* still rejects. Driven through the production submit entry.          */
+/* Two-tier accept pricing. The bbox bound charges every row of the    */
+/* vertices' bounding box at its full width, before the scissor clips  */
+/* it, so a triangle whose vertices reach far past a 1280x1024 scissor */
+/* prices over the 65536-span cap while its real spans fit easily. A   */
+/* cap trip must therefore re-price exactly (count-only walk of the    */
+/* production rasterizer) and accept; only a draw over cap on the      */
+/* exact count still rejects. Driven through the production submit     */
+/* entry.                                                              */
 /* ------------------------------------------------------------------ */
 #define RP_A 0x00800000u /* color target, 1280 px ARGB8888 = 5120 B/row */
 #define RP_Z 0x01000000u /* 32-bit tiled Z, 1280 px = 5120 B/row         */
@@ -10936,25 +10980,27 @@ vectors_gpu_reprice(rage128_t *dev)
         v[k].diffuse = 0xff204060;
     }
 
-    /* Sliver with a fullscreen bbox: the first live 3DMark99 hit,
-       verbatim (area ~8k px, priced 83106 spans / 1298916 px). */
-    v[0].x = 1263.5f; v[0].y = 0.0f;
-    v[1].x = 15.5f;   v[1].y = 1023.5f;
-    v[2].x = 0.0f;    v[2].y = 1023.5f;
+    /* Sliver whose bounding box runs past the scissor: 4003 rows of
+       18 chunks price 72054 spans; inside the scissor it covers a few
+       pixels of each row, along the diagonal from the top left. */
+    v[0].x = 0.0f;    v[0].y = 0.0f;
+    v[1].x = 15.5f;   v[1].y = 0.0f;
+    v[2].x = 4500.0f; v[2].y = 4000.0f;
     check_true("gpu: sliver probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
     check_true("gpu: bbox bound prices the sliver past the span cap",
-               sub.bound_spans > 65536u && sub.bound_px <= (8u << 20));
+               sub.bound_spans > 65536u && sub.bound_px <= (32u << 20));
     check32("gpu: sliver re-priced exactly once", (uint32_t) sub.reprice, 1);
     check32("gpu: sliver accepted, not toobig", (uint32_t) sub.toobig, 0);
     check_true("gpu: sliver capture consumed the exact re-price",
                sub.accepted == 1 && sub.miss == 0 && sub.nspans > 0);
     check_true("gpu: sliver exact spans fit the arena", sub.nspans <= 65536u);
 
-    /* Fullscreen half-quad (area ~647k px): the widest real shape, the
-       one that leans on the arena hardest -- must still fit exactly. */
-    v[0].x = 1263.5f; v[0].y = 0.0f;
-    v[1].x = 0.0f;    v[1].y = 1023.5f;
+    /* Half-quad with the same bounding box: inside the scissor it
+       covers every row in full, the shape that leans on the arena
+       hardest -- must still fit exactly. */
+    v[0].x = 4500.0f; v[0].y = 0.0f;
+    v[1].x = 0.0f;    v[1].y = 4000.0f;
     v[2].x = 0.0f;    v[2].y = 0.0f;
     check_true("gpu: half-quad probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
@@ -10965,19 +11011,50 @@ vectors_gpu_reprice(rage128_t *dev)
                sub.miss == 0 && sub.nspans > 0 && sub.nspans <= 65536u);
 
     /* Genuinely huge triangle: scissor opened wide, ~33M covered px.
-       The exact count must agree with the bbox bound here and keep the
-       reject -- the cap still protects the arena. */
+       The snap holds a vertex to 4096 pixels from the origin at this
+       subpixel precision, so the window offset (4096, 4096) moves the
+       triangle out to (0, 0), (8191, 0), (0, 8191). Its exact count,
+       about 135k spans, must keep the reject -- the cap still protects
+       the arena. */
     wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x40004000u);
     rage128_raster_state_capture(dev, &rs);
-    v[0].x = 0.0f;    v[0].y = 0.0f;
-    v[1].x = 8191.0f; v[1].y = 0.0f;
-    v[2].x = 0.0f;    v[2].y = 8191.0f;
+    v[0].x = -4096.0f; v[0].y = -4096.0f;
+    v[1].x = 4095.0f;  v[1].y = -4096.0f;
+    v[2].x = -4096.0f; v[2].y = 4095.0f;
     check_true("gpu: monster probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
     check_true("gpu: monster still rejects after exact re-price",
                sub.reprice == 1 && sub.toobig == 1 && sub.accepted == 0
                    && sub.nspans == 0);
 
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+
+    /* A tiled draw that stores over its own Z: the Z surface moved onto
+       the color surface, so color and Z ranges overlap and the draw can
+       only run as a serial run, which takes at most 16384 pixels. Its
+       bounding box (1266 x 1026 px) is far over that, but it covers
+       about 8k pixels. Its tile-column count (83106 spans) passes the
+       span cap, so it is re-priced exactly, and the exact pixel count
+       lets it take the serial run instead of the CPU path. */
+    wr(dev, 0x16f0, 0x03ff04ff);
+    wr(dev, RAGE128_Z_OFFSET_C, RP_A);
+    rage128_raster_state_capture(dev, &rs);
+    {
+        harness_gpu_alias_t al;
+
+        v[0].x = 1263.5f; v[0].y = 0.0f;
+        v[1].x = 15.5f;   v[1].y = 1023.5f;
+        v[2].x = 0.0f;    v[2].y = 1023.5f;
+        check_true("gpu: aliasing tiled sliver probe ran",
+                   harness_gpu_alias_probe(dev, &rs, &v[0], &v[1], &v[2], &al));
+        check_true("gpu: aliasing tiled sliver's box is over the serial cap",
+                   al.need_px > 16384u);
+        check_true("gpu: aliasing tiled sliver runs as a GPU serial run",
+                   al.accepted == 1 && al.serial == 1 && al.ser[0] == 1
+                       && al.rej[0] == 0 && al.rej[1] == 0);
+    }
+    wr(dev, RAGE128_Z_OFFSET_C, RP_Z);
     wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
     wr(dev, RAGE128_Z_PITCH_C, 0x000000a0u);
     wr(dev, 0x16f0, 0x003f003f);
@@ -34116,33 +34193,6 @@ run_lfb_marks(void)
 #undef LM_PAGE
 #undef LM_CFC
 
-/* The capture threads' grouping handshake under stress
-   (harness_gpu_group_wake): rounds sized to finish as the submit thread
-   turns from spinning to sleeping, where a completion that neither
-   signals nor is seen leaves the submit thread asleep for good. The row
-   needs rounds that reached the sleep, or it proves nothing.
-   R128_CAPWAKE_ROUNDS sets the round count for a longer stress run. */
-static void
-run_gpu_cap_wake(void)
-{
-    uint32_t rounds = 4000, lost, slept, lo, hi;
-    int      r;
-    char     nm[96];
-
-    if (getenv("R128_CAPWAKE_ROUNDS"))
-        rounds = (uint32_t) strtoul(getenv("R128_CAPWAKE_ROUNDS"), NULL, 0);
-    r = harness_gpu_group_wake(rounds, &lost, &slept, &lo, &hi);
-    if (!r) {
-        printf("SKIP gpu cap wake: no capture threads (built without Vulkan headers)\n");
-        return;
-    }
-    printf("gpu cap wake: rounds=%u lost=%u slept=%u rows=%u..%u\n", rounds, lost,
-           slept, lo, hi);
-    check_true("gpu cap wake: the loop finishes", r > 0);
-    check_true("gpu cap wake: rounds reached the sleep", slept > 0);
-    snprintf(nm, sizeof(nm), "gpu cap wake: lost wakeups in %u rounds", rounds);
-    check32(nm, lost, 0);
-}
 #undef CS_OLD
 #undef CS_NEW
 #undef CS_LEN
@@ -34156,7 +34206,7 @@ static const char *const shard_units[] = {
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep",
-    "tex-batch", "tex-cache-store", "gpu-stage-modes", "gpu-cap-wake", "lfb-marks"
+    "tex-batch", "tex-cache-store", "gpu-stage-modes", "lfb-marks"
 };
 static char *selected_units;
 
@@ -34897,8 +34947,6 @@ main(int argc, char **argv)
         run_tex_batch();
     if (unit_selected("tex-cache-store"))
         run_tex_cache_store();
-    if (unit_selected("gpu-cap-wake"))
-        run_gpu_cap_wake();
     if (unit_selected("lfb-marks"))
         run_lfb_marks();
     if (getenv("R128_LANEGAP"))

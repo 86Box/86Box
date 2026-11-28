@@ -46,6 +46,7 @@ NewFlashDialog::NewFlashDialog(QWidget *parent, const QString &title)
     setWindowTitle(title.isEmpty() ? tr("New USB flash drive") : title);
 
     auto *form = new QFormLayout(this);
+    util::setupFormLayout(form);
 
     lineEditFile    = new QLineEdit(this);
     auto *browse    = new QPushButton(tr("Browse…"), this);

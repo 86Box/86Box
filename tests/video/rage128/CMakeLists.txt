@@ -181,13 +181,13 @@ add_dependencies(rage128_fdivtest rage128_gpu_spv)
 # as skipped.
 #
 # The timeout is sized for the first run on a host whose Vulkan driver
-# compiles pipelines one at a time. gputri primes 288 fold pipelines per
-# seed, and each of its three seeds uses its own set, so a cold run pays
-# three full compiles before the pipeline cache it writes at exit makes
-# the next run short. Measured on a Windows AMD host: 4831 s cold against
-# 911 s warm, so 3600 s cut the first run and left no cache behind. 7200 s
-# is 1.5 times that cold run; a warm run on any host finishes well inside
-# the first quarter of it.
+# compiles slowly. gputri primes 288 fold pipelines per seed, and each of
+# its three seeds uses its own set. The three seeds run as three processes
+# at once, each writing its pipeline cache every 30 seconds during its
+# precompile and after it, so a cold run pays about one seed's compile time
+# and a stopped run keeps the pipelines compiled up to its last write. One
+# process running the seeds in turn (GPUTRI_SEQUENTIAL) took
+# 4831 s cold on a Windows AMD host, and 7200 s still covers that.
 add_test(NAME Rage128.GpuKernels COMMAND rage128_gputri
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties(Rage128.GpuKernels PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 7200)

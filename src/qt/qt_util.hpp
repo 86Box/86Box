@@ -6,6 +6,7 @@
 
 #include <initializer_list>
 
+class QFormLayout;
 class QImage;
 class QStyle;
 class QScreen;
@@ -20,6 +21,9 @@ QScreen *screenOfWidget(QWidget *widget);
    number of device pixels: sizes are multiplied by the scale factor, so some device pixel
    sizes can't be asked for exactly */
 int      logicalSizeForPixels(int pixels, qreal dpr);
+/* Lays out a form the same way on every platform: the macOS style otherwise centers it,
+   right-aligns the labels and keeps the fields at their size hint */
+void     setupFormLayout(QFormLayout *layout);
 /* Puts an image on the clipboard, offering PNG ahead of the other formats */
 void     copyImageToClipboard(const QImage &image);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)

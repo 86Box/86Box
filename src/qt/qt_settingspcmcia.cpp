@@ -38,6 +38,7 @@ extern "C" {
 
 #include "qt_settingspcmcia.hpp"
 #include "qt_deviceconfig.hpp"
+#include "qt_util.hpp"
 #include "qt_defs.hpp"
 
 static bool
@@ -75,6 +76,7 @@ SettingsPcmcia::SettingsPcmcia(QWidget *parent)
 
         k.group     = new QGroupBox(tr("Socket %1").arg(QChar('A' + s)));
         auto *form  = new QFormLayout(k.group);
+        util::setupFormLayout(form);
         auto *row   = new QHBoxLayout;
         k.card      = new QComboBox;
         k.configure = new QPushButton(tr("Configure"));

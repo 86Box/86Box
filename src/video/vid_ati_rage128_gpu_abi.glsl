@@ -75,7 +75,9 @@
    caps are compile-time asserts. The span carries no edge or depth values: the
    kernel computes them from the triangle's plane seeds (seg_tri_t).
    drow and zrow are the byte addresses of the color row and the depth
-   row. With bit 31 set, the row is in the staging buffers for an AGP
+   row; on a tiled target, the base of the row inside its tile row, to
+   which the kernel adds the tile column offset per pixel (span_ctiled
+   and span_ztiled). With bit 31 set, the row is in the staging buffers for an AGP
    render target (bindings 9 to 12) and the low 31 bits are an offset
    into them rather than into VRAM. */
 struct seg_span_t {

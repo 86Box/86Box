@@ -408,8 +408,8 @@ r3d_decode_vertex(uint32_t fmt, const uint32_t *d, r3d_vtx_t *v)
 }
 
 /* Mark the VRAM pages of [addr, addr + len) changed for the display.
-   Runs on the raster workers, the GPU span capture's partitions and the
-   CCE thread without a lock: every writer stores the same value, and the
+   Runs on the raster workers and the CCE thread without a lock: every
+   writer stores the same value, and the
    only read-modify-write from another thread (the decrement in
    svga_poll) can at worst lose one mark until the page is written again.
    The stores are relaxed atomics, plain byte stores on every host, so
@@ -1995,16 +1995,9 @@ rage128_texstage_run(void *tcv, float w0, float w1, float w2, float *col)
    block packs it. Exported because the JIT verify mode drives blocks
    through this same walk.
 
-   The walked range is the triangle's (scissored) bounding box, so most
-   pieces of a row hold no covered pixel. When the span is the GPU lane's
-   capture, the row's covered columns [cl, ch] are known up front from the
-   same exact integer edge clip the capture applies per piece, and the
-   walk uses them: a row with none returns at once; a piece wholly left
-   of cl is not called, since its capture would reject it with no
-   effect; and the walk stops after the piece holding ch, since no later
-   piece is called. The JIT blocks report the
-   range they wrote (after the depth and alpha tests), not coverage, so
-   for them the bounds stay the whole row. */
+   The GPU lane's capture and its count-only twin take the whole row in
+   one call on either layout: the GPU kernel applies the tile transform
+   per pixel, so the row is not split for them. */
 uint64_t
 rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t e1,
                    int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow, int32_t py,
@@ -2013,14 +2006,10 @@ rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t
     int32_t xs  = jt->x0;
     int32_t xe  = jt->x1;
     int32_t rx0 = -1, rx1 = -1;
-    int32_t cl = xs, ch = xe; /* covered columns: whole row unless known */
 
-    if (!c_tld && !z_tld)
+    if ((!c_tld && !z_tld) || jfn == rage128_gpu_capture_span
+        || jfn == rage128_gpu_count_span)
         return jfn(jt, e0, e1, e2, zline, drow, zrow, py);
-
-    if (jfn == rage128_gpu_capture_span
-        && !rage128_gpu_capture_row_cover(jt, e0, e1, e2, py, &cl, &ch))
-        return ((uint64_t) (uint32_t) rx1 << 32) | (uint32_t) rx0;
 
     for (int32_t xa = xs; xa <= xe;) {
         int32_t  xb = xe;
@@ -2047,22 +2036,16 @@ rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t
             zb = zrow + r128_tile_x((uint32_t) xa * zbpp) - (uint32_t) xa * zbpp;
         }
 
-        if (xb >= cl) {
-            jt->x0 = xa;
-            jt->x1 = xb;
-            r      = jfn(jt, e0 + k * jt->e0dxi, e1 + k * jt->e1dxi, e2 + k * jt->e2dxi,
-                         zline + k * jt->dzx, cb, zb, py);
-            jr0    = (int32_t) (uint32_t) r;
-            if (jr0 >= 0) {
-                if (rx0 < 0)
-                    rx0 = jr0;
-                rx1 = (int32_t) (uint32_t) (r >> 32);
-            }
+        jt->x0 = xa;
+        jt->x1 = xb;
+        r      = jfn(jt, e0 + k * jt->e0dxi, e1 + k * jt->e1dxi, e2 + k * jt->e2dxi,
+                     zline + k * jt->dzx, cb, zb, py);
+        jr0    = (int32_t) (uint32_t) r;
+        if (jr0 >= 0) {
+            if (rx0 < 0)
+                rx0 = jr0;
+            rx1 = (int32_t) (uint32_t) (r >> 32);
         }
-        /* nothing past the piece holding the last covered column is
-           called */
-        if (xb >= ch)
-            break;
         xa = xb + 1;
     }
     jt->x0 = xs;
@@ -2305,9 +2288,10 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
     int                         tex_en = ds->tex_en;
     int                         sec_en = ds->sec_en;
     /* Row bytes of the color and Z surfaces. For a tiled surface the
-       interpreter applies the tile transform per pixel, and the JIT and
-       GPU lanes take each row through the tile-column walk of
-       rage128_3d_jit_row. */
+       interpreter applies the tile transform per pixel, the JIT lane
+       takes each row through the tile-column walk of rage128_3d_jit_row,
+       and the GPU capture takes the row whole, its kernel applying the
+       transform per pixel. */
     uint32_t cpb = rs->dst_pitch * (uint32_t) ds->bpp;
     uint32_t zpb = zrowpx * (uint32_t) ds->zbpp;
     /* Where Z is read and written, chosen once per draw. A staged Z
@@ -2858,8 +2842,6 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
 
     if (!r3d_setup(dev, rs, a, b, c, jfn, ln, &st, &tctx, &jt))
         return;
-    if (jfn == rage128_gpu_capture_span)
-        rage128_gpu_capture_begin(dev, &tctx, &jt, thr_id);
     {
         /* the loop's locals, copied from the setup */
         uint32_t dst_dt   = st.dst_dt;
@@ -4407,8 +4389,8 @@ r3d_stage_extent(const rage128_raster_state_t *rs,
 
    Tiling alone does not stage a surface. A tiled surface in local
    memory is addressed in place through the tile transform: by the
-   interpreter per access, and by the JIT and GPU lanes walking each row
-   in tile-column pieces. A linear copy would be a second live copy of
+   interpreter and the GPU kernel per access, and by the JIT lane walking
+   each row in tile-column pieces. A linear copy would be a second live copy of
    VRAM that every other engine would have to keep coherent, which costs
    far more than the addressing. A tiled surface in AGP memory is still
    staged, and its copy is made detiled. (Texture levels follow a
@@ -4771,9 +4753,9 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
        addressing of the Z and color surfaces. A surface staged detiled
        is a linear image in its arena, so the flag is dropped and every
        lane uses linear row addresses; only an unstaged tiled surface
-       goes through the transform (per pixel in the interpreter, by the
-       tile-column walk in the JIT and GPU lanes). The staging decision
-       was made before this decode. */
+       goes through the transform (per pixel in the interpreter and the
+       GPU kernel, by the tile-column walk in the JIT lane). The staging
+       decision was made before this decode. */
     ds->z_tiled = !rs->z_detiled
         && r128_tiled_ok((rs->t3d.z_pitch >> 16) & 1u,
                          ds->zrowpx * (uint32_t) ds->zbpp);

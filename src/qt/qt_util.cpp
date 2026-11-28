@@ -14,6 +14,7 @@
  */
 #include <QDir>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QStringBuilder>
 #include <QStringList>
 #include <QWidget>
@@ -85,6 +86,14 @@ logicalSizeForPixels(int pixels, qreal dpr)
         size++;
 
     return size;
+}
+
+void
+setupFormLayout(QFormLayout *layout)
+{
+    layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    layout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
+    layout->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 }
 
 #ifdef HAS_COLOR_SCHEME_HINT
