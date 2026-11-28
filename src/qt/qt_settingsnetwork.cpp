@@ -29,6 +29,7 @@ extern "C" {
 
 #include <vector>
 #include "qt_deviceconfig.hpp"
+#include "qt_slirpforwardingdialog.hpp"
 
 #include "qt_defs.hpp"
 
@@ -61,6 +62,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         auto *option_list_label = findChild<QLabel *>(QString("labelOptionList%1").arg(i + 1));
         auto *option_list_line  = findChild<QWidget *>(QString("lineOptionList%1").arg(i + 1));
         auto *slirp_8023_rx     = findChild<QCheckBox *>(QString("boxSlirp8023Rx%1").arg(i + 1));
+        auto *slirp_fwd_btn     = findChild<QPushButton *>(QString("pushButtonSlirpFwd%1").arg(i + 1));
 
         // Shared secret
         auto *secret_label = findChild<QLabel *>(QString("labelSecret%1").arg(i + 1));
@@ -101,6 +103,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         option_list_label->setVisible(false);
         option_list_line->setVisible(false);
         slirp_8023_rx->setVisible(false);
+        slirp_fwd_btn->setVisible(false);
 
         // VDE
         vde_socket_label->setVisible(false);
@@ -183,6 +186,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     option_list_label->setVisible(ethernet);
                     option_list_line->setVisible(ethernet);
                     slirp_8023_rx->setVisible(ethernet);
+                    slirp_fwd_btn->setVisible(true);
                     break;
                 }
                 default:
@@ -248,6 +252,7 @@ SettingsNetwork::changed()
 #endif
         has_changed                 |= (net_cards_conf[i].device_num != cbox->currentData().toInt());
         has_changed                 |= net_card_cfg_changed[i];
+        has_changed                 |= slirp_fwd_changed[i];
         cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         has_changed                 |= (net_cards_conf[i].net_type != cbox->currentData().toInt());
         if (cbox->currentData().toInt() == NET_TYPE_SLIRP) {
@@ -305,6 +310,14 @@ SettingsNetwork::save(int soft)
 {
     if (soft)
         return;
+
+    /* Write the port forwarding rules the dialog accepted, before the
+       rest of the (hard reset) settings apply. */
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
+        if (slirp_fwd_changed[i])
+            SlirpForwardingDialog::writeRules(i, slirp_fwd_new[i]);
+        slirp_fwd_changed[i] = false;
+    }
 
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
@@ -531,4 +544,47 @@ SettingsNetwork::on_pushButtonConf4_clicked()
     int   netCard = ui->comboBoxNIC4->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
     net_card_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 4);
+}
+
+/* The dialog's accepted rules are kept here and written to the
+   configuration only when the settings are saved; net_slirp.c reads them
+   on initialization, so they apply after a hard reset. */
+void
+SettingsNetwork::on_pushButtonSlirpFwd1_clicked()
+{
+    SlirpForwardingDialog dlg(0, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        slirp_fwd_new[0]     = dlg.rules();
+        slirp_fwd_changed[0] = dlg.changed();
+    }
+}
+
+void
+SettingsNetwork::on_pushButtonSlirpFwd2_clicked()
+{
+    SlirpForwardingDialog dlg(1, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        slirp_fwd_new[1]     = dlg.rules();
+        slirp_fwd_changed[1] = dlg.changed();
+    }
+}
+
+void
+SettingsNetwork::on_pushButtonSlirpFwd3_clicked()
+{
+    SlirpForwardingDialog dlg(2, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        slirp_fwd_new[2]     = dlg.rules();
+        slirp_fwd_changed[2] = dlg.changed();
+    }
+}
+
+void
+SettingsNetwork::on_pushButtonSlirpFwd4_clicked()
+{
+    SlirpForwardingDialog dlg(3, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        slirp_fwd_new[3]     = dlg.rules();
+        slirp_fwd_changed[3] = dlg.changed();
+    }
 }

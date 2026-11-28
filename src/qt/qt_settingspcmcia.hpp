@@ -16,6 +16,10 @@
 
 #include <QWidget>
 
+#include <vector>
+
+#include "qt_slirpforwardingdialog.hpp"
+
 extern "C" {
 #include <86box/pcmcia.h>
 }
@@ -48,8 +52,14 @@ private:
         QComboBox   *netType;
         QLabel      *hostLabel;
         QComboBox   *host;
+        QPushButton *slirpFwd;
         int          cfgChanged = 0;
     };
+
+    /* SLiRP port forwarding rules accepted from the dialog, written to
+       the configuration only when the settings are saved. */
+    bool                              fwdChanged[PCMCIA_SOCKETS] = { false, false };
+    std::vector<SlirpForwardingDialog::Rule> fwdNew[PCMCIA_SOCKETS];
 
     void updateSocket(int s);
     void updateState();
