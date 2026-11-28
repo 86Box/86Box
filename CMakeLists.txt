@@ -246,7 +246,7 @@ option(RAGE128_MAXX "ATI Rage Fury MAXX" ${DEV_BRANCH})
 
 # Ditto but for Qt
 if(QT)
-    option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+    option(USE_QT6 "Use Qt6 instead of Qt5" ON)
     if(APPLE)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
     endif()

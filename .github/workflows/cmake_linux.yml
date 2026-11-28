@@ -9,7 +9,7 @@ name: CMake (Linux)
 # builds remain the more portable Linux builds.
 #
 # The build types marked manual are only built on manual runs with the full
-# matrix option. Among them are the x86_64 SDL and Qt 5 Dev Debug builds, which
+# matrix option. Among them are the x86_64 SDL and Qt 6 Dev Debug builds, which
 # the CodeQL workflow already makes.
 
 on:

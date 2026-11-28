@@ -104,16 +104,16 @@ runs:
       shell: bash
       run: |
         port=/opt/local/bin/port
-        qt_gui_pri=/opt/local/libexec/qt5/mkspecs/modules/qt_lib_gui.pri
+        qt_gui_pri=/opt/local/libexec/qt6/mkspecs/modules/qt_lib_gui.pri
 
         qt_has_vulkan() {
           grep -E '^QT\.gui\.enabled_features' "$qt_gui_pri" 2> /dev/null | grep -qw vulkan
         }
 
         qt_build() {
-          if ! sudo "$port" -N -s "$@" qt5-qtbase; then
+          if ! sudo "$port" -N -s "$@" qt6-qtbase; then
             # The build output only goes to the MacPorts log
-            log=$("$port" logfile qt5-qtbase)
+            log=$("$port" logfile qt6-qtbase)
             echo "::group::Errors in $log"
             grep -E -B 5 -A 10 'error:|Error [0-9]|\*\*\*' "$log" | head -n 300
             echo "::endgroup::"
@@ -125,18 +125,18 @@ runs:
         }
 
         sudo "$port" -N selfupdate
-        portfile=$("$port" file qt5-qtbase)
+        portfile=$("$port" file qt6-qtbase)
         sudo sed -i '' -e 's/-no-feature-vulkan/-feature-vulkan/g' "$portfile"
-        sudo sed -i '' -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$portfile"
+        sudo sed -i '' -e 's/configure.env-append\( *\)PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1/configure.env-append\1VULKAN_SDK=${prefix} PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1/g' "$portfile"
 
         # Qt's Cocoa plugin includes MoltenVK headers when Vulkan is enabled
-        sudo "$port" -N install vulkan-headers MoltenVK depof:qt5-qtbase
+        sudo "$port" -N install vulkan-headers MoltenVK depof:qt6-qtbase
 
         echo "built=true" >> "$GITHUB_OUTPUT"
-        if [ -z "$("$port" -q installed qt5-qtbase)" ]; then
+        if [ -z "$("$port" -q installed qt6-qtbase)" ]; then
           echo "Building Qt from source."
           qt_build install
-        elif [ -n "$("$port" -q outdated qt5-qtbase)" ] || ! qt_has_vulkan; then
+        elif [ -n "$("$port" -q outdated qt6-qtbase)" ] || ! qt_has_vulkan; then
           # Dependencies were already upgraded above, so don't build those
           # from source too
           echo "Rebuilding outdated Qt or Qt without Vulkan support from source."
