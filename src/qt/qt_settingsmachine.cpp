@@ -173,7 +173,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             [this](bool checked) { preferDynarec = checked; });
 #endif
     ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
-    ui->checkBoxBlockLinking->setChecked(cpu_dyn_block_link);
 
     ui->comboBoxMachineType->setCurrentIndex(-1);
     machineTypeSignals.unblock();
