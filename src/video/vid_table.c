@@ -498,7 +498,7 @@ video_lightpen_vsync(monitor_t *monitor)
 void
 video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, monitor_t *monitor)
 {
-    if (lightpen_check_trigger_strobe && mouse_get_input_monitor() == monitor)
+    if (lightpen_check_trigger_strobe && monitor && mouse_get_input_monitor() == monitor)
         lightpen_check_trigger_strobe(lightpen_priv, x_offset, y, x_offset_from_hsync, firstline, pix_clock, monitor);
 }
 

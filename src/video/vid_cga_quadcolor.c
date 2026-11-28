@@ -630,7 +630,7 @@ quadcolor_poll(void *priv)
                 quadcolor_render_process(quadcolor, quadcolor->displine);
                 break;
         }
-        video_lightpen_check_trigger_strobe(8, quadcolor->displine, 0, quadcolor->firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), 0);
+        video_lightpen_check_trigger_strobe(8, quadcolor->displine, 0, quadcolor->firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), quadcolor->monitor);
 
         quadcolor->scanline = scanline_old;
         if (quadcolor->vc == quadcolor->crtc[CGA_CRTC_VSYNC] && !quadcolor->scanline)

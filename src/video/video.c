@@ -962,8 +962,25 @@ video_monitor_close(monitor_t *monitor)
 void
 video_monitor_close_secondary(void)
 {
-    while (monitor_list && monitor_list->next)
-        video_monitor_close(monitor_list->next->monitor);
+    if (!monitor_mutex)
+        return;
+
+    for (;;) {
+        monitor_t *monitor = NULL;
+
+        thread_wait_mutex(monitor_mutex);
+        for (blit_data_t *data = monitor_list; data; data = data->next) {
+            if (data->monitor != video_primary_monitor) {
+                monitor = data->monitor;
+                break;
+            }
+        }
+        thread_release_mutex(monitor_mutex);
+
+        if (!monitor)
+            break;
+        video_monitor_close(monitor);
+    }
 }
 
 void

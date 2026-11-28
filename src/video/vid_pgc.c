@@ -3346,6 +3346,8 @@ void
 pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
          int (*inpbyte)(pgc_t *, uint8_t *), double npc)
 {
+    dev->monitor = video_monitor_pending;
+
     /* Make it a 16k mapping at C4000 (will be C4000-C7FFF),
        because of the emulator's granularity - the original
        mapping will conflict with hard disk controller BIOS'es. */
@@ -3482,7 +3484,6 @@ pgc_standalone_init(const device_t *info)
     pgc_t *dev;
 
     dev = (pgc_t *) calloc(1, sizeof(pgc_t));
-    dev->monitor = video_monitor_pending;
     dev->type = info->local;
 
     pgc_load_font();

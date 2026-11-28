@@ -497,18 +497,19 @@ config_get_monitor_settings(int id)
     if (config_mutex)
         thread_wait_mutex(config_mutex);
 
-    monitor_config_t *entry = monitor_configs;
-    while (entry && entry->id != id)
-        entry = entry->next;
+    monitor_config_t **link = &monitor_configs;
+    while (*link && (*link)->id < id)
+        link = &(*link)->next;
 
-    if (!entry) {
+    monitor_config_t *entry = *link;
+    if (!entry || entry->id != id) {
         entry = calloc(1, sizeof(*entry));
         if (!entry)
             fatal("Unable to allocate monitor settings\n");
         entry->id = id;
         load_monitor(NULL, &entry->settings);
-        entry->next = monitor_configs;
-        monitor_configs = entry;
+        entry->next = *link;
+        *link = entry;
     }
 
     if (config_mutex)

@@ -755,7 +755,7 @@ v6355_poll(void *priv)
                 break;
         }
 
-        video_lightpen_check_trigger_strobe(8, v6355->displine * (v6355->double_type ? 2 : 1), 0, v6355->firstline, 21477270.0 / 2.0, 0);
+        video_lightpen_check_trigger_strobe(8, v6355->displine * (v6355->double_type ? 2 : 1), 0, v6355->firstline, 21477270.0 / 2.0, v6355->monitor);
         v6355->sc = oldsc;
 
         if (v6355->vc == crtc7 && !v6355->sc)

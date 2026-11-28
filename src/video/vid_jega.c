@@ -453,7 +453,7 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                             jega->egapal[c] = jega->attrregs[c] & 0x3f;
                     }
                     if (jega->is_vga)
-                        jega->vga.svga.fullchange = jega->ega.monitor->mon_changeframecount;
+                        jega->vga.svga.fullchange = jega->vga.svga.monitor->mon_changeframecount;
                     else
                         jega->ega.fullchange = jega->ega.monitor->mon_changeframecount;
                 }

@@ -790,7 +790,7 @@ vid_poll(void *priv)
                 break;
         }
 
-        video_lightpen_check_trigger_strobe(8, vid->displine * (vid->double_type ? 2 : 1), 0, vid->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), 0);
+        video_lightpen_check_trigger_strobe(8, vid->displine * (vid->double_type ? 2 : 1), 0, vid->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), vid->monitor);
 
         vid->scanline = scanline_old;
         if (vid->vc == vid->crtc[7] && !vid->scanline)

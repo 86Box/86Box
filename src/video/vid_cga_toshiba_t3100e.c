@@ -520,7 +520,7 @@ t3100e_poll(void *priv)
             t3100e->cga.cgastat &= ~8;
             t3100e->dispon = 1;
         }
-        video_lightpen_check_trigger_strobe(8, t3100e->displine, 0, 0, VID_CLOCK, 0);
+        video_lightpen_check_trigger_strobe(8, t3100e->displine, 0, 0, VID_CLOCK, t3100e->cga.monitor);
     } else {
         if (t3100e->dispon) {
             t3100e->cga.cgastat &= ~1;

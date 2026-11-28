@@ -212,7 +212,7 @@ vnc_init(UNUSED(void *arg))
     };
 
     runctl_pause(RUN_PAUSE_REMOTE);
-    cgapal_rebuild_monitor(0);
+    cgapal_rebuild_monitor(video_primary_monitor);
 
     if (rfb == NULL) {
         snprintf(title, sizeof(title), "%s - " EMU_NAME " " EMU_VERSION_FULL, vm_name);

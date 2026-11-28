@@ -248,6 +248,9 @@ ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int coun
 void
 ui_init_monitor(monitor_t *monitor)
 {
+    if (!main_window)
+        return;
+
     if (QThread::currentThread() == main_window->thread()) {
         emit main_window->initRendererMonitor(monitor);
     } else
