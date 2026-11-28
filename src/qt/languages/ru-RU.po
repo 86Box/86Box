@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-28 07:26+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-11-28 15:03+0000\n"
+"Last-Translator: Raov <raov@ub8qbd.ru>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -254,13 +254,13 @@ msgid "Sound &gain…"
 msgstr "&Усиление звука…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "Устройство вывода M&IDI"
 
 msgid "Restart &device"
 msgstr "Перезапустить &устройство"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "Отправить &команду MIDI"
 
 msgid "&GM System On"
 msgstr ""
@@ -284,7 +284,7 @@ msgid "MIDI LCD"
 msgstr "MIDI LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Всегда &поверх других окон"
 
 msgid "&Close"
 msgstr "&Закрыть"
