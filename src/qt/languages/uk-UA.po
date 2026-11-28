@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-28 07:25+0000\n"
-"Last-Translator: TheCawa <vos80584@gmail.com>\n"
+"Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -1000,7 +1000,7 @@ msgid "(empty)"
 msgstr "(порожньо)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(недоступно)"
 
 msgid "All files"
 msgstr "Всі файли"
