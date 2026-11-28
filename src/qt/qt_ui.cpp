@@ -47,6 +47,7 @@ extern "C" {
 #include "86box/86box.h"
 #include <86box/plat.h>
 #include <86box/ui.h>
+#include <86box/video.h>
 #include <86box/mouse.h>
 #include <86box/timer.h>
 #include <86box/86box.h>
@@ -106,29 +107,29 @@ ui_hard_reset_completed()
 }
 
 extern "C" void
-qt_blit(int x, int y, int w, int h, int monitor_index)
+qt_blit(int x, int y, int w, int h, monitor_t *monitor)
 {
-    main_window->blitToWidget(x, y, w, h, monitor_index);
+    main_window->blitToWidget(x, y, w, h, monitor);
 }
 
 extern "C" int vid_resize;
 void
-plat_resize_request(int w, int h, int monitor_index)
+plat_resize_request(int w, int h, monitor_t *monitor)
 {
     if (video_fullscreen || is_quit)
         return;
     if (vid_resize & 2) {
-        plat_resize(fixed_size_x, fixed_size_y, monitor_index);
+        plat_resize(fixed_size_x, fixed_size_y, monitor);
     } else {
-        plat_resize(w, h, monitor_index);
+        plat_resize(w, h, monitor);
     }
 }
 
 void
-plat_resize(int w, int h, int monitor_index)
+plat_resize(int w, int h, monitor_t *monitor)
 {
-    if (monitor_index >= 1)
-        main_window->resizeContentsMonitor(w, h, monitor_index);
+    if (monitor != video_primary_monitor)
+        main_window->resizeContentsMonitor(w, h, video_monitor_id(monitor));
     else
         main_window->resizeContents(w, h);
 }
@@ -245,21 +246,27 @@ ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int coun
 }
 
 void
-ui_init_monitor(int monitor_index)
+ui_init_monitor(monitor_t *monitor)
 {
+    if (!main_window)
+        return;
+
     if (QThread::currentThread() == main_window->thread()) {
-        emit main_window->initRendererMonitor(monitor_index);
+        emit main_window->initRendererMonitor(monitor);
     } else
-        emit main_window->initRendererMonitorForNonQtThread(monitor_index);
+        emit main_window->initRendererMonitorForNonQtThread(monitor);
 }
 
 void
-ui_deinit_monitor(int monitor_index)
+ui_deinit_monitor(monitor_t *monitor)
 {
+    if (!main_window)
+        return;
+
     if (QThread::currentThread() == main_window->thread()) {
-        emit main_window->destroyRendererMonitor(monitor_index);
+        emit main_window->destroyRendererMonitor(video_monitor_id(monitor));
     } else
-        emit main_window->destroyRendererMonitorForNonQtThread(monitor_index);
+        emit main_window->destroyRendererMonitorForNonQtThread(video_monitor_id(monitor));
 }
 
 int

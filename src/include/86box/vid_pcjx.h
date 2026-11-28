@@ -22,6 +22,7 @@
 #define PCJX_GAIJI_SIZE     0x800
 
 typedef struct pcjx_video_s {
+    struct monitor_t *monitor;
     uint8_t       crtc[32];
     int           crtcreg;
     int           array_index;

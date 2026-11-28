@@ -302,7 +302,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     unittester.status = UT_STATUS_IDLE;
                     break;
 
-                case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
+                case UT_CMD_CAPTURE_SCREEN_SNAPSHOT: {
                     /* Recompute screen */
                     unittester.snap_img_width       = 0;
                     unittester.snap_img_height      = 0;
@@ -310,15 +310,12 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     unittester.snap_img_yoffs       = 0;
                     unittester.snap_overscan_width  = 0;
                     unittester.snap_overscan_height = 0;
-                    if (unittester.snap_monitor < 0x01 || (unittester.snap_monitor - 1) > MONITORS_NUM) {
-                        /* No monitor here - clear snapshot */
-                        unittester.snap_monitor = 0x00;
-                    } else if (video_get_type_monitor(unittester.snap_monitor - 1) == VIDEO_FLAG_TYPE_NONE) {
-                        /* Monitor disabled - clear snapshot */
+                    const monitor_t *m = video_monitor_by_id(unittester.snap_monitor - 1);
+                    if (!m || !(m->flags & VIDEO_MONITOR_SCREENSHOT) ||
+                        (m == video_primary_monitor && m->mon_vid_type == VIDEO_FLAG_TYPE_NONE)) {
                         unittester.snap_monitor = 0x00;
                     } else {
                         /* Compute bounds for snapshot */
-                        const monitor_t *m              = &monitors[unittester.snap_monitor - 1];
                         unittester.snap_img_width       = m->mon_xsize;
                         unittester.snap_img_height      = m->mon_ysize;
                         unittester.snap_overscan_width  = m->mon_xsize + m->mon_overscan_x;
@@ -344,6 +341,8 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     unittester.status   = UT_STATUS_AWAITING_READ;
                     unittester.read_len = 12;
                     break;
+
+                }
 
                 case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
                 case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:

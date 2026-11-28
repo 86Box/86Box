@@ -174,20 +174,20 @@ vnc_display(rfbClientPtr cl)
 }
 
 static void
-vnc_blit(int x, int y, int w, int h, int monitor_index)
+vnc_blit(int x, int y, int w, int h, monitor_t *monitor)
 {
-    if (monitor_index || (x < 0) || (y < 0) || (w < VNC_MIN_X) || (h < VNC_MIN_Y) || (w > VNC_MAX_X) || (h > VNC_MAX_Y) || (buffer32 == NULL)) {
-        video_blit_complete_monitor(monitor_index);
+    if (monitor != video_primary_monitor || (x < 0) || (y < 0) || (w < VNC_MIN_X) || (h < VNC_MIN_Y) || (w > VNC_MAX_X) || (h > VNC_MAX_Y) || (x > 2048 - w) || (y > 2048 - h)) {
+        video_blit_complete_monitor(monitor);
         return;
     }
 
     for (int row = 0; row < h; ++row)
-        video_copy(&(((uint8_t *) rfb->frameBuffer)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
+        video_copy(&(((uint8_t *) rfb->frameBuffer)[row * 2048 * sizeof(uint32_t)]), &(monitor->target_buffer->line[y + row][x]), w * sizeof(uint32_t));
 
-    if (screenshots)
-        video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, VNC_MAX_X);
+    if (monitor->mon_screenshots_raw)
+        video_screenshot_monitor((uint32_t *) rfb->frameBuffer, 0, 0, 2048, monitor);
 
-    video_blit_complete_monitor(monitor_index);
+    video_blit_complete_monitor(monitor);
 
     if (!updatingSize)
         rfbMarkRectAsModified(rfb, 0, 0, allowedX, allowedY);
@@ -212,13 +212,13 @@ vnc_init(UNUSED(void *arg))
     };
 
     runctl_pause(RUN_PAUSE_REMOTE);
-    cgapal_rebuild_monitor(0);
+    cgapal_rebuild_monitor(video_primary_monitor);
 
     if (rfb == NULL) {
         snprintf(title, sizeof(title), "%s - " EMU_NAME " " EMU_VERSION_FULL, vm_name);
         updatingSize = 0;
-        allowedX     = scrnsz_x;
-        allowedY     = scrnsz_y;
+        allowedX     = video_primary_monitor->mon_scrnsz_x;
+        allowedY     = video_primary_monitor->mon_scrnsz_y;
 
         rfb              = rfbGetScreen(0, NULL, VNC_MAX_X, VNC_MAX_Y, 8, 3, 4);
         rfb->desktopName = title;

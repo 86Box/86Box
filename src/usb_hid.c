@@ -1096,10 +1096,9 @@ hid_tablet_sample(hid_tablet_t *dev, int take)
 
     /* The monitor the host pointer is over; the Qt UI stores its index + 1,
        and 0 when the pointer is over none. Fall back to the first. */
-    if ((mouse_tablet_in_proximity > 0) && (mouse_tablet_in_proximity <= MONITORS_NUM))
-        m = &monitors[mouse_tablet_in_proximity - 1];
-    else
-        m = &monitors[0];
+    m = mouse_get_input_monitor();
+    if (!m)
+        m = video_primary_monitor;
 
     /* With overscan shown, the image adds a border of half the overscan on
        each side of the active display: the guest's screen is the inner

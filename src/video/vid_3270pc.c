@@ -155,8 +155,7 @@ typedef struct pc3270_t {
        self-test at C05DB waits for this to go high and then low again, so a
        latched bit that only a command can clear would trap it. */
     uint8_t vsync;
-    int monitor_index;
-    int prev_monitor_index;
+    monitor_t *monitor;
 
     uint32_t pal[8];
 
@@ -696,7 +695,7 @@ pc3270_in(uint16_t addr, void *priv)
 static void
 pc3270_render_blank(pc3270_t *dev)
 {
-    uint32_t *p = &((uint32_t *) buffer32->line[dev->displine])[0];
+    uint32_t *p = &((uint32_t *) dev->monitor->target_buffer->line[dev->displine])[0];
 
     for (int x = 0; x < (dev->cols * 9); x++)
         p[x] = dev->pal[0];
@@ -725,7 +724,7 @@ pc3270_diag(pc3270_t *dev, uint32_t colour)
 static void
 pc3270_render_text(pc3270_t *dev)
 {
-    uint32_t *p         = &((uint32_t *) buffer32->line[dev->displine])[0];
+    uint32_t *p         = &((uint32_t *) dev->monitor->target_buffer->line[dev->displine])[0];
     int       scanline  = dev->displine % dev->charheight;
     int       row       = dev->displine / dev->charheight;
     int       underline = dev->ir[7] & 0x0f;
@@ -868,7 +867,7 @@ pc3270_gfx_palette(const pc3270_t *dev, uint8_t *pal)
 static void
 pc3270_render_apa_1bpp(pc3270_t *dev)
 {
-    uint32_t *p      = &((uint32_t *) buffer32->line[dev->displine])[0];
+    uint32_t *p      = &((uint32_t *) dev->monitor->target_buffer->line[dev->displine])[0];
     int       stride = pc3270_apa_stride(dev);
     uint32_t  addr   = (uint32_t) (dev->displine * stride);
     int       width  = dev->cols * 9;
@@ -886,7 +885,7 @@ pc3270_render_apa_1bpp(pc3270_t *dev)
 static void
 pc3270_render_apa_2bpp(pc3270_t *dev)
 {
-    uint32_t *p      = &((uint32_t *) buffer32->line[dev->displine])[0];
+    uint32_t *p      = &((uint32_t *) dev->monitor->target_buffer->line[dev->displine])[0];
     int       stride = pc3270_apa_stride(dev);
     uint32_t  addr   = (uint32_t) (dev->displine * stride);
     int       width  = dev->cols * 9;
@@ -913,7 +912,7 @@ pc3270_render_apa_2bpp(pc3270_t *dev)
 static void
 pc3270_render_cga_1bpp(pc3270_t *dev)
 {
-    uint32_t *p     = &((uint32_t *) buffer32->line[dev->displine])[0];
+    uint32_t *p     = &((uint32_t *) dev->monitor->target_buffer->line[dev->displine])[0];
     int       width = dev->cols * 9;
     uint32_t  addr;
 
@@ -938,7 +937,7 @@ pc3270_render_cga_1bpp(pc3270_t *dev)
 static void
 pc3270_render_cga_2bpp(pc3270_t *dev)
 {
-    uint32_t *p     = &((uint32_t *) buffer32->line[dev->displine])[0];
+    uint32_t *p     = &((uint32_t *) dev->monitor->target_buffer->line[dev->displine])[0];
     int       width = dev->cols * 9;
     uint8_t   pal[4];
     uint32_t  addr;
@@ -1033,8 +1032,6 @@ pc3270_poll(void *priv)
 {
     pc3270_t *dev = (pc3270_t *) priv;
 
-    dev->prev_monitor_index = monitor_index_global;
-    monitor_index_global    = dev->monitor_index;
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
@@ -1043,7 +1040,7 @@ pc3270_poll(void *priv)
         if (dev->displine < dev->dispheight) {
             if (dev->displine < dev->firstline) {
                 dev->firstline = dev->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
             }
             dev->lastline = dev->displine;
 
@@ -1054,7 +1051,7 @@ pc3270_poll(void *priv)
                self-test at C000:0647 runs in a graphics mode, and only the
                text renderer knows anything about foreground/background. */
             if (dev->reg189 & 0x20) {
-                const uint32_t *p     = (const uint32_t *) buffer32->line[dev->displine];
+                const uint32_t *p     = (const uint32_t *) dev->monitor->target_buffer->line[dev->displine];
                 int             width = dev->cols * 9;
 
                 for (int x = 0; x < width; x++)
@@ -1081,25 +1078,25 @@ pc3270_poll(void *priv)
             dev->displine = 0;
             dev->vsync    = 0;
 
-            if ((x != xsize) || (y != ysize) || video_force_resize_get()) {
-                xsize = x;
-                ysize = y;
-                if (xsize < 64)
-                    xsize = 720;
-                if (ysize < 32)
-                    ysize = 350;
-                set_screen_size(xsize, ysize);
+            if ((x != dev->monitor->mon_xsize) || (y != dev->monitor->mon_ysize) || video_force_resize_get_monitor(dev->monitor)) {
+                dev->monitor->mon_xsize = x;
+                dev->monitor->mon_ysize = y;
+                if (dev->monitor->mon_xsize < 64)
+                    dev->monitor->mon_xsize = 720;
+                if (dev->monitor->mon_ysize < 32)
+                    dev->monitor->mon_ysize = 350;
+                set_screen_size_monitor(dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(dev->monitor))
+                    video_force_resize_set_monitor(0, dev->monitor);
             }
 
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
             frames++;
 
-            video_res_x = xsize;
-            video_res_y = ysize;
-            video_bpp   = pc3270_graphics(dev) ? ((dev->mode3d8 & 0x10) ? 1 : 2) : 0;
+            dev->monitor->mon_res_x = dev->monitor->mon_xsize;
+            dev->monitor->mon_res_y = dev->monitor->mon_ysize;
+            dev->monitor->mon_bpp   = pc3270_graphics(dev) ? ((dev->mode3d8 & 0x10) ? 1 : 2) : 0;
 
             dev->firstline = 1000;
             dev->lastline  = 0;
@@ -1107,7 +1104,6 @@ pc3270_poll(void *priv)
         }
     }
 
-    monitor_index_global = dev->prev_monitor_index;
 }
 
 /**********************************************************************
@@ -1177,6 +1173,7 @@ pc3270_init(UNUSED(const device_t *info))
     FILE     *fp;
 
     dev = calloc(1, sizeof(pc3270_t));
+    dev->monitor = video_monitor_pending;
     if (dev == NULL)
         return NULL;
 
@@ -1215,7 +1212,7 @@ pc3270_init(UNUSED(const device_t *info))
     /* Not MDA and not CGA: the planar video switches must read "other", which
        is what the 5271 requires and what leaves the adapter ROM free to set
        the equipment word itself. */
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_3270pc);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_3270pc, dev->monitor);
 
     for (uint8_t c = 0; c < 8; c++) {
         if (dev->colour)
@@ -1270,8 +1267,7 @@ pc3270_init(UNUSED(const device_t *info))
     io_sethandler(0x03b0, 0x0010, pc3270_in, NULL, NULL, pc3270_out, NULL, NULL, dev);
     io_sethandler(0x03d0, 0x0010, pc3270_in, NULL, NULL, pc3270_out, NULL, NULL, dev);
 
-    overscan_x         = overscan_y = 0;
-    dev->monitor_index = monitor_index_global;
+    dev->monitor->mon_overscan_x         = dev->monitor->mon_overscan_y = 0;
 
     /* Power-on defaults matching the mono configuration.  The adapter ROM
        reprograms every one of these during its own initialisation. */

@@ -205,15 +205,15 @@ vid_blit_v_overscan(pcjx_video_t *video)
         x = (video->crtc[1] << 4) + ho_s;
 
     for (i = 0; i < h; i++) {
-        hline(buffer32, 0, y0 + i, x, cols);
-        hline(buffer32, 0, y + i, x, cols);
+        hline(video->monitor->target_buffer, 0, y0 + i, x, cols);
+        hline(video->monitor->target_buffer, 0, y + i, x, cols);
 
         if (video->composite) {
-            Composite_Process(pcjx_raster_mode(video), 0, x >> 2, buffer32->line[y0 + i]);
-            Composite_Process(pcjx_raster_mode(video), 0, x >> 2, buffer32->line[y + i]);
+            Composite_Process(pcjx_raster_mode(video), 0, x >> 2, video->monitor->target_buffer->line[y0 + i]);
+            Composite_Process(pcjx_raster_mode(video), 0, x >> 2, video->monitor->target_buffer->line[y + i]);
         } else {
-            video_process_8(x, y0 + i);
-            video_process_8(x, y + i);
+            video_process_8_monitor(x, y0 + i, video->monitor);
+            video_process_8_monitor(x, y + i, video->monitor);
         }
     }
 }
@@ -472,11 +472,11 @@ vid_render(pcjx_video_t *video, int line, int ho_s, int ho_d)
     uint8_t pixels[16];
     int width = (pcjx_raster_mode(video) & 1) ? 8 : 16;
 
-    hline(buffer32, 0, line, video->crtc[1] * width + ho_s, (video->array[2] & 15) + 16);
+    hline(video->monitor->target_buffer, 0, line, video->crtc[1] * width + ho_s, (video->array[2] & 15) + 16);
     for (int x = 0; x < video->crtc[1]; x++) {
         vid_cell(video, video->memaddr++, video->scanline, pixels);
         for (int c = 0; c < width; c++)
-            buffer32->line[line][x * width + ho_d + c] = pixels[c] + 16;
+            video->monitor->target_buffer->line[line][x * width + ho_d + c] = pixels[c] + 16;
     }
 }
 
@@ -562,7 +562,7 @@ pcjx_vid_out(uint16_t port, uint8_t val, uint8_t vp_mask, void *priv)
             old = video->crtc[video->crtcreg];
             video->crtc[video->crtcreg] = val & crtcmask[video->crtcreg];
             if (video->crtcreg == 2)
-                overscan_x = vid_get_h_overscan_size(video);
+                video->monitor->mon_overscan_x = vid_get_h_overscan_size(video);
             if (old != val) {
                 if (video->crtcreg < 0xe || video->crtcreg > 0x10) {
                     pcjx_recalc_timings(video);
@@ -633,9 +633,9 @@ static void
 vid_render_blank(pcjx_video_t *video, int line, int ho_s)
 {
     if (pcjx_raster_mode(video) & 1)
-        hline(buffer32, 0, line, (video->crtc[1] << 3) + ho_s, (video->array[2] & 0xf) + 16);
+        hline(video->monitor->target_buffer, 0, line, (video->crtc[1] << 3) + ho_s, (video->array[2] & 0xf) + 16);
     else
-        hline(buffer32, 0, line, (video->crtc[1] << 4) + ho_s, (video->array[2] & 0xf) + 16);
+        hline(video->monitor->target_buffer, 0, line, (video->crtc[1] << 4) + ho_s, (video->array[2] & 0xf) + 16);
 }
 
 static void
@@ -649,9 +649,9 @@ vid_render_process(pcjx_video_t *video, int line, int ho_s)
         x = (video->crtc[1] << 4) + ho_s;
 
     if (video->composite)
-        Composite_Process(pcjx_raster_mode(video), 0, x >> 2, buffer32->line[line]);
+        Composite_Process(pcjx_raster_mode(video), 0, x >> 2, video->monitor->target_buffer->line[line]);
     else
-        video_process_8(x, line);
+        video_process_8_monitor(x, line, video->monitor);
 }
 
 static void
@@ -678,7 +678,7 @@ vid_poll(void *priv)
         if (video->dispon) {
             if (video->displine < video->firstline) {
                 video->firstline = video->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(video->monitor);
             }
             video->lastline = video->displine;
             switch (video->double_type) {
@@ -796,14 +796,14 @@ vid_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= ho_s;
 
-                        if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
+                        if ((xs_temp != video->monitor->mon_xsize) || (ys_temp != video->monitor->mon_ysize) || video_force_resize_get_monitor(video->monitor)) {
+                            video->monitor->mon_xsize = xs_temp;
+                            video->monitor->mon_ysize = ys_temp;
 
-                            set_screen_size(xsize, ysize + (enable_overscan ? 32 : 0));
+                            set_screen_size_monitor(video->monitor->mon_xsize, video->monitor->mon_ysize + (enable_overscan ? 32 : 0), video->monitor);
 
-                            if (video_force_resize_get())
-                                video_force_resize_set(0);
+                            if (video_force_resize_get_monitor(video->monitor))
+                                video_force_resize_set_monitor(0, video->monitor);
                         }
 
                         vid_blit_v_overscan(video);
@@ -811,34 +811,34 @@ vid_poll(void *priv)
                         if (video->double_type > PCJX_DOUBLE_NONE) {
                             if (enable_overscan) {
                                 cga_blit_memtoscreen(0, video->firstline << 1,
-                                                     xsize, actual_ys + 32,
-                                                     video->double_type);
+                                                     video->monitor->mon_xsize, actual_ys + 32,
+                                                     video->double_type, video->monitor);
                             } else if (video->apply_hd) {
                                 cga_blit_memtoscreen(ho_s / 2, (video->firstline << 1) + 16,
-                                                     xsize, actual_ys,
-                                                     video->double_type);
+                                                     video->monitor->mon_xsize, actual_ys,
+                                                     video->double_type, video->monitor);
                             } else {
                                 cga_blit_memtoscreen(ho_d, (video->firstline << 1) + 16,
-                                                     xsize, actual_ys,
-                                                     video->double_type);
+                                                     video->monitor->mon_xsize, actual_ys,
+                                                     video->double_type, video->monitor);
                             }
                         } else {
                             if (enable_overscan) {
-                                video_blit_memtoscreen(0, video->firstline,
-                                                       xsize, (actual_ys >> 1) + 16);
+                                video_blit_memtoscreen_monitor(0, video->firstline,
+                                                       video->monitor->mon_xsize, (actual_ys >> 1) + 16, video->monitor);
                             } else if (video->apply_hd) {
-                                video_blit_memtoscreen(ho_s / 2, video->firstline + 8,
-                                                       xsize, actual_ys >> 1);
+                                video_blit_memtoscreen_monitor(ho_s / 2, video->firstline + 8,
+                                                       video->monitor->mon_xsize, actual_ys >> 1, video->monitor);
                             } else {
-                                video_blit_memtoscreen(ho_d, video->firstline + 8,
-                                                       xsize, actual_ys >> 1);
+                                video_blit_memtoscreen_monitor(ho_d, video->firstline + 8,
+                                                       video->monitor->mon_xsize, actual_ys >> 1, video->monitor);
                             }
                         }
                     }
 
                     frames++;
-                    video_res_x = xsize;
-                    video_res_y = ysize;
+                    video->monitor->mon_res_x = video->monitor->mon_xsize;
+                    video->monitor->mon_res_y = video->monitor->mon_ysize;
                 }
                 video->firstline = 1000;
                 video->lastline  = 0;
@@ -861,26 +861,28 @@ vid_init(pcjx_video_t *video)
 {
     int     display_type;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
+    video->monitor = video_monitor_pending;
+
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_dram, video->monitor);
 
     display_type    = device_get_config_int("display_type");
     video->composite = (display_type == PCJX_COMPOSITE);
     video->apply_hd  = device_get_config_int("apply_hd");
-    overscan_x = 256;
-    overscan_y = 32;
+    video->monitor->mon_overscan_x = 256;
+    video->monitor->mon_overscan_y = 32;
 
     timer_add(&video->timer, vid_poll, video, 1);
 
     if (video->composite)
-        cga_palette = 0;
+        *video->monitor->mon_cga_palette = 0;
     else
-        cga_palette = (display_type << 1);
-    cgapal_rebuild();
+        *video->monitor->mon_cga_palette = (display_type << 1);
+    cgapal_rebuild_monitor(video->monitor);
 
     video->double_type = device_get_config_int("double_type");
     cga_interpolate_init();
 
-    monitors[monitor_index_global].mon_composite = !!video->composite;
+    video->monitor->mon_composite = !!video->composite;
 }
 
 void

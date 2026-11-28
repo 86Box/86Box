@@ -183,6 +183,7 @@ enum {
 };
 
 typedef struct gxm_video_t {
+    struct monitor_t *monitor;
     /* Graphics pipeline. */
     uint32_t dst_xy;      /* 8100h: X in 15:0, Y in 31:16 */
     uint32_t wh;          /* 8104h: width (vector length) in 15:0, height (initial error) in 31:16 */
@@ -1232,7 +1233,7 @@ gxm_output_line(gxm_video_t *dev, uint32_t *line, int y)
 static void
 gxm_render_line(gxm_video_t *dev, int y)
 {
-    uint32_t *line   = buffer32->line[y];
+    uint32_t *line   = dev->monitor->target_buffer->line[y];
     const int pxdb   = !!(dev->dc[DC_TIMING_CFG] & TC_PXDB);
     const int bpp16  = !(dev->dc[DC_OUTPUT_CFG] & OC_8BPP);
     const int ch4s   = !!(dev->dc[DC_GENERAL_CFG] & GC_CH4S);
@@ -1307,7 +1308,7 @@ gxm_poll(void *priv)
 
         if (dev->displine < dev->vdisp) {
             if (dev->displine == 0)
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
             if (dev->output && !dev->override)
                 gxm_render_line(dev, dev->displine);
 
@@ -1327,25 +1328,25 @@ gxm_poll(void *priv)
             dev->dc[DC_TIMING_CFG] |= TC_VNA;
 
             if (dev->output && !dev->override) {
-                if ((dev->hdisp != xsize) || (dev->vdisp != ysize) || video_force_resize_get()) {
-                    xsize = dev->hdisp;
-                    ysize = dev->vdisp;
-                    if (xsize < 64)
-                        xsize = 640;
-                    if (ysize < 32)
-                        ysize = 480;
-                    set_screen_size(xsize, ysize);
+                if ((dev->hdisp != dev->monitor->mon_xsize) || (dev->vdisp != dev->monitor->mon_ysize) || video_force_resize_get_monitor(dev->monitor)) {
+                    dev->monitor->mon_xsize = dev->hdisp;
+                    dev->monitor->mon_ysize = dev->vdisp;
+                    if (dev->monitor->mon_xsize < 64)
+                        dev->monitor->mon_xsize = 640;
+                    if (dev->monitor->mon_ysize < 32)
+                        dev->monitor->mon_ysize = 480;
+                    set_screen_size_monitor(dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
 
-                    if (video_force_resize_get())
-                        video_force_resize_set(0);
+                    if (video_force_resize_get_monitor(dev->monitor))
+                        video_force_resize_set_monitor(0, dev->monitor);
                 }
 
-                video_blit_memtoscreen(0, 0, xsize, ysize);
+                video_blit_memtoscreen_monitor(0, 0, dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
                 frames++;
 
-                video_res_x = dev->hdisp;
-                video_res_y = dev->vdisp;
-                video_bpp   = (dev->dc[DC_OUTPUT_CFG] & OC_8BPP) ? 8 : 16;
+                dev->monitor->mon_res_x = dev->hdisp;
+                dev->monitor->mon_res_y = dev->vdisp;
+                dev->monitor->mon_bpp   = (dev->dc[DC_OUTPUT_CFG] & OC_8BPP) ? 8 : 16;
             }
             dev->blink++;
         }
@@ -1616,7 +1617,7 @@ gxm_video_set_override(void *priv, int val)
 
     /* Back from the Voodoo: the next frame sets the screen size again. */
     if (dev->override && !val)
-        video_force_resize_set(1);
+        video_force_resize_set_monitor(1, dev->monitor);
     dev->override = val;
 }
 
@@ -1631,6 +1632,7 @@ gxm_video_init(UNUSED(const device_t *info))
 {
     static const uint32_t base[3] = { 0xa0000, 0xb0000, 0xb8000 };
     gxm_video_t          *dev     = (gxm_video_t *) calloc(1, sizeof(gxm_video_t));
+    dev->monitor = video_monitor_pending;
 
     gxm_video = dev;
 
@@ -1645,7 +1647,7 @@ gxm_video_init(UNUSED(const device_t *info))
     /* The display is the machine's own one, unless a card is used. */
     dev->output = (gfxcard[0] == VID_INTERNAL);
     if (dev->output) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gxm);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_gxm, dev->monitor);
         video_set_override_handler(dev, gxm_video_set_override);
     }
 

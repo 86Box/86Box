@@ -555,8 +555,8 @@ v6355_render(v6355_t *v6355, int line)
     cols[0] = ((v6355->cgamode & 0x12) == 0x12) ? 0 : (v6355->cgacol & 15);
 
     for (c = 0; c < 8; c++) {
-        ((uint32_t *) buffer32->line[line])[c] = cols[0];
-        ((uint32_t *) buffer32->line[line])[c + width + 8] = cols[0];
+        ((uint32_t *) v6355->monitor->target_buffer->line[line])[c] = cols[0];
+        ((uint32_t *) v6355->monitor->target_buffer->line[line])[c + width + 8] = cols[0];
     }
 
     /* Render screen data. */
@@ -569,10 +569,10 @@ v6355_render(v6355_t *v6355, int line)
             drawcursor = ((v6355->ma == ca) && v6355->con && v6355->cursoron);
             if (drawcursor) {
                 for (c = 0; c < 8; c++)
-                   ((uint32_t *) buffer32->line[line])[(x << 3) + c + 8] = pixel[(x << 3) + c] ^ 0xffffff;
+                   ((uint32_t *) v6355->monitor->target_buffer->line[line])[(x << 3) + c + 8] = pixel[(x << 3) + c] ^ 0xffffff;
             } else {
                 for (c = 0; c < 8; c++)
-                   ((uint32_t *)buffer32->line[line])[(x << 3) + c + 8] = pixel[(x << 3) + c];
+                   ((uint32_t *)v6355->monitor->target_buffer->line[line])[(x << 3) + c + 8] = pixel[(x << 3) + c];
             }
 
             v6355->ma++;
@@ -586,10 +586,10 @@ v6355_render(v6355_t *v6355, int line)
             drawcursor = ((v6355->ma == ca) && v6355->con && v6355->cursoron);
             if (drawcursor) {
                 for (c = 0; c < 16; c++)
-                    ((uint32_t *) buffer32->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c] ^ 0xffffff;
+                    ((uint32_t *) v6355->monitor->target_buffer->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c] ^ 0xffffff;
             } else {
                 for (c = 0; c < 16; c++)
-                    ((uint32_t *)buffer32->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c];
+                    ((uint32_t *)v6355->monitor->target_buffer->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c];
             }
 
             v6355->ma++;
@@ -604,7 +604,7 @@ v6355_render(v6355_t *v6355, int line)
 
         for (x = 0; x < (width / 16); x++) {
             for (c = 0; c < 16; c++)
-            ((uint32_t *) buffer32->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c];
+            ((uint32_t *) v6355->monitor->target_buffer->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c];
         }
     } else {
         /* High-res graphics 
@@ -614,7 +614,7 @@ v6355_render(v6355_t *v6355, int line)
 
         for (x = 0; x < (width / 16); x++) {
             for (c = 0; c < 16; c++)
-            ((uint32_t *) buffer32->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c];
+            ((uint32_t *) v6355->monitor->target_buffer->line[line])[(x << 4) + c + 8] = pixel[(x << 4) + c];
         }
     }
 }
@@ -626,7 +626,7 @@ v6355_render_blank(v6355_t *v6355, int line)
     uint32_t cols[4];
 
     cols[0] = ((v6355->cgamode & 0x12) == 0x12) ? 0 : (v6355->cgacol & 15);
-    hline(buffer32, 0, line, width + 16, cols[0]);
+    hline(v6355->monitor->target_buffer, 0, line, width + 16, cols[0]);
 }
 
 static void
@@ -642,20 +642,20 @@ v6355_render_process(v6355_t *v6355, int line)
         /* XXX V6355_COMPOSITE can't use the V6355's palette registers */
         case V6355_COMPOSITE:
             for (c = 0; c < x; c++)
-                buffer32->line[line][c] = ((uint32_t *) buffer32->line[line])[c] & 0xf;
+                v6355->monitor->target_buffer->line[line][c] = ((uint32_t *) v6355->monitor->target_buffer->line[line])[c] & 0xf;
 
             border = ((v6355->cgamode & 0x12) == 0x12) ? 0 : (v6355->cgacol & 15);
 
-            Composite_Process(v6355->cgamode, border, (width + 16) >> 2, buffer32->line[line]);
+            Composite_Process(v6355->cgamode, border, (width + 16) >> 2, v6355->monitor->target_buffer->line[line]);
             break;
         case V6355_TRUECOLOR:
             /* V6355_TRUECOLOR is a fictitious display that behaves like RGB except it
              * takes account of the V6355's palette registers */
             for (c = 0; c < x; c++)
-                ((uint32_t *) buffer32->line[line])[c] = v6355->v6355pal[((uint32_t *) buffer32->line[line])[c] & 0xf];
+                ((uint32_t *) v6355->monitor->target_buffer->line[line])[c] = v6355->v6355pal[((uint32_t *) v6355->monitor->target_buffer->line[line])[c] & 0xf];
             break;
         default:
-            video_process_8(width + 16, line);
+            video_process_8_monitor(width + 16, line, v6355->monitor);
             break;
     }
 }
@@ -678,9 +678,7 @@ v6355_poll(void *priv)
     int crtc4, crtc5, crtc6, crtc7, crtc8, crtc9;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = v6355->monitor_index;
 
     if (!(v6355->cgamode & 2)) {
         /* Text mode values */
@@ -714,7 +712,7 @@ v6355_poll(void *priv)
         if (v6355->cgadispon) {
             if (v6355->displine < v6355->firstline) {
                 v6355->firstline = v6355->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(v6355->monitor);
             }
 
             v6355->lastline = v6355->displine;
@@ -757,7 +755,7 @@ v6355_poll(void *priv)
                 break;
         }
 
-        video_lightpen_check_trigger_strobe(8, v6355->displine * (v6355->double_type ? 2 : 1), 0, v6355->firstline, 21477270.0 / 2.0, 0);
+        video_lightpen_check_trigger_strobe(8, v6355->displine * (v6355->double_type ? 2 : 1), 0, v6355->firstline, 21477270.0 / 2.0, v6355->monitor);
         v6355->sc = oldsc;
 
         if (v6355->vc == crtc7 && !v6355->sc)
@@ -771,7 +769,7 @@ v6355_poll(void *priv)
         timer_advance_u64(&v6355->timer, v6355->dispontime);
 
         v6355->linepos = 0;
-        video_lightpen_hsync();
+        video_lightpen_hsync(v6355->monitor);
 
         if (v6355->vsynctime) {
             v6355->vsynctime--;
@@ -829,7 +827,7 @@ v6355_poll(void *priv)
                 v6355->cgadispon = 0;
                 v6355->displine = 0;
                 v6355->vsynctime = 16;
-                video_lightpen_vsync();
+                video_lightpen_vsync(v6355->monitor);
                 if (crtc7) {
                     x = width + 16;
                     v6355->lastline++;
@@ -845,40 +843,40 @@ v6355_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if (((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
-                            set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                        if (((xs_temp != v6355->monitor->mon_xsize) || (ys_temp != v6355->monitor->mon_ysize) || video_force_resize_get_monitor(v6355->monitor))) {
+                            v6355->monitor->mon_xsize = xs_temp;
+                            v6355->monitor->mon_ysize = ys_temp;
+                            set_screen_size_monitor(v6355->monitor->mon_xsize, v6355->monitor->mon_ysize + (enable_overscan ? 16 : 0), v6355->monitor);
 
-                            if (video_force_resize_get())
-                                video_force_resize_set(0);
+                            if (video_force_resize_get_monitor(v6355->monitor))
+                                video_force_resize_set_monitor(0, v6355->monitor);
                         }
 
-                        cga_do_blit(xsize, v6355->firstline, v6355->lastline, v6355->double_type);
+                        cga_do_blit(v6355->monitor->mon_xsize, v6355->firstline, v6355->lastline, v6355->double_type, v6355->monitor);
                     }
 
                     frames++;
 
-                    video_res_x = xsize - 16;
-                    video_res_y = ysize;
+                    v6355->monitor->mon_res_x = v6355->monitor->mon_xsize - 16;
+                    v6355->monitor->mon_res_y = v6355->monitor->mon_ysize;
                     if (v6355->cgamode & 1) {
-                        video_res_x /= 8;
-                        video_res_y /= crtc9 + 1;
-                        video_bpp = 0;
+                        v6355->monitor->mon_res_x /= 8;
+                        v6355->monitor->mon_res_y /= crtc9 + 1;
+                        v6355->monitor->mon_bpp = 0;
                     } else if (!(v6355->cgamode & 2)) {
-                        video_res_x /= 16;
-                        video_res_y /= crtc9 + 1;
-                        video_bpp = 0;
+                        v6355->monitor->mon_res_x /= 16;
+                        v6355->monitor->mon_res_y /= crtc9 + 1;
+                        v6355->monitor->mon_bpp = 0;
                     } else if (!(v6355->cgamode & 16)) {
                         if (v6355->cgamode & 0x40) {
-                            video_res_x = width / 4;
-                            video_bpp = 4;
+                            v6355->monitor->mon_res_x = width / 4;
+                            v6355->monitor->mon_bpp = 4;
                         } else {
-                            video_res_x /= 2;
-                            video_bpp = 2;
+                            v6355->monitor->mon_res_x /= 2;
+                            v6355->monitor->mon_bpp = 2;
                         }
                     } else
-                        video_bpp = 1;
+                        v6355->monitor->mon_bpp = 1;
                 }
 
                 v6355->firstline = 1000;
@@ -904,7 +902,6 @@ v6355_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -913,11 +910,11 @@ v6355_standalone_init(const device_t *info) {
     int      c;
     v6355_t *v6355 = calloc(1, sizeof(v6355_t));
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_v6355);
+    v6355->monitor = video_monitor_pending;
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_v6355, v6355->monitor);
 
-    v6355->monitor_index = monitor_index_global;
 
-    overscan_x = overscan_y = 16;
+    v6355->monitor->mon_overscan_x = v6355->monitor->mon_overscan_y = 16;
 
     /* Initialise the palette registers to default values */
     memcpy(v6355->v6355data + 0x40, defpalette, 0x20);
@@ -974,9 +971,8 @@ v6355_standalone_init(const device_t *info) {
                   v6355);
 
     v6355->rgb_type = device_get_config_int("rgb_type");
-    if (&(cga_palette) != NULL)
-        cga_palette     = (v6355->rgb_type << 1);
-    cgapal_rebuild();
+    *v6355->monitor->mon_cga_palette = v6355->rgb_type << 1;
+    cgapal_rebuild_monitor(v6355->monitor);
     update_cga16_color(v6355->cgamode, v6355->cgacol);
 
     v6355->double_type = device_get_config_int("double_type");
@@ -994,7 +990,7 @@ v6355_standalone_init(const device_t *info) {
             break;
     }
 
-    monitors[monitor_index_global].mon_composite = (v6355->display_type == V6355_COMPOSITE);
+    v6355->monitor->mon_composite = (v6355->display_type == V6355_COMPOSITE);
 
     return v6355;
 }

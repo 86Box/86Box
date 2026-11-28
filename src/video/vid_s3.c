@@ -2474,14 +2474,14 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                 if (offset >= 0) {
                     if (width == 8) {
                         if (!(dat[(xx & 4) ? 2 : 0] & 0x80))
-                            buffer32->line[displine][offset + svga->x_add] = (dat[(xx & 4) ? 3 : 1] & 0x80) ? fg : bg;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[(xx & 4) ? 3 : 1] & 0x80) ? fg : bg;
                         else if (dat[(xx & 4) ? 3 : 1] & 0x80)
-                            buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
                     } else {
                         if (!(dat[(xx & 8) ? 2 : 0] & 0x80))
-                            buffer32->line[displine][offset + svga->x_add] = (dat[(xx & 8) ? 3 : 1] & 0x80) ? fg : bg;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[(xx & 8) ? 3 : 1] & 0x80) ? fg : bg;
                         else if (dat[(xx & 8) ? 3 : 1] & 0x80)
-                            buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
                     }
                 }
 
@@ -2504,7 +2504,7 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                 for (xx = 0; xx < 16; xx++) {
                     if (offset >= 0) {
                         if (dat[0] & 0x8000)
-                            buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
                     }
 
                     offset++;
@@ -2516,9 +2516,9 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                 for (xx = 0; xx < width; xx++) {
                     if (offset >= 0) {
                         if (!(dat[0] & 0x8000))
-                            buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
                         else if (dat[1] & 0x8000)
-                            buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
+                            svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
                     }
 
                     offset++;
@@ -2848,7 +2848,7 @@ s3_trio64v_overlay_draw(svga_t *svga, int displine)
     uint32_t   *p;
     uint8_t    *src = &svga->vram[svga->overlay_latch.addr];
 
-    p = &((uint32_t *)buffer32->line[displine])[offset + svga->x_add];
+    p = &((uint32_t *)svga->monitor->target_buffer->line[displine])[offset + svga->x_add];
 
     if ((offset + s3->streams.sec_w) > s3->streams.pri_w)
         x_size = (s3->streams.pri_w - s3->streams.sec_x) + 1;
@@ -10543,365 +10543,365 @@ s3_init(const device_t *info)
         case S3_ORCHID_86C911:
             bios_fn = ROM_ORCHID_86C911;
             chip    = S3_86C911;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH_VRAM_911:
             bios_fn = ROM_DIAMOND_STEALTH_VRAM_911;
             chip    = S3_86C911;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911, video_monitor_pending);
             break;
         case S3_AMI_86C924:
             bios_fn = ROM_AMI_86C924;
             chip    = S3_86C924;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH_VRAM_924:
             bios_fn = ROM_DIAMOND_STEALTH_VRAM_924;
             chip    = S3_86C924;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911, video_monitor_pending);
             break;
         case S3_ORCHID_86C801:
             bios_fn = ROM_ORCHID_86C801;
             chip    = S3_86C801;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801, video_monitor_pending);
             break;
         case S3_SPEA_MIRAGE_86C801:
             bios_fn = ROM_SPEA_MIRAGE_86C801;
             chip    = S3_86C801;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801, video_monitor_pending);
             break;
         case S3_WINNER1000_805:
             bios_fn = ROM_WINNER1000_805;
             chip    = S3_86C805I;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801, video_monitor_pending);
             break;
         case S3_86C805_ONBOARD:
             bios_fn = NULL;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_DIGITAL_86C805:
             bios_fn = ROM_DIGITAL_86C805;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_ORCHID_86C805:
             bios_fn = ROM_ORCHID_86C805;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_SPEA_MIRAGE_86C805:
             bios_fn = ROM_SPEA_MIRAGE_86C805;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_MIROCRYSTAL8S_805:
             bios_fn = ROM_MIROCRYSTAL8S_805;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_MIROCRYSTAL10SD_805:
             bios_fn = ROM_MIROCRYSTAL10SD_805;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_PHOENIX_86C801:
             bios_fn = ROM_PHOENIX_86C80X;
             chip    = S3_86C801;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801, video_monitor_pending);
             break;
         case S3_PHOENIX_86C805:
             bios_fn = ROM_PHOENIX_86C80X;
             chip    = S3_86C805;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_METHEUS_86C928:
             bios_fn = ROM_METHEUS_86C928;
             chip    = S3_86C928;
             if (info->flags & DEVICE_VLB)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801, video_monitor_pending);
             break;
         case S3_ELSAWIN1K_86C928:
             bios_fn = ROM_ELSAWIN1KVL_86C928;
             chip    = S3_86C928;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805, video_monitor_pending);
             break;
         case S3_ELSAWIN1KPCI_86C928:
             bios_fn = ROM_ELSAWIN1KPCI_86C928;
             chip    = S3_86C928PCI;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c928pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c928pci, video_monitor_pending);
             break;
         case S3_ELSAWIN2K_86C928:
             bios_fn = ROM_ELSAWIN2K_86C928;
             chip    = S3_86C928;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801, video_monitor_pending);
             break;
         case S3_SPEA_MERCURY_LITE_PCI:
             bios_fn = ROM_SPEA_MERCURY_LITE_PCI;
             chip    = S3_86C928PCI;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c928pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c928pci, video_monitor_pending);
             break;
         case S3_MIROCRYSTAL20SD_864:
             bios_fn = ROM_MIROCRYSTAL20SD_864_VLB;
             chip    = S3_VISION864;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb, video_monitor_pending);
             break;
         case S3_PARADISE_BAHAMAS64:
             bios_fn = ROM_PARADISE_BAHAMAS64;
             chip    = S3_VISION864;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb, video_monitor_pending);
             break;
         case S3_PHOENIX_VISION864:
             bios_fn = ROM_PHOENIX_VISION864;
             chip    = S3_VISION864;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb, video_monitor_pending);
             break;
         case S3_DEC_VISION864:
             bios_fn = ROM_DEC_VISION864;
             chip    = S3_VISION864;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH64_864:
             bios_fn = ROM_DIAMOND_STEALTH64_864;
             chip    = S3_VISION864;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci, video_monitor_pending);
             break;
         case S3_LEADTEK_VISION864:
             bios_fn = ROM_LEADTEK_VISION864;
             chip    = S3_VISION864;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci, video_monitor_pending);
             break;
         case S3_NUMBER9_9FX_531:
             bios_fn = ROM_NUMBER9_9FX_531;
             chip    = S3_VISION868;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci, video_monitor_pending);
             break;
         case S3_GENOA_VISION868:
             bios_fn = ROM_GENOA_VISION868;
             chip    = S3_VISION868;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci, video_monitor_pending);
             break;
         case S3_MIROVIDEO_VISION868:
             bios_fn = ROM_MIROVIDEO_VISION868;
             chip    = S3_VISION868;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci, video_monitor_pending);
             break;
         case S3_PHOENIX_VISION868:
             bios_fn = ROM_PHOENIX_VISION868;
             chip    = S3_VISION868;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH64_964:
             bios_fn = ROM_DIAMOND_STEALTH64_964;
             chip    = S3_VISION964;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb, video_monitor_pending);
             break;
         case S3_MIROCRYSTAL20SV_964:
             chip = S3_VISION964;
             if (info->flags & DEVICE_PCI) {
                 bios_fn = ROM_MIROCRYSTAL20SV_964_PCI;
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci, video_monitor_pending);
             } else {
                 bios_fn = ROM_MIROCRYSTAL20SV_964_VLB;
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb, video_monitor_pending);
             }
             break;
         case S3_SPEA_86C964:
             bios_fn = ROM_SPEA_86C964;
             chip    = S3_VISION964;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH64_968:
             bios_fn = ROM_DIAMOND_STEALTH64_968;
             chip    = S3_VISION968;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_vlb, video_monitor_pending);
             break;
         case S3_MIROVIDEO40SV_ERGO_968:
             bios_fn = ROM_MIROVIDEO40SV_ERGO_968_PCI;
             chip    = S3_VISION968;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci, video_monitor_pending);
             break;
         case S3_NUMBER9_9FX_771:
             bios_fn = ROM_NUMBER9_9FX_771;
             chip    = S3_VISION968;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci, video_monitor_pending);
             break;
         case S3_PHOENIX_VISION968:
             bios_fn = ROM_PHOENIX_VISION968;
             chip    = S3_VISION968;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci, video_monitor_pending);
             break;
         case S3_ELSAWIN2KPROX_964:
             bios_fn = ROM_ELSAWIN2KPROX_964;
             chip    = S3_VISION964;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci, video_monitor_pending);
             break;
         case S3_ELSAWIN2KPROX:
             bios_fn = ROM_ELSAWIN2KPROX;
             chip    = S3_VISION968;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci, video_monitor_pending);
             break;
         case S3_SPEA_MERCURY_P64V:
             bios_fn = ROM_SPEA_MERCURY_P64V;
             chip    = S3_VISION968;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci, video_monitor_pending);
             break;
         case S3_PHOENIX_TRIO32:
             bios_fn = ROM_PHOENIX_TRIO32;
             chip    = S3_TRIO32;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb, video_monitor_pending);
             break;
         case S3_PHOENIX_TRIO32_ONBOARD:
             bios_fn = NULL;
             chip    = S3_TRIO32;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH_SE:
             bios_fn = ROM_DIAMOND_STEALTH_SE;
             chip    = S3_TRIO32;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb, video_monitor_pending);
             break;
         case S3_SPEA_TRIO32:
             bios_fn = ROM_SPEA_TRIO32;
             chip    = S3_TRIO32;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci, video_monitor_pending);
             break;
         case S3_PHOENIX_TRIO64:
             bios_fn = ROM_PHOENIX_TRIO64;
             chip    = S3_TRIO64;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_SPEA_MIRAGE_P64:
             bios_fn = ROM_SPEA_MIRAGE_P64;
             chip    = S3_TRIO64;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_PHOENIX_TRIO64_ONBOARD:
             bios_fn = NULL;
             chip    = S3_TRIO64;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_STB_POWERGRAPH_64_VIDEO:
             bios_fn = ROM_STB_POWERGRAPH_64_VIDEO;
             chip    = S3_TRIO64V;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_PHOENIX_TRIO64VPLUS:
             bios_fn = ROM_PHOENIX_TRIO64VPLUS;
             chip    = S3_TRIO64V;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
             bios_fn = NULL;
             chip    = S3_TRIO64V;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_EXPERTCOLOR_DSP3364P:
             bios_fn = ROM_EXPERTCOLOR_DSP3364P;
             chip    = S3_TRIO64;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_CARDEX_TRIO64VPLUS:
             bios_fn = ROM_CARDEX_TRIO64VPLUS;
             chip    = S3_TRIO64V;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64vp_cardex_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64vp_cardex_pci, video_monitor_pending);
             break;
         case S3_DIAMOND_TRIO64V:
             bios_fn = ROM_DIAMOND_TRIO64V;
             chip    = S3_TRIO64V;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_HERCULES_TRIO64V:
             bios_fn = ROM_HERCULES_TRIO64V;
             chip    = S3_TRIO64V;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_MIROMEDIA_TV:
             bios_fn = ROM_MIROMEDIA_TV;
             chip    = S3_TRIO64V;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_MIRO_TRIO64V:
             bios_fn = ROM_MIRO_TRIO64V;
             chip    = S3_TRIO64V;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH64_764:
             bios_fn = ROM_DIAMOND_STEALTH64_764;
             chip    = S3_TRIO64;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_stealth64_vlb, video_monitor_pending);
             break;
         case S3_NUMBER9_9FX:
             bios_fn = ROM_NUMBER9_9FX;
             chip    = S3_TRIO64;
             if (info->flags & DEVICE_PCI)
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             else
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb, video_monitor_pending);
             break;
         case S3_TRIO64V2_DX:
             bios_fn = ROM_TRIO64V2_DX_VBE20;
             chip    = S3_TRIO64V2;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_ACER_TRIO64V2:
             bios_fn = ROM_ACER_TRIO64V2;
             chip    = S3_TRIO64V2;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_ASUS_TRIO64V2:
             bios_fn = ROM_ASUS_TRIO64V2;
             chip    = S3_TRIO64V2;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         case S3_TRIO64V2_DX_ONBOARD:
             bios_fn = NULL;
             chip    = S3_TRIO64V2;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci, video_monitor_pending);
             break;
         default:
             free(s3);

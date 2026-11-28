@@ -196,14 +196,13 @@ static void
 main_thread_pass(void)
 {
     /* If needed, handle a screen resize. */
-    if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
+    if (!video_fullscreen && !is_quit && atomic_exchange(&sdl_resize_pending, 0)) {
 
         if (vid_resize & 2)
-            plat_resize(fixed_size_x, fixed_size_y, 0);
+            plat_resize(fixed_size_x, fixed_size_y, video_primary_monitor);
         else
-            plat_resize(scrnsz_x, scrnsz_y, 0);
+            plat_resize(video_primary_monitor->mon_scrnsz_x, video_primary_monitor->mon_scrnsz_y, video_primary_monitor);
 
-        atomic_store(&doresize_monitors[0], 1);
     }
 }
 
@@ -243,7 +242,7 @@ do_stop(void)
     }
     if (blitreq) {
         blitreq = 0;
-        video_blit_complete();
+        video_blit_complete_monitor(video_primary_monitor);
     }
 
 #ifdef USE_SDL2_LIB
@@ -253,7 +252,7 @@ do_stop(void)
 #endif
         if (blitreq) {
             blitreq = 0;
-            video_blit_complete();
+            video_blit_complete_monitor(video_primary_monitor);
         }
     }
     startblit();

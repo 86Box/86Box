@@ -82,7 +82,7 @@ extern "C" {
 }
 
 struct mouseinputdata {
-    atomic_bool mouse_tablet_in_proximity;
+    monitor_t *hovered_monitor = nullptr;
 
     char *mouse_type;
 };
@@ -94,13 +94,14 @@ extern MainWindow *main_window;
 HWND rw_hwnd;
 #endif
 
-static unsigned char *screenshot_rgb = NULL;
-
-RendererStack::RendererStack(QWidget *parent, int monitor_index)
+RendererStack::RendererStack(QWidget *parent, monitor_t *monitor)
     : QWidget(parent)
-    , boxLayout(new QBoxLayout(QBoxLayout::TopToBottom, this))
     , ui(new Ui::RendererStack)
 {
+    m_monitor = monitor ? monitor : video_primary_monitor;
+    m_monitor_index = video_monitor_id(m_monitor);
+
+    boxLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);
     boxLayout->setContentsMargins(0, 0, 0, 0);
 #ifdef TOUCH_PR
     setAttribute(Qt::WA_AcceptTouchEvents, true);
@@ -118,18 +119,21 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     ui->setupUi(this);
 
-    m_monitor_index = monitor_index;
-
-    if (monitor_index >= 1) {
+    if (m_monitor_index >= 1) {
         QTimer *frameRateTimer = new QTimer(this);
         frameRateTimer->setSingleShot(false);
         frameRateTimer->setInterval(1000);
-        connect(frameRateTimer, &QTimer::timeout, [this] {
-            this->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(m_monitor_index + 1) + QString(" - ") + (monitors[m_monitor_index].mon_dpms ? tr("Monitor in sleep mode") : tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : ""))));
+        connect(frameRateTimer, &QTimer::timeout, this, [this] {
+            if (!m_monitor)
+                return;
+            this->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(m_monitor_index + 1) + QString(" - ") + (m_monitor->mon_dpms ? tr("Monitor in sleep mode") : tr("%1 Hz").arg(QString::number(m_monitor->mon_actualrenderedframes.load()) + (m_monitor->mon_interlace ? "i" : ""))));
         });
         frameRateTimer->start(1000);
     }
 #if defined __unix__ && !defined __HAIKU__
+    if (m_monitor_index != 0)
+        return;
+
     memset(auto_mouse_type, 0, sizeof(auto_mouse_type));
     mousedata.mouse_type = getenv("EMU86BOX_MOUSE");
     if (!mousedata.mouse_type || (mousedata.mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
@@ -164,7 +168,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         extern void xinput2_mouse_capture(QWindow *window);
         extern void xinput2_mouse_uncapture();
         xinput2_init();
-        if (monitor_index == 0) {
+        if (m_monitor_index == 0) {
             setAttribute(Qt::WA_NativeWindow, true);
             xinput2_set_grab_widget(this);
         }
@@ -174,23 +178,42 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     }
 #endif
 
-    if (monitor_index == 0)
+    if (m_monitor_index == 0)
         mouse_set_raw(raw);
 
-    screenshot_rgb = (unsigned char *) calloc(1, (size_t) 2048 * 2048 * 4);
 }
 
 RendererStack::~RendererStack()
 {
-    if (screenshot_rgb != NULL) {
-        free(screenshot_rgb);
-        screenshot_rgb = NULL;
-    }
-
-    while (QApplication::overrideCursor())
-        QApplication::restoreOverrideCursor();
-
+    stopRenderer();
     delete ui;
+}
+
+void
+RendererStack::stopRenderer()
+{
+    switchInProgress = true;
+    if (current) {
+        disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+        rendererWindow->finalize();
+    }
+    rendererWindow = nullptr;
+    current.reset();
+    imagebufs.clear();
+
+    if (m_monitor && mousedata.hovered_monitor == m_monitor) {
+        mousedata.hovered_monitor = nullptr;
+        while (QApplication::overrideCursor())
+            QApplication::restoreOverrideCursor();
+    }
+    mouse_clear_input_monitor(m_monitor);
+    m_monitor = nullptr;
+}
+
+bool
+RendererStack::acceptsGuestInput() const
+{
+    return m_monitor && (m_monitor->flags & VIDEO_MONITOR_INPUT);
 }
 
 void
@@ -217,6 +240,11 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (!acceptsGuestInput()) {
+        event->accept();
+        return;
+    }
+
 #ifdef Q_OS_WINDOWS
     rw_hwnd = (HWND) this->winId();
 #endif
@@ -259,12 +287,12 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         }
 #endif
 #ifdef Q_OS_WINDOWS
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && (mousedata.hovered_monitor == m_monitor)) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
 #    ifdef __APPLE__
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && (mousedata.hovered_monitor == m_monitor)) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #    else
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && (mousedata.hovered_monitor == m_monitor)) || (m_monitor_index < 1))
 #    endif
 #endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() & ~button);
@@ -275,6 +303,11 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
 void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
+    if (!acceptsGuestInput()) {
+        event->accept();
+        return;
+    }
+
     isMouseDown |= 1;
     /* A button that releases the capture is consumed, not sent to the guest. */
     if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
@@ -292,12 +325,12 @@ RendererStack::mousePressEvent(QMouseEvent *event)
         }
 #endif
 #ifdef Q_OS_WINDOWS
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && (mousedata.hovered_monitor == m_monitor)) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
 #    ifdef __APPLE__
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && (mousedata.hovered_monitor == m_monitor)) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #    else
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && (mousedata.hovered_monitor == m_monitor)) || (m_monitor_index < 1))
 #    endif
 #endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() | button);
@@ -308,6 +341,11 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
+    if (!acceptsGuestInput()) {
+        event->accept();
+        return;
+    }
+
     if (!mouse_capture && (mouse_input_mode < 1)) {
         event->ignore();
         return;
@@ -344,6 +382,11 @@ RendererStack::wheelEvent(QWheelEvent *event)
 void
 RendererStack::mouseMoveEvent(QMouseEvent *event)
 {
+    if (!acceptsGuestInput()) {
+        event->accept();
+        return;
+    }
+
     if (QApplication::platformName().contains("wayland")) {
         event->accept();
         return;
@@ -388,7 +431,10 @@ RendererStack::enterEvent(QEnterEvent *event)
 RendererStack::enterEvent(QEvent *event)
 #endif
 {
-    mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
+    if (!acceptsGuestInput())
+        return;
+
+    mousedata.hovered_monitor = m_monitor;
 
     if (mouse_input_mode == 1) {
         const auto *tablet = tablet_get_device(tablet_type);
@@ -402,7 +448,14 @@ RendererStack::enterEvent(QEvent *event)
 void
 RendererStack::leaveEvent(QEvent *event)
 {
-    mousedata.mouse_tablet_in_proximity = 0;
+    if (!acceptsGuestInput()) {
+        event->accept();
+        return;
+    }
+
+    if (mousedata.hovered_monitor == m_monitor)
+        mousedata.hovered_monitor = nullptr;
+    mouse_clear_input_monitor(m_monitor);
 
     if (mouse_input_mode >= 1 && QApplication::overrideCursor()) {
         while (QApplication::overrideCursor())
@@ -430,7 +483,7 @@ RendererStack::switchRenderer(Renderer renderer)
         disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
 
         /* Create new renderer only after previous is destroyed! */
-        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) { createRenderer(renderer); });
+        connect(current.get(), &QObject::destroyed, this, [this, renderer](QObject *) { createRenderer(renderer); });
 
         current.release()->deleteLater();
     } else {
@@ -441,12 +494,15 @@ RendererStack::switchRenderer(Renderer renderer)
 void
 RendererStack::createRenderer(Renderer renderer)
 {
+    if (!m_monitor)
+        return;
+
     rendererTakesScreenshots = false;
     switch (renderer) {
         default:
         case Renderer::Software:
             {
-                auto sw        = new SoftwareRenderer(this);
+                auto sw        = new SoftwareRenderer(this, m_monitor);
                 rendererWindow = sw;
                 /* Delivered on the renderer's worker thread. */
                 connect(this, &RendererStack::blitToRenderer, sw->blitContext(), [sw](int buf_idx, int x, int y, int w, int h) { sw->onBlit(buf_idx, x, y, w, h); }, Qt::QueuedConnection);
@@ -457,7 +513,7 @@ RendererStack::createRenderer(Renderer renderer)
             {
                 this->createWinId();
                 this->rendererTakesScreenshots = true;
-                auto hw                        = new OpenGLRenderer(this);
+                auto hw                        = new OpenGLRenderer(this, m_monitor);
                 rendererWindow                 = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
@@ -480,7 +536,7 @@ RendererStack::createRenderer(Renderer renderer)
                 this->createWinId();
                 VulkanWindowRenderer *hw = nullptr;
                 try {
-                    hw = new VulkanWindowRenderer(this);
+                    hw = new VulkanWindowRenderer(this, m_monitor);
                 } catch (std::runtime_error &e) {
                     auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), QMessageBox::Ok);
                     msgBox->setAttribute(Qt::WA_DeleteOnClose);
@@ -500,7 +556,7 @@ RendererStack::createRenderer(Renderer renderer)
                     if (m_monitor_index != 0 && show_second_monitors)
                         this->show();
 
-                    QTimer::singleShot(1000, [this] {
+                    QTimer::singleShot(1000, this, [this] {
                         if (m_monitor_index != 0 && show_second_monitors)
                             this->show();
                     });
@@ -529,7 +585,6 @@ RendererStack::createRenderer(Renderer renderer)
     if (m_monitor_index > 0)
         current->show();
 
-    rendererWindow->r_monitor_index = m_monitor_index;
 
     currentBuf = 0;
 
@@ -540,37 +595,12 @@ RendererStack::createRenderer(Renderer renderer)
     }
 }
 
-uint32_t *screenshot_buf = NULL;
-
-void
-take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
-{
-    uint32_t temp = 0x00000000;
-
-    for (int y = 0; y < sh; ++y) {
-        for (int x = 0; x < sw; ++x) {
-            if (screenshot_buf == NULL)
-                memset(&(screenshot_rgb[(y * sw * 3) + (x * 3)]), 0x00, 3);
-            else {
-                temp                                       = screenshot_buf[((sy + y) * 2048) + sx + x];
-                screenshot_rgb[(y * sw * 3) + (x * 3)]     = (temp >> 16) & 0xff;
-                screenshot_rgb[(y * sw * 3) + (x * 3) + 1] = (temp >> 8) & 0xff;
-                screenshot_rgb[(y * sw * 3) + (x * 3) + 2] = temp & 0xff;
-            }
-        }
-    }
-
-    QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
-    util::copyImageToClipboard(image);
-    monitors[i].mon_screenshots_raw_clipboard--;
-}
-
 // called from blitter thread
 void
 RendererStack::blit(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || ((w + y) > 2048) || ((h + x) > 2048) || (switchInProgress) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
-        video_blit_complete_monitor(m_monitor_index);
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (x > 2048 - w) || (y > 2048 - h) || (switchInProgress) || (m_monitor->target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
+        video_blit_complete_monitor(m_monitor);
         return;
     }
     sx = x;
@@ -589,14 +619,20 @@ RendererStack::blit(int x, int y, int w, int h)
     int cy1 = ((y + h) < 2048) ? (y + h + 1) : 2048;
     for (int y1 = cy0; y1 < cy1; y1++) {
         auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (cx0 * 4);
-        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][cx0]), (cx1 - cx0) * 4);
+        video_copy(scanline, &(m_monitor->target_buffer->line[y1][cx0]), (cx1 - cx0) * 4);
     }
 
-    if (monitors[m_monitor_index].mon_screenshots_raw) {
-        video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
+    if (m_monitor->mon_screenshots_raw) {
+        video_screenshot_monitor((uint32_t *) imagebits, x, y, rendererWindow->getBytesPerRow() / 4, m_monitor);
     }
-    video_blit_complete_monitor(m_monitor_index);
-    screenshot_buf = (uint32_t *) imagebits;
+    if (m_monitor->mon_screenshots_raw_clipboard) {
+        const int stride = rendererWindow->getBytesPerRow();
+        const QImage pixels(imagebits + y * stride + x * 4, w, h, stride, QImage::Format_RGB32);
+        const QImage copy = pixels.copy();
+        QMetaObject::invokeMethod(this, [copy] { util::copyImageToClipboard(copy); }, Qt::QueuedConnection);
+        --m_monitor->mon_screenshots_raw_clipboard;
+    }
+    video_blit_complete_monitor(m_monitor);
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }
@@ -617,7 +653,7 @@ void
 RendererStack::changeEvent(QEvent *event)
 {
     if (m_monitor_index != 0 && isVisible()) {
-        monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
+        config_get_monitor_settings(m_monitor_index)->mon_window_maximized = isMaximized();
         config_save();
     }
     /* See MainWindow::changeEvent(). */
@@ -628,6 +664,9 @@ RendererStack::changeEvent(QEvent *event)
 bool
 RendererStack::event(QEvent *event)
 {
+    if (!acceptsGuestInput() || !rendererWindow)
+        return QWidget::event(event);
+
     if (event->type() == QEvent::MouseMove) {
         QMouseEvent *mouse_event = (QMouseEvent *) event;
 
@@ -651,7 +690,7 @@ RendererStack::event(QEvent *event)
 #endif
 #endif
                 if (!mouse_tablet_in_proximity)
-                    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+                    mouse_set_input_monitor(mousedata.hovered_monitor == m_monitor ? m_monitor : nullptr);
                 mouse_x_abs -= rendererWindow->destinationF.left();
                 mouse_y_abs -= rendererWindow->destinationF.top();
 
@@ -698,7 +737,7 @@ RendererStack::event(QEvent *event)
                 mouse_y_abs = 1;
 
             if (mouse_both_enabled())
-                mouse_tablet_in_proximity = 0;
+                mouse_clear_input_monitor(m_monitor);
 
             return QWidget::event(event);
         }
@@ -734,7 +773,7 @@ RendererStack::event(QEvent *event)
             if (mouse_y_abs > 1) mouse_y_abs = 1;
 
             if (mouse_both_enabled())
-                mouse_tablet_in_proximity = 0;
+                mouse_clear_input_monitor(m_monitor);
 
             return QWidget::event(event);
         }
@@ -763,7 +802,7 @@ RendererStack::event(QEvent *event)
             mouse_x_abs = 1;
         if (mouse_y_abs > 1)
             mouse_y_abs = 1;
-        mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+        mouse_set_input_monitor(mousedata.hovered_monitor == m_monitor ? m_monitor : nullptr);
 #ifdef TOUCH_PR
     } else
         switch (event->type()) {
@@ -901,15 +940,13 @@ void
 RendererStack::onResize(int width, int height)
 {
 #ifdef Q_OS_WINDOWS
-    if (mouse_capture) {
+    if (m_monitor_index == 0 && mouse_capture) {
         RECT rect;
         if (GetWindowRect((HWND) this->winId(), &rect)) {
             ClipCursor(&rect);
         }
     }
 #endif
-    if (rendererWindow) {
-        rendererWindow->r_monitor_index = m_monitor_index;
+    if (rendererWindow)
         rendererWindow->onResize(width, height);
-    }
 }

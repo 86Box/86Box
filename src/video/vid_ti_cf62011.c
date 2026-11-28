@@ -112,7 +112,7 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             svga->crtc[svga->crtcreg] = val;
             if (old != val) {
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     svga_recalctimings(svga);
                 }
             }
@@ -220,7 +220,7 @@ vid_force_redraw(void *priv)
 {
     tivga_t *ti = (tivga_t *) priv;
 
-    ti->svga.fullchange = changeframecount;
+    ti->svga.fullchange = ti->svga.monitor->mon_changeframecount;
 }
 
 static void
@@ -247,7 +247,7 @@ vid_init(const device_t *info)
     else
         ti->vram_size = info->local;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ti_cf62011);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ti_cf62011, video_monitor_pending);
 
     svga_init(info, &ti->svga, ti,
               ti->vram_size << 10,

@@ -90,6 +90,7 @@ static video_timings_t timing_genius = { .type = VIDEO_ISA, .write_b = 8, .write
  */
 
 typedef struct genius_t {
+    struct monitor_t *monitor;
     mem_mapping_t mapping;
 
     uint8_t mda_crtc[32];   /* The 'CRTC' as the host PC sees it */
@@ -495,9 +496,9 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
             for (c = 0; c < cw; c++) {
                 if (col != background) {
                     if (cols80)
-                        buffer32->line[dl][(x * cw) + c] = col;
+                        genius->monitor->target_buffer->line[dl][(x * cw) + c] = col;
                     else {
-                        buffer32->line[dl][((x * cw) << 1) + (c << 1)] = buffer32->line[dl][((x * cw) << 1) + (c << 1) + 1] = col;
+                        genius->monitor->target_buffer->line[dl][((x * cw) << 1) + (c << 1)] = genius->monitor->target_buffer->line[dl][((x * cw) << 1) + (c << 1) + 1] = col;
                     }
                 }
             }
@@ -517,9 +518,9 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 
                 if (col != background) {
                     if (cols80)
-                        buffer32->line[dl][(x * cw) + c] = col;
+                        genius->monitor->target_buffer->line[dl][(x * cw) + c] = col;
                     else {
-                        buffer32->line[dl][((x * cw) << 1) + (c << 1)] = buffer32->line[dl][((x * cw) << 1) + (c << 1) + 1] = col;
+                        genius->monitor->target_buffer->line[dl][((x * cw) << 1) + (c << 1)] = genius->monitor->target_buffer->line[dl][((x * cw) << 1) + (c << 1) + 1] = col;
                     }
                 }
             }
@@ -529,13 +530,13 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
                 if ((chr & ~0x1f) == 0xc0) {
                     /* Echo column 8 for the graphics chars */
                     if (cols80) {
-                        col = buffer32->line[dl][(x * cw) + 7];
+                        col = genius->monitor->target_buffer->line[dl][(x * cw) + 7];
                         if (col != background)
-                            buffer32->line[dl][(x * cw) + 8] = col;
+                            genius->monitor->target_buffer->line[dl][(x * cw) + 8] = col;
                     } else {
-                        col = buffer32->line[dl][((x * cw) << 1) + 14];
+                        col = genius->monitor->target_buffer->line[dl][((x * cw) << 1) + 14];
                         if (col != background) {
-                            buffer32->line[dl][((x * cw) << 1) + 16] = buffer32->line[dl][((x * cw) << 1) + 17] = col;
+                            genius->monitor->target_buffer->line[dl][((x * cw) << 1) + 16] = genius->monitor->target_buffer->line[dl][((x * cw) << 1) + 17] = col;
                         }
                     }
                 } else { /* Otherwise fill with background */
@@ -544,9 +545,9 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
                         col ^= 15;
                     if (col != background) {
                         if (cols80)
-                            buffer32->line[dl][(x * cw) + 8] = col;
+                            genius->monitor->target_buffer->line[dl][(x * cw) + 8] = col;
                         else {
-                            buffer32->line[dl][((x * cw) << 1) + 16] = buffer32->line[dl][((x * cw) << 1) + 17] = col;
+                            genius->monitor->target_buffer->line[dl][((x * cw) << 1) + 16] = genius->monitor->target_buffer->line[dl][((x * cw) << 1) + 17] = col;
                         }
                     }
                 }
@@ -555,10 +556,10 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
             if (drawcursor) {
                 for (c = 0; c < cw; c++) {
                     if (cols80)
-                        buffer32->line[dl][(x * cw) + c] ^= mdaattr[attr][0][1];
+                        genius->monitor->target_buffer->line[dl][(x * cw) + c] ^= mdaattr[attr][0][1];
                     else {
-                        buffer32->line[dl][((x * cw) << 1) + (c << 1)] ^= mdaattr[attr][0][1];
-                        buffer32->line[dl][((x * cw) << 1) + (c << 1) + 1] ^= mdaattr[attr][0][1];
+                        genius->monitor->target_buffer->line[dl][((x * cw) << 1) + (c << 1)] ^= mdaattr[attr][0][1];
+                        genius->monitor->target_buffer->line[dl][((x * cw) << 1) + (c << 1) + 1] ^= mdaattr[attr][0][1];
                     }
                 }
             }
@@ -593,9 +594,9 @@ genius_cgaline(genius_t *genius)
 
         for (uint8_t c = 0; c < 8; c++) {
             if (dat & 0x80)
-                buffer32->line[genius->displine][(x << 3) + c] = ink_f;
+                genius->monitor->target_buffer->line[genius->displine][(x << 3) + c] = ink_f;
             else
-                buffer32->line[genius->displine][(x << 3) + c] = ink_b;
+                genius->monitor->target_buffer->line[genius->displine][(x << 3) + c] = ink_b;
 
             dat = dat << 1;
         }
@@ -625,9 +626,9 @@ genius_hiresline(genius_t *genius)
 
         for (uint8_t c = 0; c < 8; c++) {
             if (dat & 0x80)
-                buffer32->line[genius->displine][(x << 3) + c] = ink_f;
+                genius->monitor->target_buffer->line[genius->displine][(x << 3) + c] = ink_f;
             else
-                buffer32->line[genius->displine][(x << 3) + c] = ink_b;
+                genius->monitor->target_buffer->line[genius->displine][(x << 3) + c] = ink_b;
 
             dat = dat << 1;
         }
@@ -653,11 +654,11 @@ genius_poll(void *priv)
                 background = genius_pal[0];
 
             if (genius->displine == 0)
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(genius->monitor);
 
             /* Start off with a blank line */
             for (uint16_t x = 0; x < GENIUS_XSIZE; x++)
-                buffer32->line[genius->displine][x] = background;
+                genius->monitor->target_buffer->line[genius->displine][x] = background;
 
             /* If graphics display enabled, draw graphics on top
              * of the blanked line */
@@ -683,8 +684,8 @@ genius_poll(void *priv)
             if (genius->mda_ctrl & 8)
                 genius_textline(genius, background, 1, 1);
 
-            video_process_8(GENIUS_XSIZE, genius->displine);
-            video_lightpen_check_trigger_strobe(0, genius->displine, 0, 0, 53216000.0, monitor_index_global);
+            video_process_8_monitor(GENIUS_XSIZE, genius->displine, genius->monitor);
+            video_lightpen_check_trigger_strobe(0, genius->displine, 0, 0, 53216000.0, genius->monitor);
         }
         genius->displine++;
         /* Hardcode a fixed refresh rate and VSYNC timing */
@@ -705,32 +706,32 @@ genius_poll(void *priv)
             genius->mda_stat &= ~1;
         }
         timer_advance_u64(&genius->timer, genius->dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(genius->monitor);
         genius->linepos = 0;
 
         if (genius->displine == 1008) {
-            video_lightpen_vsync();
+            video_lightpen_vsync(genius->monitor);
             /* Hardcode GENIUS_XSIZE * GENIUS_YSIZE window size */
-            if (GENIUS_XSIZE != xsize || GENIUS_YSIZE != ysize) {
-                xsize = GENIUS_XSIZE;
-                ysize = GENIUS_YSIZE;
-                if (xsize < 64)
-                    xsize = 656;
-                if (ysize < 32)
-                    ysize = 200;
-                set_screen_size(xsize, ysize);
+            if (GENIUS_XSIZE != genius->monitor->mon_xsize || GENIUS_YSIZE != genius->monitor->mon_ysize) {
+                genius->monitor->mon_xsize = GENIUS_XSIZE;
+                genius->monitor->mon_ysize = GENIUS_YSIZE;
+                if (genius->monitor->mon_xsize < 64)
+                    genius->monitor->mon_xsize = 656;
+                if (genius->monitor->mon_ysize < 32)
+                    genius->monitor->mon_ysize = 200;
+                set_screen_size_monitor(genius->monitor->mon_xsize, genius->monitor->mon_ysize, genius->monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(genius->monitor))
+                    video_force_resize_set_monitor(0, genius->monitor);
             }
 
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, genius->monitor->mon_xsize, genius->monitor->mon_ysize, genius->monitor);
 
             frames++;
             /* Fixed 728x1008 resolution */
-            video_res_x = GENIUS_XSIZE;
-            video_res_y = GENIUS_YSIZE;
-            video_bpp   = 1;
+            genius->monitor->mon_res_x = GENIUS_XSIZE;
+            genius->monitor->mon_res_y = GENIUS_YSIZE;
+            genius->monitor->mon_bpp   = 1;
             genius->blink++;
         }
     }
@@ -740,8 +741,9 @@ void *
 genius_init(UNUSED(const device_t *info))
 {
     genius_t *genius = calloc(1, sizeof(genius_t));
+    genius->monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_MDA, &timing_genius);
+    video_inform_monitor(VIDEO_FLAG_TYPE_MDA, &timing_genius, genius->monitor);
 
     /* 160k video RAM */
     genius->vram = calloc(1, 0x28000);

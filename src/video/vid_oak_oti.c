@@ -139,7 +139,7 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
                                                 ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -553,9 +553,9 @@ oti_init(const device_t *info)
            josephillips: Required to show all BIOS
            information on Acer 100T only
         */
-        video_inform(0x1, &timing_oti);
+        video_inform_monitor(0x1, &timing_oti, video_monitor_pending);
     } else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_oti);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_oti, video_monitor_pending);
 
     svga_init(info, &oti->svga, oti, oti->vram_size << 10,
               oti_recalctimings, oti_in, oti_out, NULL, NULL);
@@ -596,7 +596,7 @@ oti_force_redraw(void *priv)
 {
     oti_t *oti = (oti_t *) priv;
 
-    oti->svga.fullchange = changeframecount;
+    oti->svga.fullchange = oti->svga.monitor->mon_changeframecount;
 }
 
 static int

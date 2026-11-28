@@ -311,7 +311,7 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                         handle_input((HRAWINPUT) msg->lParam);
                     else {
                         for (auto &w : window->renderers) {
-                            if (w && w->isActiveWindow()) {
+                            if (w && w->acceptsGuestInput() && w->isActiveWindow()) {
                                 handle_input((HRAWINPUT) msg->lParam);
                                 break;
                             }

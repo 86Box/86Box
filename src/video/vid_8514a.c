@@ -3763,7 +3763,7 @@ ibm8514_render_blank(svga_t *svga)
 
         svga->lastline_draw = svga->displine;
 
-        uint32_t *line_ptr   = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        uint32_t *line_ptr   = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
         uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
 
         if (dev->h_disp > 0)
@@ -3776,7 +3776,7 @@ ibm8514_render_blank(svga_t *svga)
             dev->firstline_draw = dev->displine;
         dev->lastline_draw = dev->displine;
 
-        uint32_t *line_ptr   = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+        uint32_t *line_ptr   = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
         uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
 
         if (dev->h_disp > 0)
@@ -3796,7 +3796,7 @@ ibm8514_render_8bpp(svga_t *svga)
             return;
 
         if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
             if (svga->firstline_draw == 2000)
                 svga->firstline_draw = svga->displine;
@@ -3825,7 +3825,7 @@ ibm8514_render_8bpp(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -3865,7 +3865,7 @@ ibm8514_render_15bpp(svga_t *svga)
             return;
 
         if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
             if (svga->firstline_draw == 2000)
                 svga->firstline_draw = svga->displine;
@@ -3896,7 +3896,7 @@ ibm8514_render_15bpp(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -3938,7 +3938,7 @@ ibm8514_render_16bpp(svga_t *svga)
             return;
 
         if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
             if (svga->firstline_draw == 2000)
                 svga->firstline_draw = svga->displine;
@@ -3969,7 +3969,7 @@ ibm8514_render_16bpp(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4010,7 +4010,7 @@ ibm8514_render_24bpp(svga_t *svga)
             return;
 
         if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4038,7 +4038,7 @@ ibm8514_render_24bpp(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4076,7 +4076,7 @@ ibm8514_render_BGR(svga_t *svga)
             return;
 
         if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4104,7 +4104,7 @@ ibm8514_render_BGR(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4143,7 +4143,7 @@ ibm8514_render_ABGR8888(svga_t *svga)
             return;
 
         if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4161,7 +4161,7 @@ ibm8514_render_ABGR8888(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4190,7 +4190,7 @@ ibm8514_render_32bpp(svga_t *svga)
             return;
 
         if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4208,7 +4208,7 @@ ibm8514_render_32bpp(svga_t *svga)
             return;
 
         if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || dev->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
-            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+            p = &svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add];
 
             if (dev->firstline_draw == 2000)
                 dev->firstline_draw = dev->displine;
@@ -4235,7 +4235,7 @@ ibm8514_render_overscan_left(ibm8514_t *dev, svga_t *svga)
             return;
 
         for (int i = 0; i < svga->x_add; i++)
-            buffer32->line[svga->displine + svga->y_add][i] = svga->overscan_color;
+            svga->monitor->target_buffer->line[svga->displine + svga->y_add][i] = svga->overscan_color;
     } else {
         if ((dev->displine + svga->y_add) < 0)
             return;
@@ -4244,7 +4244,7 @@ ibm8514_render_overscan_left(ibm8514_t *dev, svga_t *svga)
             return;
 
         for (int i = 0; i < svga->x_add; i++)
-            buffer32->line[dev->displine + svga->y_add][i] = svga->overscan_color;
+            svga->monitor->target_buffer->line[dev->displine + svga->y_add][i] = svga->overscan_color;
     }
 }
 
@@ -4260,9 +4260,9 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
         if (!dev->on || (svga->hdisp == 0))
             return;
 
-        right = overscan_x  - svga->left_overscan;
+        right = svga->monitor->mon_overscan_x  - svga->left_overscan;
         for (int i = 0; i < right; i++)
-            buffer32->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp + i] = svga->overscan_color;
+            svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp + i] = svga->overscan_color;
     } else {
         if ((dev->displine + svga->y_add) < 0)
             return;
@@ -4270,9 +4270,9 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
         if (!dev->on || (dev->h_disp == 0))
             return;
 
-        right = (overscan_x >> 1);
+        right = (svga->monitor->mon_overscan_x >> 1);
         for (int i = 0; i < right; i++)
-            buffer32->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
+            svga->monitor->target_buffer->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
     }
 }
 
@@ -4319,7 +4319,7 @@ ibm8514_poll(void *priv)
                     svga->memaddr &= svga->vram_display_mask;
                     if (svga->firstline == 2000) {
                         svga->firstline = svga->displine;
-                        video_wait_for_buffer_monitor(svga->monitor_index);
+                        video_wait_for_buffer_monitor(svga->monitor);
                     }
 
                     if (svga->hwcursor_on)
@@ -4346,7 +4346,7 @@ ibm8514_poll(void *priv)
                 }
 
                 svga->displine++;
-                video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, 0, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
+                video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, 0, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor);
                 if (svga->interlace)
                     svga->displine++;
                 if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines)
@@ -4356,7 +4356,7 @@ ibm8514_poll(void *priv)
                     svga->displine = 0;
             } else {
                 timer_advance_u64(&svga->timer, svga->dispontime);
-                video_lightpen_hsync();
+                video_lightpen_hsync(svga->monitor);
 
                 if (svga->dispon)
                     svga->cgastat &= ~1;
@@ -4466,7 +4466,7 @@ ibm8514_poll(void *priv)
                     svga->memaddr_backup = (svga->memaddr_backup << 2);
                     svga->cursoraddr     = (svga->cursoraddr << 2);
 
-                    video_lightpen_vsync();
+                    video_lightpen_vsync(svga->monitor);
 
                     svga->start_retrace_latch = svga->crtc[0x4];
                 }
@@ -4510,7 +4510,7 @@ ibm8514_poll(void *priv)
 
                     if (dev->firstline == 2000) {
                         dev->firstline = dev->displine;
-                        video_wait_for_buffer_monitor(svga->monitor_index);
+                        video_wait_for_buffer_monitor(svga->monitor);
                     }
 
                     if (dev->hwcursor_on)
@@ -4537,7 +4537,7 @@ ibm8514_poll(void *priv)
                 }
 
                 dev->displine++;
-                video_lightpen_check_trigger_strobe(svga->x_add, dev->displine, 0, dev->firstline, 1. / (svga->clock / (svga->clock_8514 * (double) (1ULL << 32))), svga->monitor_index);
+                video_lightpen_check_trigger_strobe(svga->x_add, dev->displine, 0, dev->firstline, 1. / (svga->clock / (svga->clock_8514 * (double) (1ULL << 32))), svga->monitor);
                 if (dev->interlace)
                     dev->displine++;
                 if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
@@ -4547,7 +4547,7 @@ ibm8514_poll(void *priv)
                     dev->displine = 0;
             } else {
                 timer_advance_u64(&svga->timer, dev->dispontime);
-                video_lightpen_hsync();
+                video_lightpen_hsync(svga->monitor);
 
                 if (dev->dispon)
                     svga->cgastat &= ~1;
@@ -4620,7 +4620,7 @@ ibm8514_poll(void *priv)
                     dev->memaddr     = (dev->memaddr << 2);
                     dev->memaddr_backup = (dev->memaddr_backup << 2);
 
-                    video_lightpen_vsync();
+                    video_lightpen_vsync(svga->monitor);
                 }
                 if (dev->vc == dev->v_total) {
                     dev->vc       = 0;

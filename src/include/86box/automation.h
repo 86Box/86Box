@@ -25,6 +25,8 @@ extern "C" {
 #endif
 
 #ifdef USE_AUTOMATION
+struct monitor_t;
+
 extern char automation_path[1024];       /* unix:<path>, tcp:[host:]port, or bare (see doc) */
 extern char automation_token_file[1024]; /* TCP: where the per-run token is written */
 extern int  automation_start_held;
@@ -40,7 +42,7 @@ extern void automation_poll(void);
 /* Called by the main loop on the CPU thread after each pc_run(). */
 extern void automation_quantum(void);
 /* Called by the video core whenever a frame is handed to the renderer. */
-extern void automation_frame(int x, int y, int w, int h, int monitor_index);
+extern void automation_frame(int x, int y, int w, int h, struct monitor_t *monitor);
 /* Called by the CPU core on every reset (hard = 1 for power-on/hard reset). */
 extern void automation_reset(int hard);
 /* Called by the sound core with every block of a stream (any thread). */
@@ -65,7 +67,7 @@ extern void automation_fatal(const char *msg);
 #    define automation_close()
 #    define automation_poll()
 #    define automation_quantum()
-#    define automation_frame(x, y, w, h, monitor_index)
+#    define automation_frame(x, y, w, h, monitor)
 #    define automation_reset(hard)
 #    define automation_audio(src, buf, size, is_float)
 #    define automation_log_text(text, newline)

@@ -761,7 +761,7 @@ rage128_overlay_draw(svga_t *svga, int displine)
     rage128_t *dev   = (rage128_t *) svga->priv;
     uint32_t   scale = OV0_ACT(dev, RAGE128_OV0_SCALE_CNTL);
     int        fmt   = (scale & RAGE128_OV0_SCALER_SURFAC_FORMAT) >> RAGE128_OV0_SCALER_FORMAT_SHIFT;
-    uint32_t  *line  = buffer32->line[displine];
+    uint32_t  *line  = svga->monitor->target_buffer->line[displine];
     uint8_t   *vram  = svga->vram;
     uint32_t   vmask = dev->vram_mask;
 

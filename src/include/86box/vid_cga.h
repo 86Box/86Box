@@ -120,7 +120,7 @@ typedef struct cga_t {
     int      lp_latch_found_y;
     bool     lp_latch_found;
 
-    uint8_t monitor_used;
+    struct monitor_t *monitor;
 } cga_t;
 
 struct bitmap_t;
@@ -133,8 +133,8 @@ extern void    cga_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t cga_read(uint32_t addr, void *priv);
 extern void    cga_recalctimings(cga_t *cga);
 extern void    cga_interpolate_init(void);
-extern void    cga_blit_memtoscreen(int x, int y, int w, int h, int double_type);
-extern void    cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type);
+extern void    cga_blit_memtoscreen(int x, int y, int w, int h, int double_type, struct monitor_t *monitor);
+extern void    cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type, struct monitor_t *monitor);
 extern void    cga_poll(void *priv);
 extern bool    cga_is_in_lightpen(cga_t *cga, int x, int y);
 extern float   cga_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y);

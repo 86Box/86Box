@@ -238,9 +238,9 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     static int last = 0;
 
     if (show_second_monitors)
-        for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
+        for (int monitor_index = 1; monitor_index < static_cast<int>(main_window->renderers.size()); monitor_index++) {
             const auto &secondaryRenderer = main_window->renderers[monitor_index];
-            is_over_window                = is_over_window || ((secondaryRenderer != nullptr) && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
+            is_over_window                = is_over_window || ((secondaryRenderer != nullptr) && secondaryRenderer->acceptsGuestInput() && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
         }
 
     bool skip = (main_window_blocked || (nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture)) || qt_osd_is_visible();
@@ -464,12 +464,6 @@ main_thread_fn()
     runctl_thread_run_loop(nullptr);
 
     cpu_thread_running = false;
-    for (uint8_t i = 1; i < GFXCARD_MAX; i++) {
-        if (gfxcard[i]) {
-            ui_deinit_monitor(i);
-            plat_delay_ms(500);
-        }
-    }
     QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }
 
@@ -551,7 +545,7 @@ main(int argc, char *argv[])
 #endif
     util::applyStyle();
 
-    bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
+    bool startMaximized = window_remember && monitor_primary_settings.mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     Preferences::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS

@@ -201,7 +201,7 @@ monitor_execute_line(char *line)
             fullscreen_pending = 1;
         } else if (strncasecmp(xargv[0], "screenshot", 10) == 0) {
             startblit();
-            ++monitors[0].mon_screenshots_raw;
+            ++video_primary_monitor->mon_screenshots_raw;
             endblit();
             device_force_redraw();
         } else if (strncasecmp(xargv[0], "pause", 5) == 0) {

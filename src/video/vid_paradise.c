@@ -378,7 +378,7 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -924,13 +924,13 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
     svga_t     *svga     = &paradise->svga;
 
     if (info->local == PVGA1A)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_pvga1a);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_pvga1a, video_monitor_pending);
     else if (info->flags & DEVICE_MCA)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_mca);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_mca, video_monitor_pending);
     else if (info->flags & DEVICE_VLB)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_vlb);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_vlb, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_isa, video_monitor_pending);
 
     paradise->memory       = memory;
     paradise->speedstar24x = speedstar24x;
@@ -1416,7 +1416,7 @@ paradise_force_redraw(void *priv)
 {
     paradise_t *paradise = (paradise_t *) priv;
 
-    paradise->svga.fullchange = changeframecount;
+    paradise->svga.fullchange = paradise->svga.monitor->mon_changeframecount;
 }
 
 const device_t paradise_pvga1a_pc2086_device = {

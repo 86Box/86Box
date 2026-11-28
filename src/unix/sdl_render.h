@@ -1,9 +1,13 @@
 #ifndef _UNIX_SDL_H
 #define _UNIX_SDL_H
 
+#include <86box/video.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern atomic_bool sdl_resize_pending;
 
 extern void  sdl_close(void);
 extern int   sdl_inits(void);

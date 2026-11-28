@@ -78,7 +78,7 @@ pxl380_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y)
     return total_luma / 15.0;
 }
 
-void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used)
+void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, monitor_t *monitor)
 {
     pxl380_t* pxl380 = (pxl380_t*)priv;
     double abs_x, abs_y;
@@ -88,17 +88,17 @@ void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x
 
     mouse_get_abs_coords(&abs_x, &abs_y);
 
-    abs_x *= monitors[monitor_used].mon_unscaled_size_x - 1;
-    abs_y *= monitors[monitor_used].mon_efscrnsz_y - 1;
+    abs_x *= monitor->mon_unscaled_size_x - 1;
+    abs_y *= monitor->mon_efscrnsz_y - 1;
 
     int x = abs_x + (!enable_overscan ? x_offset : 0);
-    float sampled_luma = pxl380_sample_luma(monitors[monitor_used].target_buffer, x, y);
+    float sampled_luma = pxl380_sample_luma(monitor->target_buffer, x, y);
     int real_x = x; // This is the position from the actual beginning of the render.
     x -= x_offset;
-    y -= firstline + monitors[monitor_used].mon_overscan_y / 2;
+    y -= firstline + monitor->mon_overscan_y / 2;
     
     if (enable_overscan) {
-        y += monitors[monitor_used].mon_overscan_y / 2;
+        y += monitor->mon_overscan_y / 2;
     }
 
     // Checking for x makes no sense.

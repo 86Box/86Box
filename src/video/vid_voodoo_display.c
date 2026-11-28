@@ -509,7 +509,7 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
 static void
 voodoo_doblit(voodoo_t *voodoo, int dirty)
 {
-    monitor_t *monitor = &monitors[voodoo->monitor_index];
+    monitor_t *monitor = voodoo->monitor;
     int        x_add   = monitor->mon_overscan_x >> 1;
     int        y_add   = monitor->mon_overscan_y >> 1;
 
@@ -517,17 +517,17 @@ voodoo_doblit(voodoo_t *voodoo, int dirty)
         return;
 
     if ((voodoo->h_disp != monitor->mon_xsize) || (voodoo->v_disp != monitor->mon_ysize) ||
-        video_force_resize_get_monitor(voodoo->monitor_index)) {
+        video_force_resize_get_monitor(voodoo->monitor)) {
         monitor->mon_xsize = voodoo->h_disp;
         monitor->mon_ysize = voodoo->v_disp;
-        set_screen_size_monitor(voodoo->h_disp, voodoo->v_disp, voodoo->monitor_index);
-        if (video_force_resize_get_monitor(voodoo->monitor_index))
-            video_force_resize_set_monitor(0, voodoo->monitor_index);
+        set_screen_size_monitor(voodoo->h_disp, voodoo->v_disp, voodoo->monitor);
+        if (video_force_resize_get_monitor(voodoo->monitor))
+            video_force_resize_set_monitor(0, voodoo->monitor);
         dirty = 1;
     }
 
     if (dirty)
-        video_blit_memtoscreen_monitor(x_add, y_add, voodoo->h_disp, voodoo->v_disp, voodoo->monitor_index);
+        video_blit_memtoscreen_monitor(x_add, y_add, voodoo->h_disp, voodoo->v_disp, voodoo->monitor);
     else
         monitor->mon_renderedframes++;
 }
@@ -536,7 +536,7 @@ void
 voodoo_callback(void *priv)
 {
     voodoo_t        *voodoo  = (voodoo_t *) priv;
-    const monitor_t *monitor = &monitors[voodoo->monitor_index];
+    const monitor_t *monitor = voodoo->monitor;
     int              v_y_add = (monitor->mon_overscan_y >> 1);
     int              v_x_add = (monitor->mon_overscan_x >> 1);
 
@@ -570,7 +570,7 @@ voodoo_callback(void *priv)
 
                 if (voodoo->line < voodoo->dirty_line_low) {
                     voodoo->dirty_line_low = voodoo->line;
-                    video_wait_for_buffer_monitor(voodoo->monitor_index);
+                    video_wait_for_buffer_monitor(voodoo->monitor);
                 }
                 if (voodoo->line > voodoo->dirty_line_high)
                     voodoo->dirty_line_high = voodoo->line;

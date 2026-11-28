@@ -20,8 +20,6 @@ static void (*write_word)(uint16_t, uint16_t, void *);
 static void *io_priv;
 static int   irq_pending;
 extern "C" {
-monitor_t monitors[MONITORS_NUM];
-int       monitor_index_global;
 uint32_t *video_15to32;
 uint32_t *video_16to32;
 void
@@ -66,7 +64,6 @@ protected:
     void SetUp() override
     {
         irq_pending                  = 0;
-        changeframecount             = 2;
         svga.vram                    = vram.data();
         svga.vram_mask               = vram.size() - 1;
         svga.changedvram             = dirty.data();

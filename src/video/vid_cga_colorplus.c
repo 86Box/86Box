@@ -147,15 +147,12 @@ colorplus_poll(void *priv)
     const uint8_t   *plane1     = colorplus->cga.vram + 0x4000;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = colorplus->cga.monitor_used;
 
     /* If one of the extra modes is not selected, drop down to the CGA
      * drawing code. */
     if (!((colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS))) {
         cga_poll(&colorplus->cga);
-        monitor_index_global = prev_monitor_index;
         return;
     }
 
@@ -169,19 +166,19 @@ colorplus_poll(void *priv)
         if (colorplus->cga.cgadispon) {
             if (colorplus->cga.displine < colorplus->cga.firstline) {
                 colorplus->cga.firstline = colorplus->cga.displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(colorplus->cga.monitor);
             }
             colorplus->cga.lastline = colorplus->cga.displine;
             /* Left / right border */
             for (c = 0; c < 8; c++) {
-                buffer32->line[colorplus->cga.displine][c] = buffer32->line[colorplus->cga.displine][c + (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 8] = (colorplus->cga.cgacol & 15) + 16;
+                colorplus->cga.monitor->target_buffer->line[colorplus->cga.displine][c] = colorplus->cga.monitor->target_buffer->line[colorplus->cga.displine][c + (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 8] = (colorplus->cga.cgacol & 15) + 16;
             }
             if (colorplus->control & COLORPLUS_320x200_MODE) {
                 for (x = 0; x < colorplus->cga.crtc[CGA_CRTC_HDISP]; x++) {
                     dat0 = (plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
                     dat1 = (plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
                     for (c = 0; c < 8; c++) {
-                        buffer32->line[colorplus->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[colorplus->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols16[(dat0 >> 14) | ((dat1 >> 14) << 2)];
+                        colorplus->cga.monitor->target_buffer->line[colorplus->cga.displine][(x << 4) + (c << 1) + 8] = colorplus->cga.monitor->target_buffer->line[colorplus->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols16[(dat0 >> 14) | ((dat1 >> 14) << 2)];
                         dat0 <<= 2;
                         dat1 <<= 2;
                 
@@ -214,7 +211,7 @@ colorplus_poll(void *priv)
                     dat0 = (plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
                     dat1 = (plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
                     for (c = 0; c < 16; c++) {
-                        buffer32->line[colorplus->cga.displine][(x << 4) + c + 8] = cols[(dat0 >> 15) | ((dat1 >> 15) << 1)];
+                        colorplus->cga.monitor->target_buffer->line[colorplus->cga.displine][(x << 4) + c + 8] = cols[(dat0 >> 15) | ((dat1 >> 15) << 1)];
                         dat0 <<= 1;
                         dat1 <<= 1;
                         if (cga_lightpen_enabled && !colorplus->cga.lp_latch_found && mouse_tablet_in_proximity > 0 && (cga_is_in_lightpen(&colorplus->cga, (x << 4) + c + 8, colorplus->cga.displine))) {
@@ -230,17 +227,17 @@ colorplus_poll(void *priv)
         } else /* Top / bottom border */
         {
             cols[0] = (colorplus->cga.cgacol & 15) + 16;
-            hline(buffer32, 0, colorplus->cga.displine, (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 16, cols[0]);
+            hline(colorplus->cga.monitor->target_buffer, 0, colorplus->cga.displine, (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 16, cols[0]);
         }
 
         x = (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
 
         if (colorplus->cga.composite)
-            Composite_Process(colorplus->cga.cgamode, 0, x >> 2, buffer32->line[colorplus->cga.displine]);
+            Composite_Process(colorplus->cga.cgamode, 0, x >> 2, colorplus->cga.monitor->target_buffer->line[colorplus->cga.displine]);
         else
-            video_process_8(x, colorplus->cga.displine);
+            video_process_8_monitor(x, colorplus->cga.displine, colorplus->cga.monitor);
 
-        video_lightpen_check_trigger_strobe(0, colorplus->cga.displine, 0, colorplus->cga.firstline - 4, (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), colorplus->cga.monitor_used);
+        video_lightpen_check_trigger_strobe(0, colorplus->cga.displine, 0, colorplus->cga.firstline - 4, (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), colorplus->cga.monitor);
         colorplus->cga.scanline = scanline_old;
         if (colorplus->cga.vc == colorplus->cga.crtc[CGA_CRTC_VSYNC] && !colorplus->cga.scanline)
             colorplus->cga.cgastat |= 8;
@@ -249,7 +246,7 @@ colorplus_poll(void *priv)
             colorplus->cga.displine = 0;
     } else {
         timer_advance_u64(&colorplus->cga.timer, colorplus->cga.dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(colorplus->cga.monitor);
         colorplus->cga.linepos = 0;
         if (colorplus->cga.vsynctime) {
             colorplus->cga.vsynctime--;
@@ -299,47 +296,47 @@ colorplus_poll(void *priv)
                 colorplus->cga.cgadispon = 0;
                 colorplus->cga.displine  = 0;
                 colorplus->cga.vsynctime = 16;
-                video_lightpen_vsync();
+                video_lightpen_vsync(colorplus->cga.monitor);
                 if (colorplus->cga.crtc[CGA_CRTC_VSYNC]) {
                     if (colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES)
                         x = (colorplus->cga.crtc[CGA_CRTC_HDISP] << 3) + 16;
                     else
                         x = (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
                     colorplus->cga.lastline++;
-                    if (x != xsize || (colorplus->cga.lastline - colorplus->cga.firstline) != ysize) {
-                        xsize = x;
-                        ysize = colorplus->cga.lastline - colorplus->cga.firstline;
-                        if (xsize < 64)
-                            xsize = 656;
-                        if (ysize < 32)
-                            ysize = 200;
-                        set_screen_size(xsize, (ysize << 1) + 16);
+                    if (x != colorplus->cga.monitor->mon_xsize || (colorplus->cga.lastline - colorplus->cga.firstline) != colorplus->cga.monitor->mon_ysize) {
+                        colorplus->cga.monitor->mon_xsize = x;
+                        colorplus->cga.monitor->mon_ysize = colorplus->cga.lastline - colorplus->cga.firstline;
+                        if (colorplus->cga.monitor->mon_xsize < 64)
+                            colorplus->cga.monitor->mon_xsize = 656;
+                        if (colorplus->cga.monitor->mon_ysize < 32)
+                            colorplus->cga.monitor->mon_ysize = 200;
+                        set_screen_size_monitor(colorplus->cga.monitor->mon_xsize, (colorplus->cga.monitor->mon_ysize << 1) + 16, colorplus->cga.monitor);
                     }
 
                     // The palette conversion has been performed, sample the lightpen position now.
-                    if (cga_lightpen_enabled && mouse_tablet_in_proximity > 0 && colorplus->cga.lp_latch_found && cga_sample_luma(buffer32, colorplus->cga.lp_latch_found_x, colorplus->cga.lp_latch_found_y) >= cga_luma_threshold) {
+                    if (cga_lightpen_enabled && mouse_tablet_in_proximity > 0 && colorplus->cga.lp_latch_found && cga_sample_luma(colorplus->cga.monitor->target_buffer, colorplus->cga.lp_latch_found_x, colorplus->cga.lp_latch_found_y) >= cga_luma_threshold) {
                         colorplus->cga.lp_strobe = 1;
                         colorplus_update_latch(&colorplus->cga, colorplus->cga.lp_latch_found_memaddr);
                     }
 
-                    video_blit_memtoscreen(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
+                    video_blit_memtoscreen_monitor(0, colorplus->cga.firstline - 4, colorplus->cga.monitor->mon_xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8, colorplus->cga.monitor);
                     frames++;
 
-                    video_res_x = xsize - 16;
-                    video_res_y = ysize;
+                    colorplus->cga.monitor->mon_res_x = colorplus->cga.monitor->mon_xsize - 16;
+                    colorplus->cga.monitor->mon_res_y = colorplus->cga.monitor->mon_ysize;
                     if (colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        video_res_x /= 8;
-                        video_res_y /= colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        colorplus->cga.monitor->mon_res_x /= 8;
+                        colorplus->cga.monitor->mon_res_y /= colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        colorplus->cga.monitor->mon_bpp = 0;
                     } else if (!(colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                        video_res_x /= 16;
-                        video_res_y /= colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        colorplus->cga.monitor->mon_res_x /= 16;
+                        colorplus->cga.monitor->mon_res_y /= colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        colorplus->cga.monitor->mon_bpp = 0;
                     } else if (!(colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        colorplus->cga.monitor->mon_res_x /= 2;
+                        colorplus->cga.monitor->mon_bpp = 2;
                     } else {
-                        video_bpp = 1;
+                        colorplus->cga.monitor->mon_bpp = 1;
                     }
                 }
                 colorplus->cga.firstline = 1000;
@@ -362,7 +359,6 @@ colorplus_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -378,7 +374,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
 
     colorplus_t *colorplus = calloc(1, sizeof(colorplus_t));
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_colorplus);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_colorplus, colorplus->cga.monitor);
 
     /* Copied from the CGA init. Ideally this would be done by
      * calling a helper function rather than duplicating code */
@@ -400,8 +396,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
         lpt_set_3bc_used(1);
     }
 
-    monitors[monitor_index_global].mon_composite = colorplus->cga.composite;
-    colorplus->cga.monitor_used                  = monitor_index_global;
+    colorplus->cga.monitor->mon_composite = colorplus->cga.composite;
 
     return colorplus;
 }

@@ -232,7 +232,7 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                     break;
 
                 voodoo->vram[addr]              = MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_8);
-                voodoo->changedvram[addr >> 12] = changeframecount;
+                voodoo->changedvram[addr >> 12] = voodoo->monitor->mon_changeframecount;
                 break;
             }
         case DST_FORMAT_COL_16_BPP:
@@ -245,7 +245,7 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                     break;
 
                 *(uint16_t *) &voodoo->vram[addr] = MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_16);
-                voodoo->changedvram[addr >> 12]   = changeframecount;
+                voodoo->changedvram[addr >> 12]   = voodoo->monitor->mon_changeframecount;
                 break;
             }
         case DST_FORMAT_COL_24_BPP:
@@ -258,7 +258,7 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                     break;
 
                 *(uint32_t *) &voodoo->vram[addr] = (MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_32) & 0xffffff) | (dest & 0xff000000);
-                voodoo->changedvram[addr >> 12]   = changeframecount;
+                voodoo->changedvram[addr >> 12]   = voodoo->monitor->mon_changeframecount;
                 break;
             }
         case DST_FORMAT_COL_32_BPP:
@@ -271,7 +271,7 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
                     break;
 
                 *(uint32_t *) &voodoo->vram[addr] = MIX(voodoo, dest, src, pattern, src_colorkey, COLORKEY_32);
-                voodoo->changedvram[addr >> 12]   = changeframecount;
+                voodoo->changedvram[addr >> 12]   = voodoo->monitor->mon_changeframecount;
                 break;
             }
 
@@ -293,7 +293,7 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
                     break;
 
                 voodoo->vram[addr]              = MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_8);
-                voodoo->changedvram[addr >> 12] = changeframecount;
+                voodoo->changedvram[addr >> 12] = voodoo->monitor->mon_changeframecount;
                 break;
             }
         case DST_FORMAT_COL_16_BPP:
@@ -305,7 +305,7 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
                     break;
 
                 *(uint16_t *) &voodoo->vram[addr] = MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_16);
-                voodoo->changedvram[addr >> 12]   = changeframecount;
+                voodoo->changedvram[addr >> 12]   = voodoo->monitor->mon_changeframecount;
                 break;
             }
         case DST_FORMAT_COL_24_BPP:
@@ -317,7 +317,7 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
                     break;
 
                 *(uint32_t *) &voodoo->vram[addr] = (MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_32) & 0xffffff) | (dest & 0xff000000);
-                voodoo->changedvram[addr >> 12]   = changeframecount;
+                voodoo->changedvram[addr >> 12]   = voodoo->monitor->mon_changeframecount;
                 break;
             }
         case DST_FORMAT_COL_32_BPP:
@@ -329,7 +329,7 @@ PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern,
                     break;
 
                 *(uint32_t *) &voodoo->vram[addr] = MIX(voodoo, dest, voodoo->banshee_blt.colorFore, pattern, src_colorkey, COLORKEY_32);
-                voodoo->changedvram[addr >> 12]   = changeframecount;
+                voodoo->changedvram[addr >> 12]   = voodoo->monitor->mon_changeframecount;
                 break;
             }
 
@@ -617,7 +617,7 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, const uintptr_t src_a
                                      break;
 
                                 voodoo->vram[dst_addr]              = MIX(voodoo, dest, src, pattern, COLORKEY_8, COLORKEY_8);
-                                voodoo->changedvram[dst_addr >> 12] = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12] = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
                         case DST_FORMAT_COL_16_BPP:
@@ -631,7 +631,7 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, const uintptr_t src_a
                                      break;
 
                                 *(uint16_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_16, COLORKEY_16);
-                                voodoo->changedvram[dst_addr >> 12]   = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12]   = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
                         case DST_FORMAT_COL_24_BPP:
@@ -645,7 +645,7 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, const uintptr_t src_a
                                      break;
 
                                 *(uint32_t *) &voodoo->vram[dst_addr] = (MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32) & 0xffffff) | (dest & 0xff000000);
-                                voodoo->changedvram[dst_addr >> 12]   = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12]   = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
                         case DST_FORMAT_COL_32_BPP:
@@ -659,7 +659,7 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, const uintptr_t src_a
                                      break;
 
                                 *(uint32_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32);
-                                voodoo->changedvram[dst_addr >> 12]   = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12]   = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
 
@@ -975,7 +975,7 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                                     break;
 
                                 voodoo->vram[dst_addr]              = MIX(voodoo, dest, src, pattern, COLORKEY_8, COLORKEY_8);
-                                voodoo->changedvram[dst_addr >> 12] = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12] = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
                         case DST_FORMAT_COL_16_BPP:
@@ -989,7 +989,7 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                                     break;
 
                                 *(uint16_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_16, COLORKEY_16);
-                                voodoo->changedvram[dst_addr >> 12]   = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12]   = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
                         case DST_FORMAT_COL_24_BPP:
@@ -1003,7 +1003,7 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                                     break;
 
                                 *(uint32_t *) &voodoo->vram[dst_addr] = (MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32) & 0xffffff) | (*(uint32_t *) &voodoo->vram[dst_addr] & 0xff000000);
-                                voodoo->changedvram[dst_addr >> 12]   = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12]   = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
                         case DST_FORMAT_COL_32_BPP:
@@ -1017,7 +1017,7 @@ do_screen_to_screen_stretch_line(voodoo_t *voodoo, uint8_t *src_p, int src_x, in
                                     break;
 
                                 *(uint32_t *) &voodoo->vram[dst_addr] = MIX(voodoo, dest, src, pattern, COLORKEY_32, COLORKEY_32);
-                                voodoo->changedvram[dst_addr >> 12]   = changeframecount;
+                                voodoo->changedvram[dst_addr >> 12]   = voodoo->monitor->mon_changeframecount;
                                 break;
                             }
 

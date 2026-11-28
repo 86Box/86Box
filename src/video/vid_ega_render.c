@@ -31,7 +31,7 @@
 int
 ega_display_line(ega_t *ega)
 {
-    int          y_add = enable_overscan ? (overscan_y >> 1) : 0;
+    int          y_add = enable_overscan ? (ega->monitor->mon_overscan_y >> 1) : 0;
     unsigned int dl    = ega->displine;
 
     if (ega->crtc[9] & 0x1f)
@@ -46,27 +46,27 @@ void
 ega_render_blank(ega_t *ega)
 {
     if (((ega->displine + ega->y_add) < 0) ||
-        (buffer32 == NULL) ||
-        (buffer32->line[ega->displine + ega->y_add] == NULL))
+        (ega->monitor->target_buffer == NULL) ||
+        (ega->monitor->target_buffer->line[ega->displine + ega->y_add] == NULL))
         return;
 
     for (int x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
         switch (ega->seqregs[1] & 9) {
             case 0:
                 for (uint8_t xx = 0; xx < 9; xx++)
-                    buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 9) + xx] = 0;
+                    ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add + (x * 9) + xx] = 0;
                 break;
             case 1:
                 for (uint8_t xx = 0; xx < 8; xx++)
-                    buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 8) + xx] = 0;
+                    ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add + (x * 8) + xx] = 0;
                 break;
             case 8:
                 for (uint8_t xx = 0; xx < 18; xx++)
-                    buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 18) + xx] = 0;
+                    ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add + (x * 18) + xx] = 0;
                 break;
             case 9:
                 for (uint8_t xx = 0; xx < 16; xx++)
-                    buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 16) + xx] = 0;
+                    ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add + (x * 16) + xx] = 0;
                 break;
 
             default:
@@ -79,15 +79,15 @@ void
 ega_render_overscan_left(ega_t *ega)
 {
     if (((ega->displine + ega->y_add) < 0) ||
-        (buffer32 == NULL) ||
-        (buffer32->line[ega->displine + ega->y_add] == NULL))
+        (ega->monitor->target_buffer == NULL) ||
+        (ega->monitor->target_buffer->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
         return;
 
     for (int i = 0; i < ega->x_add; i++)
-        buffer32->line[ega->displine + ega->y_add][i] = ega->overscan_color;
+        ega->monitor->target_buffer->line[ega->displine + ega->y_add][i] = ega->overscan_color;
 }
 
 void
@@ -96,16 +96,16 @@ ega_render_overscan_right(ega_t *ega)
     int right;
 
     if (((ega->displine + ega->y_add) < 0) ||
-        (buffer32 == NULL) ||
-        (buffer32->line[ega->displine + ega->y_add] == NULL))
+        (ega->monitor->target_buffer == NULL) ||
+        (ega->monitor->target_buffer->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
         return;
 
-    right = (overscan_x >> 1) + ega->scrollcache;
+    right = (ega->monitor->mon_overscan_x >> 1) + ega->scrollcache;
     for (int i = 0; i < right; i++)
-        buffer32->line[ega->displine + ega->y_add][ega->x_add + ega->hdisp + i] = ega->overscan_color;
+        ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add + ega->hdisp + i] = ega->overscan_color;
 }
 
 void
@@ -117,8 +117,8 @@ ega_render_text(ega_t *ega)
     }
 
     if (((ega->displine + ega->y_add) < 0) ||
-        (buffer32 == NULL) ||
-        (buffer32->line[ega->displine + ega->y_add] == NULL))
+        (ega->monitor->target_buffer == NULL) ||
+        (ega->monitor->target_buffer->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->firstline_draw == 2000)
@@ -136,7 +136,7 @@ ega_render_text(ega_t *ega)
         const int  dotwidth      = 1 << dwshift;
         const int  charwidth     = dotwidth * (seq9dot ? 9 : 8);
         const bool blinked       = ega->blink & 0x10;
-        uint32_t  *p             = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
+        uint32_t  *p             = &ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add];
 
         /* Compensate for 8dot scroll */
         if (!seq9dot) {
@@ -212,8 +212,8 @@ void
 ega_render_graphics(ega_t *ega)
 {
     if (((ega->displine + ega->y_add) < 0) ||
-        (buffer32 == NULL) ||
-        (buffer32->line[ega->displine + ega->y_add] == NULL))
+        (ega->monitor->target_buffer == NULL) ||
+        (ega->monitor->target_buffer->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->firstline_draw == 2000)
@@ -229,7 +229,7 @@ ega_render_graphics(ega_t *ega)
     const bool    seqoddeven  = ((ega->seqregs[1] & 4) != 0);
     const uint8_t blinkmask   = (attrblink ? 0x8 : 0x0);
     const uint8_t blinkval    = (attrblink && blinked ? 0x8 : 0x0);
-    uint32_t     *p           = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
+    uint32_t     *p           = &ega->monitor->target_buffer->line[ega->displine + ega->y_add][ega->x_add];
     const int     dwshift     = doublewidth ? 1 : 0;
     const int     dotwidth    = 1 << dwshift;
     const int     charwidth   = dotwidth * 8;

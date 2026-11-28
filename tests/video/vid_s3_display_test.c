@@ -5,8 +5,6 @@
 #include "../../src/video/vid_s3.c"
 
 double cpuclock = 50000000.0;
-monitor_t monitors[MONITORS_NUM];
-int monitor_index_global;
 uint32_t *video_15to32, *video_16to32;
 
 /* These RAMDACs are not used by the tested cards. */
@@ -202,7 +200,6 @@ test_16color(int chip, int width, int accelerated)
         assert(s3.accel.sy == -1);
 
         /* Cursor masks must remain raw VRAM bytes in the packed display mode. */
-        monitors[0].target_buffer = &bitmap;
         svga->hwcursor_latch.addr = 0x80000;
         svga->crtc[0x0e] = 0xf1;
         for (int i = 0; i < 16; i += 4) {

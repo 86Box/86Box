@@ -87,8 +87,6 @@ static const chip_t chips[] = {
 #define MAX_TESTS 32
 
 double    cpuclock = 50000000.0;
-monitor_t monitors[MONITORS_NUM];
-int       monitor_index_global;
 uint32_t *video_15to32, *video_16to32;
 int       xga_active;
 

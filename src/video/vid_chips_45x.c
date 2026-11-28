@@ -238,7 +238,7 @@ chips_45x_emu_apply(chips_45x_t *chips)
     chips_45x_set_attr(svga, 0x10, ar10);
     svga->crtc[0x17] = cr17;
 
-    svga->fullchange = changeframecount;
+    svga->fullchange = svga->monitor->mon_changeframecount;
     svga_recalctimings(svga);
 }
 
@@ -282,7 +282,7 @@ chips_45x_update_mapping(chips_45x_t *chips)
         svga->packed_chain4 = packed;
         svga->fast          = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
                               ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only);
-        svga->fullchange    = changeframecount;
+        svga->fullchange    = svga->monitor->mon_changeframecount;
         svga_recalctimings(svga);
     }
 }
@@ -618,7 +618,7 @@ chips_45x_xr_write(chips_45x_t *chips, uint8_t val)
         case 0x18 ... 0x1e:
         case 0x28:
             if (old != val) {
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 svga_recalctimings(svga);
             }
             break;
@@ -818,7 +818,7 @@ chips_45x_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange    = 3;
                         svga->memaddr_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -1244,7 +1244,7 @@ chips_45x_init(const device_t *info)
 
     rom_init(&chips->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0x0000, MEM_MAPPING_EXTERNAL);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_chips_45x);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_chips_45x, video_monitor_pending);
 
     svga_init(info, &chips->svga, chips, chips->vram_size << 10,
               chips_45x_recalctimings,
@@ -1315,7 +1315,7 @@ chips_45x_force_redraw(void *priv)
 {
     chips_45x_t *chips = (chips_45x_t *) priv;
 
-    chips->svga.fullchange = changeframecount;
+    chips->svga.fullchange = chips->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off

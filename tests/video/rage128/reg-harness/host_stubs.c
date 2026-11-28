@@ -68,8 +68,8 @@ int       cpu_pci_speed = 33333333; /* a 66 MHz host bus: PCI at half */
 int       cpu_agp_speed = 66666667; /* and AGP at the bus clock       */
 uint32_t  mem_size = 8192; /* KB; GART tables and rings live in ram[] */
 uint8_t  *ram;
-monitor_t monitors[MONITORS_NUM];
-int       monitor_index_global = 0;
+static monitor_t display_monitor;
+monitor_t *video_monitor_pending = &display_monitor;
 /* The emulator's CPU-thread mark, set on that thread when it starts. No
    harness thread is the emulator's CPU thread, so it stays 0 on all of
    them: device code that keys work to it, such as the write-back
@@ -791,13 +791,13 @@ ui_msgbox_header(int flags, char *header, char *message)
 
 /* ---- video core ---- */
 void
-video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
+video_inform_monitor(int type, const video_timings_t *ptr, monitor_t *monitor)
 {
     /* Records the board's timing table as the core does, so a row can
        derive the per-access cycle counts from it. The counts stay zero
        until a row sets them. */
-    monitors[monitor_index].mon_vid_type    = type;
-    monitors[monitor_index].mon_vid_timings = ptr;
+    monitor->mon_vid_type    = type;
+    monitor->mon_vid_timings = ptr;
 }
 
 /* ---- SVGA core shell. Allocates what the device owns and wires the
@@ -824,8 +824,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
 {
     (void) info;
     svga->priv              = priv;
-    svga->monitor_index     = monitor_index_global;
-    svga->monitor           = &monitors[svga->monitor_index];
+    svga->monitor = video_monitor_pending;
     svga->vram              = calloc(memsize + 4096, 1);
     svga->vram_max          = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
@@ -887,15 +886,15 @@ svga_recalctimings(svga_t *svga)
 }
 
 void
-video_force_resize_set_monitor(uint8_t res, int monitor_index)
+video_force_resize_set_monitor(uint8_t res, monitor_t *monitor)
 {
-    monitors[monitor_index].mon_force_resize = res;
+    monitor->mon_force_resize = res;
 }
 
 uint8_t
-video_force_resize_get_monitor(int monitor_index)
+video_force_resize_get_monitor(monitor_t *monitor)
 {
-    return monitors[monitor_index].mon_force_resize;
+    return monitor->mon_force_resize;
 }
 
 void

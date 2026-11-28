@@ -778,22 +778,22 @@ mtouch_poll(void *priv)
     dev->but = tablet_get_buttons_ex() | tablet_take_pressed();
     mouse_get_abs_coords(&dev->raw_x, &dev->raw_y);
 
-    if (enable_overscan && mouse_tablet_in_proximity > 0) {
-        int index = mouse_tablet_in_proximity - 1;
+    const monitor_t *monitor = mouse_get_input_monitor();
+    if (enable_overscan && monitor) {
 
-        dev->raw_x *= monitors[index].mon_unscaled_size_x - 1;
-        dev->raw_y *= monitors[index].mon_efscrnsz_y - 1;
+        dev->raw_x *= monitor->mon_unscaled_size_x - 1;
+        dev->raw_y *= monitor->mon_efscrnsz_y - 1;
 
-        if (dev->raw_x <= (monitors[index].mon_overscan_x / 2.)) {
-            dev->raw_x = (monitors[index].mon_overscan_x / 2.);
+        if (dev->raw_x <= (monitor->mon_overscan_x / 2.)) {
+            dev->raw_x = (monitor->mon_overscan_x / 2.);
         }
-        if (dev->raw_y <= (monitors[index].mon_overscan_y / 2.)) {
-            dev->raw_y = (monitors[index].mon_overscan_y / 2.);
+        if (dev->raw_y <= (monitor->mon_overscan_y / 2.)) {
+            dev->raw_y = (monitor->mon_overscan_y / 2.);
         }
-        dev->raw_x -= (monitors[index].mon_overscan_x / 2.);
-        dev->raw_y -= (monitors[index].mon_overscan_y / 2.);
-        dev->raw_x = dev->raw_x / (double) monitors[index].mon_xsize;
-        dev->raw_y = dev->raw_y / (double) monitors[index].mon_ysize;
+        dev->raw_x -= (monitor->mon_overscan_x / 2.);
+        dev->raw_y -= (monitor->mon_overscan_y / 2.);
+        dev->raw_x = dev->raw_x / (double) monitor->mon_xsize;
+        dev->raw_y = dev->raw_y / (double) monitor->mon_ysize;
     }
 
     if (dev->raw_x >= 1.0) dev->raw_x = 1.0;

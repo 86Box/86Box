@@ -35,8 +35,9 @@ extern "C" {
 #include <86box/video.h>
 }
 
-SoftwareRenderer::SoftwareRenderer(QWidget *parent)
+SoftwareRenderer::SoftwareRenderer(QWidget *parent, monitor_t *monitor)
     : QWidget(parent)
+    , RendererCommon(monitor)
 {
     RendererCommon::parentWidget = parent;
 
@@ -126,7 +127,6 @@ SoftwareRenderer::exposeEvent(QExposeEvent *event)
     render();
 }
 
-extern void take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i);
 
 void
 SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
@@ -174,7 +174,7 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         scaleFrame(QRegion(dest.x(), dtop, dest.width(), dbottom - dtop), false);
     }
 
-    if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard || monitors[r_monitor_index].mon_screenshots_raw_clipboard)
+    if (r_monitor->mon_screenshots || r_monitor->mon_screenshots_clipboard)
         QMetaObject::invokeMethod(this, [this, x, y, w, h] { takeScreenshots(x, y, w, h); }, Qt::QueuedConnection);
 }
 
@@ -265,7 +265,7 @@ SoftwareRenderer::frontBuffer()
 void
 SoftwareRenderer::takeScreenshots(int x, int y, int w, int h)
 {
-    if (monitors[r_monitor_index].mon_screenshots) {
+    if (r_monitor->mon_screenshots) {
         char path[1024];
         char fn[256];
 
@@ -279,7 +279,7 @@ SoftwareRenderer::takeScreenshots(int x, int y, int w, int h)
 
         path_slash(path);
         strcat(path, "Monitor_");
-        snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
+        snprintf(&path[strlen(path)], 42, "%d_", video_monitor_id(r_monitor) + 1);
 
         plat_tempfile(fn, NULL, (char *) ".png");
         strcat(path, fn);
@@ -295,9 +295,9 @@ SoftwareRenderer::takeScreenshots(int x, int y, int w, int h)
             image = pixmap.toImage().scaled(qs * win_scale, Qt::IgnoreAspectRatio,
                                             Qt::SmoothTransformation);
         image.save(path, "png");
-        monitors[r_monitor_index].mon_screenshots--;
+        r_monitor->mon_screenshots--;
     }
-    if (monitors[r_monitor_index].mon_screenshots_clipboard) {
+    if (r_monitor->mon_screenshots_clipboard) {
         qreal win_scale = util::screenOfWidget(this)->devicePixelRatio();
         QSize qs = RendererCommon::parentWidget->size();
         QPixmap pixmap(RendererCommon::parentWidget->size());
@@ -309,10 +309,7 @@ SoftwareRenderer::takeScreenshots(int x, int y, int w, int h)
             image = pixmap.toImage().scaled(qs * win_scale, Qt::IgnoreAspectRatio,
                                             Qt::SmoothTransformation);
         util::copyImageToClipboard(image);
-        monitors[r_monitor_index].mon_screenshots_clipboard--;
-    }
-    if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
-        take_screenshot_clipboard_monitor(x, y, w, h, r_monitor_index);
+        r_monitor->mon_screenshots_clipboard--;
     }
 }
 

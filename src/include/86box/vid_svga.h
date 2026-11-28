@@ -330,7 +330,6 @@ typedef struct svga_t {
     void *clock_gen;
 
     /* Monitor Index */
-    uint8_t monitor_index;
 
     /* Pointer to monitor */
     monitor_t *monitor;

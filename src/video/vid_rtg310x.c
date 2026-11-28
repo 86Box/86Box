@@ -135,7 +135,7 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                 switch (svga->gdcaddr) {
                     case 0x0b:
                     case 0x0c:
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                         break;
 
@@ -165,7 +165,7 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                 switch (svga->crtcreg) {
                     case 0x19:
                         svga->vram_display_mask = (val & 0x20) ? dev->vram_mask : 0x3ffff;
-                        svga->fullchange        = changeframecount;
+                        svga->fullchange        = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                         break;
 
@@ -180,7 +180,7 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -311,7 +311,7 @@ rtg_init(const device_t *info)
         case 1: /* ISA RTG3105 */
             fn        = RTG_3105_BIOS_ROM_PATH;
             dev->vram_size = device_get_config_int("memory");
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rtg_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_rtg_isa, video_monitor_pending);
             svga_init(info, &dev->svga, dev, dev->vram_size << 10,
                       rtg_recalctimings, rtg_in, rtg_out,
                       NULL, NULL);
@@ -321,7 +321,7 @@ rtg_init(const device_t *info)
         case 2: /* ISA RTG3106 */
             fn        = RTG_3106_BIOS_ROM_PATH;
             dev->vram_size = device_get_config_int("memory");
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rtg_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_rtg_isa, video_monitor_pending);
             svga_init(info, &dev->svga, dev, dev->vram_size << 10,
                       rtg_recalctimings, rtg_in, rtg_out,
                       NULL, NULL);
@@ -367,7 +367,7 @@ rtg_force_redraw(void *priv)
 {
     rtg_t *dev = (rtg_t *) priv;
 
-    dev->svga.fullchange = changeframecount;
+    dev->svga.fullchange = dev->svga.monitor->mon_changeframecount;
 }
 
 static int

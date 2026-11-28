@@ -82,7 +82,7 @@ vga_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -243,7 +243,7 @@ vga_standalone_init(const device_t *info)
 
     rom_init(&vga->bios_rom, "roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga, video_monitor_pending);
 
     vga_init(info, vga, 0);
 
@@ -267,9 +267,9 @@ ps1vga_init(const device_t *info)
     vga_t *vga = calloc(1, sizeof(vga_t));
 
     if (info->flags & DEVICE_MCA)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_mca);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_mca, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa, video_monitor_pending);
 
     vga_init(info, vga, 1);
 
@@ -307,7 +307,7 @@ vga_force_redraw(void *priv)
 {
     vga_t *vga = (vga_t *) priv;
 
-    vga->svga.fullchange = changeframecount;
+    vga->svga.fullchange = vga->svga.monitor->mon_changeframecount;
 }
 
 const device_t vga_device = {

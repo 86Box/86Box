@@ -51,7 +51,26 @@ int mouse_timed = 1;
 /* Set by the automation socket: let injected input reach the emulated mouse
    without the host UI capturing the pointer. */
 int mouse_automation          = 0;
-int mouse_tablet_in_proximity = 0;
+static _Atomic(monitor_t *) mouse_input_monitor;
+
+monitor_t *
+mouse_get_input_monitor(void)
+{
+    return atomic_load(&mouse_input_monitor);
+}
+
+void
+mouse_set_input_monitor(monitor_t *monitor)
+{
+    if (!monitor || (monitor->flags & VIDEO_MONITOR_INPUT))
+        atomic_store(&mouse_input_monitor, monitor);
+}
+
+void
+mouse_clear_input_monitor(monitor_t *monitor)
+{
+    atomic_compare_exchange_strong(&mouse_input_monitor, &monitor, NULL);
+}
 int tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
 
 double mouse_x_abs;
@@ -244,7 +263,7 @@ mouse_scale_coord_x(double x, int mul)
     double ratio = 1.0;
 
     if (!mouse_raw)        
-        ratio = ((double) monitors[0].mon_unscaled_size_x) / monitors[0].mon_picture_x;
+        ratio = ((double) video_primary_monitor->mon_unscaled_size_x) / video_primary_monitor->mon_picture_x;
 
     if (mul)
         x *= ratio;
@@ -260,7 +279,7 @@ mouse_scale_coord_y(double y, int mul)
     double ratio = 1.0;
 
     if (!mouse_raw)        
-        ratio = ((double) monitors[0].mon_efscrnsz_y) / monitors[0].mon_picture_y;
+        ratio = ((double) video_primary_monitor->mon_efscrnsz_y) / video_primary_monitor->mon_picture_y;
 
     if (mul)
         y *= ratio;

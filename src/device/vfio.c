@@ -2535,7 +2535,7 @@ vfio_dev_init(vfio_device_t *dev)
                 vfio_region_init(dev, &reg, &dev->vga_mem);   /* memory [A0000:BFFFF] */
 
                 /* Inform that a PCI VGA video card is attached. */
-                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
+                video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, video_monitor_pending);
                 break;
 
             default:

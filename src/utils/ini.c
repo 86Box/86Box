@@ -120,6 +120,16 @@ find_section(list_t *head, const char *name)
     return NULL;
 }
 
+void
+ini_visit_sections(ini_t ini, void (*visit)(const char *name, ini_section_t section))
+{
+    list_t *head = (list_t *) ini;
+    for (list_t *node = head->next; node; node = node->next) {
+        section_t *section = (section_t *) node;
+        visit(section->name, section);
+    }
+}
+
 ini_section_t
 ini_find_section(ini_t ini, const char *name)
 {

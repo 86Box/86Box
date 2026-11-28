@@ -318,6 +318,7 @@ da2_log(const char *fmt, ...)
 #endif
 
 typedef struct da2_t {
+    struct monitor_t *monitor;
     mem_mapping_t cmapping;
 
     uint8_t  ioctl[16];
@@ -2122,7 +2123,7 @@ da2_render_blank(da2_t *da2)
 
     for (x = 0; x < da2->hdisp; x++) {
         for (xx = 0; xx < cwidth; xx++)
-            ((uint32_t *) buffer32->line[da2->displine])[(x * cwidth) + xx + 32] = 0;
+            ((uint32_t *) da2->monitor->target_buffer->line[da2->displine])[(x * cwidth) + xx + 32] = 0;
     }
 }
 /* Display Adapter Mode 8, E Drawing */
@@ -2135,7 +2136,7 @@ da2_render_text(da2_t *da2)
 
     if (da2->fullchange) {
         int       offset = (8 - da2->scrollcache) + 24;
-        uint32_t *p      = &((uint32_t *) buffer32->line[da2->displine])[offset];
+        uint32_t *p      = &((uint32_t *) da2->monitor->target_buffer->line[da2->displine])[offset];
         int       x;
         int       drawcursor;
         uint8_t   chr, attr;
@@ -2272,7 +2273,7 @@ da2_render_textm3(da2_t *da2)
 
     if (da2->fullchange) {
         int       offset = (8 - da2->scrollcache) + 24;
-        uint32_t *p      = &((uint32_t *) buffer32->line[da2->displine])[offset];
+        uint32_t *p      = &((uint32_t *) da2->monitor->target_buffer->line[da2->displine])[offset];
         int       x;
         int       drawcursor;
         uint8_t   chr, attr, extattr;
@@ -2369,7 +2370,7 @@ da2_render_color_4bpp(da2_t *da2)
     if (da2->changedvram[changed_offset] || da2->changedvram[changed_offset + 1] || da2->fullchange) {
         int       x;
         int       offset = (8 - da2->scrollcache) + 24;
-        uint32_t *p      = &((uint32_t *) buffer32->line[da2->displine])[offset];
+        uint32_t *p      = &((uint32_t *) da2->monitor->target_buffer->line[da2->displine])[offset];
 
         if (da2->firstline_draw == 2000)
             da2->firstline_draw = da2->displine;
@@ -2417,7 +2418,7 @@ da2_render_color_8bpp(da2_t *da2)
     if (da2->changedvram[changed_offset] || da2->changedvram[changed_offset + 1] || da2->fullchange) {
         int       x;
         int       offset = (8 - da2->scrollcache) + 24;
-        uint32_t *p      = &((uint32_t *) buffer32->line[da2->displine])[offset];
+        uint32_t *p      = &((uint32_t *) da2->monitor->target_buffer->line[da2->displine])[offset];
 
         if (da2->firstline_draw == 2000)
             da2->firstline_draw = da2->displine;
@@ -2788,7 +2789,7 @@ da2_mmio_read(uint32_t addr, void *priv)
                 break;
         }
     } else if (!(da2->ioctl[LS_MODE] & 1)) { /* 16 or 256 color mode */
-        cycles -= video_timing_read_b;
+        cycles -= da2->monitor->mon_video_timing_read_b;
         for (uint8_t i = 0; i < 8; i++)
             da2->gdcla[i] = da2->vram[(addr << 3) | i]; /* read in byte */
         if (da2->gdcreg[LG_MODE] & 0x08) { /* compare data across planes if the read mode bit (3EB 05, bit 3) is 1 */
@@ -2808,7 +2809,7 @@ da2_mmio_read(uint32_t addr, void *priv)
             return da2->gdcla[(da2->gdcreg[LG_READ_MAP_SELECT] & 7)];
         }
     } else { /* text mode 3 */
-        cycles -= video_timing_read_b;
+        cycles -= da2->monitor->mon_video_timing_read_b;
         return da2->vram[addr];
     }
 }
@@ -2822,7 +2823,7 @@ da2_mmio_readw(uint32_t addr, void *priv)
     if (da2->ioctl[LS_MMIO] & 0x10) {
         return (uint16_t) da2_mmio_read(addr, da2) | (uint16_t) (da2_mmio_read(addr + 1, da2) << 8);
     } else if (!(da2->ioctl[LS_MODE] & 1)) {/* 16 color or 256 color mode */
-        cycles -= video_timing_read_w;
+        cycles -= da2->monitor->mon_video_timing_read_w;
         addr &= DA2_MASK_MMIO;
         for (uint8_t i = 0; i < 8; i++)
             da2->gdcla[i] = (uint16_t) (da2->vram[(addr << 3) | i]) | ((uint16_t) (da2->vram[((addr << 3) + 8) | i]) << 8); /* read vram into latch */
@@ -2937,7 +2938,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *priv)
         da2->mmdbg_vidaddr = addr;
         //}
 #endif
-        cycles -= video_timing_write_b;
+        cycles -= da2->monitor->mon_video_timing_write_b;
         da2->changedvram[addr >> 9] = 3;/* 0x1FFFF -> 0x1F */
         addr <<= 3;
 
@@ -2998,7 +2999,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *priv)
                 break;
         }
     } else { /*  mode 3h text */
-        cycles -= video_timing_write_b;
+        cycles -= da2->monitor->mon_video_timing_write_b;
         da2_vram_w(addr, val, da2);
         da2->fullchange = 3;
     }
@@ -3033,7 +3034,7 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, da2_t *da2)
     }
     da2->mmdbg_vidaddr = addr;
 #endif
-    cycles -= video_timing_write_w;
+    cycles -= da2->monitor->mon_video_timing_write_w;
 
     // da2_log("da2_gcW m%d a%x d%x\n", da2->writemode, addr, val);
     // da2_log("da2_gcW %05X %02X %04X:%04X esdi %04X:%04X dssi %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc, ES, DI, DS, SI);
@@ -3143,7 +3144,7 @@ da2_code_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
     // da2_log("DA2_code_writeb: Write to %x, val %x\n", addr, val);
-    cycles -= video_timing_write_b;
+    cycles -= da2->monitor->mon_video_timing_write_b;
     da2_code_write(addr, val, da2);
 }
 static void
@@ -3151,7 +3152,7 @@ da2_code_writew(uint32_t addr, uint16_t val, void *priv)
 {
     // da2_log("DA2_code_writ   ew: Write to %x, val %x\n", addr, val);
     da2_t *da2 = (da2_t *) priv;
-    cycles -= video_timing_write_w;
+    cycles -= da2->monitor->mon_video_timing_write_w;
     da2_code_write(addr, val & 0xff, da2);
     da2_code_write(addr + 1, val >> 8, da2);
 }
@@ -3169,14 +3170,14 @@ static uint8_t
 da2_code_readb(uint32_t addr, void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
-    cycles -= video_timing_read_b;
+    cycles -= da2->monitor->mon_video_timing_read_b;
     return da2_code_read(addr, da2);
 }
 static uint16_t
 da2_code_readw(uint32_t addr, void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
-    cycles -= video_timing_read_w;
+    cycles -= da2->monitor->mon_video_timing_read_w;
     return da2_code_read(addr, da2) | (da2_code_read(addr + 1, da2) << 8);
 }
 
@@ -3185,20 +3186,20 @@ da2_doblit(int wx, int wy, da2_t *da2)
 {
     /* The OSD can reset the screen size behind the driver's back; honour
        its resize request even when the mode itself has not changed. */
-    if ((wx != xsize) || (wy != ysize) || video_force_resize_get()) {
-        xsize = wx;
-        ysize = wy;
-        set_screen_size(xsize, ysize);
+    if ((wx != da2->monitor->mon_xsize) || (wy != da2->monitor->mon_ysize) || video_force_resize_get_monitor(da2->monitor)) {
+        da2->monitor->mon_xsize = wx;
+        da2->monitor->mon_ysize = wy;
+        set_screen_size_monitor(da2->monitor->mon_xsize, da2->monitor->mon_ysize, da2->monitor);
 
-        if (video_force_resize_get())
-            video_force_resize_set(0);
+        if (video_force_resize_get_monitor(da2->monitor))
+            video_force_resize_set_monitor(0, da2->monitor);
     }
-    video_blit_memtoscreen(32, 0, xsize, ysize);
+    video_blit_memtoscreen_monitor(32, 0, da2->monitor->mon_xsize, da2->monitor->mon_ysize, da2->monitor);
     frames++;
 
-    video_res_x = wx;
-    video_res_y = wy;
-    video_bpp   = 8;
+    da2->monitor->mon_res_x = wx;
+    da2->monitor->mon_res_y = wy;
+    da2->monitor->mon_bpp   = 8;
 }
 
 static void
@@ -3219,7 +3220,7 @@ da2_poll(void *priv)
             da2->memaddr &= da2->vram_display_mask;
             if (da2->firstline == 2000) {
                 da2->firstline = da2->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(da2->monitor);
             }
 
             if (!da2->override && ((da2->displine ^ !da2->oddeven) & 1))
@@ -3446,6 +3447,7 @@ da2_init(const device_t *info)
     }
 
     da2_t *da2  = calloc(1, sizeof(da2_t));
+    da2->monitor = video_monitor_pending;
     da2->mb_vga = mb_vga;
     da2->vga    = vga;
     da2->b2     = info->local;
@@ -3487,7 +3489,7 @@ da2_init(const device_t *info)
     mca_add(da2_mca_read, da2_mca_write, da2_mca_feedb, da2_mca_reset, da2);
     da2->pixelclock = DA2_CLOCK_58MHZ;
     da2->da2const = (uint64_t) ((cpuclock / DA2_CLOCK_58MHZ) * (double) (1ull << 32));
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_da2_mca);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_da2_mca, da2->monitor);
     memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
     memset(da2->bitblt.reg, 0xfe, DA2_BLT_REGSIZE * sizeof(uint32_t)); /* clear memory */
 #ifdef ENABLE_DA2_DEBUGBLT

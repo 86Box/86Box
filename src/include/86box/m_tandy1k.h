@@ -13,6 +13,7 @@
  *          Copyright 2025 starfrost
  */
 typedef struct t1kvid_t {
+    struct monitor_t *monitor;
     mem_mapping_t mapping;
     mem_mapping_t vram_mapping;
 

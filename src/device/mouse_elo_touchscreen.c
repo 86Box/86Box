@@ -1345,20 +1345,20 @@ elo_poll(void *priv)
     dev->but = tablet_get_buttons_ex();
     mouse_get_abs_coords(&abs_x, &abs_y);
 
-    if (enable_overscan && mouse_tablet_in_proximity > 0) {
-        int index = mouse_tablet_in_proximity - 1;
+    const monitor_t *monitor = mouse_get_input_monitor();
+    if (enable_overscan && monitor) {
 
-        abs_x *= monitors[index].mon_unscaled_size_x - 1;
-        abs_y *= monitors[index].mon_efscrnsz_y - 1;
+        abs_x *= monitor->mon_unscaled_size_x - 1;
+        abs_y *= monitor->mon_efscrnsz_y - 1;
 
-        if (abs_x <= (monitors[index].mon_overscan_x / 2.))
-            abs_x = (monitors[index].mon_overscan_x / 2.);
-        if (abs_y <= (monitors[index].mon_overscan_y / 2.))
-            abs_y = (monitors[index].mon_overscan_y / 2.);
-        abs_x -= (monitors[index].mon_overscan_x / 2.);
-        abs_y -= (monitors[index].mon_overscan_y / 2.);
-        abs_x = abs_x / (double) monitors[index].mon_xsize;
-        abs_y = abs_y / (double) monitors[index].mon_ysize;
+        if (abs_x <= (monitor->mon_overscan_x / 2.))
+            abs_x = (monitor->mon_overscan_x / 2.);
+        if (abs_y <= (monitor->mon_overscan_y / 2.))
+            abs_y = (monitor->mon_overscan_y / 2.);
+        abs_x -= (monitor->mon_overscan_x / 2.);
+        abs_y -= (monitor->mon_overscan_y / 2.);
+        abs_x = abs_x / (double) monitor->mon_xsize;
+        abs_y = abs_y / (double) monitor->mon_ysize;
     }
 
     if (abs_x >= 1.0)

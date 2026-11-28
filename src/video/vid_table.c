@@ -29,6 +29,7 @@
 #include <86box/lpt.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/vid_svga.h>
 
 #include <86box/vid_cga.h>
@@ -417,37 +418,36 @@ void* lightpen_priv = NULL;
 
 void (*lightpen_hsync_callback)(void*) = NULL;
 void (*lightpen_vsync_callback)(void*) = NULL;
-void (*lightpen_check_trigger_strobe)(void* priv, int x_offset, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used) = NULL;
+void (*lightpen_check_trigger_strobe)(void* priv, int x_offset, int y, int x_offset_from_hsync, int firstline, double hpix_clock, monitor_t *monitor) = NULL;
+
+static void
+video_update_monitor_framerate(monitor_t *monitor, UNUSED(void *priv))
+{
+    monitor->mon_actualrenderedframes = monitor->mon_renderedframes;
+    monitor->mon_renderedframes = 0;
+}
 
 void
-video_update_framerates(void* priv)
+video_update_framerates(UNUSED(void *priv))
 {
-    (void)priv;
-    int i = 0;
-
-    for (i = 0; i < GFXCARD_MAX; i++) {
-        monitors[i].mon_actualrenderedframes = monitors[i].mon_renderedframes;
-        monitors[i].mon_renderedframes = 0;
-    }
-
+    video_monitor_for_each(video_update_monitor_framerate, NULL);
     timer_on_auto(&framerate_timer, 1000 * 1000);
 }
 
 void
 video_reset_close(void)
 {
-    for (int i = 1; i < MONITORS_NUM; i++)
-        video_monitor_close(i);
+    video_monitor_close_secondary();
 
-    monitor_index_global = 0;
-    video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
+    video_monitor_pending = video_primary_monitor;
+    video_inform_monitor(VIDEO_FLAG_TYPE_NONE, &timing_default, video_primary_monitor);
     override_priv     = NULL;
     override_callback = NULL;
     was_reset = 0;
 }
 
 void
-video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used))
+video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double hpix_clock, monitor_t *monitor))
 {
     lightpen_priv = priv;
     lightpen_hsync_callback = lightpen_hsync;
@@ -474,25 +474,32 @@ video_set_override(int val)
     return 1;
 }
 
-void
-video_lightpen_hsync(void)
+static monitor_t *
+video_lightpen_monitor(void)
 {
-    if (lightpen_hsync_callback)
+    monitor_t *monitor = mouse_get_input_monitor();
+    return monitor ? monitor : video_primary_monitor;
+}
+
+void
+video_lightpen_hsync(monitor_t *monitor)
+{
+    if (lightpen_hsync_callback && video_lightpen_monitor() == monitor)
         lightpen_hsync_callback(lightpen_priv);
 }
 
 void
-video_lightpen_vsync(void)
+video_lightpen_vsync(monitor_t *monitor)
 {
-    if (lightpen_vsync_callback)
+    if (lightpen_vsync_callback && video_lightpen_monitor() == monitor)
         lightpen_vsync_callback(lightpen_priv);
 }
 
 void
-video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used)
+video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, monitor_t *monitor)
 {
-    if (lightpen_check_trigger_strobe)
-        lightpen_check_trigger_strobe(lightpen_priv, x_offset, y, x_offset_from_hsync, firstline, pix_clock, monitor_used);
+    if (lightpen_check_trigger_strobe && monitor && mouse_get_input_monitor() == monitor)
+        lightpen_check_trigger_strobe(lightpen_priv, x_offset, y, x_offset_from_hsync, firstline, pix_clock, monitor);
 }
 
 static void
@@ -507,21 +514,10 @@ video_prepare(void)
     /* Reset the blend. */
     herc_blend = 0;
 
-    for (int i = 0; i < MONITORS_NUM; i++) {
-        /* Reset the CGA palette. */
-#if 0
-        if (monitors[i].mon_cga_palette)
-            *monitors[i].mon_cga_palette = 0;
-#endif
-        cgapal_rebuild_monitor(i);
-
-        /* Do an inform on the default values, so that that there's some sane values initialized
-           even if the device init function does not do an inform of its own. */
-        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, i);
-
-        monitors[i].mon_interlace = 0;
-        monitors[i].mon_composite = 0;
-    }
+    cgapal_rebuild_monitor(video_primary_monitor);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, video_primary_monitor);
+    video_primary_monitor->mon_interlace = 0;
+    video_primary_monitor->mon_composite = 0;
 }
 
 void
@@ -535,13 +531,19 @@ void
 video_reset(int card)
 {
     /* This is needed to avoid duplicate resets. */
-    if ((video_get_type() != VIDEO_FLAG_TYPE_NONE) && was_reset)
+    if (was_reset)
         return;
 
     vid_table_log("VIDEO: reset (gfxcard[0]=%d, internal=%d)\n",
                   card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
-    monitor_index_global = 0;
+    const int external_card = (card != VID_NONE) && (card != VID_INTERNAL) && (card != VID_EXTERNAL) &&
+                              !machine_has_flags(machine, MACHINE_VIDEO_ONLY);
+
+    video_monitor_pending = video_primary_monitor;
+    if (external_card)
+        video_prepare();
+
     video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
@@ -552,21 +554,20 @@ video_reset(int card)
 
         if ((card != VID_NONE) && device_is_valid(video_card_getdevice(gfxcard[i]), machine) &&
             (!machine_has_flags(machine, MACHINE_VIDEO_ONLY) || machine_has_flags(machine, MACHINE_VIDEO_EXT))) {
-            video_monitor_init(i);
-            monitor_index_global = 1;
-            device_add_inst(video_cards[gfxcard[i]].device, i + 1);
-            monitor_index_global = 0;
+            monitor_t *monitor = video_monitor_create(VIDEO_MONITOR_VIDEO);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, monitor);
+            video_monitor_pending = monitor;
+            void *device = device_add_inst(video_cards[gfxcard[i]].device, i + 1);
+            video_monitor_pending = video_primary_monitor;
+            if (!device)
+                video_monitor_close(monitor);
         }
     }
 
     /* Do not initialize internal cards here, and the external entry is never a card. */
-    if ((card != VID_NONE) && (card != VID_INTERNAL) && (card != VID_EXTERNAL) &&
-        !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+    if (external_card) {
         vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
-        video_prepare();
-
-        /* Initialize the video card. */
         device_add_inst(video_cards[card].device, 1);
     }
 
@@ -583,7 +584,7 @@ video_post_reset(void)
 
     int ibm8514_has_vga = 0;
     if (gfxcard[0] == VID_INTERNAL)
-        ibm8514_has_vga = (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_8514);
+        ibm8514_has_vga = (video_get_type_monitor(video_primary_monitor) == VIDEO_FLAG_TYPE_8514);
     else if (gfxcard[0] != VID_NONE)
         ibm8514_has_vga = (video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514);
     else
@@ -662,9 +663,7 @@ video_get_primary_flags(int m, int card)
     return VIDEO_FLAG_TYPE_NONE;
 }
 
-/* Whether secondary_card may drive the second monitor while primary_card is in the first
-   slot. Cards that have not been taught to render through their own monitor index keep
-   the VIDEO_FLAG_TYPE_NONE flag, so they never qualify here. */
+/* Check whether both adapters can coexist without overlapping video resources. */
 int
 video_card_is_secondary(int m, int primary_card, int secondary_card)
 {
@@ -745,7 +744,7 @@ unsigned
 video_get_wait_states(uint32_t address, int write, unsigned size,
                       uint64_t cpu_cycle)
 {
-    const video_timings_t *timings = monitors[0].mon_vid_timings;
+    const video_timings_t *timings = video_primary_monitor->mon_vid_timings;
 
     if (timings && timings->wait_states)
         return timings->wait_states(address, write, size, cpu_cycle,
@@ -754,7 +753,7 @@ video_get_wait_states(uint32_t address, int write, unsigned size,
     /* Preserve the previous exact-808x behavior for ordinary ISA CGA while
      * avoiding the IBM table for machine-integrated video buses. */
     if (timings && (timings->type == VIDEO_ISA) &&
-        (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_CGA))
+        (video_get_type_monitor(video_primary_monitor) == VIDEO_FLAG_TYPE_CGA))
         return video_default_cga_wait_states(address, cpu_cycle);
 
     return 0;

@@ -385,7 +385,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -859,7 +859,7 @@ et4000_init(const device_t *info)
             vram                                = device_get_config_int("memory");
             video_clamp_vram(bios_flags, &vram);
             dev->vram_size                      = vram << 10;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa, video_monitor_pending);
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
@@ -871,7 +871,7 @@ et4000_init(const device_t *info)
 
         case ET4000_TYPE_MCA: /* MCA ET4000AX */
             dev->vram_size                      = 1024 << 10;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_mca);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_mca, video_monitor_pending);
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
@@ -894,7 +894,7 @@ et4000_init(const device_t *info)
             dev->svga.ksc5601_udc_area_msb[1]   = 0xfe;
             dev->svga.ksc5601_swap_mode         = 0;
             dev->svga.ksc5601_english_font_type = 0;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa, video_monitor_pending);
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000k_in, et4000k_out,
                       NULL, NULL);
@@ -932,7 +932,7 @@ et4000_init(const device_t *info)
             dev->kasan_cfg_regs[6] = 0xC9;
             dev->kasan_cfg_regs[7] = 0xFE;
             dev->kasan_access_addr = 0x250;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa, video_monitor_pending);
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_kasan_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
@@ -998,7 +998,7 @@ et4000_force_redraw(void *priv)
 {
     et4000_t *dev = (et4000_t *) priv;
 
-    dev->svga.fullchange = changeframecount;
+    dev->svga.fullchange = dev->svga.monitor->mon_changeframecount;
 }
 
 static int

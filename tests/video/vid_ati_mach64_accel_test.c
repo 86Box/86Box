@@ -39,8 +39,6 @@
 /* As in vid_ati_mach64.c. */
 int mach64_width[8] = { WIDTH_1BIT, WIDTH_4BIT, 0, 1, 1, 2, 2, 0 };
 
-monitor_t   monitors[MONITORS_NUM];
-int         monitor_index_global;
 cpu_state_t cpu_state;
 uint64_t    tsc;
 double      cpuclock      = 1000000000.0;
@@ -514,8 +512,7 @@ overlay_draw(int type, int format, const uint32_t *source, int dwords, int ecp_d
         vram_write(mach64, 32, i * 4, source[i]);
     for (int y = 0; y < OVERLAY_H; y++)
         bitmap->line[y] = overlay_screen[y];
-    monitors[0].target_buffer = bitmap;
-    monitor_index_global      = 0;
+    mach64->svga.monitor->target_buffer = bitmap;
 
     mach64->type                         = type;
     mach64->svga.overlay.pitch           = OVERLAY_PITCH;
@@ -531,7 +528,7 @@ overlay_draw(int type, int format, const uint32_t *source, int dwords, int ecp_d
     for (int y = 0; y < OVERLAY_H; y++)
         mach64_overlay_draw(&mach64->svga, y);
 
-    monitors[0].target_buffer = NULL;
+    mach64->svga.monitor->target_buffer = NULL;
     free(bitmap);
     card_close(mach64);
 }

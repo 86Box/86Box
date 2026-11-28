@@ -108,7 +108,7 @@ svga_xga_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -2768,7 +2768,7 @@ xga_hwcursor_draw(svga_t *svga, int displine)
 
         y_pos = displine;
         x_pos = offset + svga->x_add;
-        p     = buffer32->line[y_pos];
+        p     = svga->monitor->target_buffer->line[y_pos];
 
         if (x >= idx) {
             switch (comb) {
@@ -2811,7 +2811,7 @@ xga_render_overscan_left(xga_t *xga, svga_t *svga)
     if (svga->scrblank || (xga->h_disp == 0))
         return;
 
-    uint32_t *line_ptr = buffer32->line[xga->displine + svga->y_add];
+    uint32_t *line_ptr = svga->monitor->target_buffer->line[xga->displine + svga->y_add];
     for (int i = 0; i < svga->x_add; i++)
         *line_ptr++ = svga->overscan_color;
 }
@@ -2829,8 +2829,8 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
     if (svga->scrblank || (xga->h_disp == 0))
         return;
 
-    uint32_t *line_ptr = &buffer32->line[xga->displine + svga->y_add][svga->x_add + xga->h_disp];
-    right              = (overscan_x >> 1);
+    uint32_t *line_ptr = &svga->monitor->target_buffer->line[xga->displine + svga->y_add][svga->x_add + xga->h_disp];
+    right              = (svga->monitor->mon_overscan_x >> 1);
     for (int i = 0; i < right; i++)
         *line_ptr++ = svga->overscan_color;
 }
@@ -2848,7 +2848,7 @@ xga_render_4bpp(svga_t *svga)
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[xga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[xga->displine + svga->y_add][svga->x_add];
 
         if (xga->firstline_draw == 2000)
             xga->firstline_draw = xga->displine;
@@ -2895,7 +2895,7 @@ xga_render_8bpp(svga_t *svga)
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[xga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[xga->displine + svga->y_add][svga->x_add];
 
         if (xga->firstline_draw == 2000)
             xga->firstline_draw = xga->displine;
@@ -2935,7 +2935,7 @@ xga_render_16bpp(svga_t *svga)
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[xga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[xga->displine + svga->y_add][svga->x_add];
 
         if (xga->firstline_draw == 2000)
             xga->firstline_draw = xga->displine;
@@ -3393,7 +3393,7 @@ xga_poll(void *priv)
 
                     if (xga->firstline == 2000) {
                         xga->firstline = xga->displine;
-                        video_wait_for_buffer_monitor(svga->monitor_index);
+                        video_wait_for_buffer_monitor(svga->monitor);
                     }
 
                     if (xga->hwcursor_on)
@@ -3810,7 +3810,7 @@ xga_init(const device_t *info)
     xga->test_stage            = 0;
 
     if (info->flags & DEVICE_MCA) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_xga_mca);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_xga_mca, video_monitor_pending);
         xga->base_addr_1mb = 0;
         xga->linear_base = 0;
         xga->instance    = 0;
@@ -3854,7 +3854,7 @@ svga_xga_init(const device_t *info)
 {
     svga_t *svga = (svga_t *) calloc(1, sizeof(svga_t));
 
-    video_inform(VIDEO_FLAG_TYPE_XGA, &timing_xga_isa);
+    video_inform_monitor(VIDEO_FLAG_TYPE_XGA, &timing_xga_isa, video_monitor_pending);
 
     svga_init(info, svga, svga, 1 << 18, /*256kB*/
               NULL,

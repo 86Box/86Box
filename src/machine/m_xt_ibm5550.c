@@ -252,6 +252,7 @@ epoch_log(const char *fmt, ...)
 
 
 typedef struct epoch_t {
+    struct monitor_t *monitor;
     mem_mapping_t cmapping;
 
     /* The IPLs' register walk covers the whole byte range (up to 0xE5 on the
@@ -965,7 +966,7 @@ epoch_render_blank(epoch_t *epoch)
 
     for (x = 0; x < epoch->hdisp + epoch->scrollcache; x++) {
         for (xx = 0; xx < epoch->char_width; xx++)
-            ((uint32_t *) buffer32->line[epoch->displine])[(x * epoch->char_width) + xx] = 0;
+            ((uint32_t *) epoch->monitor->target_buffer->line[epoch->displine])[(x * epoch->char_width) + xx] = 0;
     }
 }
 /* Display Adapter Mode 8, E Drawing */
@@ -980,7 +981,7 @@ epoch_render_text(epoch_t *epoch)
 
     if (epoch->fullchange) {
         int       offset = (8 - epoch->scrollcache) + 24;
-        uint32_t *p      = &((uint32_t *) buffer32->line[epoch->displine])[offset];
+        uint32_t *p      = &((uint32_t *) epoch->monitor->target_buffer->line[epoch->displine])[offset];
         int       x;
         int       drawcursor;
         uint8_t   chr, attr;
@@ -1206,7 +1207,7 @@ epoch_render_color_4bpp(epoch_t *epoch)
     // if (epoch->changedvram[changed_offset] || epoch->changedvram[changed_offset + 1] || epoch->fullchange) {
         int       x;
         int       offset = (8 - epoch->scrollcache) + 24;
-        uint32_t *p      = &((uint32_t *) buffer32->line[epoch->displine])[offset];
+        uint32_t *p      = &((uint32_t *) epoch->monitor->target_buffer->line[epoch->displine])[offset];
 
         if (epoch->firstline_draw == 2000)
             epoch->firstline_draw = epoch->displine;
@@ -1376,19 +1377,19 @@ epoch_doblit(int wx, int wy, epoch_t *epoch)
 {
     /* The OSD can reset the screen size behind the driver's back; honour
        its resize request even when the mode itself has not changed. */
-    if ((wx != xsize) || (wy != ysize) || video_force_resize_get()) {
-        xsize = wx;
-        ysize = wy;
-        set_screen_size(xsize, ysize);
-        if (video_force_resize_get())
-            video_force_resize_set(0);
+    if ((wx != epoch->monitor->mon_xsize) || (wy != epoch->monitor->mon_ysize) || video_force_resize_get_monitor(epoch->monitor)) {
+        epoch->monitor->mon_xsize = wx;
+        epoch->monitor->mon_ysize = wy;
+        set_screen_size_monitor(epoch->monitor->mon_xsize, epoch->monitor->mon_ysize, epoch->monitor);
+        if (video_force_resize_get_monitor(epoch->monitor))
+            video_force_resize_set_monitor(0, epoch->monitor);
     }
-    video_blit_memtoscreen(32, 0, xsize, ysize);
+    video_blit_memtoscreen_monitor(32, 0, epoch->monitor->mon_xsize, epoch->monitor->mon_ysize, epoch->monitor);
     frames++;
 
-    video_res_x = wx;
-    video_res_y = wy;
-    video_bpp   = 8;
+    epoch->monitor->mon_res_x = wx;
+    epoch->monitor->mon_res_y = wy;
+    epoch->monitor->mon_bpp   = 8;
 }
 
 static void
@@ -1409,7 +1410,7 @@ epoch_poll(void *priv)
             epoch->memaddr &= epoch->vram_display_mask;
             if (epoch->firstline == 2000) {
                 epoch->firstline = epoch->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(epoch->monitor);
             }
 
             if ((epoch->displine ^ !epoch->oddeven) & 1)
@@ -1585,7 +1586,7 @@ epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
 
     epoch_parity_device_write(epoch);
     if (epoch_is_3477) {
-        cycles -= video_timing_write_b;
+        cycles -= epoch->monitor->mon_video_timing_write_b;
         /* The IPL copies the 55 glyph blocks in order; block 54 is the
            last one, so a write into 0x1B00-0x1B7F completes the set. */
         if (((addr - 0xA0000) >= 0x1B00) && ((addr - 0xA0000) < 0x1B80))
@@ -1602,7 +1603,7 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
     epoch_parity_device_write(epoch);
     // epoch_log("%04X:%04X epoch_vww: %x, val %x DS %x SI %x ES %x DI %x %x\n", cs >> 4, cpu_state.pc, addr, val,DS,SI,ES,DI, epoch->crtc[LC_INTERLACE_AND_SKEW]);
     // epoch_log("%04X:%04X epoch_vww: %x, val %x cm %x\n", cs >> 4, cpu_state.pc, addr, val, epoch->crtmode);
-    cycles -= video_timing_write_w;
+    cycles -= epoch->monitor->mon_video_timing_write_w;
     addr -= 0xA0000;
     if (!(epoch->crtmode & 0x02) && !(epoch->font24)) {
         uint32_t toaddr, bitnum;
@@ -1637,7 +1638,7 @@ static uint16_t
 epoch_vram_readw(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    cycles -= video_timing_read_w;
+    cycles -= epoch->monitor->mon_video_timing_read_w;
     addr -= 0xA0000;
     // epoch_log("%04X:%04X epoch_vrw: %x cm %x\n", cs >> 4, cpu_state.pc, addr, epoch->crtmode);
     if (!(epoch->crtmode & 0x02) && !(epoch->font24)) {
@@ -1675,7 +1676,7 @@ epoch_cram_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
     // epoch_log("epoch_cram_writeb: Write to %x, val %x\n", addr, val);
-    cycles -= video_timing_write_b;
+    cycles -= epoch->monitor->mon_video_timing_write_b;
     epoch_cram_write(addr, val, epoch);
 }
 static void
@@ -1683,7 +1684,7 @@ epoch_cram_writew(uint32_t addr, uint16_t val, void *priv)
 {
     // epoch_log("epoch_cram_writ   ew: Write to %x, val %x\n", addr, val);
     epoch_t *epoch = (epoch_t *) priv;
-    cycles -= video_timing_write_w;
+    cycles -= epoch->monitor->mon_video_timing_write_w;
     epoch_cram_write(addr, val & 0xff, epoch);
     epoch_cram_write(addr + 1, val >> 8, epoch);
 }
@@ -1738,7 +1739,7 @@ static uint8_t
 epoch_cram_readb(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    cycles -= video_timing_read_b;
+    cycles -= epoch->monitor->mon_video_timing_read_b;
     return epoch_cram_read(addr, epoch);
 }
 
@@ -1746,7 +1747,7 @@ static uint16_t
 epoch_cram_readw(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    cycles -= video_timing_read_w;
+    cycles -= epoch->monitor->mon_video_timing_read_w;
     return epoch_cram_read(addr, epoch) | (epoch_cram_read(addr + 1, epoch) << 8);
 }
 
@@ -3191,7 +3192,8 @@ epoch_ibm3477_init(epoch_t *epoch)
 static void
 epoch_common_init(epoch_t *epoch)
 {
-    video_inform(VIDEO_FLAG_TYPE_NONE, &timing_epoch_vid);
+    epoch->monitor = video_monitor_pending;
+    video_inform_monitor(VIDEO_FLAG_TYPE_NONE, &timing_epoch_vid, epoch->monitor);
     video_update_timing();
 
     epoch->dispontime  = 1000ull << 32;
@@ -3325,7 +3327,7 @@ static void
 epoch_force_redraw(void *priv)
 {
     epoch_t *epoch      = (epoch_t *) priv;
-    epoch->fullchange = changeframecount;
+    epoch->fullchange = epoch->monitor->mon_changeframecount;
 }
 
 static void

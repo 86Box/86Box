@@ -91,6 +91,7 @@ extern int      ini_has_entry(ini_section_t self, const char *name);
 #define ini_set_string(ini, head, name, val)  ini_section_set_string(ini_find_or_create_section(ini, head), name, val)
 #define ini_set_wstring(ini, head, name, val) ini_section_set_wstring(ini_find_or_create_section(ini, head), name, val)
 
+extern void          ini_visit_sections(ini_t ini, void (*visit)(const char *name, ini_section_t section));
 extern ini_section_t ini_find_section(ini_t ini, const char *name);
 extern ini_section_t ini_find_or_create_section(ini_t ini, const char *name);
 extern void          ini_rename_section(ini_section_t section, const char *name);

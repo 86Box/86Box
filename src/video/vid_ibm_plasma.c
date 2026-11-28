@@ -55,6 +55,7 @@
 #define IBM_PLASMA_PALETTE_ENTRIES 256
 
 typedef struct ibm_plasma_t {
+    monitor_t *external_monitor;
     uint8_t    pdc_index;
     uint8_t    pdc_regs[3];
     uint8_t    frame_running;
@@ -405,7 +406,7 @@ ibm_plasma_render_external(ibm_plasma_t *dev, svga_t *svga)
     memcpy(dev->saved_pallook, svga->pallook, sizeof(dev->plain_pallook));
     memcpy(svga->pallook, dev->plain_pallook, sizeof(dev->plain_pallook));
 
-    svga->monitor = &monitors[1];
+    svga->monitor = dev->external_monitor;
     dev->core_render(svga);
     svga->monitor = saved_monitor;
 
@@ -479,7 +480,7 @@ ibm_plasma_remap(ibm_plasma_t *dev)
         /* The blackout overwrote the frame, so waking up has to ask for it to be painted again
            the way a palette change does. */
         if (woke)
-            svga->fullchange = changeframecount;
+            svga->fullchange = dev->svga->monitor->mon_changeframecount;
     }
 
     /* The core re-programs its own renderer on every mode change, and the wrapper this device
@@ -544,7 +545,7 @@ ibm_plasma_remap(ibm_plasma_t *dev)
     /* The guest's own palette writes also rebuild the lookup, so a change has to ask for a
        full redraw the way the VGA core does on a palette write. */
     if (changed)
-        svga->fullchange = changeframecount;
+        svga->fullchange = dev->svga->monitor->mon_changeframecount;
 
     /* The VGA core programs the renderer whenever the mode changes, so the half-toning
        wrapper is (re)installed here, once per panel frame. */
@@ -567,14 +568,13 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
     const int      w      = svga->monitor->mon_xsize + ox;
     const int      h      = svga->monitor->mon_ysize + oy;
     const int      bottom = svga->monitor->mon_overscan_y - svga->y_add;
-    const uint32_t border = monitors[1].mon_dpms ? 0 : svga->overscan_color;
+    const uint32_t border = dev->external_monitor->mon_dpms ? 0 : svga->overscan_color;
 
-    /* The monitor is the framework's to take down, and a closed one has no blit thread left. */
-    if ((monitors[1].target_buffer == NULL) || (w <= 0) || (h <= 0))
+    if ((w <= 0) || (h <= 0))
         return;
 
     for (int i = 0; i < svga->y_add; i++) {
-        uint32_t *p = &monitors[1].target_buffer->line[i & 0x7ff][0];
+        uint32_t *p = &dev->external_monitor->target_buffer->line[i & 0x7ff][0];
 
         for (int j = 0; j < w; j++)
             p[j] = border;
@@ -584,7 +584,7 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
        so the connector's copy of them would keep whatever the previous mode left there. The
        picture starts at the left overscan, the way the core's own renderers lay it out. */
     for (int i = 0; i < svga->monitor->mon_ysize; i++) {
-        uint32_t *p = &monitors[1].target_buffer->line[(svga->y_add + i) & 0x7ff][0];
+        uint32_t *p = &dev->external_monitor->target_buffer->line[(svga->y_add + i) & 0x7ff][0];
 
         for (int j = 0; (j < svga->left_overscan) && (j < w); j++)
             p[j] = border;
@@ -594,7 +594,7 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
     }
 
     for (int i = 0; i < bottom; i++) {
-        uint32_t *p = &monitors[1].target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
+        uint32_t *p = &dev->external_monitor->target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
 
         for (int j = 0; j < w; j++)
             p[j] = border;
@@ -604,11 +604,12 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
         dev->ext_w = w;
         dev->ext_h = h;
 
-        set_screen_size_monitor(w, h, 1);
+        set_screen_size_monitor(w, h, dev->external_monitor);
     }
 
     video_blit_memtoscreen_monitor(enable_overscan ? 0 : svga->left_overscan, enable_overscan ? 0 : svga->y_add,
-                                   w, h, 1);
+                                   w, h, dev->external_monitor);
+    video_wait_for_buffer_monitor(dev->external_monitor);
 }
 
 /* The panel's vertical synchronization is the video mode's own field, so the pulse is started by
@@ -702,9 +703,9 @@ ibm_plasma_init(UNUSED(const device_t *info))
        first one, so the framework leaves the entry alone and this device sets the monitor up. */
     dev->external_display = (gfxcard[1] == VID_EXTERNAL);
 
-    if (dev->external_display && (monitors[1].target_buffer == NULL)) {
-        video_monitor_init(1);
-        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga, 1);
+    if (dev->external_display) {
+        dev->external_monitor = video_monitor_create(VIDEO_MONITOR_VIDEO);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga, dev->external_monitor);
     }
 
     /* The VGA core belongs to the machine, not to the adapter card, so the panel filter attaches
@@ -756,6 +757,7 @@ ibm_plasma_close(void *priv)
         dev->svga->plasma = NULL;
     }
 
+    video_monitor_close(dev->external_monitor);
     free(dev);
 }
 
@@ -777,7 +779,7 @@ ibm_plasma_force_redraw(void *priv)
     ibm_plasma_t *dev = (ibm_plasma_t *) priv;
 
     if (dev->svga != NULL)
-        dev->svga->fullchange = changeframecount;
+        dev->svga->fullchange = dev->svga->monitor->mon_changeframecount;
 }
 
 const device_t ibm_plasma_vga_device = {

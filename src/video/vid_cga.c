@@ -109,7 +109,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register 
                 // except the CURSOR and LIGHT PEN registers
                 if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
-                    cga->fullchange = monitors[cga->monitor_used].mon_changeframecount;
+                    cga->fullchange = cga->monitor->mon_changeframecount;
                     cga_recalctimings(cga);
 
                     if (cga->crtcreg == 3)
@@ -303,13 +303,13 @@ cga_is_in_lightpen(cga_t *cga, int x, int y)
     if (!mouse_tablet_in_proximity)
         return false;
 
-    if ((mouse_tablet_in_proximity - 1) != cga->monitor_used)
+    if (mouse_get_input_monitor() != cga->monitor)
         return false;
 
     mouse_get_abs_coords(&abs_x, &abs_y);
 
-    abs_x *= monitors[cga->monitor_used].mon_unscaled_size_x - 1;
-    abs_y *= monitors[cga->monitor_used].mon_efscrnsz_y - 1;
+    abs_x *= cga->monitor->mon_unscaled_size_x - 1;
+    abs_y *= cga->monitor->mon_efscrnsz_y - 1;
     x -= 8;
     y -= cga->double_type ? cga->firstline * 2 : cga->firstline;
     
@@ -366,11 +366,11 @@ cga_render(cga_t *cga, int line)
     bool     overlay_flag          = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag);
 
     for (column = 0; column < 8; ++column) {
-        buffer32->line[line][column] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+        cga->monitor->target_buffer->line[line][column] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
         if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-            buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 8) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+            cga->monitor->target_buffer->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 8) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
         else
-            buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 16) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+            cga->monitor->target_buffer->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 16) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
     }
 
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) { /* 80-column text */
@@ -390,7 +390,7 @@ cga_render(cga_t *cga, int line)
                 cols[0] = (attr >> 4) + 16;
 
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x * 8) + column + 8]
+                cga->monitor->target_buffer->line[line][(x * 8) + column + 8]
                     = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0);
                 
                 if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && cga_is_in_lightpen(cga, (x * 8) + column + 8, line)) {
@@ -420,8 +420,8 @@ cga_render(cga_t *cga, int line)
                 cols[0] = (attr >> 4) + 16;
 
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x * 16) + (column << 1) + 8]
-                    = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
+                cga->monitor->target_buffer->line[line][(x * 16) + (column << 1) + 8]
+                    = cga->monitor->target_buffer->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = (cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0));
 
                 
@@ -458,8 +458,8 @@ cga_render(cga_t *cga, int line)
             else
                 dat = 0;
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x * 16) + (column << 1) + 8]
-                    = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
+                cga->monitor->target_buffer->line[line][(x * 16) + (column << 1) + 8]
+                    = cga->monitor->target_buffer->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = cols[dat >> 14];
 
                 if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
@@ -483,7 +483,7 @@ cga_render(cga_t *cga, int line)
             else
                 dat = 0;
             for (column = 0; column < 16; column++) {
-                buffer32->line[line][(x * 16) + column + 8] = cols[dat >> 15];
+                cga->monitor->target_buffer->line[line][(x * 16) + column + 8] = cols[dat >> 15];
                 dat <<= 1;
 
                 if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && cga_is_in_lightpen(cga, (x * 16) + column + 8, line)) {
@@ -506,9 +506,9 @@ cga_render_blank(cga_t *cga, int line)
     int col = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15) + 16;
 
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 8) + 16, col);
+        hline(cga->monitor->target_buffer, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 8) + 16, col);
     else
-        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 16) + 16, col);
+        hline(cga->monitor->target_buffer, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 16) + 16, col);
 }
 
 static void
@@ -530,9 +530,9 @@ cga_render_process(cga_t *cga, int line)
         if (cga->revision == CGA_COMPOSITE_PCJR)
             border = 0;
 
-        Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[line]);
+        Composite_Process(cga->cgamode, border, x >> 2, cga->monitor->target_buffer->line[line]);
     } else
-        video_process_8(x, line);
+        video_process_8_monitor(x, line, cga->monitor);
 }
 
 static uint8_t
@@ -582,7 +582,7 @@ cga_interpolate_lookup(color_t color1, color_t color2, int double_type)
 }
 
 static void
-cga_interpolate(int x, int y, int w, int h, int double_type)
+cga_interpolate(int x, int y, int w, int h, int double_type, monitor_t *monitor)
 {
     for (int i = y; i < (y + h); i++) {
         if (i & 1)  for (int j = x; j < (x + w); j++) {
@@ -599,12 +599,12 @@ cga_interpolate(int x, int y, int w, int h, int double_type)
             black.color = 0x00000000;
 
             if ((prev >= 0) && (prev < (y + h)))
-                prev_color.color = buffer32->line[prev][j];
+                prev_color.color = monitor->target_buffer->line[prev][j];
             else
                 prev_color.color = 0x00000000;
 
             if ((next >= 0) && (next < (y + h)))
-                next_color.color = buffer32->line[next][j];
+                next_color.color = monitor->target_buffer->line[next][j];
             else
                 next_color.color = 0x00000000;
 
@@ -612,7 +612,7 @@ cga_interpolate(int x, int y, int w, int h, int double_type)
             interim_2 = cga_interpolate_lookup(black, next_color, double_type);
             final     = cga_interpolate_lookup(interim_1, interim_2, double_type);
 
-            buffer32->line[i][j] = final.color;
+            monitor->target_buffer->line[i][j] = final.color;
         }
     }
 }
@@ -629,12 +629,12 @@ cga_interpolate_init(void)
 }
 
 void
-cga_blit_memtoscreen(int x, int y, int w, int h, int double_type)
+cga_blit_memtoscreen(int x, int y, int w, int h, int double_type, monitor_t *monitor)
 {
     if (double_type > DOUBLE_SIMPLE)
-        cga_interpolate(x, y, w, h, double_type);
+        cga_interpolate(x, y, w, h, double_type, monitor);
 
-    video_blit_memtoscreen(x, y, w, h);
+    video_blit_memtoscreen_monitor(x, y, w, h, monitor);
 }
 
 /*
@@ -705,14 +705,14 @@ cga_present_geometry_should_commit(cga_t *cga, int new_x, int new_y,
     cga_present_geometry_latch_t *slot =
         cga_present_geometry_latch(cga);
 
-    if (force_resize || xsize <= 0 || ysize <= 0) {
+    if (force_resize || cga->monitor->mon_xsize <= 0 || cga->monitor->mon_ysize <= 0) {
         slot->candidate_x = 0;
         slot->candidate_y = 0;
         slot->candidate_frames = 0;
         return 1;
     }
 
-    if (new_x == xsize && new_y == ysize) {
+    if (new_x == cga->monitor->mon_xsize && new_y == cga->monitor->mon_ysize) {
         slot->candidate_x = 0;
         slot->candidate_y = 0;
         slot->candidate_frames = 0;
@@ -739,24 +739,24 @@ cga_present_geometry_should_commit(cga_t *cga, int new_x, int new_y,
 }
 
 void
-cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type)
+cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type, monitor_t *monitor)
 {
     if (double_type > DOUBLE_NONE) {
         if (enable_overscan)
             cga_blit_memtoscreen(0, (firstline - 4) << 1,
                                  vid_xsize, ((lastline - firstline) << 1) + 16,
-                                 double_type);
+                                 double_type, monitor);
         else
             cga_blit_memtoscreen(8, firstline << 1,
                                  vid_xsize, (lastline - firstline) << 1,
-                                 double_type);
+                                 double_type, monitor);
     } else {
         if (enable_overscan)
-            video_blit_memtoscreen(0, firstline - 4,
-                                   vid_xsize, (lastline - firstline) + 8);
+            video_blit_memtoscreen_monitor(0, firstline - 4,
+                                   vid_xsize, (lastline - firstline) + 8, monitor);
         else
-            video_blit_memtoscreen(8, firstline,
-                                   vid_xsize, lastline - firstline);
+            video_blit_memtoscreen_monitor(8, firstline,
+                                   vid_xsize, lastline - firstline, monitor);
     }
 }
 
@@ -771,11 +771,7 @@ cga_poll(void *priv)
     int      ys_temp;
     int      old_ma;
 
-    /* This instance may be the secondary display; every blit and size macro used
-       below resolves through monitor_index_global, so bind it to this card. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = cga->monitor_used;
 
     if (!cga->linepos) {
         timer_advance_u64(&cga->timer, cga->dispofftime);
@@ -787,7 +783,7 @@ cga_poll(void *priv)
         if (cga->cgadispon) {
             if (cga->displine < cga->firstline) {
                 cga->firstline = cga->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(cga->monitor);
             }
             cga->lastline = cga->displine;
             switch (cga->double_type) {
@@ -828,7 +824,7 @@ cga_poll(void *priv)
                 break;
         }
 
-        video_lightpen_check_trigger_strobe(8, cga->displine * (cga->double_type ? 2 : 1), 0, cga->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), cga->monitor_used);
+        video_lightpen_check_trigger_strobe(8, cga->displine * (cga->double_type ? 2 : 1), 0, cga->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), cga->monitor);
 
         cga->scanline = scanline_old;
         if (cga->vc == cga->crtc[CGA_CRTC_VSYNC] && !cga->scanline)
@@ -839,7 +835,7 @@ cga_poll(void *priv)
     } else {
         timer_advance_u64(&cga->timer, cga->dispontime);
 
-        video_lightpen_hsync();
+        video_lightpen_hsync(cga->monitor);
         cga->linepos = 0;
         if (cga->vsynctime) {
             cga->vsynctime--;
@@ -921,50 +917,50 @@ cga_poll(void *priv)
                          * frame; Qt must not magnify that frame to fill a newly
                          * shortened window.
                          */
-                        const int force_resize = video_force_resize_get();
+                        const int force_resize = video_force_resize_get_monitor(cga->monitor);
 
                         if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) &&
                             cga_present_geometry_should_commit(
                                 cga, xs_temp, ys_temp, force_resize)) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
-                            set_screen_size(xsize,
-                                            ysize +
-                                                (enable_overscan ? 16 : 0));
+                            cga->monitor->mon_xsize = xs_temp;
+                            cga->monitor->mon_ysize = ys_temp;
+                            set_screen_size_monitor(cga->monitor->mon_xsize,
+                                            cga->monitor->mon_ysize +
+                                                (enable_overscan ? 16 : 0), cga->monitor);
 
                             if (force_resize)
-                                video_force_resize_set(0);
+                                video_force_resize_set_monitor(0, cga->monitor);
                         }
 
-                        cga_do_blit(xsize, cga->firstline, cga->lastline, cga->double_type);
+                        cga_do_blit(cga->monitor->mon_xsize, cga->firstline, cga->lastline, cga->double_type, cga->monitor);
 
                         // The palette conversion has been performed, sample the lightpen position now.
-                        if (cga_lightpen_enabled && mouse_tablet_in_proximity > 0 && cga->lp_latch_found && cga_sample_luma(buffer32, cga->lp_latch_found_x, cga->lp_latch_found_y) >= cga_luma_threshold) {
+                        if (cga_lightpen_enabled && mouse_tablet_in_proximity > 0 && cga->lp_latch_found && cga_sample_luma(cga->monitor->target_buffer, cga->lp_latch_found_x, cga->lp_latch_found_y) >= cga_luma_threshold) {
                             cga->lp_strobe = 1;
                             cga_update_latch(cga, cga->lp_latch_found_memaddr);
                         }
                     }
 
-                    video_lightpen_vsync();
+                    video_lightpen_vsync(cga->monitor);
 
                     frames++;
                     cga->lp_latch_found = false;
 
-                    video_res_x = xsize;
-                    video_res_y = ysize;
+                    cga->monitor->mon_res_x = cga->monitor->mon_xsize;
+                    cga->monitor->mon_res_y = cga->monitor->mon_ysize;
                     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        video_res_x /= 8;
-                        video_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        cga->monitor->mon_res_x /= 8;
+                        cga->monitor->mon_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        cga->monitor->mon_bpp = 0;
                     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                        video_res_x /= 16;
-                        video_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        cga->monitor->mon_res_x /= 16;
+                        cga->monitor->mon_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        cga->monitor->mon_bpp = 0;
                     } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        cga->monitor->mon_res_x /= 2;
+                        cga->monitor->mon_bpp = 2;
                     } else
-                        video_bpp = 1;
+                        cga->monitor->mon_bpp = 1;
                 }
                 cga->firstline = 1000;
                 cga->lastline  = 0;
@@ -987,12 +983,13 @@ cga_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 void
 cga_init(cga_t *cga)
 {
+    cga->monitor = video_monitor_pending;
+
     /* For the memory viewer; here, as machines with the card built in map
        the same handlers. */
     mem_debug_add(cga_read, cga_write, cga_debug_ptr);
@@ -1005,8 +1002,9 @@ cga_standalone_init(UNUSED(const device_t *info))
 {
     int    display_type;
     cga_t *cga = calloc(1, sizeof(cga_t));
+    cga->monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_cga);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_cga, cga->monitor);
 
     display_type      = device_get_config_int("display_type");
     cga->composite    = (display_type != CGA_RGB);
@@ -1020,11 +1018,11 @@ cga_standalone_init(UNUSED(const device_t *info))
     mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL, NULL /*cga->vram*/, MEM_MAPPING_EXTERNAL, cga);
     io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
 
-    overscan_x = overscan_y = 16;
+    cga->monitor->mon_overscan_x = cga->monitor->mon_overscan_y = 16;
 
     cga->rgb_type = device_get_config_int("rgb_type");
-    cga_palette   = (cga->rgb_type << 1);
-    cgapal_rebuild();
+    *cga->monitor->mon_cga_palette   = (cga->rgb_type << 1);
+    cgapal_rebuild_monitor(cga->monitor);
     update_cga16_color(cga->cgamode, cga->cgacol);
 
     cga->double_type = device_get_config_int("double_type");
@@ -1042,8 +1040,7 @@ cga_standalone_init(UNUSED(const device_t *info))
             break;
     }
 
-    monitors[monitor_index_global].mon_composite = !!cga->composite;
-    cga->monitor_used                            = monitor_index_global;
+    cga->monitor->mon_composite = !!cga->composite;
 
     return cga;
 }

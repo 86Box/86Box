@@ -757,7 +757,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                     val = o;
                 svga->attrregs[svga->attraddr & 31] = val;
                 if (svga->attraddr < 16)
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                 if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
                     for (uint8_t c = 0; c < 16; c++) {
                         if (svga->attrregs[0x10] & 0x80)
@@ -783,7 +783,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 } else if (svga->attraddr == 0x12) {
                     if ((val & 0xf) != svga->plane_mask)
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                     svga->plane_mask = val & 0xf;
                 }
             }
@@ -929,7 +929,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c9:
             gd54xx->ramdac.state = 0;
             svga->dac_status     = 0;
-            svga->fullchange     = changeframecount;
+            svga->fullchange     = svga->monitor->mon_changeframecount;
             switch (svga->dac_pos) {
                 case 0:
                     svga->dac_r = val;
@@ -1378,7 +1378,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                             svga->memaddr_latch |= ((svga->crtc[0x1d] & 0x80) << 12);
                         svga->memaddr_latch  += ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -2595,7 +2595,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
             break;
     }
 
-    svga->changedvram[addr >> 12] = changeframecount;
+    svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
 }
 
 static int
@@ -4132,7 +4132,7 @@ gd54xx_pattern_copy(gd54xx_t *gd54xx)
             }
             pixel = (pixel + 1) & 7;
             gd54xx->blt.dst_x_pos += gd54xx->blt.pixel_width;
-            svga->changedvram[((dsta + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
+            svga->changedvram[((dsta + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
 
             x += gd54xx->blt.pixel_width;
             if (x > gd54xx->blt.width_xy) {
@@ -4181,7 +4181,7 @@ gd54xx_pattern_copy(gd54xx_t *gd54xx)
                         gd54xx_blit(gd54xx, bitmask, dst, target, (x < gd54xx->blt.pattern_x));
                 }
                 pixel = (pixel + 1) & 7;
-                svga->changedvram[((dsta + x) & gd54xx->vram_mask) >> 12] = changeframecount;
+                svga->changedvram[((dsta + x) & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
             }
             pattern_y = (pattern_y + 1) & 7;
             dsta += gd54xx->blt.dst_pitch;
@@ -4286,7 +4286,7 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
                         else {
                             gd54xx_blit(gd54xx, bitmask, dst, target, (gd54xx->blt.x_count < gd54xx->blt.pattern_x));
                         }
-                        svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
+                        svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
                     }
                 } else {
                     if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
@@ -4306,7 +4306,7 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
                     else
                         gd54xx_blit(gd54xx, bitmask, dst, target, (gd54xx->blt.x_count < gd54xx->blt.pattern_x));
 
-                    svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
+                    svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
                 }
 
                 gd54xx->blt.dst_x_pos += gd54xx->blt.dir;
@@ -4379,7 +4379,7 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
                 if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
                     gd54xx->blt.xx_count = (gd54xx->blt.xx_count + 1) % gd54xx->blt.pixel_width;
 
-                svga->changedvram[(gd54xx->blt.dst_addr_backup & gd54xx->vram_mask) >> 12] = changeframecount;
+                svga->changedvram[(gd54xx->blt.dst_addr_backup & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
 
                 if (!gd54xx->blt.xx_count) {
                     /* 1 mask bit = 1 blitted pixel */
@@ -4475,7 +4475,7 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
                     }
 
                     dst = svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask];
-                    svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
+                    svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
                     gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
 
                     if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_COLOREXPINV))
@@ -4503,7 +4503,7 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
                 }
 
                 dst = svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask];
-                svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
+                svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
                 gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
 
                 if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_COLOREXPINV))
@@ -4626,7 +4626,7 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
             count--;
 
             dst = svga->vram[dst_addr & gd54xx->vram_mask];
-            svga->changedvram[(dst_addr & gd54xx->vram_mask) >> 12] = changeframecount;
+            svga->changedvram[(dst_addr & gd54xx->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
 
             gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
 
@@ -5326,11 +5326,11 @@ gd54xx_init(const device_t *info)
                              0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     if ((info->flags & DEVICE_ISA) || (info->flags & DEVICE_ISA16))
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa, video_monitor_pending);
     else if (info->flags & DEVICE_PCI)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_pci);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_pci, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_vlb);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_vlb, video_monitor_pending);
 
     if (id >= CIRRUS_ID_CLGD5426) {
         svga_init(info, &gd54xx->svga, gd54xx, gd54xx->vram_size,

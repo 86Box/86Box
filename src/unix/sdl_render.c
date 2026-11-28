@@ -187,7 +187,7 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 static int
 sdl_blit_invalid(int x, int y, int w, int h)
 {
-    if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
+    if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (x > 2048 - w) || (y > 2048 - h))
         return 1;
 
 #ifdef USE_SDL_SHADER_PIPELINE
@@ -198,22 +198,26 @@ sdl_blit_invalid(int x, int y, int w, int h)
 }
 
 void
-sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
+sdl_blit_shim(int x, int y, int w, int h, monitor_t *monitor)
 {
+    if (monitor != video_primary_monitor || sdl_blit_invalid(x, y, w, h)) {
+        video_blit_complete_monitor(monitor);
+        return;
+    }
+
     params.x = x;
     params.y = y;
     params.w = w;
     params.h = h;
 
-    if (!sdl_blit_invalid(x, y, w, h) || (monitor_index >= 1))
-        for (int row = 0; row < h; ++row)
-            video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
+    for (int row = 0; row < h; ++row)
+        video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(monitor->target_buffer->line[y + row][x]), w * sizeof(uint32_t));
 
-    if (monitors[monitor_index].mon_screenshots_raw)
-        video_screenshot((uint32_t *) pixeldata, 0, 0, 2048);
+    if (monitor->mon_screenshots_raw)
+        video_screenshot_monitor((uint32_t *) pixeldata, 0, 0, 2048, monitor);
     blitreq = 1;
 
-    video_blit_complete_monitor(monitor_index);
+    video_blit_complete_monitor(monitor);
 }
 
 void ui_window_title_real(void);
@@ -608,16 +612,16 @@ sdl_init_common(int flags)
 
     sdl_mutex = SDL_CreateMutex();
 #ifdef USE_SDL2_LIB
-    sdl_win   = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, window_flags);
+    sdl_win   = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, video_primary_monitor->mon_scrnsz_x, video_primary_monitor->mon_scrnsz_y, window_flags);
 #else
-    sdl_win   = SDL_CreateWindow("86Box", scrnsz_x, scrnsz_y, window_flags);
+    sdl_win   = SDL_CreateWindow("86Box", video_primary_monitor->mon_scrnsz_x, video_primary_monitor->mon_scrnsz_y, window_flags);
 #endif
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1)) {
         if (vid_resize & 2)
-            plat_resize(fixed_size_x, fixed_size_y, 0);
+            plat_resize(fixed_size_x, fixed_size_y, video_primary_monitor);
         else
-            plat_resize(scrnsz_x, scrnsz_y, 0);
+            plat_resize(video_primary_monitor->mon_scrnsz_x, video_primary_monitor->mon_scrnsz_y, video_primary_monitor);
     }
     if ((vid_resize < 2) && window_remember) {
         SDL_SetWindowSize(sdl_win, window_w, window_h);
@@ -693,7 +697,7 @@ plat_mouse_capture(int on)
 }
 
 void
-plat_resize(int w, int h, UNUSED(int monitor_index))
+plat_resize(int w, int h, UNUSED(monitor_t *monitor))
 {
     SDL_LockMutex(sdl_mutex);
     resize_w       = w;
@@ -784,19 +788,22 @@ ui_emu_status(int speed_percent)
 }
 
 void
-ui_init_monitor(UNUSED(int monitor_index))
+ui_init_monitor(UNUSED(monitor_t *monitor))
 {
     /* No-op. */
 }
 
 void
-ui_deinit_monitor(UNUSED(int monitor_index))
+ui_deinit_monitor(UNUSED(monitor_t *monitor))
 {
     /* No-op. */
 }
 
+atomic_bool sdl_resize_pending;
+
 void
-plat_resize_request(UNUSED(int w), UNUSED(int h), int monitor_index)
+plat_resize_request(UNUSED(int w), UNUSED(int h), monitor_t *monitor)
 {
-    atomic_store((&doresize_monitors[monitor_index]), 1);
+    if (monitor == video_primary_monitor)
+        atomic_store(&sdl_resize_pending, 1);
 }

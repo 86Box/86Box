@@ -162,6 +162,8 @@ extern "C" {
 #endif
 
 /* Global variables residing in the platform module. */
+struct monitor_t;
+
 extern int          dopause;       /* system is paused */
 extern int          mouse_capture; /* mouse is captured in app */
 extern volatile int is_quit;       /* system exit requested */
@@ -208,8 +210,8 @@ extern void     plat_delay_ms(uint32_t count);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);
-extern void     plat_resize(int x, int y, int monitor_index);
-extern void     plat_resize_request(int x, int y, int monitor_index);
+extern void     plat_resize(int x, int y, struct monitor_t *monitor);
+extern void     plat_resize_request(int x, int y, struct monitor_t *monitor);
 extern int      plat_language_code(char *langcode);
 extern void     plat_language_code_r(int id, char *outbuf, int len);
 /* The language code of the UI as it is shown: the one chosen, or the host's for the system language. */

@@ -191,8 +191,7 @@ SettingsDisplay::save(int soft)
     strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
 
 end:
-    for (int i = 0; i < MONITORS_NUM; i++)
-        cgapal_rebuild_monitor(i);
+    video_monitor_for_each([](monitor_t *monitor, void *) { cgapal_rebuild_monitor(monitor); }, nullptr);
 }
 
 void

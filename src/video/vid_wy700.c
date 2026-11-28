@@ -164,6 +164,7 @@ static uint8_t mode_40x24[] = {
 extern uint8_t fontdatw[512][32];
 
 typedef struct wy700_t {
+    struct monitor_t *monitor;
     mem_mapping_t mapping;
 
     /* The microcontroller works by watching four ports:
@@ -568,7 +569,7 @@ wy700_textline(wy700_t *wy700)
         /* MDA underline */
         if (scanline == 14 && mda && ((attr & 7) == 1)) {
             for (c = 0; c < cw; c++)
-                buffer32->line[wy700->displine][(x * cw) + c] = mda_attr_to_color_table[attr][blink][1];
+                wy700->monitor->target_buffer->line[wy700->displine][(x * cw) + c] = mda_attr_to_color_table[attr][blink][1];
         } else /* Draw 16 pixels of character */
         {
             bitmap[0] = fontbase[chr * 32 + 2 * scanline];
@@ -582,15 +583,15 @@ wy700_textline(wy700_t *wy700)
                 if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
                     col = mda_attr_to_color_table[0][0][0];
                 if (w == 40) {
-                    buffer32->line[wy700->displine][(x * cw) + 2 * c]     = col;
-                    buffer32->line[wy700->displine][(x * cw) + 2 * c + 1] = col;
+                    wy700->monitor->target_buffer->line[wy700->displine][(x * cw) + 2 * c]     = col;
+                    wy700->monitor->target_buffer->line[wy700->displine][(x * cw) + 2 * c + 1] = col;
                 } else
-                    buffer32->line[wy700->displine][(x * cw) + c] = col;
+                    wy700->monitor->target_buffer->line[wy700->displine][(x * cw) + c] = col;
             }
 
             if (drawcursor) {
                 for (c = 0; c < cw; c++)
-                    buffer32->line[wy700->displine][(x * cw) + c] ^= (mda ? mda_attr_to_color_table : cga_attr_to_color_table)[attr][0][1];
+                    wy700->monitor->target_buffer->line[wy700->displine][(x * cw) + c] ^= (mda ? mda_attr_to_color_table : cga_attr_to_color_table)[attr][0][1];
             }
             ++memaddr;
         }
@@ -620,7 +621,7 @@ wy700_cgaline(wy700_t *wy700)
                 ink = (dat & 0x80000000) ? 16 + 15 : 16 + 0;
                 if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
                     ink = 16;
-                buffer32->line[wy700->displine][x * 64 + 2 * c] = buffer32->line[wy700->displine][x * 64 + 2 * c + 1] = ink;
+                wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 2 * c] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 2 * c + 1] = ink;
                 dat                                                                                                   = dat << 1;
             }
         } else {
@@ -644,7 +645,7 @@ wy700_cgaline(wy700_t *wy700)
                 }
                 if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
                     ink = 16;
-                buffer32->line[wy700->displine][x * 64 + 4 * c] = buffer32->line[wy700->displine][x * 64 + 4 * c + 1] = buffer32->line[wy700->displine][x * 64 + 4 * c + 2] = buffer32->line[wy700->displine][x * 64 + 4 * c + 3] = ink;
+                wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c + 1] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c + 2] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c + 3] = ink;
                 dat                                                                                                                                                                                                               = dat << 2;
             }
         }
@@ -688,7 +689,7 @@ wy700_medresline(wy700_t *wy700)
                 /* Display disabled? */
                 if (!(wy700->wy700_mode & 8))
                     ink = 16;
-                buffer32->line[wy700->displine][x * 64 + 4 * c] = buffer32->line[wy700->displine][x * 64 + 4 * c + 1] = buffer32->line[wy700->displine][x * 64 + 4 * c + 2] = buffer32->line[wy700->displine][x * 64 + 4 * c + 3] = ink;
+                wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c + 1] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c + 2] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 4 * c + 3] = ink;
                 dat                                                                                                                                                                                                               = dat << 2;
             }
         } else {
@@ -697,7 +698,7 @@ wy700_medresline(wy700_t *wy700)
                 /* Display disabled? */
                 if (!(wy700->wy700_mode & 8))
                     ink = 16;
-                buffer32->line[wy700->displine][x * 64 + 2 * c] = buffer32->line[wy700->displine][x * 64 + 2 * c + 1] = ink;
+                wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 2 * c] = wy700->monitor->target_buffer->line[wy700->displine][x * 64 + 2 * c + 1] = ink;
                 dat                                                                                                   = dat << 1;
             }
         }
@@ -746,7 +747,7 @@ wy700_hiresline(wy700_t *wy700)
                 /* Display disabled? */
                 if (!(wy700->wy700_mode & 8))
                     ink = 16;
-                buffer32->line[wy700->displine][x * 32 + 2 * c] = buffer32->line[wy700->displine][x * 32 + 2 * c + 1] = ink;
+                wy700->monitor->target_buffer->line[wy700->displine][x * 32 + 2 * c] = wy700->monitor->target_buffer->line[wy700->displine][x * 32 + 2 * c + 1] = ink;
                 dat                                                                                                   = dat << 2;
             }
         } else {
@@ -755,7 +756,7 @@ wy700_hiresline(wy700_t *wy700)
                 /* Display disabled? */
                 if (!(wy700->wy700_mode & 8))
                     ink = 16;
-                buffer32->line[wy700->displine][x * 32 + c] = ink;
+                wy700->monitor->target_buffer->line[wy700->displine][x * 32 + c] = ink;
                 dat                                         = dat << 1;
             }
         }
@@ -775,7 +776,7 @@ wy700_poll(void *priv)
         wy700->linepos = 1;
         if (wy700->dispon) {
             if (wy700->displine == 0) {
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(wy700->monitor);
             }
 
             if (wy700->wy700_mode & 0x80)
@@ -807,7 +808,7 @@ wy700_poll(void *priv)
                     break;
             }
         }
-        video_process_8(WY700_XSIZE, wy700->displine);
+        video_process_8_monitor(WY700_XSIZE, wy700->displine, wy700->monitor);
         wy700->displine++;
         /* Hardcode a fixed refresh rate and VSYNC timing */
         if (wy700->displine == 800) /* Start of VSYNC */
@@ -831,24 +832,24 @@ wy700_poll(void *priv)
 
         if (wy700->displine == 800) {
             /* Hardcode 1280x800 window size */
-            if ((WY700_XSIZE != xsize) || (WY700_YSIZE != ysize) || video_force_resize_get()) {
-                xsize = WY700_XSIZE;
-                ysize = WY700_YSIZE;
-                if (xsize < 64)
-                    xsize = 656;
-                if (ysize < 32)
-                    ysize = 200;
-                set_screen_size(xsize, ysize);
+            if ((WY700_XSIZE != wy700->monitor->mon_xsize) || (WY700_YSIZE != wy700->monitor->mon_ysize) || video_force_resize_get_monitor(wy700->monitor)) {
+                wy700->monitor->mon_xsize = WY700_XSIZE;
+                wy700->monitor->mon_ysize = WY700_YSIZE;
+                if (wy700->monitor->mon_xsize < 64)
+                    wy700->monitor->mon_xsize = 656;
+                if (wy700->monitor->mon_ysize < 32)
+                    wy700->monitor->mon_ysize = 200;
+                set_screen_size_monitor(wy700->monitor->mon_xsize, wy700->monitor->mon_ysize, wy700->monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(wy700->monitor))
+                    video_force_resize_set_monitor(0, wy700->monitor);
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, wy700->monitor->mon_xsize, wy700->monitor->mon_ysize, wy700->monitor);
 
             frames++;
             /* Fixed 1280x800 resolution */
-            video_res_x = WY700_XSIZE;
-            video_res_y = WY700_YSIZE;
+            wy700->monitor->mon_res_x = WY700_XSIZE;
+            wy700->monitor->mon_res_y = WY700_YSIZE;
             if (wy700->wy700_mode & 0x80)
                 mode = wy700->wy700_mode & 0xF0;
             else
@@ -856,17 +857,17 @@ wy700_poll(void *priv)
             switch (mode) {
                 case 0x00:
                 case 0x02:
-                    video_bpp = 0;
+                    wy700->monitor->mon_bpp = 0;
                     break;
                 case 0x04:
                 case 0x90:
                 case 0xB0:
                 case 0xD0:
                 case 0xF0:
-                    video_bpp = 2;
+                    wy700->monitor->mon_bpp = 2;
                     break;
                 default:
-                    video_bpp = 1;
+                    wy700->monitor->mon_bpp = 1;
                     break;
             }
             wy700->blink++;
@@ -879,8 +880,9 @@ wy700_init(UNUSED(const device_t *info))
 {
     int      c;
     wy700_t *wy700 = calloc(1, sizeof(wy700_t));
+    wy700->monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_wy700);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_wy700, wy700->monitor);
 
     /* 128k video RAM */
     wy700->vram = calloc(1, 0x20000);

@@ -2655,7 +2655,7 @@ p9100_init(const device_t *info)
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&p9100->bios_rom.mapping);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_p9100_pci);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_p9100_pci, video_monitor_pending);
 
     svga_init(info, svga, p9100, p9100->vram_size,
               p9100_recalctimings,

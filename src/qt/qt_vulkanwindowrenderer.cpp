@@ -159,8 +159,9 @@ struct shared_vk_renderer_res vk_resources;
 
 static int vk_res_refcnt_dev = 0;
 
-VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
+VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent, monitor_t *monitor)
     : QWindow((QWindow *) NULL)
+    , RendererCommon(monitor)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
@@ -1075,7 +1076,7 @@ VulkanWindowRenderer::render()
         fn_vkCmdEndRendering(cmdBufs);
     }
 
-    if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
+    if (r_monitor->mon_screenshots || r_monitor->mon_screenshots_clipboard) {
         const VkImageMemoryBarrier image3_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -1212,14 +1213,14 @@ VulkanWindowRenderer::render()
         return;
     }
 
-    if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
+    if (r_monitor->mon_screenshots || r_monitor->mon_screenshots_clipboard) {
         // Wait for fence to be signalled.
         m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_FALSE, (uint64_t)-1);
 
         auto scrShotImagePitch = swapchainImageScreenshotMappedPtrs[swapchain_image_index].second;
         uint8_t* scrShotImageMapPtr = (uint8_t*)swapchainImageScreenshotMappedPtrs[swapchain_image_index].first;
 
-        if (monitors[r_monitor_index].mon_screenshots) {
+        if (r_monitor->mon_screenshots) {
             int  width = curExtent.width, height = curExtent.height;
             char path[1024];
             char fn[256];
@@ -1234,7 +1235,7 @@ VulkanWindowRenderer::render()
 
             path_slash(path);
             strcat(path, "Monitor_");
-            snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
+            snprintf(&path[strlen(path)], 42, "%d_", video_monitor_id(r_monitor) + 1);
 
             plat_tempfile(fn, NULL, (char *) ".png");
             strcat(path, fn);
@@ -1248,9 +1249,9 @@ VulkanWindowRenderer::render()
             QImage image((uchar*)rgb, width, height, (scrShotImagePitch / 4) * 3, QImage::Format_RGB888);
             image.rgbSwapped().save(path, "png");
             free(rgb);
-            monitors[r_monitor_index].mon_screenshots--;
+            r_monitor->mon_screenshots--;
         }
-        if (monitors[r_monitor_index].mon_screenshots_clipboard) {
+        if (r_monitor->mon_screenshots_clipboard) {
             int  width = curExtent.width, height = curExtent.height;
 
             unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
@@ -1262,7 +1263,7 @@ VulkanWindowRenderer::render()
             QImage image((uchar*)rgb, width, height, (scrShotImagePitch / 4) * 3, QImage::Format_RGB888);
             util::copyImageToClipboard(image.rgbSwapped());
             free(rgb);
-            monitors[r_monitor_index].mon_screenshots_clipboard--;
+            r_monitor->mon_screenshots_clipboard--;
         }
     }
 
@@ -1820,7 +1821,6 @@ VulkanWindowRenderer::event(QEvent *event)
     return res;
 }
 
-extern void take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i);
 
 void
 VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
@@ -1853,9 +1853,6 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         render();
     }
     buf_usage[0].clear();
-    if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
-        take_screenshot_clipboard_monitor(x, y, w, h, r_monitor_index);
-    }
 }
 
 uint32_t

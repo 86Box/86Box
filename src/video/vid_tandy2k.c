@@ -95,6 +95,7 @@
 #define TANDY2K_CURSOR_FRAMES 16
 
 typedef struct t2kvid_t {
+    struct monitor_t *monitor;
     uint8_t       chram[TANDY2K_CHRAM_SIZE];
     uint8_t       vram[TANDY2K_VRAM_PLANES][TANDY2K_VRAM_PLANE];
     uint8_t       vpac[0x40];
@@ -389,7 +390,7 @@ vid_render_hires(t2kvid_t *vid)
         pal32[i] = pen_color(vid->pal[i]);
 
     for (int y = 0; y < 400; y++) {
-        uint32_t *p = buffer32->line[y];
+        uint32_t *p = vid->monitor->target_buffer->line[y];
 
         for (int sx = 0; sx < TANDY2K_COLS; sx++) {
             const uint32_t off = (uint32_t) ((y * TANDY2K_COLS) + sx);
@@ -490,7 +491,7 @@ vid_render(t2kvid_t *vid)
         }
 
         for (int line = 0; line < TANDY2K_CELL_H; line++) {
-            uint32_t *p = buffer32->line[(row * TANDY2K_CELL_H) + line];
+            uint32_t *p = vid->monitor->target_buffer->line[(row * TANDY2K_CELL_H) + line];
 
             for (uint32_t col = 0; col < cells; col++) {
                 uint8_t *cellp = vid_cell_ptr(vid, row_start + (col * 2));
@@ -551,39 +552,40 @@ vid_poll(void *priv)
 
     /* The OSD can reset the screen size behind the driver's back; honour
        its resize request even when the mode itself has not changed. */
-    if ((TANDY2K_XSIZE != xsize) || (TANDY2K_YSIZE != ysize) ||
-        video_force_resize_get()) {
-        xsize = TANDY2K_XSIZE;
-        ysize = TANDY2K_YSIZE;
-        set_screen_size(xsize, ysize);
+    if ((TANDY2K_XSIZE != vid->monitor->mon_xsize) || (TANDY2K_YSIZE != vid->monitor->mon_ysize) ||
+        video_force_resize_get_monitor(vid->monitor)) {
+        vid->monitor->mon_xsize = TANDY2K_XSIZE;
+        vid->monitor->mon_ysize = TANDY2K_YSIZE;
+        set_screen_size_monitor(vid->monitor->mon_xsize, vid->monitor->mon_ysize, vid->monitor);
 
-        if (video_force_resize_get())
-            video_force_resize_set(0);
+        if (video_force_resize_get_monitor(vid->monitor))
+            video_force_resize_set_monitor(0, vid->monitor);
     }
 
-    video_wait_for_buffer();
+    video_wait_for_buffer_monitor(vid->monitor);
 
     vid_render(vid);
 
-    video_blit_memtoscreen(0, 0, xsize, ysize);
+    video_blit_memtoscreen_monitor(0, 0, vid->monitor->mon_xsize, vid->monitor->mon_ysize, vid->monitor);
 
     vid_vsync(vid);
     vid->frames++;
     frames++;
 
-    video_res_x = xsize / 8;
-    video_res_y = ysize / 16;
-    video_bpp   = 0;
+    vid->monitor->mon_res_x = vid->monitor->mon_xsize / 8;
+    vid->monitor->mon_res_y = vid->monitor->mon_ysize / 16;
+    vid->monitor->mon_bpp   = 0;
 }
 
 static void *
 tandy2k_vid_init(UNUSED(const device_t *info))
 {
     t2kvid_t *vid = (t2kvid_t *) calloc(1, sizeof(t2kvid_t));
+    vid->monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tandy2k);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_tandy2k, vid->monitor);
 
-    overscan_x = overscan_y = 0;
+    vid->monitor->mon_overscan_x = vid->monitor->mon_overscan_y = 0;
 
     vid->board = (uint8_t) device_get_config_int("graphics");
 

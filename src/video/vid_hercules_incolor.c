@@ -170,7 +170,7 @@ typedef struct {
     int      vsynctime;
     int      vadj;
 
-    int monitor_index;
+    monitor_t *monitor;
 
     uint8_t palette[16]; /* EGA-style 16 -> 64 palette registers */
     uint8_t palette_idx; /* Palette write index */
@@ -507,7 +507,7 @@ draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
         }
     }
     for (int i = 0; i < cw; i++) {
-        buffer32->line[dev->displine][x * cw + i] = (val & 0x100) ? fg : bg;
+        dev->monitor->target_buffer->line[dev->displine][x * cw + i] = (val & 0x100) ? fg : bg;
         val                                       = val << 1;
     }
 }
@@ -609,7 +609,7 @@ draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
             fg = dev->rgb[defpal[cfg]];
         }
 
-        buffer32->line[dev->displine][x * cw + i] = fg;
+        dev->monitor->target_buffer->line[dev->displine][x * cw + i] = fg;
         val[0]                                    = val[0] << 1;
         val[1]                                    = val[1] << 1;
         val[2]                                    = val[2] << 1;
@@ -747,7 +747,7 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
             fg = dev->rgb[defpal[cfg]];
         }
 
-        buffer32->line[dev->displine][x * cw + i] = fg;
+        dev->monitor->target_buffer->line[dev->displine][x * cw + i] = fg;
         val[0]                                    = val[0] << 1;
         val[1]                                    = val[1] << 1;
         val[2]                                    = val[2] << 1;
@@ -808,7 +808,7 @@ text_line(incolor_t *dev, uint16_t cursoraddr)
                 col = dev->rgb[defpal[ink]];
             }
             for (int c = 0; c < cw; c++) {
-                buffer32->line[dev->displine][x * cw + c] = col;
+                dev->monitor->target_buffer->line[dev->displine][x * cw + c] = col;
             }
         }
     }
@@ -856,7 +856,7 @@ graphics_line(incolor_t *dev)
             else
                 col = defpal[ink];
 
-            buffer32->line[dev->displine][(x << 4) + c] = dev->rgb[col];
+            dev->monitor->target_buffer->line[dev->displine][(x << 4) + c] = dev->rgb[col];
         }
     }
 }
@@ -872,9 +872,7 @@ incolor_poll(void *priv)
     int        cw      = INCOLOR_CW;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = dev->monitor_index;
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
@@ -887,14 +885,14 @@ incolor_poll(void *priv)
         if (dev->dispon) {
             if (dev->displine < dev->firstline) {
                 dev->firstline = dev->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
             }
             dev->lastline = dev->displine;
             if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
                 graphics_line(dev);
             else
                 text_line(dev, cursoraddr);
-            video_lightpen_check_trigger_strobe(0, dev->displine, 0, dev->firstline, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
+            video_lightpen_check_trigger_strobe(0, dev->displine, 0, dev->firstline, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), dev->monitor);
         }
         dev->scanline = scanline_old;
         if (dev->vc == dev->crtc[7] && !dev->scanline)
@@ -903,7 +901,7 @@ incolor_poll(void *priv)
         if (dev->displine >= 500)
             dev->displine = 0;
     } else {
-        video_lightpen_hsync();
+        video_lightpen_hsync(dev->monitor);
         timer_advance_u64(&dev->timer, dev->dispontime);
         if (dev->dispon)
             dev->status &= ~1;
@@ -953,35 +951,35 @@ incolor_poll(void *priv)
                 dev->dispon    = 0;
                 dev->displine  = 0;
                 dev->vsynctime = 16;
-                video_lightpen_vsync();
+                video_lightpen_vsync(dev->monitor);
                 if (dev->crtc[7]) {
                     if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;
                     else
                         x = dev->crtc[1] * cw;
                     dev->lastline++;
-                    if ((dev->ctrl & 8) && ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
-                        xsize = x;
-                        ysize = dev->lastline - dev->firstline;
-                        if (xsize < 64)
-                            xsize = 656;
-                        if (ysize < 32)
-                            ysize = 200;
-                        set_screen_size(xsize, ysize);
+                    if ((dev->ctrl & 8) && ((x != dev->monitor->mon_xsize) || ((dev->lastline - dev->firstline) != dev->monitor->mon_ysize) || video_force_resize_get_monitor(dev->monitor))) {
+                        dev->monitor->mon_xsize = x;
+                        dev->monitor->mon_ysize = dev->lastline - dev->firstline;
+                        if (dev->monitor->mon_xsize < 64)
+                            dev->monitor->mon_xsize = 656;
+                        if (dev->monitor->mon_ysize < 32)
+                            dev->monitor->mon_ysize = 200;
+                        set_screen_size_monitor(dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
 
-                        if (video_force_resize_get())
-                            video_force_resize_set(0);
+                        if (video_force_resize_get_monitor(dev->monitor))
+                            video_force_resize_set_monitor(0, dev->monitor);
                     }
-                    video_blit_memtoscreen(0, dev->firstline, xsize, dev->lastline - dev->firstline);
+                    video_blit_memtoscreen_monitor(0, dev->firstline, dev->monitor->mon_xsize, dev->lastline - dev->firstline, dev->monitor);
                     frames++;
                     if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH)) {
-                        video_res_x = dev->crtc[1] * 16;
-                        video_res_y = dev->crtc[6] * 4;
-                        video_bpp   = 1;
+                        dev->monitor->mon_res_x = dev->crtc[1] * 16;
+                        dev->monitor->mon_res_y = dev->crtc[6] * 4;
+                        dev->monitor->mon_bpp   = 1;
                     } else {
-                        video_res_x = dev->crtc[1];
-                        video_res_y = dev->crtc[6];
-                        video_bpp   = 0;
+                        dev->monitor->mon_res_x = dev->crtc[1];
+                        dev->monitor->mon_res_y = dev->crtc[6];
+                        dev->monitor->mon_bpp   = 0;
                     }
                 }
                 dev->firstline = 1000;
@@ -998,7 +996,6 @@ incolor_poll(void *priv)
             dev->cursorvisible = 1;
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -1008,6 +1005,7 @@ incolor_init(UNUSED(const device_t *info))
     int        c;
 
     dev = (incolor_t *) calloc(1, sizeof(incolor_t));
+    dev->monitor = video_monitor_pending;
 
     dev->vram = (uint8_t *) calloc(1, 0x40000); /* 4 planes of 64k */
 
@@ -1051,9 +1049,8 @@ incolor_init(UNUSED(const device_t *info))
         dev->palette[c] = defpal[c];
     dev->palette_idx = 0;
 
-    video_inform(VIDEO_FLAG_TYPE_MDA, &timing_incolor);
+    video_inform_monitor(VIDEO_FLAG_TYPE_MDA, &timing_incolor, dev->monitor);
 
-    dev->monitor_index = monitor_index_global;
 
     if (!lpt_get_3bc_used()) {
         /* Force the LPT3 port to be enabled. */

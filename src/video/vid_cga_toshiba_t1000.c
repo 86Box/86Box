@@ -282,11 +282,11 @@ t1000_text_row80(t1000_t *t1000)
         }
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
+                (t1000->cga.monitor->target_buffer->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
             }
         } else {
             for (uint8_t c = 0; c < 8; c++)
-                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                (t1000->cga.monitor->target_buffer->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
         }
         ++memaddr;
     }
@@ -343,11 +343,11 @@ t1000_text_row40(t1000_t *t1000)
         }
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
+                (t1000->cga.monitor->target_buffer->line[t1000->displine])[(x << 4) + c * 2] = (t1000->cga.monitor->target_buffer->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
             }
         } else {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                (t1000->cga.monitor->target_buffer->line[t1000->displine])[(x << 4) + c * 2] = (t1000->cga.monitor->target_buffer->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
         ++memaddr;
@@ -376,7 +376,7 @@ t1000_cgaline6(t1000_t *t1000)
             ink = (dat & 0x80) ? fg : bg;
             if (!(t1000->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE))
                 ink = grey;
-            (buffer32->line[t1000->displine])[x * 8 + c] = ink;
+            (t1000->cga.monitor->target_buffer->line[t1000->displine])[x * 8 + c] = ink;
             dat                                                       = dat << 1;
         }
     }
@@ -432,8 +432,8 @@ t1000_cgaline4(t1000_t *t1000)
                     ink0 = ink1 = blue;
                     break;
             }
-            (buffer32->line[t1000->displine])[x * 8 + 2 * c]     = ink0;
-            (buffer32->line[t1000->displine])[x * 8 + 2 * c + 1] = ink1;
+            (t1000->cga.monitor->target_buffer->line[t1000->displine])[x * 8 + 2 * c]     = ink0;
+            (t1000->cga.monitor->target_buffer->line[t1000->displine])[x * 8 + 2 * c + 1] = ink1;
             dat                                                  = dat << 2;
         }
     }
@@ -472,7 +472,7 @@ t1000_poll(void *priv)
         t1000->linepos = 1;
         if (t1000->dispon) {
             if (t1000->displine == 0) {
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(t1000->cga.monitor);
             }
 
             /* Graphics */
@@ -489,7 +489,7 @@ t1000_poll(void *priv)
             }
         }
         t1000->displine++;
-        video_lightpen_check_trigger_strobe(8, t1000->cga.displine * (t1000->cga.double_type ? 2 : 1), 0, t1000->cga.firstline + 8, 8. * (1. / (xt_cpu_multi / (cpuclock * (double) (1ULL << 32)))), t1000->cga.monitor_used);
+        video_lightpen_check_trigger_strobe(8, t1000->cga.displine * (t1000->cga.double_type ? 2 : 1), 0, t1000->cga.firstline + 8, 8. * (1. / (xt_cpu_multi / (cpuclock * (double) (1ULL << 32)))), t1000->cga.monitor);
         /* Hardcode a fixed refresh rate and VSYNC timing */
         if (t1000->displine == 200) /* Start of VSYNC */
         {
@@ -506,40 +506,40 @@ t1000_poll(void *priv)
         if (t1000->dispon) {
             t1000->cga.cgastat &= ~1;
         }
-        video_lightpen_hsync();
+        video_lightpen_hsync(t1000->cga.monitor);
         timer_advance_u64(&t1000->cga.timer, t1000->dispontime);
         t1000->linepos = 0;
 
         if (t1000->displine == 200) {
-            video_lightpen_vsync();
+            video_lightpen_vsync(t1000->cga.monitor);
             /* Hardcode 640x200 window size */
-            if ((T1000_XSIZE != xsize) || (T1000_YSIZE != ysize) || video_force_resize_get()) {
-                xsize = T1000_XSIZE;
-                ysize = T1000_YSIZE;
-                if (xsize < 64)
-                    xsize = 656;
-                if (ysize < 32)
-                    ysize = 200;
-                set_screen_size(xsize, ysize);
+            if ((T1000_XSIZE != t1000->cga.monitor->mon_xsize) || (T1000_YSIZE != t1000->cga.monitor->mon_ysize) || video_force_resize_get_monitor(t1000->cga.monitor)) {
+                t1000->cga.monitor->mon_xsize = T1000_XSIZE;
+                t1000->cga.monitor->mon_ysize = T1000_YSIZE;
+                if (t1000->cga.monitor->mon_xsize < 64)
+                    t1000->cga.monitor->mon_xsize = 656;
+                if (t1000->cga.monitor->mon_ysize < 32)
+                    t1000->cga.monitor->mon_ysize = 200;
+                set_screen_size_monitor(t1000->cga.monitor->mon_xsize, t1000->cga.monitor->mon_ysize, t1000->cga.monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(t1000->cga.monitor))
+                    video_force_resize_set_monitor(0, t1000->cga.monitor);
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, t1000->cga.monitor->mon_xsize, t1000->cga.monitor->mon_ysize, t1000->cga.monitor);
 
             frames++;
             /* Fixed 640x200 resolution */
-            video_res_x = T1000_XSIZE;
-            video_res_y = T1000_YSIZE;
+            t1000->cga.monitor->mon_res_x = T1000_XSIZE;
+            t1000->cga.monitor->mon_res_y = T1000_YSIZE;
 
             if (t1000->cga.cgamode & 0x02) {
                 if (t1000->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
-                    video_bpp = 1;
+                    t1000->cga.monitor->mon_bpp = 1;
                 else
-                    video_bpp = 2;
+                    t1000->cga.monitor->mon_bpp = 2;
 
             } else
-                video_bpp = 0;
+                t1000->cga.monitor->mon_bpp = 0;
             t1000->cga.cgablink++;
         }
     }
@@ -655,7 +655,7 @@ t1000_init(UNUSED(const device_t *info))
     t1000_t *t1000 = calloc(1, sizeof(t1000_t));
     video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
     cga_init(&t1000->cga);
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_t1000, t1000->cga.monitor);
 
     t1000->internal = 1;
 

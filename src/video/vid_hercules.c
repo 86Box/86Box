@@ -70,7 +70,6 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
     hercules_t *dev = (hercules_t *) priv;
     uint8_t     old;
 
-    VIDEO_MONITOR_PROLOGUE()
     switch (addr) {
         case 0x03b0:
         case 0x03b2:
@@ -97,7 +96,7 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old != val) {
                 if ((dev->crtcreg < 0xe) || (dev->crtcreg > 0x10)) {
-                    dev->fullchange = changeframecount;
+                    dev->fullchange = dev->monitor->mon_changeframecount;
                     recalc_timings(dev);
                 }
             }
@@ -152,7 +151,6 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
             break;
     }
 
-    VIDEO_MONITOR_EPILOGUE()
 }
 
 static uint8_t
@@ -267,7 +265,7 @@ hercules_render_overscan_left(hercules_t *dev)
         return;
 
     for (uint8_t i = 0; i < 8; i++)
-        buffer32->line[dev->displine + 14][i] = 0x00000000;
+        dev->monitor->target_buffer->line[dev->displine + 14][i] = 0x00000000;
 }
 
 static void
@@ -287,7 +285,7 @@ hercules_render_overscan_right(hercules_t *dev)
         return;
 
     for (uint8_t i = 0; i < 8; i++)
-        buffer32->line[dev->displine + 14][8 + width + i] = 0x00000000;
+        dev->monitor->target_buffer->line[dev->displine + 14][8 + width + i] = 0x00000000;
 }
 
 static void
@@ -310,7 +308,6 @@ hercules_poll(void *priv)
     int         drawcursor;
     uint32_t   *p;
 
-    VIDEO_MONITOR_PROLOGUE()
     cursoraddr = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
 
     if (!dev->linepos) {
@@ -325,7 +322,7 @@ hercules_poll(void *priv)
         if (dev->dispon) {
             if (dev->displine < dev->firstline) {
                 dev->firstline = dev->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
             }
             dev->lastline = dev->displine;
 
@@ -343,9 +340,9 @@ hercules_poll(void *priv)
                         dat = 0;
                     dev->memaddr++;
                     for (c = 0; c < 16; c++)
-                        buffer32->line[dev->displine + 14][(x << 4) + c + 8] = (dat & (32768 >> c)) ? 7 : 0;
+                        dev->monitor->target_buffer->line[dev->displine + 14][(x << 4) + c + 8] = (dat & (32768 >> c)) ? 7 : 0;
                     for (c = 0; c < 16; c += 8)
-                        video_blend((x << 4) + c + 8, dev->displine + 14);
+                        video_blend_monitor((x << 4) + c + 8, dev->displine + 14, dev->monitor);
                 }
             } else {
                 for (x = 0; x < dev->crtc[1]; x++) {
@@ -361,15 +358,15 @@ hercules_poll(void *priv)
 
                     if (dev->scanline == 12 && ((attr & 7) == 1)) {
                         for (c = 0; c < 9; c++)
-                            buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][1];
+                            dev->monitor->target_buffer->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][1];
                     } else {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][(fontdatm[chr][dev->scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                            dev->monitor->target_buffer->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][(fontdatm[chr][dev->scanline] & (1 << (c ^ 7))) ? 1 : 0];
 
                         if ((chr & ~0x1f) == 0xc0)
-                            buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][fontdatm[chr][dev->scanline] & 1];
+                            dev->monitor->target_buffer->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][fontdatm[chr][dev->scanline] & 1];
                         else
-                            buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][0];
+                            dev->monitor->target_buffer->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][0];
                     }
                     if (dev->ctrl2 & 0x01)
                         dev->memaddr = (dev->memaddr + 1) & 0x3fff;
@@ -378,7 +375,7 @@ hercules_poll(void *priv)
 
                     if (drawcursor) {
                         for (c = 0; c < 9; c++)
-                            buffer32->line[dev->displine + 14][(x * 9) + c + 8] ^= dev->cols[attr][0][1];
+                            dev->monitor->target_buffer->line[dev->displine + 14][(x * 9) + c + 8] ^= dev->cols[attr][0][1];
                     }
                 }
             }
@@ -390,8 +387,8 @@ hercules_poll(void *priv)
             else
                 x = dev->crtc[1] * 9;
 
-            video_process_8(x + 16, dev->displine + 14);
-            video_lightpen_check_trigger_strobe(8, dev->displine + 14, 0, dev->firstline + 14, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
+            video_process_8_monitor(x + 16, dev->displine + 14, dev->monitor);
+            video_lightpen_check_trigger_strobe(8, dev->displine + 14, 0, dev->firstline + 14, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), dev->monitor);
         }
         dev->scanline = scanline_old;
 
@@ -402,7 +399,7 @@ hercules_poll(void *priv)
             dev->displine = 0;
     } else {
         timer_advance_u64(&dev->timer, dev->dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(dev->monitor);
 
         if (dev->dispon)
             dev->status &= ~1;
@@ -474,31 +471,31 @@ hercules_poll(void *priv)
                     dev->lastline++;
                     y = (dev->lastline - dev->firstline);
 
-                    if ((dev->ctrl & 8) && x && y && ((x != xsize) || (y != ysize) || video_force_resize_get())) {
-                        xsize = x;
-                        ysize = y;
-                        if (xsize < 64)
-                            xsize = enable_overscan ? 640 : 656;
-                        if (ysize < 32)
-                            ysize = 200;
+                    if ((dev->ctrl & 8) && x && y && ((x != dev->monitor->mon_xsize) || (y != dev->monitor->mon_ysize) || video_force_resize_get_monitor(dev->monitor))) {
+                        dev->monitor->mon_xsize = x;
+                        dev->monitor->mon_ysize = y;
+                        if (dev->monitor->mon_xsize < 64)
+                            dev->monitor->mon_xsize = enable_overscan ? 640 : 656;
+                        if (dev->monitor->mon_ysize < 32)
+                            dev->monitor->mon_ysize = 200;
 
-                        set_screen_size(xsize + (enable_overscan ? 16 : 0), ysize + (enable_overscan ? 28 : 0));
+                        set_screen_size_monitor(dev->monitor->mon_xsize + (enable_overscan ? 16 : 0), dev->monitor->mon_ysize + (enable_overscan ? 28 : 0), dev->monitor);
 
-                        if (video_force_resize_get())
-                            video_force_resize_set(0);
+                        if (video_force_resize_get_monitor(dev->monitor))
+                            video_force_resize_set_monitor(0, dev->monitor);
                     }
 
                     if ((x >= 160) && ((y + 1) >= 120)) {
                         /* Draw (overscan_size) lines of overscan on top and bottom. */
                         for (yy = 0; yy < 14; yy++) {
-                            p = &(buffer32->line[(dev->firstline + yy) & 0x7ff][0]);
+                            p = &(dev->monitor->target_buffer->line[(dev->firstline + yy) & 0x7ff][0]);
 
                             for (xx = 0; xx < (x + 16); xx++)
                                 p[xx] = 0x00000000;
                         }
 
                         for (yy = 0; yy < 14; yy++) {
-                            p = &(buffer32->line[(dev->firstline + 14 + y + yy) & 0x7ff][0]);
+                            p = &(dev->monitor->target_buffer->line[(dev->firstline + 14 + y + yy) & 0x7ff][0]);
 
                             for (xx = 0; xx < (x + 16); xx++)
                                 p[xx] = 0x00000000;
@@ -506,24 +503,24 @@ hercules_poll(void *priv)
                     }
 
                     if (enable_overscan)
-                        video_blit_memtoscreen(0, dev->firstline, xsize + 16, ysize + 28);
+                        video_blit_memtoscreen_monitor(0, dev->firstline, dev->monitor->mon_xsize + 16, dev->monitor->mon_ysize + 28, dev->monitor);
                     else
-                        video_blit_memtoscreen(8, dev->firstline + 14, xsize, ysize);
+                        video_blit_memtoscreen_monitor(8, dev->firstline + 14, dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
                     frames++;
 #if 0
                     if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
 #endif
                     if (dev->ctrl & 0x02) {
-                        video_res_x = dev->crtc[1] * 16;
-                        video_res_y = dev->crtc[6] * 4;
-                        video_bpp   = 1;
+                        dev->monitor->mon_res_x = dev->crtc[1] * 16;
+                        dev->monitor->mon_res_y = dev->crtc[6] * 4;
+                        dev->monitor->mon_bpp   = 1;
                     } else {
-                        video_res_x = dev->crtc[1];
-                        video_res_y = dev->crtc[6];
-                        video_bpp   = 0;
+                        dev->monitor->mon_res_x = dev->crtc[1];
+                        dev->monitor->mon_res_y = dev->crtc[6];
+                        dev->monitor->mon_bpp   = 0;
                     }
                 }
-                video_lightpen_vsync();
+                video_lightpen_vsync(dev->monitor);
                 dev->firstline = 1000;
                 dev->lastline  = 0;
                 dev->blink++;
@@ -543,7 +540,6 @@ hercules_poll(void *priv)
             }
         }
     }
-    VIDEO_MONITOR_EPILOGUE()
 }
 
 static void *
@@ -552,10 +548,10 @@ hercules_init(UNUSED(const device_t *info))
     hercules_t *dev;
 
     dev = (hercules_t *) calloc(1, sizeof(hercules_t));
-    dev->monitor_index = monitor_index_global;
+    dev->monitor = video_monitor_pending;
 
-    overscan_x = 16;
-    overscan_y = 28;
+    dev->monitor->mon_overscan_x = 16;
+    dev->monitor->mon_overscan_y = 28;
 
     dev->vram = (uint8_t *) calloc(1, 0x10000);
 
@@ -612,16 +608,16 @@ hercules_init(UNUSED(const device_t *info))
     dev->cols[0x80][0][1] = dev->cols[0x80][1][1] = 16;
     dev->cols[0x88][0][1] = dev->cols[0x88][1][1] = 16;
 
-    overscan_x = overscan_y = 0;
+    dev->monitor->mon_overscan_x = dev->monitor->mon_overscan_y = 0;
 
-    cga_palette = device_get_config_int("rgb_type") << 1;
-    if (cga_palette > 6)
-        cga_palette = 0;
-    cgapal_rebuild();
+    *dev->monitor->mon_cga_palette = device_get_config_int("rgb_type") << 1;
+    if (*dev->monitor->mon_cga_palette > 6)
+        *dev->monitor->mon_cga_palette = 0;
+    cgapal_rebuild_monitor(dev->monitor);
 
     herc_blend = device_get_config_int("blend");
 
-    video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
+    video_inform_monitor(VIDEO_FLAG_TYPE_MDA, &timing_hercules, dev->monitor);
 
     if (!lpt_get_3bc_used()) {
         /* Force the LPT3 port to be enabled. */

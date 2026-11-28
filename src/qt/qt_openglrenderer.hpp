@@ -59,7 +59,7 @@ class OpenGLRenderer : public QWindow, public RendererCommon {
 public:
     QOpenGLContext *context;
 
-    OpenGLRenderer(QWidget *parent = nullptr);
+    OpenGLRenderer(QWidget *parent, monitor_t *monitor);
     ~OpenGLRenderer();
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;

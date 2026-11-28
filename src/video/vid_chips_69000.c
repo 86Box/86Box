@@ -2206,7 +2206,7 @@ chips_69000_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -3214,7 +3214,7 @@ chips_69000_init(const device_t *info)
         mem_mapping_disable(&chips->bios_rom.mapping);
     }
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_chips);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_chips, video_monitor_pending);
 
     svga_init(info, &chips->svga, chips, 1 << 21, /*2048kb*/
               chips_69000_recalctimings,

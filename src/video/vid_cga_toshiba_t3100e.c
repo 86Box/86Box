@@ -290,11 +290,11 @@ t3100e_text_row80(t3100e_t *t3100e)
         }
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
             }
         } else {
             for (uint8_t c = 0; c < 8; c++)
-                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
         }
         ++memaddr;
     }
@@ -351,11 +351,11 @@ t3100e_text_row40(t3100e_t *t3100e)
         }
         if (drawcursor) {
             for (c = 0; c < 8; c++) {
-                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[(x << 4) + c * 2] = (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
             }
         } else {
             for (c = 0; c < 8; c++) {
-                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[(x << 4) + c * 2] = (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
         ++memaddr;
@@ -388,7 +388,7 @@ t3100e_cgaline6(t3100e_t *t3100e)
             ink = (dat & 0x80) ? fg : bg;
             if (!(t3100e->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE))
                 ink = black;
-            (buffer32->line[t3100e->displine])[x * 8 + c] = ink;
+            (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[x * 8 + c] = ink;
             dat                                           = dat << 1;
         }
     }
@@ -451,8 +451,8 @@ t3100e_cgaline4(t3100e_t *t3100e)
                 default:
                     break;
             }
-            (buffer32->line[t3100e->displine])[x * 8 + 2 * c]     = ink0;
-            (buffer32->line[t3100e->displine])[x * 8 + 2 * c + 1] = ink1;
+            (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[x * 8 + 2 * c]     = ink0;
+            (t3100e->cga.monitor->target_buffer->line[t3100e->displine])[x * 8 + 2 * c + 1] = ink1;
             dat                                                   = dat << 2;
         }
     }
@@ -491,7 +491,7 @@ t3100e_poll(void *priv)
         t3100e->linepos = 1;
         if (t3100e->dispon) {
             if (t3100e->displine == 0) {
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(t3100e->cga.monitor);
             }
 
             /* Graphics */
@@ -520,45 +520,45 @@ t3100e_poll(void *priv)
             t3100e->cga.cgastat &= ~8;
             t3100e->dispon = 1;
         }
-        video_lightpen_check_trigger_strobe(8, t3100e->displine, 0, 0, VID_CLOCK, 0);
+        video_lightpen_check_trigger_strobe(8, t3100e->displine, 0, 0, VID_CLOCK, t3100e->cga.monitor);
     } else {
         if (t3100e->dispon) {
             t3100e->cga.cgastat &= ~1;
         }
-        video_lightpen_hsync();
+        video_lightpen_hsync(t3100e->cga.monitor);
         timer_advance_u64(&t3100e->cga.timer, t3100e->dispontime);
         t3100e->linepos = 0;
 
         if (t3100e->displine == 400) {
-            video_lightpen_vsync();
+            video_lightpen_vsync(t3100e->cga.monitor);
             /* Hardcode 640x400 window size */
-            if ((T3100E_XSIZE != xsize) || (T3100E_YSIZE != ysize) || video_force_resize_get()) {
-                xsize = T3100E_XSIZE;
-                ysize = T3100E_YSIZE;
-                if (xsize < 64)
-                    xsize = 656;
-                if (ysize < 32)
-                    ysize = 200;
-                set_screen_size(xsize, ysize);
+            if ((T3100E_XSIZE != t3100e->cga.monitor->mon_xsize) || (T3100E_YSIZE != t3100e->cga.monitor->mon_ysize) || video_force_resize_get_monitor(t3100e->cga.monitor)) {
+                t3100e->cga.monitor->mon_xsize = T3100E_XSIZE;
+                t3100e->cga.monitor->mon_ysize = T3100E_YSIZE;
+                if (t3100e->cga.monitor->mon_xsize < 64)
+                    t3100e->cga.monitor->mon_xsize = 656;
+                if (t3100e->cga.monitor->mon_ysize < 32)
+                    t3100e->cga.monitor->mon_ysize = 200;
+                set_screen_size_monitor(t3100e->cga.monitor->mon_xsize, t3100e->cga.monitor->mon_ysize, t3100e->cga.monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(t3100e->cga.monitor))
+                    video_force_resize_set_monitor(0, t3100e->cga.monitor);
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, t3100e->cga.monitor->mon_xsize, t3100e->cga.monitor->mon_ysize, t3100e->cga.monitor);
 
             frames++;
             /* Fixed 640x400 resolution */
-            video_res_x = T3100E_XSIZE;
-            video_res_y = T3100E_YSIZE;
+            t3100e->cga.monitor->mon_res_x = T3100E_XSIZE;
+            t3100e->cga.monitor->mon_res_y = T3100E_YSIZE;
 
             if (t3100e->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
                 if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
-                    video_bpp = 1;
+                    t3100e->cga.monitor->mon_bpp = 1;
                 else
-                    video_bpp = 2;
+                    t3100e->cga.monitor->mon_bpp = 2;
 
             } else
-                video_bpp = 0;
+                t3100e->cga.monitor->mon_bpp = 0;
             t3100e->cga.cgablink++;
         }
     }
@@ -659,7 +659,7 @@ t3100e_init(UNUSED(const device_t *info))
     t3100e_t *t3100e = calloc(1, sizeof(t3100e_t));
     video_load_font("roms/machines/t3100e/t3100e_font.bin", FONT_FORMAT_TOSHIBA_3100E, LOAD_FONT_NO_OFFSET);
     cga_init(&t3100e->cga);
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_t3100e, t3100e->cga.monitor);
 
     t3100e->internal = 1;
 

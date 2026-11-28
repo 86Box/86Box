@@ -233,10 +233,11 @@ jega_render_text(void *priv)
     uint32_t *memaddr        = jega->is_vga ? &jega->vga.svga.memaddr :
                                               &jega->ega.memaddr;
     uint8_t   mask           = jega->is_vga ? jega->vga.svga.dac_mask : 0xff;
+    const monitor_t *monitor = jega->is_vga ? jega->vga.svga.monitor : jega->ega.monitor;
 
     if (((*displine + *y_add) < 0) ||
-        (buffer32 == NULL) ||
-        (buffer32->line[*displine + *y_add] == NULL))
+        (monitor->target_buffer == NULL) ||
+        (monitor->target_buffer->line[*displine + *y_add] == NULL))
         return;
 
     if (*firstline_draw == 2000)
@@ -252,7 +253,7 @@ jega_render_text(void *priv)
         const bool crtcreset     = ((crtc[0x17] & 0x80) == 0) || ((jega->regs[RMOD1] & 0x80) == 0);
         const int  charwidth     = 8;
         const bool blinked       = *blink & 0x10;
-        uint32_t  *p             = &buffer32->line[*displine + *y_add][*x_add];
+        uint32_t  *p             = &monitor->target_buffer->line[*displine + *y_add][*x_add];
         bool       chr_wide      = false;
         int        sc_wide       = *sc - jega->start_scan_count;
         const bool cursoron      = (blinked || jega->cursorblink_disable) &&
@@ -452,9 +453,9 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                             jega->egapal[c] = jega->attrregs[c] & 0x3f;
                     }
                     if (jega->is_vga)
-                        jega->vga.svga.fullchange = changeframecount;
+                        jega->vga.svga.fullchange = jega->vga.svga.monitor->mon_changeframecount;
                     else
-                        jega->ega.fullchange = changeframecount;
+                        jega->ega.fullchange = jega->ega.monitor->mon_changeframecount;
                 }
             }
             jega->attrff ^= 1;
@@ -756,7 +757,7 @@ jega_common_init(const device_t *info, void *priv, int vga)
     jega_t *jega = (jega_t *) priv;
     jega->is_vga = vga;
     if (vga) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga, video_monitor_pending);
         svga_init(info, &jega->vga.svga, &jega->vga, 1 << 18, /*256kb*/
                   NULL,
                   jega_in, jega_out,
@@ -775,7 +776,7 @@ jega_common_init(const device_t *info, void *priv, int vga)
             pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
             pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
         }
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega, video_monitor_pending);
         jega->pallook = pallook64;
         ega_init(&jega->ega, 9, 0);
         ega_set_type(&jega->ega, EGA_SUPEREGA);

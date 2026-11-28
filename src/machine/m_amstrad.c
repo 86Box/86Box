@@ -90,6 +90,7 @@
 #define DOUBLE_INTERPOLATE_LINEAR 3
 
 typedef struct amsvid_t {
+    struct monitor_t *monitor;
     rom_t   bios_rom;    /* 1640 */
     cga_t   cga;         /* 1640/200 */
     mda_t   mda;         /* 1512/200/PPC512/640*/
@@ -263,7 +264,7 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
             vid->crtc[vid->crtcreg] = val & crtc_mask[vid->crtcreg];
             if (old != val) {
                 if (vid->crtcreg < 0xe || vid->crtcreg > 0x10) {
-                    vid->fullchange = changeframecount;
+                    vid->fullchange = vid->monitor->mon_changeframecount;
                     recalc_timings_1512(vid);
                 }
             }
@@ -378,18 +379,18 @@ ams1512_render(amsvid_t *vid, int line)
 
     for (uint8_t c = 0; c < 8; c++) {
         if ((vid->cgamode & 0x12) == 0x12) {
-            buffer32->line[line][c] = buffer32->line[(line) + 1][c] = (vid->border & 15) + 16;
+            vid->monitor->target_buffer->line[line][c] = vid->monitor->target_buffer->line[(line) + 1][c] = (vid->border & 15) + 16;
             if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                buffer32->line[line][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
+                vid->monitor->target_buffer->line[line][c + (vid->crtc[1] << 3) + 8] = vid->monitor->target_buffer->line[(line) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
             } else {
-                buffer32->line[line][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 4) + 8] = 0;
+                vid->monitor->target_buffer->line[line][c + (vid->crtc[1] << 4) + 8] = vid->monitor->target_buffer->line[(line) + 1][c + (vid->crtc[1] << 4) + 8] = 0;
             }
         } else {
-            buffer32->line[line][c] = buffer32->line[(line) + 1][c] = (vid->cgacol & 15) + 16;
+            vid->monitor->target_buffer->line[line][c] = vid->monitor->target_buffer->line[(line) + 1][c] = (vid->cgacol & 15) + 16;
             if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                buffer32->line[line][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->cgacol & 15) + 16;
+                vid->monitor->target_buffer->line[line][c + (vid->crtc[1] << 3) + 8] = vid->monitor->target_buffer->line[(line) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->cgacol & 15) + 16;
             } else {
-                buffer32->line[line][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->cgacol & 15) + 16;
+                vid->monitor->target_buffer->line[line][c + (vid->crtc[1] << 4) + 8] = vid->monitor->target_buffer->line[(line) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->cgacol & 15) + 16;
             }
         }
     }
@@ -409,11 +410,11 @@ ams1512_render(amsvid_t *vid, int line)
             }
             if (drawcursor)
                 for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][(x << 3) + c + 8] =
+                    vid->monitor->target_buffer->line[line][(x << 3) + c + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
             else
                 for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][(x << 3) + c + 8] =
+                    vid->monitor->target_buffer->line[line][(x << 3) + c + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
             vid->memaddr++;
         }
@@ -435,13 +436,13 @@ ams1512_render(amsvid_t *vid, int line)
             vid->memaddr++;
             if (drawcursor)
                 for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][(x << 4) + (c << 1) + 8] =
-                    buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] =
+                    vid->monitor->target_buffer->line[line][(x << 4) + (c << 1) + 8] =
+                    vid->monitor->target_buffer->line[line][(x << 4) + (c << 1) + 1 + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
             else
                 for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][(x << 4) + (c << 1) + 8] =
-                    buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] =
+                    vid->monitor->target_buffer->line[line][(x << 4) + (c << 1) + 8] =
+                    vid->monitor->target_buffer->line[line][(x << 4) + (c << 1) + 1 + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
         }
     } else if (!(vid->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
@@ -465,8 +466,8 @@ ams1512_render(amsvid_t *vid, int line)
                   vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000) + 1];
             vid->memaddr++;
             for (uint8_t c = 0; c < 8; c++) {
-                buffer32->line[line][(x << 4) + (c << 1) + 8] =
-                buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
+                vid->monitor->target_buffer->line[line][(x << 4) + (c << 1) + 8] =
+                vid->monitor->target_buffer->line[line][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
                 dat <<= 2;
             }
         }
@@ -480,7 +481,7 @@ ams1512_render(amsvid_t *vid, int line)
 
             vid->memaddr++;
             for (uint8_t c = 0; c < 16; c++) {
-                buffer32->line[line][(x << 4) + c + 8] =  (((dat >> 15) | ((dat2 >> 15) << 1) |
+                vid->monitor->target_buffer->line[line][(x << 4) + c + 8] =  (((dat >> 15) | ((dat2 >> 15) << 1) |
                                                           ((dat3 >> 15) << 2) | ((dat4 >> 15) << 3)) & (vid->cgacol & 15)) + 16;
                 dat <<= 1;
                 dat2 <<= 1;
@@ -497,9 +498,9 @@ ams1512_render_blank(amsvid_t *vid, int line)
     int cols = ((vid->cgamode & 0x12) == 0x12) ? 0 : (vid->cgacol & 15) + 16;
 
     if (vid->cgamode & CGA_MODE_FLAG_HIGHRES)
-        hline(buffer32, 0, line, (vid->crtc[1] << 3) + 16, cols);
+        hline(vid->monitor->target_buffer, 0, line, (vid->crtc[1] << 3) + 16, cols);
     else
-        hline(buffer32, 0, line, (vid->crtc[1] << 4) + 16, cols);
+        hline(vid->monitor->target_buffer, 0, line, (vid->crtc[1] << 4) + 16, cols);
 }
 
 static void
@@ -520,7 +521,7 @@ vid_poll_1512(void *priv)
         if (vid->dispon) {
             if (vid->displine < vid->firstline) {
                 vid->firstline = vid->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(vid->monitor);
             }
             vid->lastline = vid->displine;
             switch (vid->double_type) {
@@ -559,11 +560,11 @@ vid_poll_1512(void *priv)
 
         switch (vid->double_type) {
             default:
-                video_process_8((x < 64) ? 656 : x, vid->displine << 1);
-                video_process_8((x < 64) ? 656 : x, (vid->displine << 1) + 1);
+                video_process_8_monitor((x < 64) ? 656 : x, vid->displine << 1, vid->monitor);
+                video_process_8_monitor((x < 64) ? 656 : x, (vid->displine << 1) + 1, vid->monitor);
                 break;
             case DOUBLE_NONE:
-                video_process_8((x < 64) ? 656 : x, vid->displine);
+                video_process_8_monitor((x < 64) ? 656 : x, vid->displine, vid->monitor);
                 break;
         }
 
@@ -635,33 +636,33 @@ vid_poll_1512(void *priv)
                     if (!enable_overscan)
                         xs_temp -= 16;
 
-                    if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
-                        xsize = xs_temp;
-                        ysize = ys_temp;
-                        set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                    if ((xs_temp != vid->monitor->mon_xsize) || (ys_temp != vid->monitor->mon_ysize) || video_force_resize_get_monitor(vid->monitor)) {
+                        vid->monitor->mon_xsize = xs_temp;
+                        vid->monitor->mon_ysize = ys_temp;
+                        set_screen_size_monitor(vid->monitor->mon_xsize, vid->monitor->mon_ysize + (enable_overscan ? 16 : 0), vid->monitor);
 
-                        if (video_force_resize_get())
-                            video_force_resize_set(0);
+                        if (video_force_resize_get_monitor(vid->monitor))
+                            video_force_resize_set_monitor(0, vid->monitor);
                     }
 
-                    cga_do_blit(xsize, vid->firstline, vid->lastline, vid->double_type);
+                    cga_do_blit(vid->monitor->mon_xsize, vid->firstline, vid->lastline, vid->double_type, vid->monitor);
                 }
 
-                video_res_x = xsize;
-                video_res_y = ysize;
+                vid->monitor->mon_res_x = vid->monitor->mon_xsize;
+                vid->monitor->mon_res_y = vid->monitor->mon_ysize;
                 if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                    video_res_x /= 8;
-                    video_res_y /= vid->crtc[9] + 1;
-                    video_bpp = 0;
+                    vid->monitor->mon_res_x /= 8;
+                    vid->monitor->mon_res_y /= vid->crtc[9] + 1;
+                    vid->monitor->mon_bpp = 0;
                 } else if (!(vid->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                    video_res_x /= 16;
-                    video_res_y /= vid->crtc[9] + 1;
-                    video_bpp = 0;
+                    vid->monitor->mon_res_x /= 16;
+                    vid->monitor->mon_res_y /= vid->crtc[9] + 1;
+                    vid->monitor->mon_bpp = 0;
                 } else if (!(vid->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
-                    video_res_x /= 2;
-                    video_bpp = 2;
+                    vid->monitor->mon_res_x /= 2;
+                    vid->monitor->mon_bpp = 2;
                 } else {
-                    video_bpp = 4;
+                    vid->monitor->mon_bpp = 4;
                 }
 
                 vid->firstline = 1000;
@@ -683,8 +684,9 @@ vid_init_1512(amstrad_t *ams)
 {
     /* Allocate a video controller block. */
     amsvid_t *vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
+    vid->monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc1512);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_pc1512, vid->monitor);
 
     vid->vram    = calloc(1, 0x10000);
     vid->cgacol  = 7;
@@ -697,12 +699,12 @@ vid_init_1512(amstrad_t *ams)
     io_sethandler(0x03d0, 16,
                   vid_in_1512, NULL, NULL, vid_out_1512, NULL, NULL, vid);
 
-    overscan_x = overscan_y = 16;
+    vid->monitor->mon_overscan_x = vid->monitor->mon_overscan_y = 16;
 
     vid->fontbase = (device_get_config_int("codepage") & 3) * 256;
 
-    cga_palette = (device_get_config_int("display_type") << 1);
-    cgapal_rebuild();
+    *vid->monitor->mon_cga_palette = (device_get_config_int("display_type") << 1);
+    cgapal_rebuild_monitor(vid->monitor);
 
     vid->double_type = device_get_config_int("double_type");
     cga_interpolate_init();
@@ -824,13 +826,13 @@ recalc_timings_1640(amsvid_t *vid)
     ega_recalctimings(&vid->ega);
 
     if (vid->cga_enabled) {
-        overscan_x = overscan_y = 16;
+        vid->monitor->mon_overscan_x = vid->monitor->mon_overscan_y = 16;
 
         vid->dispontime  = vid->cga.dispontime;
         vid->dispofftime = vid->cga.dispofftime;
     } else {
-        overscan_x = 16;
-        overscan_y = 28;
+        vid->monitor->mon_overscan_x = 16;
+        vid->monitor->mon_overscan_y = 28;
 
         vid->dispontime  = vid->ega.dispontime;
         vid->dispofftime = vid->ega.dispofftime;
@@ -909,6 +911,7 @@ vid_init_1640(amstrad_t *ams)
 
     /* Allocate a video controller block. */
     vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
+    vid->monitor = video_monitor_pending;
 
     rom_init(&vid->bios_rom, "roms/machines/pc1640/40100",
              0xc0000, 0x8000, 0x7fff, 0, 0);
@@ -919,7 +922,7 @@ vid_init_1640(amstrad_t *ams)
     cga_init(&vid->cga);
     timer_disable(&vid->ega.timer);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_pc1640);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_pc1640, vid->monitor);
 
     mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
                     cga_read, NULL, NULL, cga_write, NULL, NULL, NULL, 0, &vid->cga);
@@ -928,12 +931,12 @@ vid_init_1640(amstrad_t *ams)
     io_sethandler(0x03a0, 64,
                   vid_in_1640, NULL, NULL, vid_out_1640, NULL, NULL, vid);
 
-    overscan_x = overscan_y = 16;
+    vid->monitor->mon_overscan_x = vid->monitor->mon_overscan_y = 16;
 
     vid->fontbase = 768;
 
-    cga_palette = 0;
-    cgapal_rebuild();
+    *vid->monitor->mon_cga_palette = 0;
+    cgapal_rebuild_monitor(vid->monitor);
 
     vid->double_type     = device_get_config_int("double_type");
     vid->cga.double_type = device_get_config_int("double_type");
@@ -1039,11 +1042,11 @@ ams_inform(amsvid_t *vid)
         case PC200_CGA:
         case PC200_TV:
         case PC200_LCDC:
-            video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc200);
+            video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_pc200, vid->monitor);
             break;
         case PC200_MDA:
         case PC200_LCDM:
-            video_inform(VIDEO_FLAG_TYPE_MDA, &timing_pc200);
+            video_inform_monitor(VIDEO_FLAG_TYPE_MDA, &timing_pc200, vid->monitor);
             break;
 
         default:
@@ -1210,7 +1213,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
             mda->crtc[mda->crtcreg] = val & crtc_mask[mda->crtcreg];
             if (old != val) {
                 if (mda->crtcreg < 0xe || mda->crtcreg > 0x10) {
-                    vid->fullchange = changeframecount;
+                    vid->fullchange = vid->monitor->mon_changeframecount;
                     mda_recalctimings(mda);
                 }
             }
@@ -1242,7 +1245,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
             cga->crtc[cga->crtcreg] = val & crtc_mask[cga->crtcreg];
             if (old != val) {
                 if (cga->crtcreg < 0xe || cga->crtcreg > 0x10) {
-                    vid->fullchange = changeframecount;
+                    vid->fullchange = vid->monitor->mon_changeframecount;
                     cga_recalctimings(cga);
                 }
             }
@@ -1405,7 +1408,7 @@ lcdm_poll(amsvid_t *vid)
                 drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
 
-                lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->scanline, 0, mda->mode);
+                lcd_draw_char_80(vid, &(vid->monitor->target_buffer->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->scanline, 0, mda->mode);
                 mda->memaddr++;
             }
         }
@@ -1465,23 +1468,23 @@ lcdm_poll(amsvid_t *vid)
                 if (mda->crtc[MDA_CRTC_VSYNC]) {
                     x = mda->crtc[MDA_CRTC_HDISP] * 8;
                     mda->lastline++;
-                    if ((x != xsize) || ((mda->lastline - mda->firstline) != ysize) || video_force_resize_get()) {
-                        xsize = x;
-                        ysize = mda->lastline - mda->firstline;
-                        if (xsize < 64)
-                            xsize = 656;
-                        if (ysize < 32)
-                            ysize = 200;
-                        set_screen_size(xsize, ysize);
+                    if ((x != vid->monitor->mon_xsize) || ((mda->lastline - mda->firstline) != vid->monitor->mon_ysize) || video_force_resize_get_monitor(vid->monitor)) {
+                        vid->monitor->mon_xsize = x;
+                        vid->monitor->mon_ysize = mda->lastline - mda->firstline;
+                        if (vid->monitor->mon_xsize < 64)
+                            vid->monitor->mon_xsize = 656;
+                        if (vid->monitor->mon_ysize < 32)
+                            vid->monitor->mon_ysize = 200;
+                        set_screen_size_monitor(vid->monitor->mon_xsize, vid->monitor->mon_ysize, vid->monitor);
 
-                        if (video_force_resize_get())
-                            video_force_resize_set(0);
+                        if (video_force_resize_get_monitor(vid->monitor))
+                            video_force_resize_set_monitor(0, vid->monitor);
                     }
-                    video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
+                    video_blit_memtoscreen_monitor(0, mda->firstline, vid->monitor->mon_xsize, vid->monitor->mon_ysize, vid->monitor);
                     frames++;
-                    video_res_x = mda->crtc[MDA_CRTC_HDISP];
-                    video_res_y = mda->crtc[MDA_CRTC_VDISP];
-                    video_bpp   = 0;
+                    vid->monitor->mon_res_x = mda->crtc[MDA_CRTC_HDISP];
+                    vid->monitor->mon_res_y = mda->crtc[MDA_CRTC_VDISP];
+                    vid->monitor->mon_bpp   = 0;
                 }
                 mda->firstline = 1000;
                 mda->lastline  = 0;
@@ -1525,7 +1528,7 @@ lcdc_poll(amsvid_t *vid)
         if (cga->cgadispon) {
             if (cga->displine < cga->firstline) {
                 cga->firstline = cga->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(vid->monitor);
             }
             cga->lastline = cga->displine;
 
@@ -1535,8 +1538,8 @@ lcdc_poll(amsvid_t *vid)
                     attr       = cga->charbuffer[(x << 1) + 1];
                     drawcursor = ((cga->memaddr == cursoraddr) && cga->cursorvisible && cga->cursoron);
                     blink      = ((cga->cgablink & 16) && (cga->cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
-                    lcd_draw_char_80(vid, &(buffer32->line[cga->displine << 1])[x * 8], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode & 0x40, cga->cgamode);
-                    lcd_draw_char_80(vid, &(buffer32->line[(cga->displine << 1) + 1])[x * 8], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode & 0x40, cga->cgamode);
+                    lcd_draw_char_80(vid, &(vid->monitor->target_buffer->line[cga->displine << 1])[x * 8], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode & 0x40, cga->cgamode);
+                    lcd_draw_char_80(vid, &(vid->monitor->target_buffer->line[(cga->displine << 1) + 1])[x * 8], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode & 0x40, cga->cgamode);
                     cga->memaddr++;
                 }
             } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
@@ -1545,8 +1548,8 @@ lcdc_poll(amsvid_t *vid)
                     attr       = cga->vram[((cga->memaddr << 1) + 1) & 0x3fff];
                     drawcursor = ((cga->memaddr == cursoraddr) && cga->cursorvisible && cga->cursoron);
                     blink      = ((cga->cgablink & 16) && (cga->cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
-                    lcd_draw_char_40(vid, &(buffer32->line[cga->displine << 1])[x * 16], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode);
-                    lcd_draw_char_40(vid, &(buffer32->line[(cga->displine << 1) + 1])[x * 16], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode);
+                    lcd_draw_char_40(vid, &(vid->monitor->target_buffer->line[cga->displine << 1])[x * 16], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode);
+                    lcd_draw_char_40(vid, &(vid->monitor->target_buffer->line[(cga->displine << 1) + 1])[x * 16], chr, attr, drawcursor, blink, cga->scanline, cga->cgamode);
                     cga->memaddr++;
                 }
             } else { /* Graphics mode */
@@ -1554,18 +1557,18 @@ lcdc_poll(amsvid_t *vid)
                     dat = (cga->vram[((cga->memaddr << 1) & 0x1fff) + ((cga->scanline & 1) * 0x2000)] << 8) | cga->vram[((cga->memaddr << 1) & 0x1fff) + ((cga->scanline & 1) * 0x2000) + 1];
                     cga->memaddr++;
                     for (uint8_t c = 0; c < 16; c++) {
-                        buffer32->line[cga->displine << 1][(x << 4) + c] = buffer32->line[(cga->displine << 1) + 1][(x << 4) + c] = (dat & 0x8000) ? blue : green;
+                        vid->monitor->target_buffer->line[cga->displine << 1][(x << 4) + c] = vid->monitor->target_buffer->line[(cga->displine << 1) + 1][(x << 4) + c] = (dat & 0x8000) ? blue : green;
                         dat <<= 1;
                     }
                 }
             }
         } else {
             if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                hline(buffer32, 0, (cga->displine << 1), (cga->crtc[CGA_CRTC_HDISP] << 3), green);
-                hline(buffer32, 0, (cga->displine << 1) + 1, (cga->crtc[CGA_CRTC_HDISP] << 3), green);
+                hline(vid->monitor->target_buffer, 0, (cga->displine << 1), (cga->crtc[CGA_CRTC_HDISP] << 3), green);
+                hline(vid->monitor->target_buffer, 0, (cga->displine << 1) + 1, (cga->crtc[CGA_CRTC_HDISP] << 3), green);
             } else {
-                hline(buffer32, 0, (cga->displine << 1), (cga->crtc[CGA_CRTC_HDISP] << 4), green);
-                hline(buffer32, 0, (cga->displine << 1) + 1, (cga->crtc[CGA_CRTC_HDISP] << 4), green);
+                hline(vid->monitor->target_buffer, 0, (cga->displine << 1), (cga->crtc[CGA_CRTC_HDISP] << 4), green);
+                hline(vid->monitor->target_buffer, 0, (cga->displine << 1) + 1, (cga->crtc[CGA_CRTC_HDISP] << 4), green);
             }
         }
 
@@ -1646,36 +1649,36 @@ lcdc_poll(amsvid_t *vid)
                         if (ys_temp < 32)
                             ys_temp = 400;
 
-                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
-                            set_screen_size(xsize, ysize);
+                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != vid->monitor->mon_xsize) || (ys_temp != vid->monitor->mon_ysize) || video_force_resize_get_monitor(vid->monitor))) {
+                            vid->monitor->mon_xsize = xs_temp;
+                            vid->monitor->mon_ysize = ys_temp;
+                            set_screen_size_monitor(vid->monitor->mon_xsize, vid->monitor->mon_ysize, vid->monitor);
 
-                            if (video_force_resize_get())
-                                video_force_resize_set(0);
+                            if (video_force_resize_get_monitor(vid->monitor))
+                                video_force_resize_set_monitor(0, vid->monitor);
                         }
 
-                        video_blit_memtoscreen(0, cga->firstline << 1,
-                                               xsize, (cga->lastline - cga->firstline) << 1);
+                        video_blit_memtoscreen_monitor(0, cga->firstline << 1,
+                                               vid->monitor->mon_xsize, (cga->lastline - cga->firstline) << 1, vid->monitor);
                     }
 
                     frames++;
 
-                    video_res_x = xsize;
-                    video_res_y = ysize;
+                    vid->monitor->mon_res_x = vid->monitor->mon_xsize;
+                    vid->monitor->mon_res_y = vid->monitor->mon_ysize;
                     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        video_res_x /= 8;
-                        video_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        vid->monitor->mon_res_x /= 8;
+                        vid->monitor->mon_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        vid->monitor->mon_bpp = 0;
                     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                        video_res_x /= 16;
-                        video_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        vid->monitor->mon_res_x /= 16;
+                        vid->monitor->mon_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        vid->monitor->mon_bpp = 0;
                     } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        vid->monitor->mon_res_x /= 2;
+                        vid->monitor->mon_bpp = 2;
                     } else
-                        video_bpp = 1;
+                        vid->monitor->mon_bpp = 1;
                 }
                 cga->firstline = 1000;
                 cga->lastline  = 0;
@@ -1725,6 +1728,7 @@ vid_init_200(amstrad_t *ams)
 
     /* Allocate a video controller block. */
     vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
+    vid->monitor = video_monitor_pending;
 
     vid->emulation = device_get_config_int("video_emulation");
 
@@ -1782,7 +1786,7 @@ vid_init_200(amstrad_t *ams)
     cga_init(cga);
     mda_init(mda);
 
-    cga_palette = (device_get_config_int("display_type") << 1);
+    *vid->monitor->mon_cga_palette = (device_get_config_int("display_type") << 1);
     ams_inform(vid);
 
     /* Attribute 8 is white on black (on a real MDA it's black on black) */
@@ -1803,7 +1807,7 @@ vid_init_200(amstrad_t *ams)
     io_sethandler(0x03d0, 16, vid_in_200, NULL, NULL, vid_out_200, NULL, NULL, vid);
     io_sethandler(0x03b0, 0x000c, vid_in_200, NULL, NULL, vid_out_200, NULL, NULL, vid);
 
-    overscan_x = overscan_y = 16;
+    vid->monitor->mon_overscan_x = vid->monitor->mon_overscan_y = 16;
 
     if (ams->type == AMS_PC200)
         vid->invert = 0;
@@ -1816,7 +1820,7 @@ vid_init_200(amstrad_t *ams)
         green = makecol(0x1C, 0x71, 0x31);
         blue  = makecol(0x0f, 0x21, 0x3f);
     }
-    cgapal_rebuild();
+    cgapal_rebuild_monitor(vid->monitor);
     set_lcd_cols(0);
 
     timer_disable(&vid->cga.timer);

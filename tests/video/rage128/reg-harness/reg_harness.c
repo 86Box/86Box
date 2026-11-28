@@ -13314,8 +13314,8 @@ vectors_overscan(rage128_t *dev)
     check32("vga: OVR_CLR is a true color, palette bypassed",
             svga->overscan_color, 0xff123456);
     check32("vga: a geometry change asks for a resize",
-            video_force_resize_get_monitor(svga->monitor_index), 1);
-    video_force_resize_set_monitor(0, svga->monitor_index);
+            video_force_resize_get_monitor(svga->monitor), 1);
+    video_force_resize_set_monitor(0, svga->monitor);
 
     /* A mode set leaves the core's even split; vsync installs the real
        edges (the border is 16 left / 8 right, not 12 / 12). */
@@ -13373,7 +13373,7 @@ vectors_overscan(rage128_t *dev)
     wr(dev, RAGE128_CRTC_V_TOTAL_DISP, vtd_save);
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
-    video_force_resize_set_monitor(0, svga->monitor_index);
+    video_force_resize_set_monitor(0, svga->monitor);
 }
 
 /* ------------------------------------------------------------------ */
@@ -13599,7 +13599,7 @@ vectors_dac_output(rage128_t *dev)
     wr(dev, RAGE128_CRTC_PITCH, 0);
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
-    video_force_resize_set_monitor(0, svga->monitor_index);
+    video_force_resize_set_monitor(0, svga->monitor);
 }
 
 /* The DAC macro is powered down automatically while PMI_POWER_STATE, PCI
@@ -13732,7 +13732,7 @@ vectors_dac_pmi(rage128_t *dev)
     wr(dev, RAGE128_CRTC_PITCH, 0);
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
-    video_force_resize_set_monitor(0, svga->monitor_index);
+    video_force_resize_set_monitor(0, svga->monitor);
 }
 
 /* ------------------------------------------------------------------ */
@@ -13993,7 +13993,7 @@ vectors_dac_crc(rage128_t *dev)
     wr(dev, RAGE128_CRTC_V_TOTAL_DISP, vtd_save);
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
-    video_force_resize_set_monitor(0, svga->monitor_index);
+    video_force_resize_set_monitor(0, svga->monitor);
 }
 
 /* ------------------------------------------------------------------ */

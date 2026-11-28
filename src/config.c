@@ -41,6 +41,7 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <limits.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -463,29 +464,76 @@ load_general(void)
     gdbstub_port = ini_section_get_int(cat, "gdbstub_port", 12345);
 }
 
-/* Load monitor section. */
+monitor_settings_t monitor_primary_settings;
+
+typedef struct monitor_config_t {
+    monitor_settings_t settings;
+    int id;
+    struct monitor_config_t *next;
+} monitor_config_t;
+
+static monitor_config_t *monitor_configs;
+
 static void
-load_monitor(int monitor_index)
+load_monitor(ini_section_t section, monitor_settings_t *settings)
 {
-    ini_section_t       cat;
-    char                name[512];
-    char                temp[512];
-    const char   *      p         = NULL;
-    monitor_settings_t *ms        = &monitor_settings[monitor_index];
-
-    sprintf(name, "Monitor #%i", monitor_index + 1);
-    sprintf(temp, "%i, %i, %i, %i", cx, cy, cw, ch);
-
-    cat = ini_find_section(config, name);
-
-    p = ini_section_get_string(cat, "window_coordinates", temp);
+    char fallback[64];
+    snprintf(fallback, sizeof(fallback), "%d, %d, %d, %d", cx, cy, cw, ch);
 
     if (window_remember) {
-        sscanf(p, "%i, %i, %i, %i", &ms->mon_window_x, &ms->mon_window_y,
-               &ms->mon_window_w, &ms->mon_window_h);
-        ms->mon_window_maximized = !!ini_section_get_int(cat, "window_maximized", 0);
-    } else
-        ms->mon_window_maximized = 0;
+        const char *coords = ini_section_get_string(section, "window_coordinates", fallback);
+        sscanf(coords, "%d, %d, %d, %d", &settings->mon_window_x, &settings->mon_window_y,
+               &settings->mon_window_w, &settings->mon_window_h);
+        settings->mon_window_maximized = !!ini_section_get_int(section, "window_maximized", 0);
+    }
+}
+
+monitor_settings_t *
+config_get_monitor_settings(int id)
+{
+    if (id == 0)
+        return &monitor_primary_settings;
+
+    if (config_mutex)
+        thread_wait_mutex(config_mutex);
+
+    monitor_config_t **link = &monitor_configs;
+    while (*link && (*link)->id < id)
+        link = &(*link)->next;
+
+    monitor_config_t *entry = *link;
+    if (!entry || entry->id != id) {
+        entry = calloc(1, sizeof(*entry));
+        if (!entry)
+            fatal("Unable to allocate monitor settings\n");
+        entry->id = id;
+        load_monitor(NULL, &entry->settings);
+        entry->next = *link;
+        *link = entry;
+    }
+
+    if (config_mutex)
+        thread_release_mutex(config_mutex);
+    return &entry->settings;
+}
+
+static void
+load_monitor_section(const char *name, ini_section_t section)
+{
+    static const char prefix[] = "Monitor #";
+    const char *number = name + sizeof(prefix) - 1;
+    char *end;
+
+    if (strncmp(name, prefix, sizeof(prefix) - 1))
+        return;
+    if (*number < '1' || *number > '9')
+        return;
+
+    long display = strtol(number, &end, 10);
+    if (*end || display <= 0 || display >= INT_MAX)
+        return;
+
+    load_monitor(section, config_get_monitor_settings((int) display - 1));
 }
 
 /* Load "Machine" section. */
@@ -3335,8 +3383,8 @@ config_load(void)
         config_log("VM config file not present or invalid!\n");
     } else {
         load_general();                 /* General */
-        for (i = 0; i < MONITORS_NUM; i++)
-            load_monitor(i);            /* Monitors */
+        load_monitor(NULL, &monitor_primary_settings);
+        ini_visit_sections(config, load_monitor_section);
         load_scan_code_mappings();      /* Scan code mappings */
         load_machine();                 /* Machine */
         load_video();                   /* Video */
@@ -3790,12 +3838,11 @@ save_general(void)
 
 /* Save monitor section. */
 static void
-save_monitor(int monitor_index)
+save_monitor(int monitor_index, const monitor_settings_t *ms)
 {
     ini_section_t       cat;
     char                name[sizeof("Monitor #") + 12] = { [0] = 0 };
     char                temp[512];
-    monitor_settings_t *ms        = &monitor_settings[monitor_index];
 
     snprintf(name, sizeof(name), "Monitor #%i", monitor_index + 1);
     cat = ini_find_or_create_section(config, name);
@@ -5499,8 +5546,9 @@ config_save(void)
         thread_wait_mutex(config_mutex);
 
     save_general();                 /* General */
-    for (uint8_t i = 0; i < MONITORS_NUM; i++)
-        save_monitor(i);            /* Monitors */
+    save_monitor(0, &monitor_primary_settings);
+    for (monitor_config_t *entry = monitor_configs; entry; entry = entry->next)
+        save_monitor(entry->id, &entry->settings);
     save_scan_code_mappings();      /* Scan code mappings */
     save_machine();                 /* Machine */
     save_video();                   /* Video */

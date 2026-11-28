@@ -57,7 +57,7 @@ typedef struct v6355_t {
     int           revision;
     int           rgb_type;
     int           double_type;
-    int           monitor_index;
+    struct monitor_t *monitor;
 
     uint32_t      v6355pal[16];
 

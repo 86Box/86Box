@@ -504,10 +504,7 @@ Settings::accept()
         config_save();
         reset_screen_size();
         device_force_redraw();
-        for (int i = 0; i < MONITORS_NUM; i++) {
-            if (monitors[i].target_buffer)
-                video_force_resize_set_monitor(1, i);
-        }
+        video_monitor_for_each([](monitor_t *monitor, void *) { video_force_resize_set_monitor(1, monitor); }, nullptr);
 
         /* Reject so the main window does nothing. */
         QDialog::reject();
