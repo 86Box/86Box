@@ -222,7 +222,8 @@ typedef struct sscape_t {
     double  ring_pos;
 
     ad1848_t ad1848;
-    void    *src_snd;
+    void    *src_snd;  /* the codec's source, at its sample rate */
+    void    *src_otto; /* the wavetable's source, at the OTTO rate */
     void    *gameport;
     int      capture_rate;
     int      capture_freq;
@@ -329,6 +330,7 @@ sscape_otto_rate(void *priv, int rate)
     dev->otto_rate   = rate;
     dev->tick_us     = 1000000.0 / (double) rate;
     dev->tick_period = (uint64_t) (dev->tick_us * (double) TIMER_USEC);
+    sound_source_set_rate(dev->src_otto, (double) rate);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1826,18 +1828,22 @@ sscape_capture(int16_t *buffer, int len, void *priv)
 static void
 sscape_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
-    sscape_t    *dev  = (sscape_t *) priv;
-    int           host_rate;
-    double        step;
+    sscape_t *dev = (sscape_t *) priv;
 
     sound_source_set_rate(dev->src_snd, (dev->ad1848.enable && dev->ad1848.freq > 0) ? (double) dev->ad1848.freq : 0.0);
-    host_rate = sound_source_get_rate(dev->src_snd);
-    step      = (double) dev->otto_rate / (double) ((host_rate > 0) ? host_rate : SOUND_FREQ);
 
     ad1848_update(&dev->ad1848);
     for (int c = 0; c < len * 2; c++)
         buffer[c] += dev->ad1848.buffer[c] / 2;
     dev->ad1848.pos = 0;
+}
+
+static void
+sscape_get_buffer_otto(int32_t *buffer, uint16_t len, void *priv)
+{
+    sscape_t     *dev       = (sscape_t *) priv;
+    const int     host_rate = sound_source_get_rate(dev->src_otto);
+    const double  step      = (double) dev->otto_rate / (double) ((host_rate > 0) ? host_rate : SOUND_FREQ);
 
     /* keep the backlog bounded */
     while (dev->ring_n > (int) (len * step) + 512) {
@@ -1931,6 +1937,10 @@ sscape_init(UNUSED(const device_t *info))
 
     dev->src_snd      = sound_source_add_stream(I_NORMAL, sscape_get_buffer, dev);
     dev->ad1848.clock = sound_source_get_pos_ptr(dev->src_snd);
+    sound_source_set_label(dev->src_snd, "Codec");
+    dev->src_otto = sound_source_add_stream(I_NORMAL, sscape_get_buffer_otto, dev);
+    sound_source_set_label(dev->src_otto, "Wavetable");
+    sound_source_set_rate(dev->src_otto, (double) dev->otto_rate);
     sound_in_add_handler(sscape_capture, dev);
 
     if (dev->midi_in)
@@ -1948,6 +1958,7 @@ sscape_close(void *priv)
         sscape_cur = NULL;
 
     sound_source_remove(dev->src_snd);
+    sound_source_remove(dev->src_otto);
     sound_in_remove_handler(sscape_capture, dev);
     if (dev->ad1848.rec_enable)
         sound_in_stop_input();
