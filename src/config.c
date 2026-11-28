@@ -3616,11 +3616,15 @@ save_general(void)
     if (vid_resize == 0)
         ini_section_delete_var(cat, "vid_resize");
 
-    va_name = plat_vidapi_name(vid_api);
-    if (!strcmp(va_name, "default"))
-        ini_section_delete_var(cat, "vid_renderer");
-    else
-        ini_section_set_string(cat, "vid_renderer", va_name);
+    /* Headless runs draw with their own renderer: leave the configured one,
+       whatever this build calls it, as it is in the file. */
+    if (!headless) {
+        va_name = plat_vidapi_name(vid_api);
+        if (!strcmp(va_name, "default"))
+            ini_section_delete_var(cat, "vid_renderer");
+        else
+            ini_section_set_string(cat, "vid_renderer", va_name);
+    }
 
     if (video_fullscreen_scale == 1)
         ini_section_delete_var(cat, "video_fullscreen_scale");

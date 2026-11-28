@@ -50,6 +50,7 @@ extern "C" {
 #include <86box/mouse.h>
 #include <86box/timer.h>
 #include <86box/86box.h>
+#include <86box/automation.h>
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/hdc.h>
@@ -166,11 +167,35 @@ plat_mouse_capture(int on)
 #endif
 }
 
+/* Headless, messages go to stderr and to the automation log (its "log"
+   command), since no dialog can be shown. */
+void
+ui_headless_message(int flags, const char *text)
+{
+    const char *kind = (flags & MBX_FATAL) ? "Fatal error" : (flags & MBX_ERROR) ? "Error" : (flags & MBX_WARNING) ? "Warning" : "Message";
+    char        line[4096];
+
+    snprintf(line, sizeof(line), "%s: %s", kind, text);
+    fprintf(stderr, "%s\n", line);
+    fflush(stderr);
+    automation_log_text(line, 1);
+}
+
 int
 ui_msgbox_header(int flags, char *header, char *message)
 {
     const auto hdr = QString::fromUtf8(header);
     const auto msg = QString::fromUtf8(message);
+
+    /* Headless, nobody can answer: log the message, and take the default
+       answer of a question, No, which leaves things as they are. */
+    if (headless) {
+        QString text = hdr.isEmpty() ? msg : (hdr + QStringLiteral(": ") + msg);
+        if (flags & MBX_QUESTION_YN)
+            text += QStringLiteral(" (headless: answered No)");
+        ui_headless_message(flags, text.toUtf8().constData());
+        return 0;
+    }
 
     if (flags & MBX_QUESTION_YN) {
         const auto ask = [flags, hdr, msg]() {

@@ -1,0 +1,14 @@
+# The container build (container/Dockerfile) only needs the sources.
+.git
+build
+build-*
+out
+*.AppImage
+*.zip
+*.tar
+*.tar.*
+src/86Box
+src/roms
+src/nvr
+src/*.cfg
+src/*.log

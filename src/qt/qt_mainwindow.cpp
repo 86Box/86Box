@@ -499,7 +499,8 @@ MainWindow::MainWindow(QWidget *parent)
 
             keyboard_all_up();
 
-            if (do_auto_pause)
+            /* Headless, the window is never shown, so never active. */
+            if (do_auto_pause && !headless)
                 runctl_pause(RUN_PAUSE_FOCUS);
         }
     });
@@ -1063,7 +1064,8 @@ MainWindow::closeEvent(QCloseEvent *event)
         if (!confirm_exit)
             config_save_global_setting("Emulator", "confirm_exit");
     }
-    if (window_remember && !video_fullscreen) {
+    /* Headless, the window was never shown: keep the saved geometry. */
+    if (window_remember && !video_fullscreen && !headless) {
         window_w = ui->stackedWidget->width();
         window_h = ui->stackedWidget->height();
         if (!QApplication::platformName().contains("wayland")) {
@@ -1104,6 +1106,10 @@ MainWindow::closeEvent(QCloseEvent *event)
     qt_nvr_save();
     runctl_request_stop();
     event->accept();
+
+    /* Closing a window that was never shown need not end the event loop. */
+    if (headless)
+        QTimer::singleShot(0, qApp, &QCoreApplication::quit);
 }
 
 void
@@ -2025,6 +2031,17 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 {
     if (done) {
         *done = false;
+    }
+
+    /* Headless, nobody can dismiss a message box: log the message instead. */
+    if (headless) {
+        const QString text = header.isEmpty() ? message : (header + QStringLiteral(": ") + message);
+        ui_headless_message(flags, text.toUtf8().constData());
+        if (done)
+            *done = true;
+        if (cpu_thread_run == 0)
+            QApplication::exit(-1);
+        return;
     }
 
     auto defaultheader = QString();
