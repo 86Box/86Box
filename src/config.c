@@ -389,7 +389,8 @@ load_general(void)
     video_grayscale  = ini_section_get_int(cat, "video_grayscale", 0);
     video_graytype   = ini_section_get_int(cat, "video_graytype", 0);
 
-    force_10ms = !!ini_section_get_int(cat, "force_10ms", 0);
+    /* No longer configurable: always the default 1 ms frames. */
+    force_10ms = 0;
 
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
@@ -746,7 +747,8 @@ load_machine(void)
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
     cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
-    cpu_dyn_block_link = !!ini_section_get_int(cat, "cpu_dyn_block_link", 1);
+    /* No longer configurable: always linked. */
+    cpu_dyn_block_link = 1;
 }
 
 /* Load "Video" section. */
@@ -3604,9 +3606,7 @@ save_general(void)
 
     const char *va_name;
 
-    ini_section_set_int(cat, "force_10ms", force_10ms);
-    if (force_10ms == 0)
-        ini_section_delete_var(cat, "force_10ms");
+    ini_section_delete_var(cat, "force_10ms");
 
     ini_section_set_int(cat, "sound_muted", sound_muted);
     if (sound_muted == 0)
@@ -3913,10 +3913,7 @@ save_machine(void)
     else
         ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
 
-    if (cpu_dyn_block_link)
-        ini_section_delete_var(cat, "cpu_dyn_block_link");
-    else
-        ini_section_set_int(cat, "cpu_dyn_block_link", 0);
+    ini_section_delete_var(cat, "cpu_dyn_block_link");
 
     ini_delete_section_if_empty(config, cat);
 }

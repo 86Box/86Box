@@ -90,12 +90,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     machineTypeRows.commit();
 
     auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
-    ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
-    ui->softFloatWarningIcon->setVisible(false);
-    ui->softFloatWarningText->setVisible(false);
-    ui->debugRegs486WarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
-    ui->debugRegs486WarningIcon->setVisible(false);
-    ui->debugRegs486WarningText->setVisible(false);
+    ui->accuracyWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
 
     auto *waitStatesModel = ui->comboBoxWaitStates->model();
     waitStatesModel->insertRows(0, 9);
@@ -108,20 +103,12 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         waitStatesModel->setData(idx, i + 1, Qt::UserRole);
     }
 
-    auto *pitModeModel = ui->comboBoxPitMode->model();
-    pitModeModel->insertRows(0, 3);
-    idx = pitModeModel->index(0, 0);
-    pitModeModel->setData(idx, tr("Auto"), Qt::DisplayRole);
-    pitModeModel->setData(idx, -1, Qt::UserRole);
-    idx = pitModeModel->index(1, 0);
-    pitModeModel->setData(idx, tr("Slow"), Qt::DisplayRole);
-    pitModeModel->setData(idx, 0, Qt::UserRole);
-    idx = pitModeModel->index(2, 0);
-    pitModeModel->setData(idx, tr("Fast"), Qt::DisplayRole);
-    pitModeModel->setData(idx, 1, Qt::UserRole);
-
-    ui->comboBoxPitMode->setCurrentIndex(-1);
-    ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
+    if (pit_mode == 0)
+        ui->radioButtonPitModeAccurate->setChecked(true);
+    else if (pit_mode == 1)
+        ui->radioButtonPitModeFast->setChecked(true);
+    else
+        ui->radioButtonPitModeAuto->setChecked(true);
 
     ui->groupBoxTimeSync->setChecked(time_sync & TIME_SYNC_ENABLED);
     if (time_sync & TIME_SYNC_UTC)
@@ -192,9 +179,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     machineTypeSignals.unblock();
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
 
-    ui->radioButtonLargerFrames->setChecked(force_10ms);
-    ui->radioButtonSmallerFrames->setChecked(!force_10ms);
-
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
     ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
     ui->checkBoxWeitek->setChecked(weitek_3167 != 0);
@@ -203,9 +187,8 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
     ui->checkBoxDynamicRecompiler->setVisible(false);
-    ui->checkBoxBlockLinking->setVisible(false);
-#else
-    ui->checkBoxBlockLinking->setVisible(codegen_has_block_link);
+    ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
+    ui->checkBoxAccurateFPUEnvironment->setVisible(false);
 #endif
 }
 
@@ -234,10 +217,8 @@ SettingsMachine::changed()
 #ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
     has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
-    has_changed |= (cpu_dyn_block_link         != (ui->checkBoxBlockLinking->isChecked() ? 1 : 0));
 #endif
     has_changed |= (fpu_softfloat              != (ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0));
-    has_changed |= (force_10ms                 != (ui->radioButtonLargerFrames->isChecked() ? 1 : 0));
 
     has_changed |= (mem_size                   != selectedRamKiB());
 
@@ -247,7 +228,7 @@ SettingsMachine::changed()
         temp = 0;
     has_changed |= (cpu_waitstates             != temp);
 
-    has_changed |= (pit_mode                   !=  ui->comboBoxPitMode->currentData().toInt());
+    has_changed |= (pit_mode                   != pitMode());
 
     int sync;
     int offset_years;
@@ -303,10 +284,8 @@ SettingsMachine::save(int soft)
 #ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
-    cpu_dyn_block_link       = ui->checkBoxBlockLinking->isChecked() ? 1 : 0;
 #endif
     fpu_softfloat            = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
-    force_10ms               = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
 
     mem_size = selectedRamKiB();
 
@@ -315,9 +294,20 @@ SettingsMachine::save(int soft)
     else
         cpu_waitstates = 0;
 
-    pit_mode = ui->comboBoxPitMode->currentData().toInt();
+    pit_mode = pitMode();
 
     timeSyncSettings(time_sync, time_offset_years, time_fixed_year, time_keep_date);
+}
+
+/* The PIT mode the page selects: -1 auto, 0 accurate, 1 fast. */
+int
+SettingsMachine::pitMode() const
+{
+    if (ui->radioButtonPitModeAccurate->isChecked())
+        return 0;
+    if (ui->radioButtonPitModeFast->isChecked())
+        return 1;
+    return -1;
 }
 
 /* The time sync settings the page currently describes. At most one date mode
@@ -496,19 +486,18 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
             ui->checkBoxDynamicRecompiler->setChecked(false);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
-            ui->checkBoxBlockLinking->setEnabled(false);
         } else if ((flags & CPU_REQUIRES_DYNAREC) && !cpu_override) {
             ui->checkBoxDynamicRecompiler->setChecked(true);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(true);
-            ui->checkBoxBlockLinking->setEnabled(true);
         } else {
             ui->checkBoxDynamicRecompiler->setChecked(preferDynarec);
             ui->checkBoxDynamicRecompiler->setEnabled(true);
-            ui->checkBoxAccurateFPUEnvironment->setEnabled(preferDynarec);
-            ui->checkBoxBlockLinking->setEnabled(preferDynarec);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(cpu_use_dynarec);
         }
 #endif
+
+        ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
 
         if ((cpuType < CPU_286) || (cpuType == CPU_IBM486SLC) || (cpuType == CPU_IBM486BL) ||
             !strcmp(cpuFamily->manufacturer, "Cyrix") || !strcmp(cpuFamily->manufacturer, "ST") ||
@@ -580,43 +569,11 @@ SettingsMachine::on_pushButtonConfigure_clicked()
 }
 
 void
-SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state)
-{
-    if (state == Qt::Checked) {
-        ui->softFloatWarningIcon->setVisible(true);
-        ui->softFloatWarningText->setVisible(true);
-    } else {
-        ui->softFloatWarningIcon->setVisible(false);
-        ui->softFloatWarningText->setVisible(false);
-    }
-}
-
-void
-SettingsMachine::on_checkBoxDebugRegs486_stateChanged(int state)
-{
-    ui->debugRegs486WarningIcon->setVisible(state == Qt::Checked);
-    ui->debugRegs486WarningText->setVisible(state == Qt::Checked);
-}
-
-void
 SettingsMachine::on_checkBoxDynamicRecompiler_stateChanged(int state)
 {
 #ifdef USE_DYNAREC
     ui->checkBoxAccurateFPUEnvironment->setEnabled(state);
-    ui->checkBoxBlockLinking->setEnabled(state);
 #endif
-}
-
-void
-SettingsMachine::on_radioButtonSmallerFrames_clicked()
-{
-    ui->radioButtonLargerFrames->setChecked(false);
-}
-
-void
-SettingsMachine::on_radioButtonLargerFrames_clicked()
-{
-    ui->radioButtonSmallerFrames->setChecked(false);
 }
 
 void
