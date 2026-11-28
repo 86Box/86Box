@@ -100,11 +100,15 @@ SettingsPorts::SettingsPorts(QWidget *parent)
     for (int i = 0; i < PARALLEL_MAX; i++) {
         scLpt[i]                  = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1)), nullptr);
         lpt_device_cfg_changed[i] = 0;
+        if (auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1)))
+            checkBox->setChecked(lpt_ports[i].enabled > 0);
     }
 
     for (int i = 0; i < SERIAL_MAX_UI; i++) {
         scCom[i]                  = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1)), nullptr);
         com_device_cfg_changed[i] = 0;
+        if (auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1)))
+            checkBox->setChecked(com_ports[i].enabled > 0);
     }
 
     onCurrentMachineChanged(machine);
@@ -131,8 +135,9 @@ SettingsPorts::updateLptPortTracking(int i)
     if (comboBox == NULL)
         return;
 
-    int  device   = comboBox->currentData().toInt();
-    bool occupied = (lpt_ports[i].enabled > 0) && (device > 0) &&
+    const int device = comboBox->currentData().toInt();
+    auto *checkBox   = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
+    const bool occupied = checkBox && checkBox->isChecked() && (device > 0) &&
                     (char_get_device(device) != &lpt_ditto_device);
 
     Harddrives::busTrackClass->device_track(occupied ? 1 : 0, DEV_LPT, TAPE_BUS_LPT, i);
@@ -290,15 +295,14 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    int c = 0;
-
     auto *lptEcpDmaModel   = ui->comboBoxLptECPDMA->model();
     auto  removeRowsEcpDma = lptEcpDmaModel->rowCount();
 
     int has_jumpers = !!machine_has_jumpered_ecp_dma(machineId, DMA_ANY);
 
-    int selectedRow = -2;
-    int first       = -2;
+    int selectedRow           = 0;
+    const QVariant currentDma = ui->comboBoxLptECPDMA->currentData();
+    const int preferredDma    = currentDma.isValid() ? currentDma.toInt() : jumpered_internal_ecp_dma;
 
     Models::Batch ecpDmaRows(lptEcpDmaModel);
     for (int i = 0; i < 9; ++i) {
@@ -307,33 +311,17 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
         if ((has_jumpers && ((j == DMA_NONE) || !machine_has_jumpered_ecp_dma(machineId, j))) || (!has_jumpers && (j != DMA_NONE)))
             continue;
 
-        if (first == -2)
-            first = j;
-
         QString name = tr(machine_get_jumpered_ecp_dma_name(i));
         int     row  = ecpDmaRows.add(name, j);
 
-        if (j == jumpered_internal_ecp_dma)
+        if (j == preferredDma)
             selectedRow = row - removeRowsEcpDma;
-
-        c++;
     }
 
     ecpDmaRows.commit();
-
-    if (selectedRow == -2)
-        selectedRow = first;
-
     lptEcpDmaModel->removeRows(0, removeRowsEcpDma);
-    ui->comboBoxLptECPDMA->setCurrentIndex(-1);
     ui->comboBoxLptECPDMA->setCurrentIndex(selectedRow);
-
-    if ((c == 1) || !has_jumpers)
-        ui->comboBoxLptECPDMA->setEnabled(false);
-    else
-        ui->comboBoxLptECPDMA->setEnabled(true);
-
-    c = 0;
+    ui->comboBoxLptECPDMA->setEnabled(has_jumpers && lptEcpDmaModel->rowCount() > 1);
 
     // LPT Device
 #define CBOX_MAX MAX(PARALLEL_MAX, SERIAL_MAX_UI)
@@ -341,10 +329,13 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     QAbstractItemModel *models[CBOX_MAX]       = { 0 };
     int                 removeRows_[CBOX_MAX]  = { 0 };
     int                 selectedRows[CBOX_MAX] = { 0 };
+    int                 preferredDevices[CBOX_MAX] = { 0 };
 
     for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
         scLpt[i]->removeRows();
         cbox[i]        = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        const QVariant current = cbox[i]->currentData();
+        preferredDevices[i] = current.isValid() ? current.toInt() : lpt_ports[i].device;
         models[i]      = cbox[i]->model();
         removeRows_[i] = models[i]->rowCount();
     }
@@ -358,34 +349,29 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
                 int row = lptRows[i].add(device.name, device.id);
                 scLpt[i]->addDevice(nullptr, device.name);
 
-                if (device.id == lpt_ports[i].device)
+                if (device.id == preferredDevices[i])
                     selectedRows[i] = row - removeRows_[i];
             }
         }
     }
 
     for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
-        lptRows[i].commit();
-        models[i]->removeRows(0, removeRows_[i]);
-        cbox[i]->setEnabled(models[i]->rowCount() > 1);
-        cbox[i]->setCurrentIndex(-1);
-        cbox[i]->setCurrentIndex(selectedRows[i]);
-
-        auto *checkBox  = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
-        if (checkBox != NULL)
-            checkBox->setChecked(lpt_ports[i].enabled > 0);
-        if (cbox[i] != NULL)
-            updateLptPortControls(i);
-
+        {
+            const QSignalBlocker blocker(cbox[i]);
+            lptRows[i].commit();
+            models[i]->removeRows(0, removeRows_[i]);
+            cbox[i]->setCurrentIndex(selectedRows[i]);
+        }
+        updateLptPortControls(i);
         updateLptPortTracking(i);
     }
-
-    c = 0;
 
     // COM Device
     for (uint8_t i = 0; i < SERIAL_MAX_UI; ++i) {
         scCom[i]->removeRows();
         cbox[i]        = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
+        const QVariant current = cbox[i]->currentData();
+        preferredDevices[i] = current.isValid() ? current.toInt() : com_ports[i].device;
         models[i]      = cbox[i]->model();
         removeRows_[i] = models[i]->rowCount();
         selectedRows[i] = 0;
@@ -398,24 +384,20 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
                 int row = comRows[i].add(device.name, device.id);
                 scCom[i]->addDevice(nullptr, device.name);
 
-                if (device.id == com_ports[i].device)
+                if (device.id == preferredDevices[i])
                     selectedRows[i] = row - removeRows_[i];
             }
         }
     }
 
     for (int i = 0; i < SERIAL_MAX_UI; i++) {
-        comRows[i].commit();
-        models[i]->removeRows(0, removeRows_[i]);
-        cbox[i]->setEnabled(models[i]->rowCount() > 1);
-        cbox[i]->setCurrentIndex(-1);
-        cbox[i]->setCurrentIndex(selectedRows[i]);
-
-        auto *checkBox  = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
-        if (checkBox != NULL)
-            checkBox->setChecked(com_ports[i].enabled > 0);
-        if (cbox[i] != NULL)
-            updateComPortControls(i);
+        {
+            const QSignalBlocker blocker(cbox[i]);
+            comRows[i].commit();
+            models[i]->removeRows(0, removeRows_[i]);
+            cbox[i]->setCurrentIndex(selectedRows[i]);
+        }
+        updateComPortControls(i);
     }
 
     // USB card: a selection updates the hub list and the other pages, so the

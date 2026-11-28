@@ -184,6 +184,86 @@ qvision_pixel_write(qvision_t *s, uint32_t address, uint8_t value, bool packed4)
         s->svga.vram[offset] = value;
 }
 
+static bool
+qvision_legacy_blt(qvision_t *s, uint8_t command)
+{
+    svga_t  *svga    = &s->svga;
+    uint8_t  config = s->registers[0x33cf];
+    uint16_t height = qvision_engine_reg(s, 0x23c4, 2);
+    uint32_t source = qvision_engine_reg(s, 0x23c0, 2) | ((height & 0xc000) << 2);
+    uint32_t delta  = qvision_engine_reg(s, 0x23cc, 2) | ((height & 0x3000) << 4);
+    uint32_t dest   = (source + delta) & 0x3ffff;
+    int32_t  pitch  = qvision_engine_reg(s, 0x23ca, 2) | ((height & 0x0c00) << 6);
+    unsigned width  = s->registers[0x23c2] ? s->registers[0x23c2] : 256;
+    int      dir    = (command & 0x40) ? -1 : 1;
+    unsigned rotate = svga->gdcreg[3] & 3;
+
+    if (!qvision_vga_enabled(s) || !qvision_packed(s) || svga->bpp != 8 ||
+        (svga->gdcreg[0x10] & 0x48) != 8 ||
+        (config & 0xe0) != 0x20 || (config & 15) || (command & 0xa0) ||
+        (s->registers[0x63ca] & 7) != 3)
+        return false;
+
+    /* AVGA uses an 8-bit dword width; address and pitch high bits share height. */
+    if (pitch & 0x20000)
+        pitch -= 0x40000;
+    height &= 0x3ff;
+    for (unsigned y = 0; y < height; y++) {
+        /* PRELOAD advances the shared address generator before the first write. */
+        uint32_t src_row = source + y * pitch;
+        uint32_t dst_row = dest + y * pitch + ((command & 2) ? dir : 0);
+        uint8_t previous[4];
+        uint32_t first = src_row + ((command & 2) ? dir : 0);
+        for (unsigned b = 0; b < 4; b++)
+            previous[b] = qvision_pixel_read(s, (first - dir) * 4 + b, false);
+        for (unsigned x = 0; x < width; x++) {
+            uint8_t current[4];
+            for (unsigned b = 0; b < 4; b++)
+                current[b] = qvision_pixel_read(s, (first + dir * x) * 4 + b, false);
+            for (unsigned b = 0; b < 4; b++) {
+                /* Byte zero uses bit 3 of the AVGA fringe/skew masks. */
+                if ((!x && !(s->registers[0x33c0] & (8 >> b))) ||
+                    (width > 1 && x == width - 1 && !(s->registers[0x33c1] & (8 >> b))))
+                    continue;
+                unsigned lane = (b - rotate) & 3;
+                uint8_t color = (command & 8) ? s->pattern[((x & 1) ? 0 : 4) + lane] :
+                                ((s->registers[0x33c9] & (8 >> b)) ? previous[lane] : current[lane]);
+                uint32_t address = (dst_row + dir * x) * 4 + b;
+                uint8_t old = qvision_pixel_read(s, address, false);
+                if (config & 0x10)
+                    color = qvision_rop(s->registers[0x33c7], color, old);
+                else {
+                    switch (svga->gdcreg[3] & 0x18) {
+                        case 0x08:
+                            color &= old;
+                            break;
+                        case 0x10:
+                            color |= old;
+                            break;
+                        case 0x18:
+                            color ^= old;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                uint8_t mask = svga->seqregs[2];
+                qvision_pixel_write(s, address, (old & ~mask) | (color & mask), false);
+            }
+            memcpy(previous, current, sizeof(previous));
+        }
+    }
+    if (!(command & 8)) {
+        uint32_t next = (source + height * pitch) & 0x3ffff;
+        s->registers[0x23c0] = next;
+        s->registers[0x23c1] = next >> 8;
+        s->registers[0x23c5] = (s->registers[0x23c5] & 0x3f) | ((next >> 10) & 0xc0);
+    }
+    qvision_dirty(s, 0, svga->vram_max);
+    s->registers[0x33ce] &= ~1;
+    return true;
+}
+
 /*
  * Synchronous pattern subset of the Triton datapath. Unsupported
  * sources/masks remain unexecuted and are reported at command submission.
@@ -216,8 +296,8 @@ qvision_pattern_blt(qvision_t *s, uint8_t command)
             pitch = -pitch;
     } else if (packed4)
         start >>= 2;
-    else if ((control & 7) != 3)
-        /* Linear high-color addresses are in bits; widths remain in bytes. */
+    else
+        /* Linear addresses are in bits; widths remain in bytes. */
         start >>= 3;
     for (unsigned y = 0; y < height; y++) {
         uint32_t row = start + y * pitch;
@@ -239,7 +319,7 @@ qvision_pattern_blt(qvision_t *s, uint8_t command)
                 unsigned pixel = phase + x;
                 color          = (s->pattern[(pixel >> 1) & 7] >> ((pixel & 1) ? 4 : 0)) & 15;
             } else
-                color = s->pattern[(xy8 ? pattern_x + direction * x : x) & 7];
+                color = s->pattern[(pattern_x + direction * x) & 7];
             uint8_t value = (datapath & 0xc0) && ((datapath & 0xc0) != 0x40 || primary) ? qvision_rop(s->registers[0x33c7], color, dest) : color;
 
             qvision_pixel_write(s, offset, (dest & ~mask) | (value & mask), packed4);
@@ -275,7 +355,7 @@ qvision_screen_blt(qvision_t *s, uint8_t command)
             source_pitch = -source_pitch;
     } else if (packed4)
         source >>= 2;
-    else if (control != 3)
+    else
         source >>= 3;
     if (s->registers[0x33cf] & 0x80) {
         dest = (dest >> 16) * dest_pitch + (dest & 0xffff);
@@ -283,7 +363,7 @@ qvision_screen_blt(qvision_t *s, uint8_t command)
             dest_pitch = -dest_pitch;
     } else if (packed4)
         dest >>= 2;
-    else if (control != 3)
+    else
         dest >>= 3;
     for (unsigned y = 0; y < height; y++) {
         uint32_t src_row = source + y * source_pitch;
@@ -395,6 +475,8 @@ qvision_host_start(qvision_t *s, uint8_t command)
         host->dest = (host->dest >> 16) * host->pitch + (host->dest & 0xffff);
     } else if (packed4)
         host->dest >>= 2;
+    else
+        host->dest >>= 3;
     if (!host->active) {
         s->registers[0x33ce] &= ~1;
     }
@@ -537,6 +619,8 @@ qvision_in(uint16_t port, void *priv)
         return bt48x_ramdac_in(((rs & 2) ? 0x3c4 : 0x3c8) + (rs & 3), rs & 4, rs & 8, svga->ramdac, svga);
     if (port == 0x63ca)
         return s->registers[port] | (s->host.active ? 0x40 : 0);
+    if (port == ((svga->gdcreg[0x10] & 4) ? 0x53c8 : 0x33c8))
+        return svga->gdcreg[3] & 7;
     if (port >= 0x3b0 && port <= 0x3df) {
         port = qvision_vga_port(s, port);
         if (port == 0x3cf)
@@ -578,12 +662,16 @@ qvision_out(uint16_t port, uint8_t value, void *priv)
         bt48x_ramdac_out(((rs & 2) ? 0x3c4 : 0x3c8) + (rs & 3), rs & 4, rs & 8, value, svga->ramdac, svga);
         return;
     }
+    if (port == ((svga->gdcreg[0x10] & 4) ? 0x53c8 : 0x33c8)) {
+        svga->gdcreg[3] = (svga->gdcreg[3] & ~7) | (value & 7);
+        return;
+    }
     if (port == 0x3ce) {
         svga->gdcaddr = value;
         return;
     }
     if (port == 0x3cf && index >= 9) {
-        if (index == 0x0c)
+        if (index == 0x09 || index == 0x0c)
             return;
         if (index != 0x0f && (svga->gdcreg[0x0f] & 15) != 5)
             return;
@@ -644,7 +732,7 @@ qvision_out(uint16_t port, uint8_t value, void *priv)
             s->registers[port] = value;
         }
         if (value & 1) {
-            if (!qvision_host_start(s, value) && !qvision_pattern_blt(s, value) && !qvision_screen_blt(s, value) && !qvision_screen_mono_blt(s, value))
+            if (!qvision_legacy_blt(s, value) && !qvision_host_start(s, value) && !qvision_pattern_blt(s, value) && !qvision_screen_blt(s, value) && !qvision_screen_mono_blt(s, value))
                 pclog("QVision: unsupported BLT %02x ctl=%02x dp=%02x\n", value, s->registers[0x63ca], svga->gdcreg[0x5a]);
         }
     }

@@ -17,6 +17,7 @@
 #include <QMessageBox>
 #include <QStringBuilder>
 #include <QLineEdit>
+#include <QSignalBlocker>
 
 #include <cstdint>
 
@@ -89,6 +90,18 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     ui->checkBoxContrast->setChecked(vid_cga_contrast);
 
     ui->checkBoxInverted->setChecked(invert_display);
+
+    ui->radioButtonDefault->setChecked(monitor_edid == 0);
+    ui->radioButtonCustom->setChecked(monitor_edid == 1);
+    ui->lineEditCustomEDID->setFileName(monitor_edid_path);
+    ui->lineEditCustomEDID->setEnabled(monitor_edid == 1);
+    previousEDIDPath = ui->lineEditCustomEDID->fileName();
+
+    ui->checkBoxVoodoo->setChecked(voodoo_enabled);
+    ui->checkBoxPowerVR->setChecked(powervr_enabled);
+    ui->checkBox8514->setChecked(ibm8514_standalone_enabled);
+    ui->checkBoxXga->setChecked(xga_standalone_enabled);
+    ui->checkBoxDa2->setChecked(da2_standalone_enabled);
 
     onCurrentMachineChanged(machine);
 }
@@ -239,16 +252,6 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
     fillingVideo = false;
     on_comboBoxVideo_currentIndexChanged(ui->comboBoxVideo->currentIndex());
-    // TODO
-    for (uint8_t i = 1; i < GFXCARD_MAX; i++)
-        if (gfxcard[i] == 0)
-            ui->pushButtonConfigureVideoSecondary->setEnabled(false);
-
-    ui->radioButtonDefault->setChecked(monitor_edid == 0);
-    ui->radioButtonCustom->setChecked(monitor_edid == 1);
-    ui->lineEditCustomEDID->setFileName(monitor_edid_path);
-    ui->lineEditCustomEDID->setEnabled(monitor_edid == 1);
-    previousEDIDPath = ui->lineEditCustomEDID->fileName();
 }
 
 void
@@ -318,9 +321,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     else
         ui->pushButtonConfigureVideo->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
-    ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
     ui->checkBoxPowerVR->setEnabled(machineHasPci);
-    ui->checkBoxPowerVR->setChecked(powervr_enabled && machineHasPci);
+    if (!machineHasPci)
+        ui->checkBoxPowerVR->setChecked(false);
     ui->pushButtonConfigurePowerVR->setEnabled(machineHasPci && ui->checkBoxPowerVR->isChecked());
 
     bool machineHasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
@@ -335,21 +338,25 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     bool machineSupportsDa2  = (machineHasMca && device_available(&ps55da2_device) && !videoCardHasDa2);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
-    ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
+    if (!machineSupports8514)
+        ui->checkBox8514->setChecked(false);
 
     ui->pushButtonConfigure8514->setEnabled(ui->checkBox8514->isEnabled() && ui->checkBox8514->isChecked());
 
     ui->checkBoxXga->setEnabled(machineSupportsXga);
-    ui->checkBoxXga->setChecked(xga_standalone_enabled && machineSupportsXga);
+    if (!machineSupportsXga)
+        ui->checkBoxXga->setChecked(false);
 
     ui->checkBoxDa2->setEnabled(machineSupportsDa2);
-    ui->checkBoxDa2->setChecked(da2_standalone_enabled && machineSupportsDa2);
+    if (!machineSupportsDa2)
+        ui->checkBoxDa2->setChecked(false);
 
     ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
     ui->pushButtonConfigureDa2->setEnabled(ui->checkBoxDa2->isEnabled() && ui->checkBoxDa2->isChecked());
 
     scSecondary->removeRows();
 
+    QSignalBlocker secondarySignals(ui->comboBoxVideoSecondary);
     ui->comboBoxVideoSecondary->clear();
     Models::Batch secondaryRows(ui->comboBoxVideoSecondary->model());
     secondaryRows.add(QObject::tr("None"), 0);
@@ -389,13 +396,12 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         }
     }
     secondaryRows.commit();
-    ui->comboBoxVideoSecondary->setCurrentIndex(selectedSecondaryRow);
+    if (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) && !machine_has_flags(machineId, MACHINE_VIDEO_EXT))
+        selectedSecondaryRow = 0;
 
-    if ((videoCard[1] == 0) || ((machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) &&
-                                !machine_has_flags(machineId, MACHINE_VIDEO_EXT))) {
-        ui->comboBoxVideoSecondary->setCurrentIndex(0);
-        ui->pushButtonConfigureVideoSecondary->setEnabled(false);
-    }
+    ui->comboBoxVideoSecondary->setCurrentIndex(selectedSecondaryRow);
+    secondarySignals.unblock();
+    on_comboBoxVideoSecondary_currentIndexChanged(ui->comboBoxVideoSecondary->currentIndex());
 
     // Is the currently selected video card a voodoo?
     if (ui->comboBoxVideo->currentText().contains(voodooRegex)) {
@@ -414,10 +420,11 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         ui->checkBoxVoodoo->setDisabled(true);
     } else {
         ui->checkBoxVoodoo->setEnabled(machineHasPci);
-        if (machineHasPci) {
-            ui->checkBoxVoodoo->setChecked(voodoo_enabled);
-        }
+        if (!machineHasPci)
+            ui->checkBoxVoodoo->setChecked(false);
     }
+
+    ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
 
     if (Settings::settings->input != nullptr)
         Settings::settings->input->onCurrentMachineChanged(machineId);
