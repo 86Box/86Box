@@ -196,6 +196,9 @@ add_library(ui STATIC
     qt_settingsnetwork.cpp
     qt_settingsnetwork.hpp
     qt_settingsnetwork.ui
+
+    qt_slirpforwardingdialog.cpp
+    qt_slirpforwardingdialog.hpp
     qt_settingsports.cpp
     qt_settingsports.hpp
     qt_settingsports.ui

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-26 18:49+0000\n"
+"PO-Revision-Date: 2026-11-28 07:26+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -1312,7 +1312,7 @@ msgid "MO images"
 msgstr "Образы магнитооптических дисков"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "Образы MD DATA"
 
 msgid "&MD DATA %1 (%2): %3"
 msgstr ""
@@ -1351,37 +1351,45 @@ msgid "No ROMs found"
 msgstr "ПЗУ не найдены"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Неподдерживаемое оборудование"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"Оборудование, указанное в этом профиле машины, не поддерживается текущей "
+"сборкой 86Box."
 
 msgid "(and %i others)"
 msgstr ""
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
+"Загрузка конфигурации в любом случае приведет к замене машины и перезаписи "
+"существующей конфигурации."
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
 msgstr ""
+"Если всё же загрузить конфигурацию, эти компоненты будут удалены, а "
+"существующая конфигурация будет перезаписана."
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
 msgstr ""
+"В любом случае загрузка конфигурации приведет к замене машины, удалению "
+"остальных компонентов и перезаписи существующей конфигурации."
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "Хотите продолжить?"
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "Тип машины «%s»"
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "Видеокарта «%s»"
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "Клавиатура «%s»"
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "Мышь «%s»"
 
 msgid "Tablet \"%s\""
 msgstr ""

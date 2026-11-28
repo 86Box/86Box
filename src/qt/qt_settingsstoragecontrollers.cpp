@@ -75,6 +75,8 @@ SettingsStorageControllers::SettingsStorageControllers(QWidget *parent)
 
     ui->checkBoxIDETurbo->setChecked(ide_turbo > 0);
 
+    ui->checkBoxCassette->setChecked(cassette_enable > 0);
+
     onCurrentMachineChanged(machine);
 }
 
@@ -325,7 +327,6 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     }
 
     if (machine_has_bus(machineId, MACHINE_BUS_CASSETTE)) {
-        ui->checkBoxCassette->setChecked(cassette_enable > 0);
         ui->checkBoxCassette->setEnabled(true);
     } else {
         ui->checkBoxCassette->setChecked(false);
@@ -485,7 +486,7 @@ SettingsStorageControllers::on_comboBoxSCSI3_currentIndexChanged(int index)
 
     ui->pushButtonSCSI3->setEnabled(scsi_card_has_config(ui->comboBoxSCSI3->currentData().toInt()) > 0);
     if (!inMachineChange)
-        scsiCardCurrent[2] = ui->comboBoxSCSI2->currentData().toInt();
+        scsiCardCurrent[2] = ui->comboBoxSCSI3->currentData().toInt();
 }
 
 void
@@ -496,7 +497,7 @@ SettingsStorageControllers::on_comboBoxSCSI4_currentIndexChanged(int index)
 
     ui->pushButtonSCSI4->setEnabled(scsi_card_has_config(ui->comboBoxSCSI4->currentData().toInt()) > 0);
     if (!inMachineChange)
-        scsiCardCurrent[3] = ui->comboBoxSCSI2->currentData().toInt();
+        scsiCardCurrent[3] = ui->comboBoxSCSI4->currentData().toInt();
 }
 
 void

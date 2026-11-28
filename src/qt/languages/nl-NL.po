@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-24 20:44+0000\n"
+"PO-Revision-Date: 2026-11-28 08:25+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -545,13 +545,13 @@ msgid "Monitor"
 msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
-msgstr "Voodoo 1 of 2 graphics"
+msgstr "Voodoo 1 of 2 Graphics"
 
 msgid "IBM 8514/A Graphics"
-msgstr "IBM 8514/A-graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
-msgstr "XGA-graphics"
+msgstr "XGA Graphics"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
@@ -650,10 +650,10 @@ msgid "Internal LPT ECP DMA:"
 msgstr "Interne LPT ECP DMA:"
 
 msgid "Floppy disk controller:"
-msgstr "Floppy disk controller:"
+msgstr "Diskettecontroller:"
 
 msgid "CD-ROM controller:"
-msgstr "CD-ROM controller:"
+msgstr "Cd-rom controller:"
 
 msgid "Mitsumi interface"
 msgstr "Mitsumi-interface"
@@ -805,7 +805,7 @@ msgid "Block Size:"
 msgstr "Blokgrootte:"
 
 msgid "Floppy drives"
-msgstr "Floppy-schijfstations"
+msgstr "Diskettestations"
 
 msgid "5.25\" 180k"
 msgstr "5,25\" 180k"
@@ -853,7 +853,7 @@ msgid "CD-ROM drives"
 msgstr "Cd-romstations"
 
 msgid "CD-ROM:"
-msgstr "CD-ROM:"
+msgstr "Cd-rom:"
 
 msgid "MO drives"
 msgstr "MO-stations"
@@ -1092,13 +1092,13 @@ msgid "Disks:"
 msgstr "Schijven:"
 
 msgid "Floppy:"
-msgstr "Floppy:"
+msgstr "Diskette:"
 
 msgid "Controllers:"
 msgstr "Controllers:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Floppy- en Cd-romstations"
+msgstr "Diskette- en cd-romstations"
 
 msgid "Other removable devices"
 msgstr "Andere verwijderbare apparaten"
@@ -1293,10 +1293,10 @@ msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
-msgstr "Floppy %1 (%2): %3"
+msgstr "Diskette %1 (%2): %3"
 
 msgid "&Floppy %1 (%2): %3"
-msgstr "&Floppy %1 (%2): %3"
+msgstr "&Diskette %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Geavanceerde sector-schijfkopieën"
@@ -1359,7 +1359,7 @@ msgid "&Check for updates…"
 msgstr "&Controleren op updates…"
 
 msgid "Exit"
-msgstr "&Afsluiten"
+msgstr "Afsluiten"
 
 msgid "No ROMs found"
 msgstr "Geen ROMs gevonden"
@@ -1437,7 +1437,7 @@ msgid "SCSI card \"%s\""
 msgstr "SCSI-kaart \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr "Floppycontroller \"%s\""
+msgstr "Diskettecontroller \"%s\""
 
 msgid "Disk controller \"%s\""
 msgstr "Schijfcontroller \"%s\""
@@ -2069,10 +2069,10 @@ msgid "Could not fix VHD timestamp."
 msgstr "Kan VHD tijdstempel niet herstellen."
 
 msgid "CD-ROM %1 (%2): %3"
-msgstr "CD-ROM %1 (%2): %3"
+msgstr "Cd-rom %1 (%2): %3"
 
 msgid "&CD-ROM %1 (%2): %3"
-msgstr "&CD-ROM %1 (%2): %3"
+msgstr "&Cd-rom %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -2304,10 +2304,10 @@ msgstr "Terugvallen op software rendering."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
-"<html><head/><body><p>Bij het selecteren van mediaschijfkopieën (CD-ROM, "
-"floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box "
-"configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op "
-"macOS.</p></body></html>"
+"<html><head/><body><p>Bij het selecteren van mediaschijfkopieën (cd-rom, "
+"diskette, etc.) zal de \"open dialoog\" starten in dezelfde map als het "
+"86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen "
+"toe op macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Deze machine is misschien verplaatst of gekopieerd."
@@ -3571,7 +3571,7 @@ msgid "SoundFont files"
 msgstr "SoundFont-bestanden"
 
 msgid "Local Switch"
-msgstr "Lokale-switch"
+msgstr "Lokale Switch"
 
 msgid "Remote Switch"
 msgstr "Externe-switch"
@@ -3621,7 +3621,7 @@ msgid "No Machines Found!"
 msgstr "Geen machines gevonden!"
 
 msgid "Check for updates on startup"
-msgstr "Controleer op updates bij starten"
+msgstr "Bij het opstarten controleren op updates"
 
 msgid "Unable to determine release information"
 msgstr "Kan release-informatie niet bepalen"
@@ -4083,10 +4083,10 @@ msgid "Unlimited capacity"
 msgstr "Ongelimiteerde capaciteit"
 
 msgid "CD speed:"
-msgstr "CD-snelheid:"
+msgstr "Cdsnelheid:"
 
 msgid "DVD speed:"
-msgstr "DVD-snelheid:"
+msgstr "Dvdsnelheid:"
 
 msgid "HD/BD speed:"
 msgstr "HD/BD-snelheid:"
@@ -4741,7 +4741,7 @@ msgid "USB Mass Storage"
 msgstr "USB-massaopslag"
 
 msgid "Mount folder as a temporary floppy"
-msgstr "Map als tijdelijke floppy koppelen"
+msgstr "Map als tijdelijke diskette koppelen"
 
 msgid "The selected drive does not support folder mounting."
 msgstr "Het geselecteerde station ondersteunt het koppelen van mappen niet."
