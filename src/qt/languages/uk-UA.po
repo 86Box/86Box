@@ -1054,7 +1054,7 @@ msgid "Sound"
 msgstr "Звук"
 
 msgid "%1 (not detected)"
-msgstr ""
+msgstr "%1 (не виявлено)"
 
 msgid "%1 Hz (host will resample)"
 msgstr ""
