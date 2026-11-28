@@ -1,6 +1,8 @@
 #ifndef QT_SETTINGSMACHINE_HPP
 #define QT_SETTINGSMACHINE_HPP
 
+#include <cstdint>
+
 #include <QWidget>
 
 namespace Ui {
@@ -48,12 +50,20 @@ private slots:
     void on_radioButtonFixedYear_toggled(bool checked);
 
 private:
+    void updateCpuSpeeds(int preferredSpeed);
+    uint32_t selectedRamKiB() const;
     void updateGuestYearLabel();
     void updateTimeControlsEnabled();
     void timeSyncSettings(int &sync, int &offset_years, int &fixed_year, int &keep_date) const;
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;
+    int                  ramUnitKiB = 0;
+    int                  preferredWaitStates = 0;
+    bool                 preferSoftFloat = false;
+#ifdef USE_DYNAREC
+    bool                 preferDynarec = false;
+#endif
     int                  original_years_offset = 0;
     int                  original_fixed_year = 0;
     bool                 years_offset_manipulated = false;

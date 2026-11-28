@@ -42,6 +42,8 @@ private slots:
     void enableElements(Ui::SettingsNetwork *ui);
 
 private:
+    void initializeHostOptions();
+
     Ui::SettingsNetwork *ui;
     int                  machineId = 0;
 
