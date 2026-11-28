@@ -1,0 +1,67 @@
+name: Bug Report
+description: File a bug report
+title: "Title"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I **have searched** the issue tracker and **was unable** to find an [open](https://github.com/86Box/86Box/issues?q=is%3Aissue+is%3Aopen) or [closed](https://github.com/86Box/86Box/issues?q=is%3Aissue+is%3Aclosed) issue matching what I'm seeing. 
+          required: true
+        - label: I **have verified** that the issue is happening in the **[latest nightly build](https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/)**, or the latest commit, if building from source.
+          required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Configuration file
+      description: Please copy and paste your machine configuration file (`86box.cfg`). This will be automatically formatted into code, so no need for backticks.
+      render: ini
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Operating system
+      description: What is your host operating system?
+      placeholder: e.g. Windows 11 24H2
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: 86Box version
+      description: What version of 86Box are you running? (Please ensure you have updated to the [latest build](https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/) before reporting. Merely saying "Latest from Jenkins" is not helpful.)
+      placeholder: e.g. v4.0 build 5000
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Build architecture
+      description: 86Box for what architecture are you using?
+      options: 
+        - Windows - x64 (64-bit) 
+        - macOS - Universal (Intel and Apple Silicon) 
+        - Linux - x64 (64-bit) 
+        - Linux - ARM (64-bit) 
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Build type
+      description: What type of build are you using?
+      options:
+        - label: New recompiler
+        - label: Debug build
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Is there anything else you want to tell us? If you build 86Box from source, please post your build configuration here.
