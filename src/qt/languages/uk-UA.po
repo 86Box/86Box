@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-28 07:24+0000\n"
-"Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -537,7 +537,7 @@ msgid "Dynamic recompiler is active"
 msgstr "Динамічний рекомпілятор активний"
 
 msgid "Dynamic recompiler is inactive"
-msgstr ""
+msgstr "Динамічний рекомпілятор неактивний"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точне середовище FPU у динамічному рекомпіляторі"
@@ -799,7 +799,7 @@ msgstr ""
 "вони не працюватимуть:"
 
 msgid "Do you want to save the configuration anyway?"
-msgstr ""
+msgstr "Ви все одно хочете зберегти конфігурацію?"
 
 msgid "ID:"
 msgstr "ID:"
