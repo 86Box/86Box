@@ -150,7 +150,6 @@ def make_digi_samples(trace, regions, gain):
     samples = []
     event = 0
     step = trace.clock / PCM_RATE
-    dc = 0.
     alpha = math.exp(-2 * math.pi * 16 / PCM_RATE)
     for first, last in regions:
         start, finish = first * TICK * trace.clock, min(last * TICK * trace.clock, trace.cycles)
