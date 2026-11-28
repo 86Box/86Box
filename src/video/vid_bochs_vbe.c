@@ -585,7 +585,7 @@ bochs_vbe_out(uint16_t addr, uint8_t val, void *priv)
                         if (!svga->hoverride)
                             svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -840,7 +840,7 @@ bochs_vbe_init(const device_t *info)
         dev->bios_rom.rom[0x7fff] -= (0xbe - 0x11);
     }
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_bochs);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_bochs, video_monitor_pending);
 
     svga_init(info, &dev->svga, dev, dev->vram_size,
               bochs_vbe_recalctimings,
@@ -922,7 +922,7 @@ bochs_vbe_force_redraw(void *priv)
 {
     bochs_vbe_t *bochs_vbe = (bochs_vbe_t *) priv;
 
-    bochs_vbe->svga.fullchange = changeframecount;
+    bochs_vbe->svga.fullchange = bochs_vbe->svga.monitor->mon_changeframecount;
 }
 
 static const device_config_t bochs_vbe_config[] = {

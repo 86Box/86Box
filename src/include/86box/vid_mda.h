@@ -111,23 +111,13 @@ typedef struct mda_t {
     int32_t     blink;
     int32_t     vsynctime;
     int32_t     vadj;
-    int32_t     monitor_index;
-    int32_t     prev_monitor_index;
+    struct monitor_t *monitor;
     int32_t     monitor_type;           // Used for MDA Colour support (REV0 u64)
 
     uint8_t    *vram;
     lpt_t      *lpt;
 } mda_t;
 
-#define VIDEO_MONITOR_PROLOGUE()                        \
-    {                                                   \
-        mda->prev_monitor_index = monitor_index_global; \
-        monitor_index_global    = mda->monitor_index;   \
-    }
-#define VIDEO_MONITOR_EPILOGUE()                        \
-    {                                                   \
-        monitor_index_global = mda->prev_monitor_index; \
-    }
 
 void    mda_init(mda_t *mda);
 void    mda_setcol(int chr, int blink, int fg, uint8_t cga_ink);

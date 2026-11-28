@@ -167,6 +167,7 @@ typedef struct mach64_timing_t mach64_timing_t;
 typedef struct mach64_idct_t   mach64_idct_t;
 
 typedef struct mach64_t {
+    struct mach64_t *reset_state;
     mem_mapping_t linear_mapping;
     mem_mapping_t mmio_mapping;
     mem_mapping_t linear_mapping_big_endian;

@@ -135,7 +135,7 @@ ati18800_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -307,7 +307,7 @@ ati18800_init(const device_t *info)
 {
     ati18800_t *ati18800 = calloc(1, sizeof(ati18800_t));
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati18800);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati18800, video_monitor_pending);
 
     ati18800->type = info->local;
 
@@ -386,7 +386,7 @@ ati18800_force_redraw(void *priv)
 {
     ati18800_t *ati18800 = (ati18800_t *) priv;
 
-    ati18800->svga.fullchange = changeframecount;
+    ati18800->svga.fullchange = ati18800->svga.monitor->mon_changeframecount;
 }
 
 static const device_config_t ati18800_wonder_config[] = {

@@ -1629,14 +1629,14 @@ sb_base64(strbuf_t *sb, const uint8_t *data, size_t len)
 }
 
 void
-automation_frame(int x, int y, int w, int h, int monitor_index)
+automation_frame(int x, int y, int w, int h, monitor_t *monitor)
 {
     bitmap_t *target;
 
-    if (!enabled || (monitor_index != 0) || (w <= 0) || (h <= 0))
+    if (!enabled || (monitor != video_primary_monitor) || (w <= 0) || (h <= 0))
         return;
 
-    target = monitors[0].target_buffer;
+    target = monitor->target_buffer;
     if (!target)
         return;
 
@@ -2313,7 +2313,7 @@ handle_request(char *line)
             respond_error("no tablet configured");
         else if (argc == 2) {
             mouse_set_buttons_ex(0);
-            mouse_tablet_in_proximity = 0;
+            mouse_set_input_monitor(NULL);
             respond_ok_time();
         } else if (!frame_w || !frame_h)
             respond_error("no frame rendered yet");
@@ -2326,7 +2326,7 @@ handle_request(char *line)
                 mouse_input_mode = 1;
             mouse_x_abs               = (x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x);
             mouse_y_abs               = (y < 0.0) ? 0.0 : ((y > 1.0) ? 1.0 : y);
-            mouse_tablet_in_proximity = 1; /* over monitor 0 */
+            mouse_set_input_monitor(video_primary_monitor);
             mouse_set_buttons_ex(atoi(argv[3]));
             respond_ok_time();
         }

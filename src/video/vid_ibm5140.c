@@ -82,7 +82,7 @@ struct ibm5140_video_t {
     uint8_t       mode;
     uint8_t       status_toggle;
     uint8_t       normal_sync;
-    uint8_t       monitor;
+    monitor_t    *monitor;
     uint32_t      diagnostic_clock;
     uint32_t      blink;
     /* Per-pixel quantized optical level (0..LCD_LEVELS-1); one state per pel,
@@ -327,7 +327,7 @@ lcd_present(ibm5140_video_t *video)
 {
     if (video->crt)
         return;
-    monitor_t *monitor = &monitors[video->monitor];
+    monitor_t *monitor = video->monitor;
     const int enabled = (video->function & (LCD_POWER | LCD_SYNCS)) == (LCD_POWER | LCD_SYNCS) &&
                         (video->mode & 8);
     const uint8_t (*const next_level)[LCD_LEVELS] = video->next_level;
@@ -586,7 +586,7 @@ ibm5140_video_reset(ibm5140_video_t *video)
         crt->firstline = 1000;
         crt->lastline = crt->drawcursor = 0;
         crt->lp_latch_found = false;
-        crt->fullchange = monitors[video->monitor].mon_changeframecount;
+        crt->fullchange = video->monitor->mon_changeframecount;
         cga_recalctimings(crt);
         update_cga16_color(0, 0);
         timer_set_delay_u64(&crt->timer, crt->dispofftime);
@@ -628,7 +628,7 @@ ibm5140_video_create(int display, int composite)
     ibm5140_video_t *video = calloc(1, sizeof(*video));
     if (!video)
         fatal("Unable to allocate IBM 5140 LCD controller\n");
-    video->monitor = 0;
+    video->monitor = video_monitor_pending;
     video->normal_sync = 1;
     video->diagnostic_clock = LCD_FRAME_CLOCKS - LCD_FETCH_CLOCKS;
     device_add_ex(&lcd_device, video);
@@ -646,7 +646,7 @@ ibm5140_video_create(int display, int composite)
     io_sethandler(0x3d0, 16, lcd_in, NULL, NULL, lcd_out, NULL, NULL, video);
     timer_add(&video->timer, lcd_poll, video, 1);
 
-    monitor_t *monitor = &monitors[video->monitor];
+    monitor_t *monitor = video->monitor;
     if (display >= 3 && display <= 5) {
         cga_t *crt = calloc(1, sizeof(*crt));
         if (!crt)
@@ -655,7 +655,7 @@ ibm5140_video_create(int display, int composite)
         if (!crt->vram)
             fatal("Unable to allocate IBM 5140 CRT SRAM\n");
         video->crt = crt;
-        crt->monitor_used = video->monitor;
+        crt->monitor = video->monitor;
         crt->composite = display == 5;
         crt->revision = (composite >= 0 && composite <= 2) ? composite : 1;
         crt->rgb_type = display == 3 ? 3 : 5;

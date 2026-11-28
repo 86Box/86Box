@@ -1550,7 +1550,7 @@ sis6306_fast_page_flip_latch(sis6306_t *dev)
         (uint32_t) dev->ext_seq[0x30];
     dev->fast_page_valid = 1;
     dev->svga.memaddr_latch = dev->fast_page_start;
-    dev->svga.fullchange = changeframecount;
+    dev->svga.fullchange = dev->svga.monitor->mon_changeframecount;
     dev->fast_page_flip_count++;
 }
 
@@ -1897,7 +1897,7 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         sis6306_update_display_start(dev);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -1975,7 +1975,7 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                         (old_ext != val)) {
                         sis6306_accel_sync(dev);
                         sis6306_update_display_start(dev);
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                     }
 
                     if ((index == 0x2f) && (old_ext != val)) {
@@ -1983,7 +1983,7 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                         if (!(val & 0x10))
                             dev->fast_page_valid = 0;
                         sis6306_update_display_start(dev);
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                     }
 
                     if (index == 0x32) {
@@ -6364,7 +6364,7 @@ sis6306_init(const device_t *info)
                                              "SiS 6306 accelerator");
 
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_sis6306);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_sis6306, video_monitor_pending);
 
 
     svga_init(info, &dev->svga, dev, 8 << 20,

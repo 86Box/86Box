@@ -48,9 +48,8 @@ std::vector<int> timer_on;
 
 extern "C" {
 
-monitor_t monitors[MONITORS_NUM];
 int       enable_overscan;
-int       mouse_tablet_in_proximity;
+monitor_t *mouse_get_input_monitor(void) { return nullptr; }
 
 void pclog(const char *, ...) { }
 

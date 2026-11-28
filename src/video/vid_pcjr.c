@@ -124,10 +124,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             old                       = pcjr->crtc[pcjr->crtcreg];
             pcjr->crtc[pcjr->crtcreg] = val & crtcmask[pcjr->crtcreg];
             if (pcjr->crtcreg == 2)
-                overscan_x = vid_get_h_overscan_size(pcjr);
+                pcjr->monitor->mon_overscan_x = vid_get_h_overscan_size(pcjr);
             if (old != val) {
                 if (pcjr->crtcreg < 0xe || pcjr->crtcreg > 0x10) {
-                    pcjr->fullchange = changeframecount;
+                    pcjr->fullchange = pcjr->monitor->mon_changeframecount;
                     pcjr_recalc_timings(pcjr);
                 }
             }
@@ -308,15 +308,15 @@ vid_blit_v_overscan(pcjr_t *pcjr)
         x = (pcjr->crtc[1] << 4) + ho_s;
 
     for (i = 0; i < h; i++) {
-        hline(buffer32, 0, y0 + i, x, cols);
-        hline(buffer32, 0, y + i, x, cols);
+        hline(pcjr->monitor->target_buffer, 0, y0 + i, x, cols);
+        hline(pcjr->monitor->target_buffer, 0, y + i, x, cols);
 
         if (pcjr->composite) {
-            Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[y0 + i]);
-            Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[y + i]);
+            Composite_Process(pcjr->array[0], 0, x >> 2, pcjr->monitor->target_buffer->line[y0 + i]);
+            Composite_Process(pcjr->array[0], 0, x >> 2, pcjr->monitor->target_buffer->line[y + i]);
         } else {
-            video_process_8(x, y0 + i);
-            video_process_8(x, y + i);
+            video_process_8_monitor(x, y0 + i, pcjr->monitor);
+            video_process_8_monitor(x, y + i, pcjr->monitor);
         }
     }
 }
@@ -338,9 +338,9 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
     pcjr->comp_len = 0;
 
     if (pcjr->array[0] & 1)
-        hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, cols[0]);
+        hline(pcjr->monitor->target_buffer, 0, line, (pcjr->crtc[1] << 3) + ho_s, cols[0]);
     else
-        hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, cols[0]);
+        hline(pcjr->monitor->target_buffer, 0, line, (pcjr->crtc[1] << 4) + ho_s, cols[0]);
 
     switch (pcjr->addr_mode) {
         case 0: /*Alpha*/
@@ -363,13 +363,13 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
-                buffer32->line[line][ef_x] = buffer32->line[line][ef_x + 1] =
+                pcjr->monitor->target_buffer->line[line][ef_x] = pcjr->monitor->target_buffer->line[line][ef_x + 1] =
                     pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
-                buffer32->line[line][ef_x + 2] = buffer32->line[line][ef_x + 3] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 2] = pcjr->monitor->target_buffer->line[line][ef_x + 3] =
                     pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
-                buffer32->line[line][ef_x + 4] = buffer32->line[line][ef_x + 5] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 4] = pcjr->monitor->target_buffer->line[line][ef_x + 5] =
                     pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
-                buffer32->line[line][ef_x + 6] = buffer32->line[line][ef_x + 7] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 6] = pcjr->monitor->target_buffer->line[line][ef_x + 7] =
                     pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
             }
             break;
@@ -379,17 +379,17 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
-                buffer32->line[line][ef_x] = buffer32->line[line][ef_x + 1] =
-                buffer32->line[line][ef_x + 2] = buffer32->line[line][ef_x + 3] =
+                pcjr->monitor->target_buffer->line[line][ef_x] = pcjr->monitor->target_buffer->line[line][ef_x + 1] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 2] = pcjr->monitor->target_buffer->line[line][ef_x + 3] =
                     pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
-                buffer32->line[line][ef_x + 4] = buffer32->line[line][ef_x + 5] =
-                    buffer32->line[line][ef_x + 6] = buffer32->line[line][ef_x + 7] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 4] = pcjr->monitor->target_buffer->line[line][ef_x + 5] =
+                    pcjr->monitor->target_buffer->line[line][ef_x + 6] = pcjr->monitor->target_buffer->line[line][ef_x + 7] =
                     pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
-                buffer32->line[line][ef_x + 8] = buffer32->line[line][ef_x + 9] =
-                buffer32->line[line][ef_x + 10] = buffer32->line[line][ef_x + 11] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 8] = pcjr->monitor->target_buffer->line[line][ef_x + 9] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 10] = pcjr->monitor->target_buffer->line[line][ef_x + 11] =
                     pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
-                buffer32->line[line][ef_x + 12] = buffer32->line[line][ef_x + 13] =
-                buffer32->line[line][ef_x + 14] = buffer32->line[line][ef_x + 15] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 12] = pcjr->monitor->target_buffer->line[line][ef_x + 13] =
+                pcjr->monitor->target_buffer->line[line][ef_x + 14] = pcjr->monitor->target_buffer->line[line][ef_x + 15] =
                     pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
             }
             break;
@@ -402,7 +402,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 for (uint8_t c = 0; c < 8; c++) {
                     chr = (dat >> 7) & 1;
                     chr |= ((dat >> 14) & 2);
-                    buffer32->line[line][ef_x + c] = pcjr->array[(chr & pcjr->array[1] & 0x0f) + 16] + 16;
+                    pcjr->monitor->target_buffer->line[line][ef_x + c] = pcjr->array[(chr & pcjr->array[1] & 0x0f) + 16] + 16;
                     dat <<= 1;
                 }
             }
@@ -424,11 +424,11 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 }
                 if (pcjr->scanline & 8)
                     for (uint8_t c = 0; c < 8; c++)
-                        buffer32->line[line][ef_x + c] = cols[0];
+                        pcjr->monitor->target_buffer->line[line][ef_x + c] = cols[0];
                     else for (uint8_t c = 0; c < 8; c++)
-                        buffer32->line[line][ef_x + c] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                        pcjr->monitor->target_buffer->line[line][ef_x + c] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
                 if (drawcursor)  for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][ef_x + c] ^= 15;
+                    pcjr->monitor->target_buffer->line[line][ef_x + c] ^= 15;
                 pcjr->memaddr++;
             }
             break;
@@ -450,14 +450,14 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 pcjr->memaddr++;
                 if (pcjr->scanline & 8)
                     for (uint8_t c = 0; c < 8; c++)
-                        buffer32->line[line][ef_x + (c << 1)] =
-                        buffer32->line[line][ef_x + (c << 1) + 1] = cols[0];
+                        pcjr->monitor->target_buffer->line[line][ef_x + (c << 1)] =
+                        pcjr->monitor->target_buffer->line[line][ef_x + (c << 1) + 1] = cols[0];
                 else
                     for (uint8_t c = 0; c < 8; c++)
-                        buffer32->line[line][ef_x + (c << 1)] =
-                        buffer32->line[line][ef_x + (c << 1) + 1] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                        pcjr->monitor->target_buffer->line[line][ef_x + (c << 1)] =
+                        pcjr->monitor->target_buffer->line[line][ef_x + (c << 1) + 1] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
                 if (drawcursor)  for (uint8_t c = 0; c < 16; c++)
-                    buffer32->line[line][ef_x + c] ^= 15;
+                    pcjr->monitor->target_buffer->line[line][ef_x + c] ^= 15;
             }
             break;
         case 0x02: /*320x200x4*/
@@ -475,7 +475,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                     pcjr->comp_raw[pcjr->comp_len++] = dat & 0xff;
                 }
                 for (uint8_t c = 0; c < 8; c++) {
-                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = cols[dat >> 14];
+                    pcjr->monitor->target_buffer->line[line][ef_x + (c << 1)] = pcjr->monitor->target_buffer->line[line][ef_x + (c << 1) + 1] = cols[dat >> 14];
                     dat <<= 2;
                 }
             }
@@ -493,7 +493,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                     pcjr->comp_raw[pcjr->comp_len++] = dat & 0xff;
                 }
                 for (uint8_t c = 0; c < 16; c++) {
-                    buffer32->line[line][ef_x + c] = cols[dat >> 15];
+                    pcjr->monitor->target_buffer->line[line][ef_x + c] = cols[dat >> 15];
                     dat <<= 1;
                 }
             }
@@ -509,14 +509,14 @@ vid_render_blank(pcjr_t *pcjr, int line, int ho_s)
 {
     if (pcjr->array[3] & 4) {
         if (pcjr->array[0] & 1)
-            hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, (pcjr->array[2] & 0xf) + 16);
+            hline(pcjr->monitor->target_buffer, 0, line, (pcjr->crtc[1] << 3) + ho_s, (pcjr->array[2] & 0xf) + 16);
         else
-            hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, (pcjr->array[2] & 0xf) + 16);
+            hline(pcjr->monitor->target_buffer, 0, line, (pcjr->crtc[1] << 4) + ho_s, (pcjr->array[2] & 0xf) + 16);
     } else {
         if (pcjr->array[0] & 1)
-            hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, pcjr->array[0 + 16] + 16);
+            hline(pcjr->monitor->target_buffer, 0, line, (pcjr->crtc[1] << 3) + ho_s, pcjr->array[0 + 16] + 16);
         else
-            hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, pcjr->array[0 + 16] + 16);
+            hline(pcjr->monitor->target_buffer, 0, line, (pcjr->crtc[1] << 4) + ho_s, pcjr->array[0 + 16] + 16);
     }
 }
 
@@ -535,8 +535,8 @@ vid_render_comp(pcjr_t *pcjr, int line, int ho_d)
     int      contrast;
     uint32_t key;
 
-    if ((ho_d + (len << 3)) > buffer32->w)
-        len = (buffer32->w - ho_d) >> 3;
+    if ((ho_d + (len << 3)) > pcjr->monitor->target_buffer->w)
+        len = (pcjr->monitor->target_buffer->w - ho_d) >> 3;
     if ((ho_d < 0) || (len <= 0))
         return;
 
@@ -559,7 +559,7 @@ vid_render_comp(pcjr_t *pcjr, int line, int ho_d)
                            brightness, contrast, saturation, &pcjr->array[0x10]);
     }
 
-    pcjr_comp_line(pcjr->comp_lut, pcjr->comp_raw, len, &buffer32->line[line][ho_d]);
+    pcjr_comp_line(pcjr->comp_lut, pcjr->comp_raw, len, &pcjr->monitor->target_buffer->line[line][ho_d]);
 }
 
 static void
@@ -573,11 +573,11 @@ vid_render_process(pcjr_t *pcjr, int line, int ho_s, int ho_d, int rendered)
         x = (pcjr->crtc[1] << 4) + ho_s;
 
     if (pcjr->composite) {
-        Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[line]);
+        Composite_Process(pcjr->array[0], 0, x >> 2, pcjr->monitor->target_buffer->line[line]);
         if (rendered && pcjr->comp_len)
             vid_render_comp(pcjr, line, ho_d);
     } else
-        video_process_8(x, line);
+        video_process_8_monitor(x, line, pcjr->monitor);
 }
 
 static void
@@ -604,7 +604,7 @@ vid_poll(void *priv)
         if (pcjr->dispon) {
             if (pcjr->displine < pcjr->firstline) {
                 pcjr->firstline = pcjr->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(pcjr->monitor);
             }
             pcjr->lastline = pcjr->displine;
             switch (pcjr->double_type) {
@@ -722,14 +722,14 @@ vid_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= ho_s;
 
-                        if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
+                        if ((xs_temp != pcjr->monitor->mon_xsize) || (ys_temp != pcjr->monitor->mon_ysize) || video_force_resize_get_monitor(pcjr->monitor)) {
+                            pcjr->monitor->mon_xsize = xs_temp;
+                            pcjr->monitor->mon_ysize = ys_temp;
 
-                            set_screen_size(xsize, ysize + (enable_overscan ? 32 : 0));
+                            set_screen_size_monitor(pcjr->monitor->mon_xsize, pcjr->monitor->mon_ysize + (enable_overscan ? 32 : 0), pcjr->monitor);
 
-                            if (video_force_resize_get())
-                                video_force_resize_set(0);
+                            if (video_force_resize_get_monitor(pcjr->monitor))
+                                video_force_resize_set_monitor(0, pcjr->monitor);
                         }
 
                         vid_blit_v_overscan(pcjr);
@@ -737,34 +737,34 @@ vid_poll(void *priv)
                         if (pcjr->double_type > DOUBLE_NONE) {
                             if (enable_overscan) {
                                 cga_blit_memtoscreen(0, pcjr->firstline << 1,
-                                                     xsize, actual_ys + 32,
-                                                     pcjr->double_type);
+                                                     pcjr->monitor->mon_xsize, actual_ys + 32,
+                                                     pcjr->double_type, pcjr->monitor);
                             } else if (pcjr->apply_hd) {
                                 cga_blit_memtoscreen(ho_s / 2, (pcjr->firstline << 1) + 16,
-                                                     xsize, actual_ys,
-                                                     pcjr->double_type);
+                                                     pcjr->monitor->mon_xsize, actual_ys,
+                                                     pcjr->double_type, pcjr->monitor);
                             } else {
                                 cga_blit_memtoscreen(ho_d, (pcjr->firstline << 1) + 16,
-                                                     xsize, actual_ys,
-                                                     pcjr->double_type);
+                                                     pcjr->monitor->mon_xsize, actual_ys,
+                                                     pcjr->double_type, pcjr->monitor);
                             }
                         } else {
                             if (enable_overscan) {
-                                video_blit_memtoscreen(0, pcjr->firstline,
-                                                       xsize, (actual_ys >> 1) + 16);
+                                video_blit_memtoscreen_monitor(0, pcjr->firstline,
+                                                       pcjr->monitor->mon_xsize, (actual_ys >> 1) + 16, pcjr->monitor);
                             } else if (pcjr->apply_hd) {
-                                video_blit_memtoscreen(ho_s / 2, pcjr->firstline + 8,
-                                                       xsize, actual_ys >> 1);
+                                video_blit_memtoscreen_monitor(ho_s / 2, pcjr->firstline + 8,
+                                                       pcjr->monitor->mon_xsize, actual_ys >> 1, pcjr->monitor);
                             } else {
-                                video_blit_memtoscreen(ho_d, pcjr->firstline + 8,
-                                                       xsize, actual_ys >> 1);
+                                video_blit_memtoscreen_monitor(ho_d, pcjr->firstline + 8,
+                                                       pcjr->monitor->mon_xsize, actual_ys >> 1, pcjr->monitor);
                             }
                         }
                     }
 
                     frames++;
-                    video_res_x = xsize;
-                    video_res_y = ysize;
+                    pcjr->monitor->mon_res_x = pcjr->monitor->mon_xsize;
+                    pcjr->monitor->mon_res_y = pcjr->monitor->mon_ysize;
                 }
                 pcjr->firstline = 1000;
                 pcjr->lastline  = 0;
@@ -786,7 +786,9 @@ pcjr_vid_init(pcjr_t *pcjr)
 {
     int     display_type;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
+    pcjr->monitor = video_monitor_pending;
+
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_dram, pcjr->monitor);
 
     pcjr->memctrl   = -1;
     if (mem_size < 128)
@@ -796,8 +798,8 @@ pcjr_vid_init(pcjr_t *pcjr)
     pcjr->composite = (display_type == PCJR_COMPOSITE);
     pcjr->composite_new_era = (device_get_config_int("composite_type") == PCJR_COMPOSITE_NEW);
     pcjr->apply_hd  = device_get_config_int("apply_hd");
-    overscan_x = 256;
-    overscan_y = 32;
+    pcjr->monitor->mon_overscan_x = 256;
+    pcjr->monitor->mon_overscan_y = 32;
 
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
                     vid_read, NULL, NULL,
@@ -806,13 +808,13 @@ pcjr_vid_init(pcjr_t *pcjr)
                   vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
     timer_add(&pcjr->timer, vid_poll, pcjr, 1);
 
-    if (&(cga_palette) != NULL) {
+    if (&(*pcjr->monitor->mon_cga_palette) != NULL) {
         if (pcjr->composite)
-            cga_palette = 0;
+            *pcjr->monitor->mon_cga_palette = 0;
         else
-            cga_palette = (display_type << 1);
+            *pcjr->monitor->mon_cga_palette = (display_type << 1);
     }
-    cgapal_rebuild();
+    cgapal_rebuild_monitor(pcjr->monitor);
 
     pcjr->double_type = device_get_config_int("double_type");
     cga_interpolate_init();
@@ -821,5 +823,5 @@ pcjr_vid_init(pcjr_t *pcjr)
        saved composite settings to it. */
     cga_comp_init(0);
 
-    monitors[monitor_index_global].mon_composite = !!pcjr->composite;
+    pcjr->monitor->mon_composite = !!pcjr->composite;
 }

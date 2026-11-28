@@ -1734,7 +1734,7 @@ im1024_init(UNUSED(const device_t *info))
     mem_mapping_set_handler(&dev->pgc.mapping,
                             im1024_read, NULL, NULL, im1024_write, NULL, NULL);
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_im1024);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_im1024, video_monitor_pending);
 
     return dev;
 }

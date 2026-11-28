@@ -66,7 +66,7 @@ static void
 qvision_dirty(qvision_t *s, uint32_t start, uint32_t size)
 {
     for (uint32_t p = start >> 12; p <= ((start + size - 1) >> 12); p++)
-        s->svga.changedvram[p & 255] = changeframecount;
+        s->svga.changedvram[p & 255] = s->svga.monitor->mon_changeframecount;
 }
 
 static void
@@ -682,7 +682,7 @@ qvision_out(uint16_t port, uint8_t value, void *priv)
             qvision_host_stop(s);
         if (index == 0x40 || index == 0x48 || index == 0x49)
             qvision_update_map(s);
-        svga->fullchange = changeframecount;
+        svga->fullchange = svga->monitor->mon_changeframecount;
         svga_recalctimings(svga);
         return;
     }
@@ -708,7 +708,7 @@ qvision_out(uint16_t port, uint8_t value, void *priv)
             if (svga->crtcreg == 7 && (svga->crtc[0x11] & 0x80))
                 value = (svga->crtc[7] & ~0x10) | (value & 0x10);
             svga->crtc[svga->crtcreg] = value;
-            svga->fullchange          = changeframecount;
+            svga->fullchange          = svga->monitor->mon_changeframecount;
             svga_recalctimings(svga);
         }
         svga_out(port, value, svga);
@@ -907,7 +907,7 @@ qvision_init(const device_t *info)
     }
     memcpy(s->bios_vga, s->bios_data, sizeof(s->bios_vga));
     memset(s->bios_vga + 0x6000, 0xff, 0x800);
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing, video_monitor_pending);
     svga_init(info, &s->svga, s, 1U << 20, qvision_recalctimings, qvision_in, qvision_out, NULL, NULL);
     s->svga.ramdac            = device_add(&bt484_ramdac_device);
     s->svga.dac_hwcursor_draw = bt48x_hwcursor_draw;
@@ -956,7 +956,7 @@ static void
 qvision_force_redraw(void *p)
 {
     qvision_t *s       = p;
-    s->svga.fullchange = changeframecount;
+    s->svga.fullchange = s->svga.monitor->mon_changeframecount;
 }
 static int
 qvision_available(void)

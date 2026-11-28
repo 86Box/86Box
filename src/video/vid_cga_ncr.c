@@ -165,15 +165,12 @@ nga_poll(void *priv)
     int      scanline_old;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = nga->cga.monitor_used;
 
     /* graphic mode and not high-res modes */
     if ((nga->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) && !(nga->cga.cgamode & 0x40)) {
         /* standard cga mode */
         cga_poll(&nga->cga);
-        monitor_index_global = prev_monitor_index;
         return;
     } else {
         /* high-res or text mode */
@@ -188,7 +185,7 @@ nga_poll(void *priv)
             if (nga->cga.cgadispon) {
                 if (nga->cga.displine < nga->cga.firstline) {
                     nga->cga.firstline = nga->cga.displine;
-                    video_wait_for_buffer();
+                    video_wait_for_buffer_monitor(nga->cga.monitor);
                 }
                 nga->cga.lastline = nga->cga.displine;
                 /* 80-col */
@@ -221,10 +218,10 @@ nga_poll(void *priv)
                         }
                         if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+                                nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
                         nga->cga.memaddr++;
@@ -257,10 +254,10 @@ nga_poll(void *priv)
 
                         if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+                                nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
                         nga->cga.memaddr++;
@@ -323,7 +320,7 @@ nga_poll(void *priv)
                                 /* each pixel is represented by one bit, so draw 16 pixels at a time */
                                 /* crtc[1] is 40 column, so 40x16=640 pixels */
                                 for (c = 0; c < 16; c++) {
-                                    buffer32->line[nga->cga.displine][(x << 4) + c + 8] = cols[dat >> 15];
+                                    nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 4) + c + 8] = cols[dat >> 15];
                                     dat <<= 1;
                                 }
                                 /* 640x400x4 */
@@ -339,7 +336,7 @@ nga_poll(void *priv)
                                 /* each pixel is represented by two bits, so draw 8 pixels at a time */
                                 /* crtc[1] is 80 column, so 80x8=640 pixels */
                                 for (c = 0; c < 8; c++) {
-                                    buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[dat >> 14];
+                                    nga->cga.monitor->target_buffer->line[nga->cga.displine][(x << 3) + c + 8] = cols[dat >> 14];
                                     dat <<= 2;
                                 }
                             }
@@ -355,11 +352,11 @@ nga_poll(void *priv)
                 cols[0] = ((nga->cga.cgamode & 0x12) == 0x12) ? 0 : (nga->cga.cgacol & 15) + 16;
                 /* 80-col */
                 if (nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES) {
-                    hline(buffer32, 0, (nga->cga.displine << 1), ((nga->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
-                    hline(buffer32, 0, (nga->cga.displine << 1) + 1, ((nga->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
+                    hline(nga->cga.monitor->target_buffer, 0, (nga->cga.displine << 1), ((nga->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
+                    hline(nga->cga.monitor->target_buffer, 0, (nga->cga.displine << 1) + 1, ((nga->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
                 } else {
-                    hline(buffer32, 0, (nga->cga.displine << 1), ((nga->cga.crtc[CGA_CRTC_HDISP] << 4) + 16) << 2, cols[0]);
-                    hline(buffer32, 0, (nga->cga.displine << 1) + 1, ((nga->cga.crtc[CGA_CRTC_HDISP] << 4) + 16) << 2, cols[0]);
+                    hline(nga->cga.monitor->target_buffer, 0, (nga->cga.displine << 1), ((nga->cga.crtc[CGA_CRTC_HDISP] << 4) + 16) << 2, cols[0]);
+                    hline(nga->cga.monitor->target_buffer, 0, (nga->cga.displine << 1) + 1, ((nga->cga.crtc[CGA_CRTC_HDISP] << 4) + 16) << 2, cols[0]);
                 }
             }
 
@@ -369,8 +366,8 @@ nga_poll(void *priv)
             else
                 x = (nga->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
 
-            video_process_8(x, nga->cga.displine);
-            video_lightpen_check_trigger_strobe(8, nga->cga.displine * (nga->cga.double_type ? 2 : 1), 0, nga->cga.firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), nga->cga.monitor_used);
+            video_process_8_monitor(x, nga->cga.displine, nga->cga.monitor);
+            video_lightpen_check_trigger_strobe(8, nga->cga.displine * (nga->cga.double_type ? 2 : 1), 0, nga->cga.firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), nga->cga.monitor);
 
             nga->cga.scanline = scanline_old;
             /* vertical sync */
@@ -381,7 +378,7 @@ nga_poll(void *priv)
                 nga->cga.displine = 0;
         } else {
             timer_advance_u64(&nga->cga.timer, nga->cga.dispontime);
-            video_lightpen_hsync();
+            video_lightpen_hsync(nga->cga.monitor);
             if (nga->cga.cgadispon)
                 nga->cga.cgastat &= ~1;
             nga->cga.linepos = 0;
@@ -459,7 +456,7 @@ nga_poll(void *priv)
                         nga->cga.displine  = 0;
                         /* nga specific */
                         nga->cga.vsynctime = 16;
-                        video_lightpen_vsync();
+                        video_lightpen_vsync(nga->cga.monitor);
                         /* vsync pos */
                         if (nga->cga.crtc[CGA_CRTC_VSYNC]) {
                             if (nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES)
@@ -473,49 +470,49 @@ nga_poll(void *priv)
                             ys_temp = (nga->cga.lastline - nga->cga.firstline);
 
                             if ((xs_temp > 0) && (ys_temp > 0)) {
-                                if (xsize < 64)
+                                if (nga->cga.monitor->mon_xsize < 64)
                                     xs_temp = 656;
                                 /* nga specific */
-                                if (ysize < 32)
+                                if (nga->cga.monitor->mon_ysize < 32)
                                     ys_temp = 400;
                                 if (!enable_overscan)
                                     xs_temp -= 16;
 
-                                if ((nga->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
-                                    xsize = xs_temp;
-                                    ysize = ys_temp;
-                                    set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                                if ((nga->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != nga->cga.monitor->mon_xsize) || (ys_temp != nga->cga.monitor->mon_ysize) || video_force_resize_get_monitor(nga->cga.monitor))) {
+                                    nga->cga.monitor->mon_xsize = xs_temp;
+                                    nga->cga.monitor->mon_ysize = ys_temp;
+                                    set_screen_size_monitor(nga->cga.monitor->mon_xsize, nga->cga.monitor->mon_ysize + (enable_overscan ? 16 : 0), nga->cga.monitor);
 
-                                    if (video_force_resize_get())
-                                        video_force_resize_set(0);
+                                    if (video_force_resize_get_monitor(nga->cga.monitor))
+                                        video_force_resize_set_monitor(0, nga->cga.monitor);
                                 }
                                 /* nga specific */
                                 if (enable_overscan) {
-                                    video_blit_memtoscreen(0, (nga->cga.firstline - 8),
-                                                           xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
+                                    video_blit_memtoscreen_monitor(0, (nga->cga.firstline - 8),
+                                                           nga->cga.monitor->mon_xsize, (nga->cga.lastline - nga->cga.firstline) + 16, nga->cga.monitor);
                                 } else {
-                                    video_blit_memtoscreen(8, nga->cga.firstline,
-                                                           xsize, (nga->cga.lastline - nga->cga.firstline));
+                                    video_blit_memtoscreen_monitor(8, nga->cga.firstline,
+                                                           nga->cga.monitor->mon_xsize, (nga->cga.lastline - nga->cga.firstline), nga->cga.monitor);
                                 }
                             }
                             frames++;
 
-                            video_res_x = xsize;
-                            video_res_y = ysize;
+                            nga->cga.monitor->mon_res_x = nga->cga.monitor->mon_xsize;
+                            nga->cga.monitor->mon_res_y = nga->cga.monitor->mon_ysize;
                             /* 80-col */
                             if ((nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES) && !(nga->cga.cgamode & 0x40)) {
-                                video_res_x /= 8;
-                                video_res_y /= (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
-                                video_bpp = 0;
+                                nga->cga.monitor->mon_res_x /= 8;
+                                nga->cga.monitor->mon_res_y /= (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
+                                nga->cga.monitor->mon_bpp = 0;
                                 /* 40-col */
                             } else if (!(nga->cga.cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                                video_res_x /= 16;
-                                video_res_y /= (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
-                                video_bpp = 0;
+                                nga->cga.monitor->mon_res_x /= 16;
+                                nga->cga.monitor->mon_res_y /= (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
+                                nga->cga.monitor->mon_bpp = 0;
                             } else if (nga->cga.cgamode & 0x40) {
-                                video_res_x /= 8;
-                                video_res_y /= 2;
-                                video_bpp = 1;
+                                nga->cga.monitor->mon_res_x /= 8;
+                                nga->cga.monitor->mon_res_y /= 2;
+                                nga->cga.monitor->mon_bpp = 1;
                             }
                         }
                         nga->cga.firstline = 1000;
@@ -545,7 +542,6 @@ nga_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -571,10 +567,10 @@ nga_init(UNUSED(const device_t *info))
     int     mem;
     uint8_t charset;
     nga_t  *nga = (nga_t *) calloc(1, sizeof(nga_t));
+    nga->cga.monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_nga);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_nga, nga->cga.monitor);
 
-    nga->cga.monitor_used = monitor_index_global;
 
     charset = device_get_config_int("charset");
 
@@ -602,10 +598,10 @@ nga_init(UNUSED(const device_t *info))
 
     io_sethandler(0x03d0, 16, nga_in, NULL, NULL, nga_out, NULL, NULL, nga);
 
-    overscan_x = overscan_y = 16;
+    nga->cga.monitor->mon_overscan_x = nga->cga.monitor->mon_overscan_y = 16;
     nga->cga.rgb_type       = device_get_config_int("rgb_type");
-    cga_palette             = (nga->cga.rgb_type << 1);
-    cgapal_rebuild();
+    *nga->cga.monitor->mon_cga_palette             = (nga->cga.rgb_type << 1);
+    cgapal_rebuild_monitor(nga->cga.monitor);
 
     return nga;
 }

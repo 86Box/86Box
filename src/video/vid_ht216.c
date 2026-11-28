@@ -362,7 +362,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         }
                         ht216->misc = (ht216->misc & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
                         svga->miscout = (svga->miscout & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                         break;
                     case 0xf8:
@@ -373,7 +373,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                             if ((val & 0x06) == 0x06)
                                 ht216->clk_sel = (val >> 5) & 0x03;
                         }
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                         break;
 
@@ -383,7 +383,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
 
                     case 0xc8:
                         if ((old ^ val) & HT_REG_C8_E256) {
-                            svga->fullchange = changeframecount;
+                            svga->fullchange = svga->monitor->mon_changeframecount;
                             svga_recalctimings(svga);
                         }
                         ht216_remap(ht216);
@@ -446,7 +446,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         ht216_log("HT216 reg 0xf6 write = %02x, mode = 0, chain4 = %x, vram mask = %08x, cr17 = %02x\n", val, svga->chain4, svga->vram_display_mask, svga->crtc[0x17]);
                         ht216_recalc_bank_regs(ht216, 0);
                         ht216_remap(ht216);
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                         break;
 
@@ -462,7 +462,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         svga->packed_chain4 = !!(val & 0x20);
                         ht216_recalc_bank_regs(ht216, 0);
                         ht216_remap(ht216);
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                         break;
 
@@ -523,7 +523,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -1135,7 +1135,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
     if (addr >= svga->vram_max)
         return;
 
-    svga->changedvram[addr >> 12] = changeframecount;
+    svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
 
     if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
         count = 8;
@@ -1447,7 +1447,7 @@ ht216_dm_extalu_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t bi
     bg                                     = extalu(ht216->ht_regs[0xce] & 0xf, input_a, input_b);
     output                                 = (fg & rop_select) | (bg & ~rop_select);
     svga->vram[addr]                       = (svga->vram[remapped_addr] & ~bit_mask) | (output & bit_mask);
-    svga->changedvram[remapped_addr >> 12] = changeframecount;
+    svga->changedvram[remapped_addr >> 12] = svga->monitor->mon_changeframecount;
 }
 
 static void
@@ -1471,7 +1471,7 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
     uint8_t       bit_mask   = 0;
     uint8_t       rop_select = 0;
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     addr &= svga->vram_mask;
 
@@ -1680,7 +1680,7 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 
     addr &= svga->vram_mask;
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     count = (1 << count);
 
@@ -1859,11 +1859,11 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     ht216->mca = (info->flags & DEVICE_MCA);
 
     if (info->flags & DEVICE_VLB)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_vlb);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_vlb, video_monitor_pending);
     else if (info->flags & DEVICE_MCA)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_mca);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_mca, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_isa, video_monitor_pending);
 
     svga_init(info, svga, ht216, mem_size,
               ht216_recalctimings,
@@ -2118,7 +2118,7 @@ ht216_force_redraw(void *priv)
 {
     ht216_t *ht216 = (ht216_t *) priv;
 
-    ht216->svga.fullchange = changeframecount;
+    ht216->svga.fullchange = ht216->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off

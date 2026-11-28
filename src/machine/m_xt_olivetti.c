@@ -139,6 +139,7 @@ typedef struct m24_kbd_t {
 } m24_kbd_t;
 
 typedef struct m19_vid_t {
+    struct monitor_t *monitor;
     ogc_t       ogc;
     colorplus_t colorplus;
     int         mode;
@@ -2014,6 +2015,9 @@ m19_vid_speed_changed(void *priv)
 static void
 m19_vid_init(m19_vid_t *vid)
 {
+    vid->monitor = video_monitor_pending;
+    vid->ogc.cga.monitor = vid->monitor;
+    vid->colorplus.cga.monitor = vid->monitor;
     device_context(&m19_vid_device);
 
 #if 0
@@ -2021,7 +2025,7 @@ m19_vid_init(m19_vid_t *vid)
 #endif
     vid->mode = OLIVETTI_OGC_MODE;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m19_vid);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_m19_vid, vid->monitor);
 
 #if 0
     display_type = device_get_config_int("display_type");
@@ -2041,9 +2045,9 @@ m19_vid_init(m19_vid_t *vid)
 #endif
 
     vid->ogc.cga.rgb_type = device_get_config_int("rgb_type");
-    if (&(cga_palette) != NULL)
-        cga_palette           = (vid->ogc.cga.rgb_type << 1);
-    cgapal_rebuild();
+    if (&(*vid->monitor->mon_cga_palette) != NULL)
+        *vid->monitor->mon_cga_palette           = (vid->ogc.cga.rgb_type << 1);
+    cgapal_rebuild_monitor(vid->monitor);
     ogc_mdaattr_rebuild();
 
     /* color display */

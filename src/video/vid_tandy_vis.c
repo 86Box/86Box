@@ -389,7 +389,7 @@ tvis_out(uint16_t addr, uint8_t val, void *priv)
                 old              = svga->crtc[0x30];
                 svga->crtc[0x30] = val;
                 if (old != val) {
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     svga_recalctimings(svga);
                 }
                 return;
@@ -408,7 +408,7 @@ tvis_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -473,7 +473,7 @@ tvis_vid_init(const device_t *info)
 {
     tvis_vid_t *vga = calloc(1, sizeof(tvis_vid_t));
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vis);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_vis, video_monitor_pending);
     video_update_timing();
 
     svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
@@ -515,7 +515,7 @@ tvis_vid_force_redraw(void *priv)
 {
     tvis_vid_t *vga = (tvis_vid_t *) priv;
 
-    vga->svga.fullchange = changeframecount;
+    vga->svga.fullchange = vga->svga.monitor->mon_changeframecount;
 }
 
 const device_t tvis_vid_device = {

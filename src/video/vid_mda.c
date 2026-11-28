@@ -158,7 +158,6 @@ mda_poll(void *priv)
     int32_t  scanline_old;
     int32_t  blink;
 
-    VIDEO_MONITOR_PROLOGUE()
 
     if (!mda->linepos) {
         timer_advance_u64(&mda->timer, mda->dispofftime);
@@ -171,7 +170,7 @@ mda_poll(void *priv)
         if (mda->dispon) {
             if (mda->displine < mda->firstline) {
                 mda->firstline = mda->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(mda->monitor);
             }
             mda->lastline = mda->displine;
 
@@ -219,9 +218,9 @@ mda_poll(void *priv)
                     for (uint32_t column = 0; column < 9; column++) {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
                             && !(mda->mode & MDA_MODE_BW)) {
-                            buffer32->line[mda->displine][(x * 9) + column] = CGAPAL_CGA_START + color_fg;
+                            mda->monitor->target_buffer->line[mda->displine][(x * 9) + column] = CGAPAL_CGA_START + color_fg;
                         } else
-                            buffer32->line[mda->displine][(x * 9) + column] = mda_attr_to_color_table[attr][blink][1];
+                            mda->monitor->target_buffer->line[mda->displine][(x * 9) + column] = mda_attr_to_color_table[attr][blink][1];
                     }
                 } else { // character
                     for (uint32_t column = 0; column < 8; column++) {
@@ -238,7 +237,7 @@ mda_poll(void *priv)
                                 font_char = CGAPAL_CGA_START + color_fg;
                         }
 
-                        buffer32->line[mda->displine][(x * 9) + column] = font_char;
+                        mda->monitor->target_buffer->line[mda->displine][(x * 9) + column] = font_char;
                     }
 
                     // these characters (C0-DF) have their background extended to their 9th column
@@ -254,15 +253,15 @@ mda_poll(void *priv)
                                 final_result = CGAPAL_CGA_START + color_fg;
                         }
 
-                        buffer32->line[mda->displine][(x * 9) + 8] = final_result;
+                        mda->monitor->target_buffer->line[mda->displine][(x * 9) + 8] = final_result;
 
                     } else {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
                             && !(mda->mode & MDA_MODE_BW)) {
-                            buffer32->line[mda->displine][(x * 9) + 8] = CGAPAL_CGA_START + color_bg;
+                            mda->monitor->target_buffer->line[mda->displine][(x * 9) + 8] = CGAPAL_CGA_START + color_bg;
 
                         } else
-                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
+                            mda->monitor->target_buffer->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
                     }
                 }
 
@@ -272,15 +271,15 @@ mda_poll(void *priv)
                     for (uint32_t column = 0; column < 9; column++) {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
                             && !(mda->mode & MDA_MODE_BW)) {
-                            buffer32->line[mda->displine][(x * 9) + column] ^= CGAPAL_CGA_START + color_fg;
+                            mda->monitor->target_buffer->line[mda->displine][(x * 9) + column] ^= CGAPAL_CGA_START + color_fg;
                         } else
-                            buffer32->line[mda->displine][(x * 9) + column] ^= mda_attr_to_color_table[attr][0][1];
+                            mda->monitor->target_buffer->line[mda->displine][(x * 9) + column] ^= mda_attr_to_color_table[attr][0][1];
                     }
                 }
             }
 
-            video_process_8(mda->crtc[MDA_CRTC_HDISP] * 9, mda->displine);
-            video_lightpen_check_trigger_strobe(0, mda->displine, 0, mda->firstline, (1. / (MDACONST / (cpuclock * (double) (1ULL << 32)))) * 9.0, monitor_index_global);
+            video_process_8_monitor(mda->crtc[MDA_CRTC_HDISP] * 9, mda->displine, mda->monitor);
+            video_lightpen_check_trigger_strobe(0, mda->displine, 0, mda->firstline, (1. / (MDACONST / (cpuclock * (double) (1ULL << 32)))) * 9.0, mda->monitor);
         }
         mda->scanline = scanline_old;
         if (mda->vc == mda->crtc[MDA_CRTC_VSYNC] && !mda->scanline) {
@@ -291,7 +290,7 @@ mda_poll(void *priv)
             mda->displine = 0;
     } else {
         timer_advance_u64(&mda->timer, mda->dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(mda->monitor);
         if (mda->dispon)
             mda->status &= ~1;
         mda->linepos = 0;
@@ -345,27 +344,27 @@ mda_poll(void *priv)
                 mda->dispon    = 0;
                 mda->displine  = 0;
                 mda->vsynctime = 16;
-                video_lightpen_vsync();
+                video_lightpen_vsync(mda->monitor);
                 if (mda->crtc[MDA_CRTC_VSYNC]) {
                     uint32_t x = mda->crtc[MDA_CRTC_HDISP] * 9;
                     mda->lastline++;
-                    if ((x != xsize) || ((mda->lastline - mda->firstline) != ysize) || video_force_resize_get()) {
-                        xsize = x;
-                        ysize = mda->lastline - mda->firstline;
-                        if (xsize < 64)
-                            xsize = 656;
-                        if (ysize < 32)
-                            ysize = 200;
-                        set_screen_size(xsize, ysize);
+                    if ((x != mda->monitor->mon_xsize) || ((mda->lastline - mda->firstline) != mda->monitor->mon_ysize) || video_force_resize_get_monitor(mda->monitor)) {
+                        mda->monitor->mon_xsize = x;
+                        mda->monitor->mon_ysize = mda->lastline - mda->firstline;
+                        if (mda->monitor->mon_xsize < 64)
+                            mda->monitor->mon_xsize = 656;
+                        if (mda->monitor->mon_ysize < 32)
+                            mda->monitor->mon_ysize = 200;
+                        set_screen_size_monitor(mda->monitor->mon_xsize, mda->monitor->mon_ysize, mda->monitor);
 
-                        if (video_force_resize_get())
-                            video_force_resize_set(0);
+                        if (video_force_resize_get_monitor(mda->monitor))
+                            video_force_resize_set_monitor(0, mda->monitor);
                     }
-                    video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
+                    video_blit_memtoscreen_monitor(0, mda->firstline, mda->monitor->mon_xsize, mda->monitor->mon_ysize, mda->monitor);
                     frames++;
-                    video_res_x = mda->crtc[MDA_CRTC_HDISP];
-                    video_res_y = mda->crtc[MDA_CRTC_VDISP];
-                    video_bpp   = 0;
+                    mda->monitor->mon_res_x = mda->crtc[MDA_CRTC_HDISP];
+                    mda->monitor->mon_res_y = mda->crtc[MDA_CRTC_VDISP];
+                    mda->monitor->mon_bpp   = 0;
                 }
                 mda->firstline = 1000;
                 mda->lastline  = 0;
@@ -383,12 +382,13 @@ mda_poll(void *priv)
             mda->cursorvisible = 1;
         }
     }
-    VIDEO_MONITOR_EPILOGUE();
 }
 
 void
 mda_init(mda_t *mda)
 {
+    mda->monitor = video_monitor_pending;
+
     /* For the memory viewer; here, as machines with the card built in map
        the same handlers. */
     mem_debug_add(mda_read, mda_write, mda_debug_ptr);
@@ -413,15 +413,14 @@ mda_init(mda_t *mda)
     mda_attr_to_color_table[0x80][0][1] = mda_attr_to_color_table[0x80][1][1] = 16;
     mda_attr_to_color_table[0x88][0][1] = mda_attr_to_color_table[0x88][1][1] = 16;
 
-    overscan_x = overscan_y = 0;
-    mda->monitor_index      = monitor_index_global;
+    mda->monitor->mon_overscan_x = mda->monitor->mon_overscan_y = 0;
 
     mda->monitor_type = device_get_config_int("rgb_type");
-    cga_palette       = mda->monitor_type << 1;
-    if (cga_palette > 6) {
-        cga_palette = 0;
+    *mda->monitor->mon_cga_palette       = mda->monitor_type << 1;
+    if (*mda->monitor->mon_cga_palette > 6) {
+        *mda->monitor->mon_cga_palette = 0;
     }
-    cgapal_rebuild();
+    cgapal_rebuild_monitor(mda->monitor);
 
     timer_add(&mda->timer, mda_poll, mda, 1);
 }
@@ -431,7 +430,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 {
     mda_t *mda = calloc(1, sizeof(mda_t));
 
-    video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
+    video_inform_monitor(VIDEO_FLAG_TYPE_MDA, &timing_mda, video_monitor_pending);
 
     mda->vram = calloc(1, MDA_VRAM);
 

@@ -147,6 +147,8 @@ extern "C" {
 #endif
 
 /* Global variables. */
+struct monitor_t;
+
 extern int dump_on_exit;          /* (O) dump regs on exit */
 extern int start_in_fullscreen;   /* (O) start in fullscreen */
 extern int start_fast_forward;    /* (O) start in fast forward mode */
@@ -169,10 +171,10 @@ extern uint8_t  instru_enabled;
 extern uint64_t instru_run_ms;
 #endif
 
-#define window_x monitor_settings[0].mon_window_x
-#define window_y monitor_settings[0].mon_window_y
-#define window_w monitor_settings[0].mon_window_w
-#define window_h monitor_settings[0].mon_window_h
+#define window_x monitor_primary_settings.mon_window_x
+#define window_y monitor_primary_settings.mon_window_y
+#define window_w monitor_primary_settings.mon_window_w
+#define window_h monitor_primary_settings.mon_window_h
 extern int      inhibit_multimedia_keys;    /* (G) Inhibit multimedia keys on Windows. */
 extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
@@ -304,10 +306,8 @@ extern void (*pclog_hook)(const char *line);
 extern void always_log(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-extern void set_screen_size(int x, int y);
-extern void set_screen_size_monitor(int x, int y, int monitor_index);
+extern void set_screen_size_monitor(int x, int y, struct monitor_t *monitor);
 extern void reset_screen_size(void);
-extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
 extern int  pc_init_roms(void);
 extern int  pc_init_modules(void);

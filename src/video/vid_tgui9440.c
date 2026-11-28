@@ -1252,7 +1252,7 @@ static void
 tgui_overlay_draw(svga_t *svga, int displine)
 {
     const tgui_t *tgui   = (tgui_t *) svga->priv;
-    uint32_t     *p      = &(buffer32->line[displine])[svga->x_add];
+    uint32_t     *p      = &(svga->monitor->target_buffer->line[displine])[svga->x_add];
     uint32_t      addr   = svga->overlay_latch.addr;
     uint32_t      h_acc  = 0;
     int           rgb    = svga->crtc[0x8f] & 0x01;
@@ -1322,14 +1322,14 @@ tgui_hwcursor_draw(svga_t *svga, int displine)
         if (svga->crtc[0x50] & 0x40) {
             if (offset >= svga->hwcursor_latch.x) {
                 if (dat[0] & 0x80000000)
-                    (buffer32->line[displine])[svga->x_add + offset] = (dat[1] & 0x80000000) ? 0xffffff : 0;
+                    (svga->monitor->target_buffer->line[displine])[svga->x_add + offset] = (dat[1] & 0x80000000) ? 0xffffff : 0;
             }
         } else {
             if (offset >= svga->hwcursor_latch.x) {
                 if (!(dat[0] & 0x80000000))
-                    (buffer32->line[displine])[svga->x_add + offset] = (dat[1] & 0x80000000) ? 0xffffff : 0;
+                    (svga->monitor->target_buffer->line[displine])[svga->x_add + offset] = (dat[1] & 0x80000000) ? 0xffffff : 0;
                 else if (dat[1] & 0x80000000)
-                    (buffer32->line[displine])[svga->x_add + offset] ^= 0xffffff;
+                    (svga->monitor->target_buffer->line[displine])[svga->x_add + offset] ^= 0xffffff;
             }
         }
         offset++;
@@ -4314,9 +4314,9 @@ tgui_init(const device_t *info)
     }
 
     if (tgui->pci)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_vlb);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_vlb, video_monitor_pending);
 
     svga_init(info, svga, tgui, tgui->vram_size,
               tgui_recalctimings,

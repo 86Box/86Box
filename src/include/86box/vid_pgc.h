@@ -49,6 +49,7 @@ typedef struct pgc_cmd {
 } pgc_cmd_t;
 
 typedef struct pgc {
+    struct monitor_t *monitor;
     int8_t          type; /* board type */
     int8_t          cga_enabled;
     int8_t          cga_selected;

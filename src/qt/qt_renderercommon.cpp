@@ -33,7 +33,10 @@ extern "C" {
 #include <86box/video.h>
 }
 
-RendererCommon::RendererCommon() = default;
+RendererCommon::RendererCommon(monitor_t *monitor)
+    : r_monitor(monitor)
+{
+}
 
 extern MainWindow *main_window;
 
@@ -131,7 +134,7 @@ RendererCommon::onResize(int width, int height)
 
     output_size = QSize(width, height);
 
-    const auto &monitor = monitors[r_monitor_index];
+    const auto &monitor = *r_monitor;
     /* A window sized to the picture without HiDPI scaling can't always be made exactly
        that many device pixels large, so show the picture at its own size instead of
        stretching it by a pixel. */
@@ -248,8 +251,8 @@ RendererCommon::onResize(int width, int height)
     if (destination.height() == 0) destination.setHeight(256);
 
     /* Mouse movement is scaled by the size of the picture in device-independent pixels. */
-    monitors[r_monitor_index].mon_picture_x = destination.width() / pixelRatio;
-    monitors[r_monitor_index].mon_picture_y = destination.height() / pixelRatio;
+    r_monitor->mon_picture_x = destination.width() / pixelRatio;
+    r_monitor->mon_picture_y = destination.height() / pixelRatio;
 
     destinationF.setRect((double) destination.x() / (double) width, (double) destination.y() / (double) height,
                          (double) destination.width() / (double) width, (double) destination.height() / (double) height);
@@ -295,6 +298,9 @@ RendererCommon::osdLayoutScaleHint() const
 bool
 RendererCommon::eventDelegate(QEvent *event, bool &result)
 {
+    if (!(r_monitor->flags & VIDEO_MONITOR_INPUT))
+        return false;
+
     switch (event->type()) {
         default:
             return false;

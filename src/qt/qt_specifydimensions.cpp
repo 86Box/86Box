@@ -72,7 +72,7 @@ SpecifyDimensions::on_SpecifyDimensions_accepted()
 
         emit main_window->updateMenuResizeOptions();
         main_window->show();
-        for (int i = 1; i < MONITORS_NUM; i++) {
+        for (int i = 1; i < static_cast<int>(main_window->renderers.size()); i++) {
             if (main_window->renderers[i]) {
                 main_window->renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
                 main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
@@ -94,7 +94,7 @@ SpecifyDimensions::on_SpecifyDimensions_accepted()
         window_h        = ui->spinBoxHeight->value();
         main_window->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         emit main_window->resizeContents(ui->spinBoxWidth->value(), ui->spinBoxHeight->value());
-        for (int i = 1; i < MONITORS_NUM; i++) {
+        for (int i = 1; i < static_cast<int>(main_window->renderers.size()); i++) {
             if (main_window->renderers[i]) {
                 main_window->renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
                 main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);

@@ -10,10 +10,12 @@
 #include <QIcon>
 
 #include <memory>
-#include <array>
+#include <vector>
 #include <atomic>
 
 #include "qt_vmmanager_protocol.hpp"
+
+struct monitor_t;
 
 class MediaMenu;
 class RendererStack;
@@ -35,7 +37,7 @@ public:
 
     void         showMessage(int flags, const QString &header, const QString &message, bool richText);
     QString      getTitle();
-    void         blitToWidget(int x, int y, int w, int h, int monitor_index);
+    void         blitToWidget(int x, int y, int w, int h, monitor_t *monitor);
     QSize        getRenderWidgetSize();
     void         setSendKeyboardInput(bool enabled);
     void         reloadAllRenderers();
@@ -47,7 +49,7 @@ public:
     QString mouseStringCaptured;
     void    updateMouseStrings();
 
-    std::array<std::unique_ptr<RendererStack>, 8> renderers;
+    std::vector<std::unique_ptr<RendererStack>> renderers{1};
 signals:
     void paint(const QImage &image);
     void resizeContents(int w, int h);
@@ -59,9 +61,9 @@ signals:
     void updateStatusBarTip(int tag);
     void updateMenuResizeOptions();
     void updateWindowRememberOption();
-    void initRendererMonitor(int monitor_index);
+    void initRendererMonitor(monitor_t *monitor);
     void destroyRendererMonitor(int monitor_index);
-    void initRendererMonitorForNonQtThread(int monitor_index);
+    void initRendererMonitorForNonQtThread(monitor_t *monitor);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
     void forceInterpretationCompleted();
     void hardResetCompleted();
@@ -82,7 +84,7 @@ public slots:
     void showSettings();
     void hardReset();
     void togglePause();
-    void initRendererMonitorSlot(int monitor_index);
+    void initRendererMonitorSlot(monitor_t *monitor);
     void destroyRendererMonitorSlot(int monitor_index);
     void updateStatusEmptyIcons();
     void updateUiPauseState();

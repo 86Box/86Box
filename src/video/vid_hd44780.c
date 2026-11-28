@@ -107,8 +107,7 @@ typedef struct hd44780_t {
     int palette;
     int dot_size;
 
-    int        monitor_index;
-    int        prev_monitor_index;
+    monitor_t *monitor;
     int        render_w;
     int        render_h;
     int        x_offset;
@@ -701,10 +700,10 @@ static void
 hd44780_render(hd44780_t *dev)
 {
     for (int y = 0; y < dev->render_h; y++)
-        memset(buffer32->line[y], 0x00, dev->render_w * sizeof(uint32_t));
+        memset(dev->monitor->target_buffer->line[y], 0x00, dev->render_w * sizeof(uint32_t));
 
     for (int y = 0; y < (dev->render_h - (2 * dev->y_offset)); y++) {
-        uint32_t *line = &(buffer32->line[y + dev->y_offset][dev->x_offset]);
+        uint32_t *line = &(dev->monitor->target_buffer->line[y + dev->y_offset][dev->x_offset]);
         for (int x = 0; x < (dev->render_w - (2 * dev->x_offset)); x++)
             line[x] = hd44780_palettes[dev->palette].panel;
     }
@@ -737,7 +736,7 @@ hd44780_render(hd44780_t *dev)
                     int      py    = dev->y_offset + (MARGIN_DOTS * LCD_SCALE) + (((row * CELL_H) + dy) * LCD_SCALE);
 
                     for (int sy = 0; sy < dev->dot_size; sy++) {
-                        uint32_t *line = &(buffer32->line[py + sy][px]);
+                        uint32_t *line = &(dev->monitor->target_buffer->line[py + sy][px]);
 
                         for (int sx = 0; sx < dev->dot_size; sx++)
                             line[sx] = color;
@@ -755,12 +754,10 @@ hd44780_poll(void *priv)
 
     timer_advance_u64(&dev->timer, (uint64_t) ((TIMER_USEC * 1000000ULL) / 60));
 
-    dev->prev_monitor_index = monitor_index_global;
-    monitor_index_global    = dev->monitor_index;
 
-    if (video_force_resize_get()) {
-        set_screen_size(dev->render_w, dev->render_h);
-        video_force_resize_set(0);
+    if (video_force_resize_get_monitor(dev->monitor)) {
+        set_screen_size_monitor(dev->render_w, dev->render_h, dev->monitor);
+        video_force_resize_set_monitor(0, dev->monitor);
     }
 
     for (int i = 0; i < (sizeof(dev->lcd) / sizeof(dev->lcd[0])); i++) {
@@ -775,20 +772,19 @@ hd44780_poll(void *priv)
         }
     }
 
-    video_wait_for_buffer();
+    video_wait_for_buffer_monitor(dev->monitor);
     if (dev->redraw) {
         hd44780_render(dev);
         dev->redraw = 0;
     }
-    video_blit_memtoscreen(0, 0, dev->render_w, dev->render_h);
+    video_blit_memtoscreen_monitor(0, 0, dev->render_w, dev->render_h, dev->monitor);
 
-    video_res_x = dev->cols;
-    video_res_y = dev->rows;
-    video_bpp   = 0;
+    dev->monitor->mon_res_x = dev->cols;
+    dev->monitor->mon_res_y = dev->rows;
+    dev->monitor->mon_bpp   = 0;
 
     frames++;
 
-    monitor_index_global = dev->prev_monitor_index;
 }
 
 /*
@@ -1053,7 +1049,7 @@ hd44780_recalc_size(hd44780_t *dev)
 {
     int panel_w = ((dev->cols * CELL_W) - CELL_GAP + (2 * MARGIN_DOTS)) * LCD_SCALE;
     int panel_h = ((dev->rows * CELL_H) - CELL_GAP + (2 * MARGIN_DOTS)) * LCD_SCALE;
-    if (dev->monitor_index == 0) {
+    if (dev->monitor == video_primary_monitor) {
         dev->render_w = MAX(panel_w, CANVAS_W);
         dev->render_h = MAX(panel_h, CANVAS_H);
     } else {
@@ -1069,6 +1065,7 @@ static void *
 hd44780_init(const device_t *info)
 {
     hd44780_t *dev = (hd44780_t *) calloc(1, sizeof(hd44780_t));
+    dev->monitor = video_monitor_pending;
 
     dev->type = info->local & 0xff;
 
@@ -1104,7 +1101,6 @@ hd44780_init(const device_t *info)
     hd44780_log(dev->log, "init(%dx%d, font=%s, wiring=%d)\n", dev->cols, dev->rows,
                 (dev->font == hd44780_font_a02) ? "A02" : "A00", dev->wiring);
 
-    dev->monitor_index = monitor_index_global;
 
     dev->cols        = MAX(MIN(dev->cols, HD44780_LINE_LEN), 1);
     dev->rows        = MAX(MIN(dev->rows, (sizeof(dev->lcd) / sizeof(dev->lcd[0])) * 2), 1);
@@ -1128,8 +1124,8 @@ hd44780_init(const device_t *info)
 
     hd44780_recalc_size(dev);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_hd44780);
-    set_screen_size(dev->render_w, dev->render_h);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_hd44780, dev->monitor);
+    set_screen_size_monitor(dev->render_w, dev->render_h, dev->monitor);
 
     timer_add(&dev->timer, hd44780_poll, dev, 1);
 

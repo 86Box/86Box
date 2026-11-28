@@ -56,13 +56,18 @@ struct serial_backend_s;
 extern "C" {
 #endif
 
+struct monitor_t;
+
 extern int    mouse_type;
 extern int    tablet_type;
 extern int    mouse_input_mode_initial;
 extern int    mouse_input_mode; /* 2 = Absolute (Visible Crosshair), 1 = Absolute, 0 = Relative */
 extern int    mouse_timed; /* 1 = Timed, 0 = Constant */
 extern int    mouse_automation; /* input injected by the automation socket */
-extern int    mouse_tablet_in_proximity;
+extern struct monitor_t *mouse_get_input_monitor(void);
+extern void mouse_set_input_monitor(struct monitor_t *monitor);
+extern void mouse_clear_input_monitor(struct monitor_t *monitor);
+#define mouse_tablet_in_proximity (mouse_get_input_monitor() != NULL)
 extern double mouse_x_abs;
 extern double mouse_y_abs;
 extern int    tablet_tool_type;

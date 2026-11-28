@@ -2209,11 +2209,11 @@ pc_close(UNUSED(thread_t *ptr))
         dumpregs(0);
 #endif
 
-    video_close();
-
     sound_close();
 
     device_close_all();
+
+    video_close();
 
     scsi_device_close_all();
 
@@ -2299,12 +2299,12 @@ pc_onesec(void)
 }
 
 void
-set_screen_size_monitor(int x, int y, int monitor_index)
+set_screen_size_monitor(int x, int y, monitor_t *monitor)
 {
-    int    temp_overscan_x = monitors[monitor_index].mon_overscan_x;
-    int    temp_overscan_y = monitors[monitor_index].mon_overscan_y;
-    int    is_svga         = (video_get_type_monitor(monitor_index) == VIDEO_FLAG_TYPE_SPECIAL) ||
-                             (video_get_type_monitor(monitor_index) == VIDEO_FLAG_TYPE_8514);
+    int    temp_overscan_x = monitor->mon_overscan_x;
+    int    temp_overscan_y = monitor->mon_overscan_y;
+    int    is_svga         = (video_get_type_monitor(monitor) == VIDEO_FLAG_TYPE_SPECIAL) ||
+                             (video_get_type_monitor(monitor) == VIDEO_FLAG_TYPE_8514);
     double dx;
     double dy;
     double dtx;
@@ -2324,8 +2324,8 @@ set_screen_size_monitor(int x, int y, int monitor_index)
         y = 2048;
 
     /* Save the new values as "real" (unscaled) resolution. */
-    monitors[monitor_index].mon_unscaled_size_x = x;
-    monitors[monitor_index].mon_efscrnsz_y      = y;
+    monitor->mon_unscaled_size_x = x;
+    monitor->mon_efscrnsz_y      = y;
 
     if (suppress_overscan)
         temp_overscan_x = temp_overscan_y = 0;
@@ -2351,99 +2351,95 @@ set_screen_size_monitor(int x, int y, int monitor_index)
                 /* EGA/(S)VGA without overscan */
                 dy = (dx / 4.0) * 3.0;
         }
-        monitors[monitor_index].mon_unscaled_size_y = (int) dy;
-    } else if (force_device_aspect && monitors[monitor_index].mon_device_aspect_x > 0 &&
-               monitors[monitor_index].mon_device_aspect_y > 0) {
-        monitors[monitor_index].mon_unscaled_size_y =
-            x * monitors[monitor_index].mon_device_aspect_y /
-            monitors[monitor_index].mon_device_aspect_x;
+        monitor->mon_unscaled_size_y = (int) dy;
+    } else if (force_device_aspect && monitor->mon_device_aspect_x > 0 &&
+               monitor->mon_device_aspect_y > 0) {
+        monitor->mon_unscaled_size_y =
+            x * monitor->mon_device_aspect_y /
+            monitor->mon_device_aspect_x;
     } else
-        monitors[monitor_index].mon_unscaled_size_y = monitors[monitor_index].mon_efscrnsz_y;
+        monitor->mon_unscaled_size_y = monitor->mon_efscrnsz_y;
 
     switch (scale) {
         case 0: /* 50% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x >> 1);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y >> 1);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x >> 1);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y >> 1);
             break;
 
         case 1: /* 100% */
-            monitors[monitor_index].mon_scrnsz_x = monitors[monitor_index].mon_unscaled_size_x;
-            monitors[monitor_index].mon_scrnsz_y = monitors[monitor_index].mon_unscaled_size_y;
+            monitor->mon_scrnsz_x = monitor->mon_unscaled_size_x;
+            monitor->mon_scrnsz_y = monitor->mon_unscaled_size_y;
             break;
 
         case 2: /* 150% */
-            monitors[monitor_index].mon_scrnsz_x = ((monitors[monitor_index].mon_unscaled_size_x * 3) >> 1);
-            monitors[monitor_index].mon_scrnsz_y = ((monitors[monitor_index].mon_unscaled_size_y * 3) >> 1);
+            monitor->mon_scrnsz_x = ((monitor->mon_unscaled_size_x * 3) >> 1);
+            monitor->mon_scrnsz_y = ((monitor->mon_unscaled_size_y * 3) >> 1);
             break;
 
         case 3: /* 200% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 1);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 1);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x << 1);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y << 1);
             break;
 
         case 4: /* 300% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 3);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 3);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x * 3);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y * 3);
             break;
 
         case 5: /* 400% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 2);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 2);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x << 2);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y << 2);
             break;
 
         case 6: /* 500% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 5);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 5);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x * 5);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y * 5);
             break;
 
         case 7: /* 600% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 6);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 6);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x * 6);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y * 6);
             break;
 
         case 8: /* 700% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 7);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 7);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x * 7);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y * 7);
             break;
 
         case 9: /* 800% */
-            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
-            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
+            monitor->mon_scrnsz_x = (monitor->mon_unscaled_size_x << 3);
+            monitor->mon_scrnsz_y = (monitor->mon_unscaled_size_y << 3);
             break;
 
         default:
             break;
     }
 
-    plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
+    plat_resize_request(monitor->mon_scrnsz_x, monitor->mon_scrnsz_y, monitor);
 }
 
-void
-set_screen_size(int x, int y)
+static void
+resize_monitor(monitor_t *monitor, void *priv)
 {
-    set_screen_size_monitor(x, y, monitor_index_global);
-}
-
-void
-reset_screen_size_monitor(int monitor_index)
-{
-    set_screen_size(monitors[monitor_index].mon_unscaled_size_x, monitors[monitor_index].mon_efscrnsz_y);
+    const int natural = *(const int *) priv;
+    set_screen_size_monitor(monitor->mon_unscaled_size_x,
+                            natural ? monitor->mon_unscaled_size_y : monitor->mon_efscrnsz_y,
+                            monitor);
 }
 
 void
 reset_screen_size(void)
 {
-    for (uint8_t i = 0; i < MONITORS_NUM; i++)
-        set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_efscrnsz_y);
+    int natural = 0;
+    video_monitor_for_each(resize_monitor, &natural);
 }
 
 void
 set_screen_size_natural(void)
 {
-    for (uint8_t i = 0; i < MONITORS_NUM; i++)
-        set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
+    int natural = 1;
+    video_monitor_for_each(resize_monitor, &natural);
 }
-
 
 // Helper to find an accelerator key and return it's index in acc_keys
 int FindAccelerator(const char *name) {

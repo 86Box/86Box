@@ -169,7 +169,7 @@ tvga_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -422,13 +422,13 @@ tvga_init(const device_t *info)
                             0x0000000000000000ULL;
 
     if (tvga->card_id == TVGA9000B_ID) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000, video_monitor_pending);
         tvga->vram_size = 512 << 10;
     } else {
         if (local & 0x0100)
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900dr);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900dr, video_monitor_pending);
         else
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900, video_monitor_pending);
         tvga->vram_size = device_get_config_int("memory");
         video_clamp_vram(bios_flags, &tvga->vram_size);
         tvga->vram_size <<= 10;
@@ -495,7 +495,7 @@ tvga_force_redraw(void *priv)
 {
     tvga_t *tvga = (tvga_t *) priv;
 
-    tvga->svga.fullchange = changeframecount;
+    tvga->svga.fullchange = tvga->svga.monitor->mon_changeframecount;
 }
 
 static const device_config_t tvga8900_config[] = {

@@ -785,7 +785,7 @@ typedef struct voodoo_t {
     uint8_t *changedvram;
 
     void   *priv;
-    uint8_t monitor_index;
+    struct monitor_t *monitor;
 } voodoo_t;
 
 static inline int
@@ -825,7 +825,7 @@ void voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg);
 void voodoo_recalc(voodoo_t *voodoo);
 void voodoo_update_ncc(voodoo_t *voodoo, int tmu);
 
-void *voodoo_2d3d_card_init(int type);
+void *voodoo_2d3d_card_init(int type, struct monitor_t *monitor);
 void  voodoo_card_close(voodoo_t *voodoo);
 
 #endif /*VIDEO_VOODOO_COMMON_H*/

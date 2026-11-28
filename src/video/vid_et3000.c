@@ -385,7 +385,7 @@ et3000_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old != val) {
                 if (svga->crtcreg < 0x0e || svga->crtcreg > 0x10) {
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     svga_recalctimings(svga);
                 }
             }
@@ -504,7 +504,7 @@ et3000_init(const device_t *info)
 
     switch (dev->type) {
         case 0: /* ISA ET3000AX */
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et3000_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et3000_isa, video_monitor_pending);
             svga_init(info, &dev->svga, dev, device_get_config_int("memory") << 10,
                       et3000_recalctimings, et3000_in, et3000_out,
                       NULL, NULL);
@@ -553,7 +553,7 @@ et3000_force_redraw(void *priv)
 {
     et3000_t *dev = (et3000_t *) priv;
 
-    dev->svga.fullchange = changeframecount;
+    dev->svga.fullchange = dev->svga.monitor->mon_changeframecount;
 }
 
 static int

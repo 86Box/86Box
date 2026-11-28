@@ -133,6 +133,8 @@ struct blit_data_struct;
 
 typedef struct monitor_t {
     char                     name[512];
+    unsigned                 flags;
+    void                    *ui_data;
     int                      mon_xsize;
     int                      mon_ysize;
     int                      mon_scrnsz_x;
@@ -186,11 +188,21 @@ typedef struct monitor_settings_t {
     int mon_window_maximized;
 } monitor_settings_t;
 
-#define MONITORS_NUM 2
-extern monitor_t          monitors[MONITORS_NUM];
-extern monitor_settings_t monitor_settings[MONITORS_NUM];
-extern atomic_bool        doresize_monitors[MONITORS_NUM];
-extern int                monitor_index_global;
+enum {
+    VIDEO_MONITOR_INPUT = 1 << 0,
+    VIDEO_MONITOR_SCREENSHOT = 1 << 1,
+    VIDEO_MONITOR_VIDEO = VIDEO_MONITOR_INPUT | VIDEO_MONITOR_SCREENSHOT
+};
+
+extern monitor_t *video_primary_monitor;
+/* Capture this pointer during initialization. Its value can change when another card is added. */
+extern monitor_t *video_monitor_pending;
+
+extern int video_monitor_id(const monitor_t *monitor);
+extern monitor_t *video_monitor_by_id(int id);
+extern void video_monitor_for_each(void (*callback)(monitor_t *monitor, void *priv), void *priv);
+extern monitor_settings_t monitor_primary_settings;
+extern monitor_settings_t *config_get_monitor_settings(int id);
 extern int                show_second_monitors;
 extern int                video_fullscreen_scale_maximized;
 
@@ -200,32 +212,9 @@ typedef rgb_t PALETTE[256];
 extern int changeframecount;
 #endif
 
-extern volatile int screenshots;
 #if 0
 extern bitmap_t *buffer32;
 #endif
-#define buffer32             (monitors[monitor_index_global].target_buffer)
-#define pal_lookup           (monitors[monitor_index_global].mon_pal_lookup)
-#define overscan_x           (monitors[monitor_index_global].mon_overscan_x)
-#define overscan_y           (monitors[monitor_index_global].mon_overscan_y)
-#define video_timing_read_b  (monitors[monitor_index_global].mon_video_timing_read_b)
-#define video_timing_read_l  (monitors[monitor_index_global].mon_video_timing_read_l)
-#define video_timing_read_w  (monitors[monitor_index_global].mon_video_timing_read_w)
-#define video_timing_write_b (monitors[monitor_index_global].mon_video_timing_write_b)
-#define video_timing_write_l (monitors[monitor_index_global].mon_video_timing_write_l)
-#define video_timing_write_w (monitors[monitor_index_global].mon_video_timing_write_w)
-#define video_res_x          (monitors[monitor_index_global].mon_res_x)
-#define video_res_y          (monitors[monitor_index_global].mon_res_y)
-#define video_bpp            (monitors[monitor_index_global].mon_bpp)
-#define xsize                (monitors[monitor_index_global].mon_xsize)
-#define ysize                (monitors[monitor_index_global].mon_ysize)
-#define cga_palette          (*monitors[monitor_index_global].mon_cga_palette)
-#define changeframecount     (monitors[monitor_index_global].mon_changeframecount)
-#define scrnsz_x             (monitors[monitor_index_global].mon_scrnsz_x)
-#define scrnsz_y             (monitors[monitor_index_global].mon_scrnsz_y)
-#define efscrnsz_y           (monitors[monitor_index_global].mon_efscrnsz_y)
-#define unscaled_size_x      (monitors[monitor_index_global].mon_unscaled_size_x)
-#define unscaled_size_y      (monitors[monitor_index_global].mon_unscaled_size_y)
 
 #define CGAPAL_CGA_START    16            // Where the 16-color cga text/composite starts
 
@@ -268,8 +257,7 @@ extern int    xga_active;
 
 /* Function handler pointers. */
 extern void (*video_recalctimings)(void);
-extern void video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index);
-extern void video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len);
+extern void video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, monitor_t *monitor);
 
 #ifdef _WIN32
 extern void * (__cdecl *video_copy)(void *_Dst, const void *_Src, size_t _Size);
@@ -299,44 +287,45 @@ extern int         video_card_is_secondary(int m, int primary_card, int secondar
  * pin-level CPU cores can model READY without hardcoding a card. */
 extern unsigned    video_get_wait_states(uint32_t address, int write,
                                          unsigned size, uint64_t cpu_cycle);
-extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
-extern int         video_get_type_monitor(int monitor_index);
+extern void        video_inform_monitor(int type, const video_timings_t *ptr, monitor_t *monitor);
+extern int         video_get_type_monitor(monitor_t *monitor);
 
-extern void video_setblit(void (*blit)(int, int, int, int, int));
-extern void video_blend(int x, int y);
-extern void video_blit_memtoscreen_8(int x, int y, int w, int h);
-extern void video_blend_monitor(int x, int y, int monitor_index);
-extern void video_process_8_monitor(int x, int y, int monitor_index);
-extern void video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index);
-extern void video_blit_complete_monitor(int monitor_index);
-extern void video_wait_for_blit_monitor(int monitor_index);
-extern void video_wait_for_buffer_monitor(int monitor_index);
+extern void video_setblit(void (*blit)(int, int, int, int, monitor_t *));
+extern void video_blend_monitor(int x, int y, monitor_t *monitor);
+extern void video_process_8_monitor(int x, int y, monitor_t *monitor);
+extern void video_blit_memtoscreen_monitor(int x, int y, int w, int h, monitor_t *monitor);
+extern void video_blit_complete_monitor(monitor_t *monitor);
+extern void video_wait_for_blit_monitor(monitor_t *monitor);
+extern void video_wait_for_buffer_monitor(monitor_t *monitor);
 
 extern int video_6845_get_hsync_delay(const uint8_t *crtc, int hsync_width);
 
 extern bitmap_t *create_bitmap(int w, int h);
 extern void      destroy_bitmap(bitmap_t *b);
-extern void      cgapal_rebuild_monitor(int monitor_index);
+extern void      cgapal_rebuild_monitor(monitor_t *monitor);
 extern void      hline(bitmap_t *b, int x1, int y, int x2, uint32_t col);
 extern void      updatewindowsize(int x, int y);
 
-extern void    video_monitor_init(int);
-extern void    video_monitor_close(int);
+/* Devices own the instances they create and close them after their last blit.
+   Pass 0 for a display with no guest input or screenshot participation. */
+extern monitor_t *video_monitor_create(unsigned flags);
+extern void       video_monitor_close(monitor_t *monitor);
+extern void       video_monitor_close_secondary(void);
 extern void    video_init(void);
 extern void    video_close(void);
 extern void    video_reset_close(void);
-extern void    video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used));
-extern void    video_lightpen_hsync(void);
-extern void    video_lightpen_vsync(void);
-extern void    video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used);
+extern void    video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double pix_clock, monitor_t *monitor));
+extern void    video_lightpen_hsync(monitor_t *monitor);
+extern void    video_lightpen_vsync(monitor_t *monitor);
+extern void    video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, monitor_t *monitor);
 extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
 extern void    video_post_reset(void);
 extern void    video_voodoo_init(void);
 extern void    video_set_override_handler(void *priv, void (*set_override)(void *priv, int val));
 extern int     video_set_override(int val);
-extern uint8_t video_force_resize_get_monitor(int monitor_index);
-extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
+extern uint8_t video_force_resize_get_monitor(monitor_t *monitor);
+extern void    video_force_resize_set_monitor(uint8_t res, monitor_t *monitor);
 extern void    video_update_timing(void);
 
 #define LOAD_FONT_NO_OFFSET       0
@@ -346,17 +335,7 @@ extern uint32_t video_color_transform(uint32_t color);
 extern void     video_clamp_vram(uint64_t bios_flags, int *vram);
 extern void     video_clamp_vram_2(uint64_t bios_flags, int *vram);
 
-#define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
-#define video_get_type()                      video_get_type_monitor(0)
-#define video_blend(x, y)                     video_blend_monitor(x, y, monitor_index_global)
-#define video_blit_memtoscreen(x, y, w, h)    video_blit_memtoscreen_monitor(x, y, w, h, monitor_index_global)
-#define video_process_8(x, y)                 video_process_8_monitor(x, y, monitor_index_global)
-#define video_blit_complete()                 video_blit_complete_monitor(monitor_index_global)
-#define video_wait_for_blit()                 video_wait_for_blit_monitor(monitor_index_global)
-#define video_wait_for_buffer()               video_wait_for_buffer_monitor(monitor_index_global)
-#define cgapal_rebuild()                      cgapal_rebuild_monitor(monitor_index_global)
-#define video_force_resize_get()              video_force_resize_get_monitor(monitor_index_global)
-#define video_force_resize_set(val)           video_force_resize_set_monitor(val, monitor_index_global)
+#define video_get_type()                      video_get_type_monitor(video_primary_monitor)
 
 #ifdef __cplusplus
 }

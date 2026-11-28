@@ -131,7 +131,7 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_
             break;
         case 0x05: /* Ext Palette Data Register (RS value = 0101) */
             svga->dac_status = 0;
-            svga->fullchange = changeframecount;
+            svga->fullchange = svga->monitor->mon_changeframecount;
             switch (svga->dac_pos) {
                 case 0:
                     svga->dac_r = val;
@@ -446,7 +446,7 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
 
             y_pos = displine;
             x_pos = (offset + svga->x_add) & 2047;
-            p     = buffer32->line[y_pos];
+            p     = svga->monitor->target_buffer->line[y_pos];
 
             if (offset >= svga->dac_hwcursor_latch.x) {
                 switch (mode) {

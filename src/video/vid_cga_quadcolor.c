@@ -110,7 +110,7 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
                 // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register
                 // except the CURSOR and LIGHT PEN registers
                 if ((quadcolor->crtcreg < 0xe) || (quadcolor->crtcreg > 0x11)) {
-                    quadcolor->fullchange = monitors[quadcolor->monitor_index].mon_changeframecount;
+                    quadcolor->fullchange = quadcolor->monitor->mon_changeframecount;
                     quadcolor_recalctimings(quadcolor);
 
                     if (quadcolor->crtcreg == 3)
@@ -309,11 +309,11 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
                                                                                         (quadcolor->cgacol & 15);
 
     for (column = 0; column < 8; ++column) {
-        buffer32->line[line][column] = cols[0];
+        quadcolor->monitor->target_buffer->line[line][column] = cols[0];
         if (quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES)
-            buffer32->line[line][column + (quadcolor->crtc[CGA_CRTC_HDISP] << 3) + 8] = cols[0];
+            quadcolor->monitor->target_buffer->line[line][column + (quadcolor->crtc[CGA_CRTC_HDISP] << 3) + 8] = cols[0];
         else
-            buffer32->line[line][column + (quadcolor->crtc[CGA_CRTC_HDISP] << 4) + 8] = cols[0];
+            quadcolor->monitor->target_buffer->line[line][column + (quadcolor->crtc[CGA_CRTC_HDISP] << 4) + 8] = cols[0];
     }
     if (quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES) { /* 80-column text */
         for (x = 0; x < quadcolor->crtc[CGA_CRTC_HDISP]; x++) {
@@ -334,13 +334,13 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
             if (drawcursor) {
                 for (column = 0; column < 8; column++) {
                     dat = (cols[(fontdat[chr + quadcolor->fontbase][charline] & (1 << (column ^ 7))) ? 1 : 0] ^ 15);
-                    buffer32->line[line][(x << 3) + column + 8] =
+                    quadcolor->monitor->target_buffer->line[line][(x << 3) + column + 8] =
                         dat | get_next_qc2_pixel(quadcolor);
                 }
             } else {
                 for (column = 0; column < 8; column++) {
                     dat = cols[(fontdat[chr + quadcolor->fontbase][charline] & (1 << (column ^ 7))) ? 1 : 0];
-                    buffer32->line[line][(x << 3) + column + 8] =
+                    quadcolor->monitor->target_buffer->line[line][(x << 3) + column + 8] =
                         dat | get_next_qc2_pixel(quadcolor);
                 }
             }
@@ -367,17 +367,17 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
             if (drawcursor) {
                 for (column = 0; column < 8; column++) {
                     dat = (cols[(fontdat[chr + quadcolor->fontbase][charline] & (1 << (column ^ 7))) ? 1 : 0] ^ 15);
-                    buffer32->line[line][(x << 4) + (column << 1) + 8] =
+                    quadcolor->monitor->target_buffer->line[line][(x << 4) + (column << 1) + 8] =
                         dat | get_next_qc2_pixel(quadcolor);
-                    buffer32->line[line][(x << 4) + (column << 1) + 9] =
+                    quadcolor->monitor->target_buffer->line[line][(x << 4) + (column << 1) + 9] =
                         dat | get_next_qc2_pixel(quadcolor);
                 }
             } else {
                 for (column = 0; column < 8; column++) {
                     dat = cols[(fontdat[chr + quadcolor->fontbase][charline] & (1 << (column ^ 7))) ? 1 : 0];
-                    buffer32->line[line][(x << 4) + (column << 1) + 8] =
+                    quadcolor->monitor->target_buffer->line[line][(x << 4) + (column << 1) + 8] =
                         dat | get_next_qc2_pixel(quadcolor);
-                    buffer32->line[line][(x << 4) + (column << 1) + 9] =
+                    quadcolor->monitor->target_buffer->line[line][(x << 4) + (column << 1) + 9] =
                         dat | get_next_qc2_pixel(quadcolor);
                 }
             }
@@ -409,8 +409,8 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
                 dat = 0;
             quadcolor->memaddr++;
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x << 4) + (column << 1) + 8] = cols[dat >> 14] | get_next_qc2_pixel(quadcolor);
-                buffer32->line[line][(x << 4) + (column << 1) + 9] = cols[dat >> 14] | get_next_qc2_pixel(quadcolor);
+                quadcolor->monitor->target_buffer->line[line][(x << 4) + (column << 1) + 8] = cols[dat >> 14] | get_next_qc2_pixel(quadcolor);
+                quadcolor->monitor->target_buffer->line[line][(x << 4) + (column << 1) + 9] = cols[dat >> 14] | get_next_qc2_pixel(quadcolor);
                 dat <<= 2;
             }
         }
@@ -430,7 +430,7 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
                 dat = quadcolor->quadcolor_ctrl & 15;
             quadcolor->memaddr++;
             for (column = 0; column < 16; column++) {
-                buffer32->line[line][(x << 4) + column + 8] = cols[dat >> 15] | get_next_qc2_pixel(quadcolor);
+                quadcolor->monitor->target_buffer->line[line][(x << 4) + column + 8] = cols[dat >> 15] | get_next_qc2_pixel(quadcolor);
                 dat <<= 1;
             }
         }
@@ -446,9 +446,9 @@ quadcolor_render_blank(quadcolor_t *quadcolor, int line)
     int col = ((quadcolor->cgamode & highres_graphics_flag) == highres_graphics_flag) ? (quadcolor->quadcolor_ctrl & 15) + 16 : (quadcolor->cgacol & 15) + 16;  /* TODO: Is Quadcolor bg color actually relevant, here? */
 
     if (quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES)
-        hline(buffer32, 0, line, (quadcolor->crtc[CGA_CRTC_HDISP] << 3) + 16, col);
+        hline(quadcolor->monitor->target_buffer, 0, line, (quadcolor->crtc[CGA_CRTC_HDISP] << 3) + 16, col);
     else
-        hline(buffer32, 0, line, (quadcolor->crtc[CGA_CRTC_HDISP] << 4) + 16, col);
+        hline(quadcolor->monitor->target_buffer, 0, line, (quadcolor->crtc[CGA_CRTC_HDISP] << 4) + 16, col);
 }
 
 static void
@@ -466,9 +466,9 @@ quadcolor_render_process(quadcolor_t *quadcolor, int line)
     if (quadcolor->composite) {
         border = ((quadcolor->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (quadcolor->cgacol & 15);
 
-        Composite_Process(quadcolor->cgamode, border, x >> 2, buffer32->line[line]);
+        Composite_Process(quadcolor->cgamode, border, x >> 2, quadcolor->monitor->target_buffer->line[line]);
     } else
-        video_process_8(x, line);
+        video_process_8_monitor(x, line, quadcolor->monitor);
 }
 
 static uint8_t
@@ -537,12 +537,12 @@ quadcolor_interpolate(quadcolor_t *quadcolor, int x, int y, int w, int h)
             black.color = 0x00000000;
 
             if ((prev >= 0) && (prev < (y + h)))
-                prev_color.color = buffer32->line[prev][j];
+                prev_color.color = quadcolor->monitor->target_buffer->line[prev][j];
             else
                 prev_color.color = 0x00000000;
 
             if ((next >= 0) && (next < (y + h)))
-                next_color.color = buffer32->line[next][j];
+                next_color.color = quadcolor->monitor->target_buffer->line[next][j];
             else
                 next_color.color = 0x00000000;
 
@@ -550,7 +550,7 @@ quadcolor_interpolate(quadcolor_t *quadcolor, int x, int y, int w, int h)
             interim_2 = quadcolor_interpolate_lookup(quadcolor, black, next_color, quotient);
             final     = quadcolor_interpolate_lookup(quadcolor, interim_1, interim_2, quotient);
 
-            buffer32->line[i][j] = final.color;
+            quadcolor->monitor->target_buffer->line[i][j] = final.color;
         }
     }
 }
@@ -561,7 +561,7 @@ quadcolor_blit_memtoscreen(quadcolor_t *quadcolor, int x, int y, int w, int h)
     if (quadcolor->double_type > DOUBLE_SIMPLE)
         quadcolor_interpolate(quadcolor, x, y, w, h);
 
-    video_blit_memtoscreen(x, y, w, h);
+    video_blit_memtoscreen_monitor(x, y, w, h, quadcolor->monitor);
 }
 
 void
@@ -576,9 +576,7 @@ quadcolor_poll(void *priv)
     int      old_ma;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = quadcolor->monitor_index;
 
     if (!quadcolor->linepos) {
         timer_advance_u64(&quadcolor->timer, quadcolor->dispofftime);
@@ -590,7 +588,7 @@ quadcolor_poll(void *priv)
         if (quadcolor->cgadispon) {
             if (quadcolor->displine < quadcolor->firstline) {
                 quadcolor->firstline = quadcolor->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(quadcolor->monitor);
             }
             quadcolor->lastline = quadcolor->displine;
             switch (quadcolor->double_type) {
@@ -642,7 +640,7 @@ quadcolor_poll(void *priv)
             quadcolor->displine = 0;
     } else {
         timer_advance_u64(&quadcolor->timer, quadcolor->dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(quadcolor->monitor);
         quadcolor->linepos = 0;
         if (quadcolor->vsynctime) {
             quadcolor->vsynctime--;
@@ -702,7 +700,7 @@ quadcolor_poll(void *priv)
                 quadcolor->cgadispon = 0;
                 quadcolor->displine  = 0;
                 quadcolor->vsynctime = 16;
-                video_lightpen_vsync();
+                video_lightpen_vsync(quadcolor->monitor);
                 if (quadcolor->crtc[CGA_CRTC_VSYNC]) {
                     if (quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES)
                         x = (quadcolor->crtc[CGA_CRTC_HDISP] << 3) + 16;
@@ -723,53 +721,53 @@ quadcolor_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((quadcolor->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) ||
-                            (ys_temp != ysize) || video_force_resize_get())) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
+                        if ((quadcolor->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != quadcolor->monitor->mon_xsize) ||
+                            (ys_temp != quadcolor->monitor->mon_ysize) || video_force_resize_get_monitor(quadcolor->monitor))) {
+                            quadcolor->monitor->mon_xsize = xs_temp;
+                            quadcolor->monitor->mon_ysize = ys_temp;
                             if (quadcolor->double_type > DOUBLE_NONE)
-                                set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                                set_screen_size_monitor(quadcolor->monitor->mon_xsize, quadcolor->monitor->mon_ysize + (enable_overscan ? 16 : 0), quadcolor->monitor);
                             else
-                                set_screen_size(xsize, ysize + (enable_overscan ? 8 : 0));
+                                set_screen_size_monitor(quadcolor->monitor->mon_xsize, quadcolor->monitor->mon_ysize + (enable_overscan ? 8 : 0), quadcolor->monitor);
 
-                            if (video_force_resize_get())
-                                video_force_resize_set(0);
+                            if (video_force_resize_get_monitor(quadcolor->monitor))
+                                video_force_resize_set_monitor(0, quadcolor->monitor);
                         }
 
                         if (quadcolor->double_type > DOUBLE_NONE) {
                             if (enable_overscan)
                                 quadcolor_blit_memtoscreen(quadcolor, 0, (quadcolor->firstline - 4) << 1,
-                                                     xsize, ((quadcolor->lastline - quadcolor->firstline) << 1) + 16);
+                                                     quadcolor->monitor->mon_xsize, ((quadcolor->lastline - quadcolor->firstline) << 1) + 16);
                             else
                                 quadcolor_blit_memtoscreen(quadcolor, 8, quadcolor->firstline << 1,
-                                                     xsize, (quadcolor->lastline - quadcolor->firstline) << 1);
+                                                     quadcolor->monitor->mon_xsize, (quadcolor->lastline - quadcolor->firstline) << 1);
                         } else {
                             if (enable_overscan)
-                                video_blit_memtoscreen(0, quadcolor->firstline - 4,
-                                                       xsize, (quadcolor->lastline - quadcolor->firstline) + 8);
+                                video_blit_memtoscreen_monitor(0, quadcolor->firstline - 4,
+                                                       quadcolor->monitor->mon_xsize, (quadcolor->lastline - quadcolor->firstline) + 8, quadcolor->monitor);
                             else
-                                video_blit_memtoscreen(8, quadcolor->firstline,
-                                                       xsize, quadcolor->lastline - quadcolor->firstline);
+                                video_blit_memtoscreen_monitor(8, quadcolor->firstline,
+                                                       quadcolor->monitor->mon_xsize, quadcolor->lastline - quadcolor->firstline, quadcolor->monitor);
                         }
                     }
 
                     frames++;
 
-                    video_res_x = xsize;
-                    video_res_y = ysize;
+                    quadcolor->monitor->mon_res_x = quadcolor->monitor->mon_xsize;
+                    quadcolor->monitor->mon_res_y = quadcolor->monitor->mon_ysize;
                     if (quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        video_res_x /= 8;
-                        video_res_y /= quadcolor->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        quadcolor->monitor->mon_res_x /= 8;
+                        quadcolor->monitor->mon_res_y /= quadcolor->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        quadcolor->monitor->mon_bpp = 0;
                     } else if (!(quadcolor->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                        video_res_x /= 16;
-                        video_res_y /= quadcolor->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
-                        video_bpp = 0;
+                        quadcolor->monitor->mon_res_x /= 16;
+                        quadcolor->monitor->mon_res_y /= quadcolor->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+                        quadcolor->monitor->mon_bpp = 0;
                     } else if (!(quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        quadcolor->monitor->mon_res_x /= 2;
+                        quadcolor->monitor->mon_bpp = 2;
                     } else
-                        video_bpp = 1;
+                        quadcolor->monitor->mon_bpp = 1;
                 }
                 quadcolor->firstline = 1000;
                 quadcolor->lastline  = 0;
@@ -792,7 +790,6 @@ quadcolor_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -807,8 +804,9 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
 {
     int    display_type;
     quadcolor_t *quadcolor = calloc(1, sizeof(quadcolor_t));
+    quadcolor->monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_quadcolor);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_quadcolor, quadcolor->monitor);
 
     display_type               = device_get_config_int("display_type");
     quadcolor->composite       = (display_type != CGA_RGB);
@@ -829,11 +827,11 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
 
     io_sethandler(0x03d0, 0x0010, quadcolor_in, NULL, NULL, quadcolor_out, NULL, NULL, quadcolor);
 
-    overscan_x = overscan_y = 16;
+    quadcolor->monitor->mon_overscan_x = quadcolor->monitor->mon_overscan_y = 16;
 
     quadcolor->rgb_type = device_get_config_int("rgb_type");
-    cga_palette   = (quadcolor->rgb_type << 1);
-    cgapal_rebuild();
+    *quadcolor->monitor->mon_cga_palette   = (quadcolor->rgb_type << 1);
+    cgapal_rebuild_monitor(quadcolor->monitor);
     update_cga16_color(quadcolor->cgamode, quadcolor->cgacol);
 
     quadcolor->double_type = device_get_config_int("double_type");
@@ -857,8 +855,7 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
             break;
     }
 
-    monitors[monitor_index_global].mon_composite = !!quadcolor->composite;
-    quadcolor->monitor_index                     = monitor_index_global;
+    quadcolor->monitor->mon_composite = !!quadcolor->composite;
 
     return quadcolor;
 }

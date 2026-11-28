@@ -2517,7 +2517,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
     int       desktop_x = mach64->svga.overlay_latch.x;
     int       desktop_y = displine - svga->y_add;
 
-    p = &buffer32->line[displine][svga->x_add + mach64->svga.overlay_latch.x];
+    p = &svga->monitor->target_buffer->line[displine][svga->x_add + mach64->svga.overlay_latch.x];
 
     if (mach64->type == MACH64_GTB) {
         /* The GT-B's mixer is OVERLAY_KEY_CNTL bit 8 alone: the graphics

@@ -396,7 +396,7 @@ banshee_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -889,7 +889,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             break;
         case DAC_dacData:
             svga->pallook[banshee->dacAddr] = val & 0xffffff;
-            svga->fullchange                = changeframecount;
+            svga->fullchange                = voodoo->monitor->mon_changeframecount;
             break;
 
         case Video_vidProcCfg:
@@ -899,7 +899,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 #endif
             banshee->overlay_pix_fmt = (val & VIDPROCCFG_OVERLAY_PIX_FORMAT_MASK) >> VIDPROCCFG_OVERLAY_PIX_FORMAT_SHIFT;
             svga->hwcursor.ena       = val & VIDPROCCFG_HWCURSOR_ENA;
-            svga->fullchange         = changeframecount;
+            svga->fullchange         = voodoo->monitor->mon_changeframecount;
             svga->lut_map            = !(val & VIDPROCCFG_DESKTOP_CLUT_BYPASS) && (svga->bpp < 24);
             svga_recalctimings(svga);
             break;
@@ -1007,7 +1007,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 #if 0
             banshee_log("vidDesktopStartAddr=%08x\n", val);
 #endif
-            svga->fullchange = changeframecount;
+            svga->fullchange = voodoo->monitor->mon_changeframecount;
             svga_recalctimings(svga);
             break;
         case Video_vidDesktopOverlayStride:
@@ -1015,7 +1015,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 #if 0
             banshee_log("vidDesktopOverlayStride=%08x\n", val);
 #endif
-            svga->fullchange = changeframecount;
+            svga->fullchange = voodoo->monitor->mon_changeframecount;
             svga_recalctimings(svga);
             break;
         default:
@@ -2084,7 +2084,7 @@ banshee_write_linear(uint32_t addr, uint8_t val, void *priv)
 
     cycles -= svga->monitor->mon_video_timing_write_b;
 
-    svga->changedvram[addr >> 12]      = changeframecount;
+    svga->changedvram[addr >> 12]      = voodoo->monitor->mon_changeframecount;
     svga->vram[addr & svga->vram_mask] = val;
 }
 
@@ -2124,7 +2124,7 @@ banshee_write_linear_w(uint32_t addr, uint16_t val, void *priv)
 
     cycles -= svga->monitor->mon_video_timing_write_w;
 
-    svga->changedvram[addr >> 12]                     = changeframecount;
+    svga->changedvram[addr >> 12]                     = voodoo->monitor->mon_changeframecount;
     *(uint16_t *) &svga->vram[addr & svga->vram_mask] = val;
 }
 
@@ -2173,7 +2173,7 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *priv)
 
     cycles -= svga->monitor->mon_video_timing_write_l;
 
-    svga->changedvram[addr >> 12]                     = changeframecount;
+    svga->changedvram[addr >> 12]                     = voodoo->monitor->mon_changeframecount;
     *(uint32_t *) &svga->vram[addr & svga->vram_mask] = val;
     if (voodoo->cmdfifo_enabled && addr >= voodoo->cmdfifo_base && addr < voodoo->cmdfifo_end) {
 #if 0
@@ -3462,7 +3462,7 @@ banshee_init_common(const device_t *info, const char *fn, const int has_sgram,
     else
         pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
 
-    banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type);
+    banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type, banshee->svga.monitor);
     banshee->voodoo->priv         = banshee;
     banshee->voodoo->vram         = banshee->svga.vram;
     banshee->voodoo->vram_max     = banshee->svga.vram_max;
@@ -3571,7 +3571,7 @@ banshee_init_common(const device_t *info, const char *fn, const int has_sgram,
             break;
     }
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, banshee->agp ? &timing_banshee_agp : &timing_banshee);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, banshee->agp ? &timing_banshee_agp : &timing_banshee, video_monitor_pending);
 
     return banshee;
 }
@@ -3718,7 +3718,7 @@ banshee_force_redraw(void *priv)
 {
     banshee_t *banshee = (banshee_t *) priv;
 
-    banshee->svga.fullchange = changeframecount;
+    banshee->svga.fullchange = banshee->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off

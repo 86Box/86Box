@@ -100,18 +100,15 @@ compaq_cga_poll(void *priv)
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = dev->monitor_used;
 
     /* If in graphics mode or character height is not 13, behave as CGA */
     if ((dev->cgamode & highres_graphics_flag) || (dev->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] != 13)) {
-        overscan_x = overscan_y = 16;
+        dev->monitor->mon_overscan_x = dev->monitor->mon_overscan_y = 16;
         cga_poll(dev);
-        monitor_index_global = prev_monitor_index;
         return;
     } else
-        overscan_x = overscan_y = 0;
+        dev->monitor->mon_overscan_x = dev->monitor->mon_overscan_y = 0;
 
     /* We are in Compaq 350-line CGA territory */
     if (!dev->linepos) {
@@ -124,7 +121,7 @@ compaq_cga_poll(void *priv)
         if (dev->cgadispon) {
             if (dev->displine < dev->firstline) {
                 dev->firstline = dev->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
                 compaq_cga_log("Firstline %i\n", dev->firstline);
             }
             dev->lastline = dev->displine;
@@ -132,11 +129,11 @@ compaq_cga_poll(void *priv)
             cols[0] = (dev->cgacol & 15) + 16;
 
             for (c = 0; c < 8; c++) {
-                buffer32->line[dev->displine][c] = cols[0];
+                dev->monitor->target_buffer->line[dev->displine][c] = cols[0];
                 if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
-                    buffer32->line[dev->displine][c + (dev->crtc[CGA_CRTC_HDISP] << 3) + 8] = cols[0];
+                    dev->monitor->target_buffer->line[dev->displine][c + (dev->crtc[CGA_CRTC_HDISP] << 3) + 8] = cols[0];
                 else
-                    buffer32->line[dev->displine][c + (dev->crtc[CGA_CRTC_HDISP] << 4) + 8] = cols[0];
+                    dev->monitor->target_buffer->line[dev->displine][c + (dev->crtc[CGA_CRTC_HDISP] << 4) + 8] = cols[0];
             }
 
             if (dev->cgamode & CGA_MODE_FLAG_HIGHRES) {
@@ -174,14 +171,14 @@ compaq_cga_poll(void *priv)
 
                     if (vflags && underline) {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine][(x << 3) + c + 8] = mdaattr[attr][blink][1];
+                            dev->monitor->target_buffer->line[dev->displine][(x << 3) + c + 8] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine][(x << 3) + c + 8] =
+                            dev->monitor->target_buffer->line[dev->displine][(x << 3) + c + 8] =
                                 cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                     } else {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine][(x << 3) + c + 8] =
+                            dev->monitor->target_buffer->line[dev->displine][(x << 3) + c + 8] =
                                 cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
                     }
                     dev->memaddr++;
@@ -221,17 +218,17 @@ compaq_cga_poll(void *priv)
 
                     if (vflags && underline) {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine][(x << 4) + (c << 1) + 8] =
-                                buffer32->line[dev->displine][(x << 4) + (c << 1) + 9] = mdaattr[attr][blink][1];
+                            dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 8] =
+                                dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 9] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine][(x << 4) + (c << 1) + 8] =
-                                buffer32->line[dev->displine][(x << 4) + (c << 1) + 1 + 8] =
+                            dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 8] =
+                                dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 1 + 8] =
                                 cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                     } else {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine][(x << 4) + (c << 1) + 8] =
-                                buffer32->line[dev->displine][(x << 4) + (c << 1) + 1 + 8] =
+                            dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 8] =
+                                dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 1 + 8] =
                                 cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
                     }
                 }
@@ -240,9 +237,9 @@ compaq_cga_poll(void *priv)
             cols[0] = (dev->cgacol & 15) + 16;
 
             if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
-                hline(buffer32, 0, dev->displine, (dev->crtc[CGA_CRTC_HDISP] << 3) + 16, cols[0]);
+                hline(dev->monitor->target_buffer, 0, dev->displine, (dev->crtc[CGA_CRTC_HDISP] << 3) + 16, cols[0]);
             else
-                hline(buffer32, 0, dev->displine, (dev->crtc[CGA_CRTC_HDISP] << 4) + 16, cols[0]);
+                hline(dev->monitor->target_buffer, 0, dev->displine, (dev->crtc[CGA_CRTC_HDISP] << 4) + 16, cols[0]);
         }
 
         if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
@@ -257,13 +254,13 @@ compaq_cga_poll(void *priv)
                 border = dev->cgacol & 0x0f;
 
             if (vflags)
-                Composite_Process(dev->cgamode & 0x7f, border, x >> 2, buffer32->line[dev->displine]);
+                Composite_Process(dev->cgamode & 0x7f, border, x >> 2, dev->monitor->target_buffer->line[dev->displine]);
             else
-                Composite_Process(dev->cgamode, border, x >> 2, buffer32->line[dev->displine]);
+                Composite_Process(dev->cgamode, border, x >> 2, dev->monitor->target_buffer->line[dev->displine]);
         } else
-            video_process_8(x, dev->displine);
+            video_process_8_monitor(x, dev->displine, dev->monitor);
 
-        video_lightpen_check_trigger_strobe(8, dev->displine * (dev->double_type ? 2 : 1), 0, dev->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), dev->monitor_used);
+        video_lightpen_check_trigger_strobe(8, dev->displine * (dev->double_type ? 2 : 1), 0, dev->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), dev->monitor);
 
         dev->scanline = scanline_old;
         if (dev->vc == dev->crtc[CGA_CRTC_VSYNC] && !dev->scanline)
@@ -273,7 +270,7 @@ compaq_cga_poll(void *priv)
             dev->displine = 0;
     } else {
         timer_advance_u64(&dev->timer, dev->dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(dev->monitor);
         dev->linepos = 0;
         if (dev->vsynctime) {
             dev->vsynctime--;
@@ -326,7 +323,7 @@ compaq_cga_poll(void *priv)
                 dev->cgadispon = 0;
                 dev->displine  = 0;
                 dev->vsynctime = 16;
-                video_lightpen_vsync();
+                video_lightpen_vsync(dev->monitor);
 
                 if (dev->crtc[7]) {
                     compaq_cga_log("Lastline %i Firstline %i  %i\n", dev->lastline,
@@ -350,40 +347,40 @@ compaq_cga_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((dev->cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
-                            xsize = xs_temp;
-                            ysize = ys_temp;
-                            set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                        if ((dev->cgamode & 8) && ((xs_temp != dev->monitor->mon_xsize) || (ys_temp != dev->monitor->mon_ysize) || video_force_resize_get_monitor(dev->monitor))) {
+                            dev->monitor->mon_xsize = xs_temp;
+                            dev->monitor->mon_ysize = ys_temp;
+                            set_screen_size_monitor(dev->monitor->mon_xsize, dev->monitor->mon_ysize + (enable_overscan ? 16 : 0), dev->monitor);
 
-                            if (video_force_resize_get())
-                                video_force_resize_set(0);
+                            if (video_force_resize_get_monitor(dev->monitor))
+                                video_force_resize_set_monitor(0, dev->monitor);
                         }
 
                         if (enable_overscan)
-                            video_blit_memtoscreen(0, dev->firstline - 8, xsize, (dev->lastline - dev->firstline) + 16);
+                            video_blit_memtoscreen_monitor(0, dev->firstline - 8, dev->monitor->mon_xsize, (dev->lastline - dev->firstline) + 16, dev->monitor);
                         else
-                            video_blit_memtoscreen(8, dev->firstline, xsize, dev->lastline - dev->firstline);
+                            video_blit_memtoscreen_monitor(8, dev->firstline, dev->monitor->mon_xsize, dev->lastline - dev->firstline, dev->monitor);
                     }
 
                     frames++;
 
-                    video_res_x = xsize;
+                    dev->monitor->mon_res_x = dev->monitor->mon_xsize;
                     if (enable_overscan)
-                        xsize -= 16;
-                    video_res_y = ysize;
+                        dev->monitor->mon_xsize -= 16;
+                    dev->monitor->mon_res_y = dev->monitor->mon_ysize;
                     if (dev->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        video_res_x /= 8;
-                        video_res_y /= dev->crtc[9] + 1;
-                        video_bpp = 0;
+                        dev->monitor->mon_res_x /= 8;
+                        dev->monitor->mon_res_y /= dev->crtc[9] + 1;
+                        dev->monitor->mon_bpp = 0;
                     } else if (!(dev->cgamode & 2)) {
-                        video_res_x /= 16;
-                        video_res_y /= dev->crtc[9] + 1;
-                        video_bpp = 0;
+                        dev->monitor->mon_res_x /= 16;
+                        dev->monitor->mon_res_y /= dev->crtc[9] + 1;
+                        dev->monitor->mon_bpp = 0;
                     } else if (!(dev->cgamode & 16)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        dev->monitor->mon_res_x /= 2;
+                        dev->monitor->mon_bpp = 2;
                     } else
-                        video_bpp = 1;
+                        dev->monitor->mon_bpp = 1;
                 }
 
                 dev->firstline = 1000;
@@ -409,7 +406,6 @@ compaq_cga_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -417,6 +413,7 @@ compaq_cga_init(const device_t *info)
 {
     int    display_type;
     cga_t *dev          = calloc(1, sizeof(cga_t));
+    dev->monitor = video_monitor_pending;
 
     display_type        = device_get_config_int("display_type");
     dev->composite      = (display_type != CGA_RGB);
@@ -425,7 +422,7 @@ compaq_cga_init(const device_t *info)
 
     dev->vram           = calloc(1, 0x4000);
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_cga);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_compaq_cga, dev->monitor);
 
     cga_comp_init(dev->revision);
     timer_add(&dev->timer, compaq_cga_poll, dev, 1);
@@ -463,16 +460,15 @@ compaq_cga_init(const device_t *info)
 
     vflags = info->local;
 
-    overscan_x = overscan_y = 16;
+    dev->monitor->mon_overscan_x = dev->monitor->mon_overscan_y = 16;
 
     dev->rgb_type = device_get_config_int("rgb_type");
-    cga_palette   = (dev->rgb_type << 1);
-    cgapal_rebuild();
+    *dev->monitor->mon_cga_palette   = (dev->rgb_type << 1);
+    cgapal_rebuild_monitor(dev->monitor);
 
     dev->crtc[9] = 13;
 
-    monitors[monitor_index_global].mon_composite = !!dev->composite;
-    dev->monitor_used                            = monitor_index_global;
+    dev->monitor->mon_composite = !!dev->composite;
 
     return dev;
 }

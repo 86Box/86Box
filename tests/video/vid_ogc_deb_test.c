@@ -29,8 +29,8 @@
         }                                                   \
     } while (0)
 
-monitor_t   monitors[MONITORS_NUM];
-int         monitor_index_global;
+static monitor_t monitor;
+monitor_t *video_monitor_pending = &monitor;
 cpu_state_t cpu_state;
 uint64_t    tsc;
 uint64_t    CGACONST;
@@ -47,24 +47,24 @@ uint8_t cga_in(uint16_t addr, void *priv) { (void) addr; (void) priv; return 0; 
 void cga_out(uint16_t addr, uint8_t val, void *priv) { (void) addr; (void) val; (void) priv; }
 void cga_poll(void *priv) { (void) priv; }
 void cga_comp_init(int revision) { (void) revision; }
-void cgapal_rebuild_monitor(int monitor_index) { (void) monitor_index; }
+void cgapal_rebuild_monitor(monitor_t *monitor) { (void) monitor; }
 int device_get_config_int(const char *name) { (void) name; return 0; }
 void hline(bitmap_t *b, int x1, int y, int x2, uint32_t col) { (void) b; (void) x1; (void) y; (void) x2; (void) col; }
-void set_screen_size(int x, int y) { (void) x; (void) y; }
+void set_screen_size_monitor(int x, int y, monitor_t *monitor) { (void) x; (void) y; (void) monitor; }
 void sub_cycles(int c) { (void) c; }
 void sub_cycles_vx0(int c) { (void) c; }
 void timer_enable(pc_timer_t *timer) { (void) timer; }
 void timer_add(pc_timer_t *timer, void (*callback)(void *priv), void *priv, int start_timer) { (void) timer; (void) callback; (void) priv; (void) start_timer; }
-void video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index) { (void) x; (void) y; (void) w; (void) h; (void) monitor_index; }
-uint8_t video_force_resize_get_monitor(int monitor_index) { (void) monitor_index; return 0; }
-void video_force_resize_set_monitor(uint8_t res, int monitor_index) { (void) res; (void) monitor_index; }
-void video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index) { (void) type; (void) ptr; (void) monitor_index; }
-void video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used) { (void) x_offset; (void) y; (void) x_offset_from_hsync; (void) firstline; (void) pix_clock; (void) monitor_used; }
-void video_lightpen_hsync(void) { }
-void video_lightpen_vsync(void) { }
+void video_blit_memtoscreen_monitor(int x, int y, int w, int h, monitor_t *monitor) { (void) x; (void) y; (void) w; (void) h; (void) monitor; }
+uint8_t video_force_resize_get_monitor(monitor_t *monitor) { (void) monitor; return 0; }
+void video_force_resize_set_monitor(uint8_t res, monitor_t *monitor) { (void) res; (void) monitor; }
+void video_inform_monitor(int type, const video_timings_t *ptr, monitor_t *monitor) { (void) type; (void) ptr; (void) monitor; }
+void video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, monitor_t *monitor) { (void) x_offset; (void) y; (void) x_offset_from_hsync; (void) firstline; (void) pix_clock; (void) monitor; }
+void video_lightpen_hsync(monitor_t *monitor) { (void) monitor; }
+void video_lightpen_vsync(monitor_t *monitor) { (void) monitor; }
 void video_load_font(char *fn, int format, int offset) { (void) fn; (void) format; (void) offset; }
-void video_process_8_monitor(int x, int y, int monitor_index) { (void) x; (void) y; (void) monitor_index; }
-void video_wait_for_buffer_monitor(int monitor_index) { (void) monitor_index; }
+void video_process_8_monitor(int x, int y, monitor_t *monitor) { (void) x; (void) y; (void) monitor; }
+void video_wait_for_buffer_monitor(monitor_t *monitor) { (void) monitor; }
 void io_sethandler(uint16_t base, uint16_t size,
                    uint8_t (*inb)(uint16_t port, void *priv), uint16_t (*inw)(uint16_t port, void *priv), uint32_t (*inl)(uint16_t port, void *priv),
                    void (*outb)(uint16_t port, uint8_t val, void *priv), void (*outw)(uint16_t port, uint16_t val, void *priv), void (*outl)(uint16_t port, uint32_t val, void *priv),
@@ -145,7 +145,8 @@ main(void)
     ogc_t  *ogc = (ogc_t *) calloc(1, sizeof(ogc_t));
     uint8_t lut[256];
 
-    monitors[0].target_buffer = &screen;
+    monitor.target_buffer = &screen;
+    ogc->cga.monitor = &monitor;
     for (int i = 0; i < 4; i++)
         screen.line[i] = pixels[i];
 

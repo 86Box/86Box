@@ -3171,7 +3171,7 @@ ati_render_24bpp(svga_t *svga)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -3228,7 +3228,7 @@ ati_render_32bpp(svga_t *svga)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -7248,7 +7248,7 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
 
             y_pos = displine;
             x_pos = offset + svga->x_add;
-            p     = buffer32->line[y_pos];
+            p     = svga->monitor->target_buffer->line[y_pos];
 
             if (offset >= svga->hwcursor_latch.x) {
                 mach_log(mach->log,"COMB=%d.\n", comb);
@@ -8357,21 +8357,21 @@ mach8_init(const device_t *info)
         else
             svga->ramdac = device_add(&ati68875_ramdac_device);
         if (mach->vlb_bus) {
-            video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_vlb);
+            video_inform_monitor(VIDEO_FLAG_TYPE_8514, &timing_mach32_vlb, video_monitor_pending);
             if (!is486)
                 mach->config1 |= 0x0a;
             else
                 mach->config1 |= 0x0c;
             mach->config1 |= 0x0400;
         } else if (mach->mca_bus) {
-            video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_mca);
+            video_inform_monitor(VIDEO_FLAG_TYPE_8514, &timing_mach32_mca, video_monitor_pending);
             if (is286 && !is386)
                 mach->config1 |= 0x04;
             else
                 mach->config1 |= 0x06;
             mach->config1 |= 0x0400;
         } else if (mach->pci_bus) {
-            video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_8514, &timing_mach32_pci, video_monitor_pending);
             mach->config1 |= 0x0e;
             if (mach->ramdac_type == ATI_68860)
                 mach->config1 |= 0x0a00;
@@ -8379,7 +8379,7 @@ mach8_init(const device_t *info)
                 mach->config1 |= 0x0400;
             mach->config2 |= 0x2000;
         } else {
-            video_inform(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa);
+            video_inform_monitor(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa, video_monitor_pending);
             mach->config1 |= 0x0400;
         }
         svga->clock_gen = device_add(&ati18811_1_mach32_vga_device);
@@ -8403,7 +8403,7 @@ mach8_init(const device_t *info)
         if (dev->vram_amount == 512)
             dev->vram_mask &= 0xfffffff7;
 
-        video_inform(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa, video_monitor_pending);
         mach->bus_width_8bit = device_get_config_int("bus_width");
         /* An 8-bit slot has no upper data lines, so a machine without a 16-bit bus forces JU1 to 8-bit. */
         if (!machine_has_bus(machine, MACHINE_BUS_ISA16))

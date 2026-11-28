@@ -35,8 +35,6 @@
         }                                                              \
     } while (0)
 
-monitor_t monitors[MONITORS_NUM];
-int       monitor_index_global;
 
 static int failures;
 static int card_type = MACH64_GTB;

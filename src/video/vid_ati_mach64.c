@@ -32,7 +32,6 @@ video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w 
 /* The Rage Pro, the same counts at the AGP's clock. */
 static video_timings_t timing_mach64_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
-mach64_t *reset_state[2] = { NULL, NULL };
 
 /* DP_*_PIX_WIDTH: 0 mono, 1 4 bpp, 2 8 bpp, 3 15 bpp, 4 16 bpp, 6 32 bpp (RRG 3-39). */
 int mach64_width[8] = { WIDTH_1BIT, WIDTH_4BIT, 0, 1, 1, 2, 2, 0 };
@@ -3186,7 +3185,7 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
 
             y_pos = displine;
             x_pos = offset + svga->x_add;
-            p     = buffer32->line[y_pos];
+            p     = svga->monitor->target_buffer->line[y_pos];
 
             if (offset >= svga->hwcursor_latch.x) {
                 switch (comb) {
@@ -3847,17 +3846,17 @@ mach64_disable_handlers(mach64_t *dev)
         mem_mapping_disable(&dev->aux_mapping);
 
     /* Save all the mappings and the timers because they are part of linked lists. */
-    reset_state[dev->svga.monitor_index]->linear_mapping            = dev->linear_mapping;
-    reset_state[dev->svga.monitor_index]->linear_mapping_big_endian = dev->linear_mapping_big_endian;
-    reset_state[dev->svga.monitor_index]->mmio_mapping              = dev->mmio_mapping;
-    reset_state[dev->svga.monitor_index]->mmio_linear_mapping       = dev->mmio_linear_mapping;
-    reset_state[dev->svga.monitor_index]->svga.mapping              = dev->svga.mapping;
-    reset_state[dev->svga.monitor_index]->bios_rom.mapping          = dev->bios_rom.mapping;
-    reset_state[dev->svga.monitor_index]->aux_mapping               = dev->aux_mapping;
+    dev->reset_state->linear_mapping            = dev->linear_mapping;
+    dev->reset_state->linear_mapping_big_endian = dev->linear_mapping_big_endian;
+    dev->reset_state->mmio_mapping              = dev->mmio_mapping;
+    dev->reset_state->mmio_linear_mapping       = dev->mmio_linear_mapping;
+    dev->reset_state->svga.mapping              = dev->svga.mapping;
+    dev->reset_state->bios_rom.mapping          = dev->bios_rom.mapping;
+    dev->reset_state->aux_mapping               = dev->aux_mapping;
 
-    reset_state[dev->svga.monitor_index]->svga.timer      = dev->svga.timer;
-    reset_state[dev->svga.monitor_index]->svga.timer_8514 = dev->svga.timer_8514;
-    reset_state[dev->svga.monitor_index]->svga.timer_xga  = dev->svga.timer_xga;
+    dev->reset_state->svga.timer      = dev->svga.timer;
+    dev->reset_state->svga.timer_8514 = dev->svga.timer_8514;
+    dev->reset_state->svga.timer_xga  = dev->svga.timer_xga;
 }
 
 static void
@@ -3865,7 +3864,7 @@ mach64_reset(void *priv)
 {
     mach64_t *dev = (mach64_t *) priv;
 
-    if (reset_state[dev->svga.monitor_index] != NULL) {
+    if (dev->reset_state != NULL) {
         mutex_t *fifo_mutex = dev->fifo_mutex;
 
         /* The FIFO thread runs entries under this; the struct is rewritten
@@ -3875,10 +3874,10 @@ mach64_reset(void *priv)
         dev->blitter_busy                              = 0;
         dev->fifo_write_idx                            = 0;
         dev->fifo_read_idx                             = 0;
-        reset_state[dev->svga.monitor_index]->eeprom   = dev->eeprom;
-        reset_state[dev->svga.monitor_index]->pci_slot = dev->pci_slot;
+        dev->reset_state->eeprom   = dev->eeprom;
+        dev->reset_state->pci_slot = dev->pci_slot;
 
-        *dev = *reset_state[dev->svga.monitor_index];
+        *dev = *dev->reset_state;
         mach64_idct_reset(dev);
         mach64_io_map(dev);
         memset(dev->svga.vram, 0, dev->svga.vram_max);
@@ -3896,7 +3895,7 @@ mach64_common_init(const device_t *info)
 {
     svga_t   *svga;
     mach64_t *mach64 = calloc(1, sizeof(mach64_t));
-    reset_state[monitor_index_global] = calloc(1, sizeof(mach64_t));
+    mach64->reset_state = calloc(1, sizeof(mach64_t));
 
     svga = &mach64->svga;
 
@@ -4006,11 +4005,11 @@ mach64gx_init(const device_t *info)
         mach64->isa_irq = device_get_config_int("irq");
 
     if (info->flags & DEVICE_ISA16)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, mach64->isa_8bit ? &timing_mach64_isa8 : &timing_mach64_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, mach64->isa_8bit ? &timing_mach64_isa8 : &timing_mach64_isa, video_monitor_pending);
     else if (info->flags & DEVICE_PCI)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb, video_monitor_pending);
 
     mach64->pci            = !!(info->flags & DEVICE_PCI);
     mach64->vlb            = !!(info->flags & DEVICE_VLB);
@@ -4057,7 +4056,7 @@ mach64gx_init(const device_t *info)
         }
     }
 
-    *reset_state[monitor_index_global] = *mach64;
+    *mach64->reset_state = *mach64;
     return mach64;
 }
 static void *
@@ -4071,7 +4070,7 @@ mach64ct_init(const device_t *info)
     svga->hwcursor.cur_ysize = 64;
     svga->hwcursor.cur_xsize = 64;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci, video_monitor_pending);
 
     mach64->pci                  = 1;
     mach64->vlb                  = 0;
@@ -4091,7 +4090,7 @@ mach64ct_init(const device_t *info)
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags |= FLAG_PANNING_ATI;
 
-    *reset_state[monitor_index_global] = *mach64;
+    *mach64->reset_state = *mach64;
     return mach64;
 }
 static void *
@@ -4105,7 +4104,7 @@ mach64vt_init(const device_t *info)
     svga->hwcursor.cur_ysize = 64;
     svga->hwcursor.cur_xsize = 64;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci, video_monitor_pending);
 
     mach64->pci                  = 1;
     mach64->vlb                  = 0;
@@ -4124,7 +4123,7 @@ mach64vt_init(const device_t *info)
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
 
-    *reset_state[monitor_index_global] = *mach64;
+    *mach64->reset_state = *mach64;
     return mach64;
 }
 static void *
@@ -4138,7 +4137,7 @@ mach64vt2_init(const device_t *info)
     svga->hwcursor.cur_ysize = 64;
     svga->hwcursor.cur_xsize = 64;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci, video_monitor_pending);
 
     mach64->pci                  = 1;
     mach64->vlb                  = 0;
@@ -4157,7 +4156,7 @@ mach64vt2_init(const device_t *info)
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
 
-    *reset_state[monitor_index_global] = *mach64;
+    *mach64->reset_state = *mach64;
     return mach64;
 }
 
@@ -4180,7 +4179,7 @@ mach64gtb_init(const device_t *info)
     svga->hwcursor.cur_ysize = 64;
     svga->hwcursor.cur_xsize = 64;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, (info->flags & DEVICE_AGP) ? &timing_mach64_agp : &timing_mach64_pci);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, (info->flags & DEVICE_AGP) ? &timing_mach64_agp : &timing_mach64_pci, video_monitor_pending);
 
     mach64->pci                           = 1;
     mach64->vlb                           = 0;
@@ -4330,7 +4329,7 @@ mach64gtb_init(const device_t *info)
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
 
-    *reset_state[monitor_index_global] = *mach64;
+    *mach64->reset_state = *mach64;
     return mach64;
 }
 
@@ -4345,7 +4344,7 @@ mach64vt3_onboard_init(const device_t *info)
     svga->hwcursor.cur_ysize = 64;
     svga->hwcursor.cur_xsize = 64;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci, video_monitor_pending);
 
     mach64->pci                  = 1;
     mach64->vlb                  = 0;
@@ -4360,7 +4359,7 @@ mach64vt3_onboard_init(const device_t *info)
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
 
-    *reset_state[monitor_index_global] = *mach64;
+    *mach64->reset_state = *mach64;
     return mach64;
 }
 
@@ -4445,7 +4444,7 @@ mach64_close(void *priv)
     i2c_gpio_close(mach64->i2c);
     i2c_gpio_close(mach64->i2c_tv);
 
-    free(reset_state[mach64->svga.monitor_index]);
+    free(mach64->reset_state);
     free(mach64);
 }
 

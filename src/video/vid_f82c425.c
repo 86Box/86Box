@@ -398,12 +398,12 @@ f82c425_text_row(f82c425_t *f82c425)
         if (f82c425->cga.cgamode & 0x01) {
             /* High resolution (80 cols) */
             for (c = 0; c < sl; c++) {
-                (buffer32->line[f82c425->displine])[(x << 3) + c] = colors[(fontdat[chr][scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                (f82c425->cga.monitor->target_buffer->line[f82c425->displine])[(x << 3) + c] = colors[(fontdat[chr][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         } else {
             /* Low resolution (40 columns, stretch pixels horizontally) */
             for (c = 0; c < sl; c++) {
-                (buffer32->line[f82c425->displine])[(x << 4) + c * 2] = (buffer32->line[f82c425->displine])[(x << 4) + c * 2 + 1] = colors[(fontdat[chr][scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                (f82c425->cga.monitor->target_buffer->line[f82c425->displine])[(x << 4) + c * 2] = (f82c425->cga.monitor->target_buffer->line[f82c425->displine])[(x << 4) + c * 2 + 1] = colors[(fontdat[chr][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
 
@@ -427,7 +427,7 @@ f82c425_cgaline6(f82c425_t *f82c425)
         addr++;
 
         for (uint8_t c = 0; c < 8; c++) {
-            (buffer32->line[f82c425->displine])[x * 8 + c] = colormap[dat & 0x80 ? 3 : 0];
+            (f82c425->cga.monitor->target_buffer->line[f82c425->displine])[x * 8 + c] = colormap[dat & 0x80 ? 3 : 0];
 
             dat = dat << 1;
         }
@@ -454,7 +454,7 @@ f82c425_cgaline4(f82c425_t *f82c425)
             if (!(f82c425->cga.cgamode & 0x08))
                 pattern = 0;
 
-            (buffer32->line[f82c425->displine])[x * 8 + 2 * c] = (buffer32->line[f82c425->displine])[x * 8 + 2 * c + 1] = colormap[pattern & 3];
+            (f82c425->cga.monitor->target_buffer->line[f82c425->displine])[x * 8 + 2 * c] = (f82c425->cga.monitor->target_buffer->line[f82c425->displine])[x * 8 + 2 * c + 1] = colormap[pattern & 3];
 
             dat = dat << 2;
         }
@@ -499,7 +499,7 @@ f82c425_poll(void *priv)
         f82c425->linepos = 1;
         if (f82c425->dispon) {
             if (f82c425->displine == 0) {
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(f82c425->cga.monitor);
             }
 
             switch (f82c425->cga.cgamode & 0x13) {
@@ -539,30 +539,30 @@ f82c425_poll(void *priv)
 
         if (f82c425->displine == 200) {
             /* Hardcode 640x200 window size */
-            if ((F82C425_XSIZE != xsize) || (F82C425_YSIZE != ysize) || video_force_resize_get()) {
-                xsize = F82C425_XSIZE;
-                ysize = F82C425_YSIZE;
-                set_screen_size(xsize, ysize);
+            if ((F82C425_XSIZE != f82c425->cga.monitor->mon_xsize) || (F82C425_YSIZE != f82c425->cga.monitor->mon_ysize) || video_force_resize_get_monitor(f82c425->cga.monitor)) {
+                f82c425->cga.monitor->mon_xsize = F82C425_XSIZE;
+                f82c425->cga.monitor->mon_ysize = F82C425_YSIZE;
+                set_screen_size_monitor(f82c425->cga.monitor->mon_xsize, f82c425->cga.monitor->mon_ysize, f82c425->cga.monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(f82c425->cga.monitor))
+                    video_force_resize_set_monitor(0, f82c425->cga.monitor);
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, f82c425->cga.monitor->mon_xsize, f82c425->cga.monitor->mon_ysize, f82c425->cga.monitor);
             frames++;
 
             /* Fixed 640x200 resolution */
-            video_res_x = F82C425_XSIZE;
-            video_res_y = F82C425_YSIZE;
+            f82c425->cga.monitor->mon_res_x = F82C425_XSIZE;
+            f82c425->cga.monitor->mon_res_y = F82C425_YSIZE;
 
             switch (f82c425->cga.cgamode & 0x12) {
                 case 0x12:
-                    video_bpp = 1;
+                    f82c425->cga.monitor->mon_bpp = 1;
                     break;
                 case 0x02:
-                    video_bpp = 2;
+                    f82c425->cga.monitor->mon_bpp = 2;
                     break;
                 default:
-                    video_bpp = 0;
+                    f82c425->cga.monitor->mon_bpp = 0;
             }
 
             f82c425->cga.cgablink++;
@@ -576,7 +576,7 @@ f82c425_init(UNUSED(const device_t *info))
     f82c425_t *f82c425 = calloc(1, sizeof(f82c425_t));
 
     cga_init(&f82c425->cga);
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_f82c425);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_f82c425, f82c425->cga.monitor);
 
     /* Initialize registers that don't default to zero. */
     f82c425->hsync       = 0x40;

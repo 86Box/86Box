@@ -107,12 +107,12 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 if ((ega->attraddr == 0x13) && (ega->attrregs[0x13] != val))
-                    ega->fullchange = changeframecount;
+                    ega->fullchange = ega->monitor->mon_changeframecount;
                 uint8_t aidx        = ega->attraddr & 31;
                 o                   = ega->attrregs[aidx];
                 ega->attrregs[aidx] = val;
                 if (ega->attraddr < 16)
-                    ega->fullchange = changeframecount;
+                    ega->fullchange = ega->monitor->mon_changeframecount;
                 int is_attr14 = ega->chipset && (ega->attraddr == 0x14);
                 if ((ega->attraddr == 0x10) || is_attr14 || (ega->attraddr < 0x10)) {
                     for (uint8_t c = 0; c < 16; c++) {
@@ -124,7 +124,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                         } else
                             ega->egapal[c] = ega->attrregs[c] & 0x3f;
                     }
-                    ega->fullchange = changeframecount;
+                    ega->fullchange = ega->monitor->mon_changeframecount;
                 }
                 /* Recalculate timings on change of attribute register 0x11
                    (overscan border color) too. */
@@ -316,7 +316,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                         ega->memaddr_latch   = ((ega->crtc[0xc] << 8) | ega->crtc[0xd]) +
                                           ((ega->crtc[8] & 0x60) >> 5);
                     } else {
-                        ega->fullchange = changeframecount;
+                        ega->fullchange = ega->monitor->mon_changeframecount;
                         ega_recalctimings(ega);
                     }
                 }
@@ -691,21 +691,21 @@ ega_recalctimings(ega_t *ega)
         }
     }
 
-    overscan_y = (ega->rowcount + 1) << 1;
+    ega->monitor->mon_overscan_y = (ega->rowcount + 1) << 1;
 
-    if (overscan_y < 16)
-        overscan_y = 16;
+    if (ega->monitor->mon_overscan_y < 16)
+        ega->monitor->mon_overscan_y = 16;
 
-    overscan_x = (ega->seqregs[1] & 1) ? 16 : 18;
+    ega->monitor->mon_overscan_x = (ega->seqregs[1] & 1) ? 16 : 18;
 
     if (ega->vres)
-        overscan_y <<= 1;
+        ega->monitor->mon_overscan_y <<= 1;
 
     if (ega->seqregs[1] & 8)
-        overscan_x <<= 1;
+        ega->monitor->mon_overscan_x <<= 1;
 
-    ega->y_add = (overscan_y >> 1);
-    ega->x_add = (overscan_x >> 1) - ega->scrollcache;
+    ega->y_add = (ega->monitor->mon_overscan_y >> 1);
+    ega->x_add = (ega->monitor->mon_overscan_x >> 1) - ega->scrollcache;
 
     if (ega->vres)
         ega->y_add >>= 1;
@@ -862,7 +862,7 @@ ega_poll(void *priv)
             ega->memaddr &= ega->vrammask;
             if (ega->firstline == 2000) {
                 ega->firstline = ega->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(ega->monitor);
             }
 
             old_ma = ega->memaddr;
@@ -873,10 +873,10 @@ ega_poll(void *priv)
                 ega->render(ega);
 
                 /* Render overscan */
-                ega->x_add = (overscan_x >> 1);
+                ega->x_add = (ega->monitor->mon_overscan_x >> 1);
                 ega_render_overscan_left(ega);
                 ega_render_overscan_right(ega);
-                ega->x_add = (overscan_x >> 1) - ega->scrollcache;
+                ega->x_add = (ega->monitor->mon_overscan_x >> 1) - ega->scrollcache;
 
                 if (y != ega->vres) {
                     ega->memaddr = old_ma;
@@ -911,7 +911,7 @@ ega_poll(void *priv)
         }
     } else {
         timer_advance_u64(&ega->timer, ega->dispontime);
-        video_lightpen_hsync();
+        video_lightpen_hsync(ega->monitor);
 
         if (ega->dispon)
             ega->status &= ~1;
@@ -992,7 +992,7 @@ ega_poll(void *priv)
 #endif
 //            x = ega->hdisp;
 
-            video_lightpen_vsync();
+            video_lightpen_vsync(ega->monitor);
             if (ega->interlace && !ega->oddeven)
                 ega->lastline++;
             if (ega->interlace && ega->oddeven)
@@ -1022,7 +1022,7 @@ ega_poll(void *priv)
 
             ega->oddeven ^= 1;
 
-            changeframecount = ega->interlace ? 3 : 2;
+            ega->monitor->mon_changeframecount = ega->interlace ? 3 : 2;
             ega->vslines     = 0;
 
             if (ega->interlace && ega->oddeven)
@@ -1051,7 +1051,7 @@ ega_poll(void *priv)
             if (ega->seqregs[1] & 8)
                 ega->scrollcache <<= 1;
 
-            ega->x_add = (overscan_x >> 1) - ega->scrollcache;
+            ega->x_add = (ega->monitor->mon_overscan_x >> 1) - ega->scrollcache;
 
             ega->linecountff = 0;
         }
@@ -1063,11 +1063,11 @@ ega_poll(void *priv)
 void
 ega_doblit(int wx, int wy, ega_t *ega)
 {
-    int       unscaled_overscan_y = ega->vres ? overscan_y >> 1 : overscan_y;
+    int       unscaled_overscan_y = ega->vres ? ega->monitor->mon_overscan_y >> 1 : ega->monitor->mon_overscan_y;
     int       y_add   = enable_overscan ? unscaled_overscan_y : 0;
-    int       x_add   = enable_overscan ? overscan_x : 0;
+    int       x_add   = enable_overscan ? ega->monitor->mon_overscan_x : 0;
     int       y_start = enable_overscan ? 0 : (unscaled_overscan_y >> 1);
-    int       x_start = enable_overscan ? 0 : (overscan_x >> 1);
+    int       x_start = enable_overscan ? 0 : (ega->monitor->mon_overscan_x >> 1);
     int       bottom  = (unscaled_overscan_y >> 1);
     int       xs_temp;
     int       ys_temp;
@@ -1093,12 +1093,12 @@ ega_doblit(int wx, int wy, ega_t *ega)
     if (ys_temp < 32)
         ys_temp = 200;
 
-    if ((ega->crtc[0x17] & 0x80) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
+    if ((ega->crtc[0x17] & 0x80) && ((xs_temp != ega->monitor->mon_xsize) || (ys_temp != ega->monitor->mon_ysize) || video_force_resize_get_monitor(ega->monitor))) {
         /* Screen res has changed.. fix up, and let them know. */
-        xsize = xs_temp;
-        ysize = ys_temp;
+        ega->monitor->mon_xsize = xs_temp;
+        ega->monitor->mon_ysize = ys_temp;
 
-        if ((xsize > 1984) || (ysize > 2016)) {
+        if ((ega->monitor->mon_xsize > 1984) || (ega->monitor->mon_ysize > 2016)) {
             /* 2048x2048 is the biggest safe render texture, to account for overscan,
                we suppress overscan starting from x 1984 and y 2016. */
             x_add             = 0;
@@ -1107,30 +1107,30 @@ ega_doblit(int wx, int wy, ega_t *ega)
         } else
             suppress_overscan = 0;
 
-        set_screen_size(xsize + x_add, ysize + y_add);
+        set_screen_size_monitor(ega->monitor->mon_xsize + x_add, ega->monitor->mon_ysize + y_add, ega->monitor);
 
-        if (video_force_resize_get())
-            video_force_resize_set(0);
+        if (video_force_resize_get_monitor(ega->monitor))
+            video_force_resize_set_monitor(0, ega->monitor);
     }
 
     if ((wx >= 160) && ((wy + 1) >= 120)) {
         /* Draw (overscan_size - scroll size) lines of overscan on top and bottom. */
         for (int i = 0; i < ega->y_add; i++) {
-            uint32_t *p = &buffer32->line[i & 0x7ff][0];
+            uint32_t *p = &ega->monitor->target_buffer->line[i & 0x7ff][0];
 
-            for (int j = 0; j < (xsize + x_add); j++)
+            for (int j = 0; j < (ega->monitor->mon_xsize + x_add); j++)
                 p[j] = ega->overscan_color;
         }
 
         for (int i = 0; i < bottom; i++) {
-            uint32_t *p = &buffer32->line[(ysize + ega->y_add + i) & 0x7ff][0];
+            uint32_t *p = &ega->monitor->target_buffer->line[(ega->monitor->mon_ysize + ega->y_add + i) & 0x7ff][0];
 
-            for (int j = 0; j < (xsize + x_add); j++)
+            for (int j = 0; j < (ega->monitor->mon_xsize + x_add); j++)
                 p[j] = ega->overscan_color;
         }
     }
 
-    video_blit_memtoscreen(x_start, y_start, xsize + x_add, ysize + y_add);
+    video_blit_memtoscreen_monitor(x_start, y_start, ega->monitor->mon_xsize + x_add, ega->monitor->mon_ysize + y_add, ega->monitor);
 
     if (ega->vres)
         ega->y_add >>= 1;
@@ -1218,7 +1218,7 @@ ega_write(uint32_t addr, uint8_t val, void *priv)
     uint8_t vald;
     int     writemask2 = ega->writemask;
 
-    cycles -= video_timing_write_b;
+    cycles -= ega->monitor->mon_video_timing_write_b;
 
     if (ega->chain2_write)
         writemask2 &= 0x5 << (addr & 1);
@@ -1419,7 +1419,7 @@ ega_read(uint32_t addr, void *priv)
     uint8_t temp4;
     int     readplane = ega->readplane;
 
-    cycles -= video_timing_read_b;
+    cycles -= ega->monitor->mon_video_timing_read_b;
 
     if (ega->chain2_read)
         readplane = (readplane & 2) | (addr & 1);
@@ -1460,6 +1460,8 @@ ega_read(uint32_t addr, void *priv)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
+    ega->monitor = video_monitor_pending;
+
     /* For the memory viewer; here, as machines with the card built in map
        the same handlers. */
     mem_debug_add(ega_read, ega_write, ega_debug_ptr);
@@ -1620,12 +1622,13 @@ static void *
 ega_standalone_init(const device_t *info)
 {
     ega_t *ega = calloc(1, sizeof(ega_t));
+    ega->monitor = video_monitor_pending;
     int    monitor_type;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega, ega->monitor);
 
-    overscan_x = 16;
-    overscan_y = 28;
+    ega->monitor->mon_overscan_x = 16;
+    ega->monitor->mon_overscan_y = 28;
     ega->x_add = 8;
     ega->y_add = 14;
 

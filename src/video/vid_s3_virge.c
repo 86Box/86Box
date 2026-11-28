@@ -850,7 +850,7 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                         if ((svga->crtc[0x67] & 0xc) != 0xc)
                             svga->memaddr_latch |= (virge->ma_ext << 16);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -1109,7 +1109,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
         svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
 
-        video_force_resize_set_monitor(1, svga->monitor_index);
+        video_force_resize_set_monitor(1, svga->monitor);
     } else {
         svga->hblankstart = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
@@ -1122,7 +1122,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
         svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
 
-        video_force_resize_set_monitor(1, svga->monitor_index);
+        video_force_resize_set_monitor(1, svga->monitor);
     }
 
     if ((svga->crtc[0x67] & 0x0c) != 0x0c) { /*VGA mode*/
@@ -2271,7 +2271,7 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
             case 0x8180:
                 virge->streams.pri_ctrl = val;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x8184:
                 virge->streams.chroma_ctrl = val;
@@ -2298,51 +2298,51 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                     virge->streams.k2_horiz_scale |= ~0x3ff;
 
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81a0:
                 virge->streams.blend_ctrl = val;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81c0:
                 virge->streams.pri_fb0 = val & ((virge->memory_size == 8) ?
                                                 (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81c4:
                 virge->streams.pri_fb1 = ((virge->memory_size == 8) ?
                                           (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81c8:
                 virge->streams.pri_stride = val & 0xfff;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81cc:
                 virge->streams.buffer_ctrl = val;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81d0:
                 virge->streams.sec_fb0 = ((virge->memory_size == 8) ?
                                           (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81d4:
                 virge->streams.sec_fb1 = ((virge->memory_size == 8) ?
                                           (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81d8:
                 virge->streams.sec_stride = val & 0xfff;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81dc:
                 virge->streams.overlay_ctrl = val;
@@ -2363,7 +2363,7 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                     virge->streams.dda_vert_accumulator |= ~0x7ff;
 
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81ec:
                 virge->streams.fifo_ctrl = val;
@@ -2373,28 +2373,28 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 virge->streams.pri_x     = (val >> 16) & 0x7ff;
                 virge->streams.pri_y     = val & 0x7ff;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81f4:
                 virge->streams.pri_size = val;
                 virge->streams.pri_w    = (val >> 16) & 0x7ff;
                 virge->streams.pri_h    = val & 0x7ff;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81f8:
                 virge->streams.sec_start = val;
                 virge->streams.sec_x     = (val >> 16) & 0x7ff;
                 virge->streams.sec_y     = val & 0x7ff;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
             case 0x81fc:
                 virge->streams.sec_size = val;
                 virge->streams.sec_w    = (val >> 16) & 0x7ff;
                 virge->streams.sec_h    = val & 0x7ff;
                 svga_recalctimings(svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
 
             case 0x8504:
@@ -3334,18 +3334,18 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
             case 0: /*8 bpp*/                                                    \
                 vram[addr & virge->vram_mask] = val;                             \
                 virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
-                    changeframecount;                                            \
+                    virge->svga.monitor->mon_changeframecount;                     \
                 break;                                                           \
             case 1: /*16 bpp*/                                                   \
                  *(uint16_t *)&vram[addr & virge->vram_mask] = val;              \
                 virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
-                    changeframecount;                                            \
+                    virge->svga.monitor->mon_changeframecount;                     \
                 break;                                                           \
             case 2: /*24 bpp*/                                                   \
                 *(uint32_t *)&vram[addr & virge->vram_mask] = (val & 0xffffff) | \
                     (vram[(addr + 3) & virge->vram_mask] << 24);                 \
                 virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
-                    changeframecount;                                            \
+                    virge->svga.monitor->mon_changeframecount;                     \
                 break;                                                           \
         }                                                                        \
     } while (0)
@@ -3412,7 +3412,7 @@ s3_virge_bitblt_copy_rows(virge_t *virge, int x_mul, int x_inc, int y_inc)
         memcpy(&vram[d], &vram[s], len);
         /* The pixel loop marks the page each pixel starts in. */
         for (uint32_t page = d >> 12; page <= ((d + len - x_mul) >> 12); page++)
-            virge->svga.changedvram[page] = changeframecount;
+            virge->svga.changedvram[page] = virge->svga.monitor->mon_changeframecount;
     }
 
     /* Leave the engine where the pixel loop would. */
@@ -4623,8 +4623,8 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
 
             /* Lanes share these pages: writing only on a change keeps the
                cache line from bouncing between the render threads. */
-            if (virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] != changeframecount)
-                virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] = changeframecount;
+            if (virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] != virge->svga.monitor->mon_changeframecount)
+                virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] = virge->svga.monitor->mon_changeframecount;
 
             dest_addr = dest_offset + (x * (bpp + 1));
             z_addr    = z_offset + (x << 1);
@@ -5557,7 +5557,7 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
                         dat[0] ^= 0x8000;
 
                     if (dat[0] & 0x8000)
-                        buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
+                        svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
                 }
 
                 offset++;
@@ -5570,9 +5570,9 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
             for (xx = 0; xx < 16; xx++) {
                 if (offset >= svga->hwcursor_latch.x) {
                     if (!(dat[0] & 0x8000))
-                        buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
+                        svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
                     else if (dat[1] & 0x8000)
-                        buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
+                        svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
                 }
 
                 offset++;
@@ -5956,7 +5956,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
     else
         offset = virge->streams.sec_x + 1;
 
-    p = &((uint32_t *) buffer32->line[displine])[offset + svga->x_add];
+    p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add];
 
     if (virge->chip < S3_VIRGEGX2) {
         if ((offset + virge->streams.sec_w) > virge->streams.pri_w)
@@ -6476,7 +6476,7 @@ s3_virge_init(const device_t *info)
             virge->virge_id_low     = 0x31;
             virge->svga.crtc[0x59]  = 0x70;
             virge->chip             = S3_VIRGE;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_2000_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_2000_pci, video_monitor_pending);
             break;
         case S3_DIAMOND_STEALTH3D_3000:
         case S3_STB_VELOCITY_3D:
@@ -6486,7 +6486,7 @@ s3_virge_init(const device_t *info)
             virge->virge_id_low     = 0x3d;
             virge->svga.crtc[0x59]  = 0x70;
             virge->chip             = S3_VIRGEVX;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_3000_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_diamond_stealth3d_3000_pci, video_monitor_pending);
             break;
         case S3_VIRGE_GX2:
         case S3_DIAMOND_STEALTH3D_4000:
@@ -6497,7 +6497,7 @@ s3_virge_init(const device_t *info)
             virge->svga.crtc[0x6c]   = 1;
             virge->svga.crtc[0x59]   = 0x70;
             virge->chip              = S3_VIRGEGX2;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci, video_monitor_pending);
             break;
 
         case S3_TRIO_3D2X:
@@ -6509,7 +6509,7 @@ s3_virge_init(const device_t *info)
             virge->svga.crtc[0x6c]   = 1;
             virge->svga.crtc[0x59]   = 0x70;
             virge->chip              = S3_TRIO3D2X;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci, video_monitor_pending);
             break;
 
         case S3_VIRGE_GX:
@@ -6524,7 +6524,7 @@ s3_virge_init(const device_t *info)
             virge->svga.crtc[0x6c]   = 1;
             virge->svga.crtc[0x59]   = 0x70;
             virge->chip              = S3_VIRGEDX;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_virge_dx_pci);
+            video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_virge_dx_pci, video_monitor_pending);
             break;
     }
 
@@ -6661,7 +6661,7 @@ s3_virge_force_redraw(void *priv)
 {
     virge_t *virge = (virge_t *) priv;
 
-    virge->svga.fullchange = changeframecount;
+    virge->svga.fullchange = virge->svga.monitor->mon_changeframecount;
 }
 
 #define S3_VIRGE_RENDER_THREADS_CONFIG                               \

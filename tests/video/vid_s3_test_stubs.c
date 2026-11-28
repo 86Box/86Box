@@ -98,7 +98,7 @@ int svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
 void svga_close(svga_t *svga) { abort(); }
 uint8_t *svga_debug_ptr_common(uint32_t addr, uint8_t linear, int write, svga_t *svga) { abort(); }
 void video_clamp_vram(uint64_t bios_flags, int *vram) { abort(); }
-void video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index) { abort(); }
+void video_inform_monitor(int type, const video_timings_t *ptr, monitor_t *monitor) { abort(); }
 
 float ch9204_getclock(int clock, void *priv) { abort(); }
 float ibm_rgb528_getclock(int clock, void *priv) { abort(); }
@@ -110,3 +110,5 @@ uint32_t tvp3026_conv_16to32(svga_t *svga, uint16_t color, uint8_t bpp) { abort(
 float tvp3026_getclock(int clock, void *priv) { abort(); }
 void tvp3026_hwcursor_draw(svga_t *svga, int displine) { abort(); }
 // clang-format on
+
+monitor_t *video_monitor_pending;

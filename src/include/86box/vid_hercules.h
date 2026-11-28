@@ -59,19 +59,9 @@ typedef struct {
 
     lpt_t  *lpt;
     uint8_t *vram;
-    int      monitor_index;
-    int      prev_monitor_index;
+    struct monitor_t *monitor;
 } hercules_t;
 
-#define VIDEO_MONITOR_PROLOGUE()                        \
-    {                                                   \
-        dev->prev_monitor_index = monitor_index_global; \
-        monitor_index_global    = dev->monitor_index;   \
-    }
-#define VIDEO_MONITOR_EPILOGUE()                        \
-    {                                                   \
-        monitor_index_global = dev->prev_monitor_index; \
-    }
 
 static void *hercules_init(const device_t *info);
 

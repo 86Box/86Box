@@ -20,6 +20,7 @@
 
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
 typedef struct ega_t {
+    struct monitor_t *monitor;
     mem_mapping_t mapping;
 
     rom_t bios_rom;

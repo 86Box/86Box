@@ -96,6 +96,7 @@ static const video_timings_t mcga_lcd_timings = {
 #define MCGA_CGA_80COL      0x01
 
 typedef struct mcga_t {
+    struct monitor_t *monitor;
     uint8_t *vram;
     uint8_t *font_ram;
 
@@ -150,7 +151,7 @@ typedef struct mcga_t {
 #define MCGA_PICTURE_ROW(dev, y) ((y) + (dev)->lcd_top)
 #define MCGA_LINE(dev, y) ((dev)->lcd ? \
     ((dev)->lcd_picture + ((size_t) MCGA_PICTURE_ROW(dev, y) * MCGA_LCD_WIDTH)) : \
-    buffer32->line[y])
+    (dev)->monitor->target_buffer->line[y])
 
 static const video_timings_t mcga_timings = {
     .type    = VIDEO_ISA,
@@ -1026,12 +1027,12 @@ mcga_lcd_present(mcga_t *dev)
 
     mcga_lcd_build_response(dev, mcga_lcd_step(dev));
 
-    video_wait_for_buffer();
+    video_wait_for_buffer_monitor(dev->monitor);
 
     for (int y = 0; y < MCGA_LCD_HEIGHT; y++) {
         const uint32_t *picture = dev->lcd_picture + ((size_t) y * MCGA_LCD_WIDTH);
         uint8_t        *level   = &dev->lcd_level[(size_t) y * MCGA_LCD_WIDTH];
-        uint32_t       *line    = buffer32->line[y];
+        uint32_t       *line    = dev->monitor->target_buffer->line[y];
 
         for (int x = 0; x < MCGA_LCD_WIDTH; x++) {
             const unsigned target = (picture[x] != off) + (picture[x] == on);
@@ -1042,20 +1043,20 @@ mcga_lcd_present(mcga_t *dev)
         }
     }
 
-    if ((xsize != MCGA_LCD_WIDTH) || (ysize != MCGA_LCD_HEIGHT) || video_force_resize_get()) {
-        xsize = MCGA_LCD_WIDTH;
-        ysize = MCGA_LCD_HEIGHT;
-        set_screen_size(MCGA_LCD_WIDTH, MCGA_LCD_HEIGHT);
-        video_force_resize_set(0);
+    if ((dev->monitor->mon_xsize != MCGA_LCD_WIDTH) || (dev->monitor->mon_ysize != MCGA_LCD_HEIGHT) || video_force_resize_get_monitor(dev->monitor)) {
+        dev->monitor->mon_xsize = MCGA_LCD_WIDTH;
+        dev->monitor->mon_ysize = MCGA_LCD_HEIGHT;
+        set_screen_size_monitor(MCGA_LCD_WIDTH, MCGA_LCD_HEIGHT, dev->monitor);
+        video_force_resize_set_monitor(0, dev->monitor);
     }
 
-    video_blit_memtoscreen(0, 0, MCGA_LCD_WIDTH, MCGA_LCD_HEIGHT);
+    video_blit_memtoscreen_monitor(0, 0, MCGA_LCD_WIDTH, MCGA_LCD_HEIGHT, dev->monitor);
     frames++;
 
     /* The panel is a 640x480 display in every mode. */
-    video_res_x = MCGA_LCD_WIDTH;
-    video_res_y = MCGA_LCD_HEIGHT;
-    video_bpp   = (mcga_mode(dev) == MCGA_MODE_CGA4) ? 2 : 1;
+    dev->monitor->mon_res_x = MCGA_LCD_WIDTH;
+    dev->monitor->mon_res_y = MCGA_LCD_HEIGHT;
+    dev->monitor->mon_bpp   = (mcga_mode(dev) == MCGA_MODE_CGA4) ? 2 : 1;
 }
 
 static void
@@ -1072,24 +1073,24 @@ mcga_present(mcga_t *dev)
     const int width  = mcga_width(dev);
     const int height = mcga_height(dev);
 
-    if ((xsize != width) || (ysize != height) || video_force_resize_get()) {
-        xsize = width;
-        ysize = height;
-        set_screen_size(width, height);
-        video_force_resize_set(0);
+    if ((dev->monitor->mon_xsize != width) || (dev->monitor->mon_ysize != height) || video_force_resize_get_monitor(dev->monitor)) {
+        dev->monitor->mon_xsize = width;
+        dev->monitor->mon_ysize = height;
+        set_screen_size_monitor(width, height, dev->monitor);
+        video_force_resize_set_monitor(0, dev->monitor);
     }
 
-    video_blit_memtoscreen(0, 0, width, height);
+    video_blit_memtoscreen_monitor(0, 0, width, height, dev->monitor);
     frames++;
 
-    video_res_x = width;
-    video_res_y = (mcga_mode(dev) == MCGA_MODE_11) ? 480 :
+    dev->monitor->mon_res_x = width;
+    dev->monitor->mon_res_y = (mcga_mode(dev) == MCGA_MODE_11) ? 480 :
                   ((mcga_mode(dev) == MCGA_MODE_TEXT) ? 25 : 200);
-    video_bpp = (mcga_mode(dev) == MCGA_MODE_TEXT) ? 0 :
+    dev->monitor->mon_bpp = (mcga_mode(dev) == MCGA_MODE_TEXT) ? 0 :
                 ((mcga_mode(dev) == MCGA_MODE_CGA4) ? 2 :
                  ((mcga_mode(dev) == MCGA_MODE_13) ? 8 : 1));
     if (mcga_mode(dev) == MCGA_MODE_TEXT)
-        video_res_x = (dev->cga_mode & MCGA_CGA_80COL) ? 80 : 40;
+        dev->monitor->mon_res_x = (dev->cga_mode & MCGA_CGA_80COL) ? 80 : 40;
 }
 
 static void
@@ -1108,7 +1109,7 @@ mcga_poll(void *priv)
                 /* The panel composes from its own picture buffer, so the
                    mode's rendering never touches the frame it presents. */
                 if (!dev->lcd)
-                    video_wait_for_buffer();
+                    video_wait_for_buffer_monitor(dev->monitor);
             }
 
             /* Only the picture is rendered here; everything the picture does
@@ -1118,19 +1119,19 @@ mcga_poll(void *priv)
             if ((y >= 0) && (y < content) &&
                 ((y + dev->lcd_top) < MCGA_LCD_HEIGHT)) {
                 mcga_render_line(dev, y);
-                video_lightpen_check_trigger_strobe(0, y, 0, 0, 1. / (VGACONST1 / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
+                video_lightpen_check_trigger_strobe(0, y, 0, 0, 1. / (VGACONST1 / (cpuclock * (double) (1ULL << 32))), dev->monitor);
             }
         }
         return;
     }
 
-    video_lightpen_hsync();
+    video_lightpen_hsync(dev->monitor);
     timer_advance_u64(&dev->timer, dev->disp_off_time);
     dev->linepos = 0;
     dev->displine++;
 
     if (dev->displine == mcga_vsync_start(dev)) {
-        video_lightpen_vsync();
+        video_lightpen_vsync(dev->monitor);
         if (dev->font_pending)
             mcga_load_font(dev);
 
@@ -1246,6 +1247,7 @@ static void *
 mcga_init(UNUSED(const device_t *info))
 {
     mcga_t *dev = (mcga_t *) calloc(1, sizeof(mcga_t));
+    dev->monitor = video_monitor_pending;
 
     dev->vram     = (uint8_t *) calloc(1, MCGA_VRAM_SIZE);
     dev->font_ram = (uint8_t *) calloc(1, MCGA_FONT_RAM_SIZE);
@@ -1264,13 +1266,13 @@ mcga_init(UNUSED(const device_t *info))
                     mcga_mem_write, mcga_mem_writew, mcga_mem_writel,
                     NULL, MEM_MAPPING_EXTERNAL, dev);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &mcga_timings);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &mcga_timings, dev->monitor);
     mcga_reset(dev);
 
     dev->enabled = 0;
     mcga_set_enabled(dev, 1);
 
-    overscan_x = overscan_y = 0;
+    dev->monitor->mon_overscan_x = dev->monitor->mon_overscan_y = 0;
 
     return dev;
 }
@@ -1380,7 +1382,7 @@ ibm7690_video_init(const device_t *info)
 {
     mcga_t *dev = (mcga_t *) mcga_init(info);
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &mcga_lcd_timings);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &mcga_lcd_timings, dev->monitor);
     mcga_set_lcd(dev, device_get_config_int("display"));
 
     return dev;

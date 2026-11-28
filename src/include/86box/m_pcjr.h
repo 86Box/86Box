@@ -28,6 +28,7 @@
 #define DOUBLE_INTERPOLATE_LINEAR 3
 
 typedef struct pcjr_s {
+    struct monitor_t *monitor;
     /* Video Controller stuff. */
     mem_mapping_t mapping;
     uint8_t       crtc[32];

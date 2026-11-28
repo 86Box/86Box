@@ -156,8 +156,7 @@ typedef struct vaxmate_vid_t {
     uint8_t  vram[VAXMATE_VRAM];
     uint8_t  font_ram[VAXMATE_FONT_RAM];
 
-    int      monitor_index;
-    int      prev_monitor_index;
+    monitor_t *monitor;
     int      monitor_mode; /* 0 = 400 line, 1 = 252 line (control B bit 7) */
 
     int      vc;
@@ -187,15 +186,6 @@ typedef struct vaxmate_vid_t {
     int      video_disabled;
 } vaxmate_vid_t;
 
-#define VAXMATE_MONITOR_PROLOGUE()                          \
-    {                                                       \
-        vid->prev_monitor_index = monitor_index_global;     \
-        monitor_index_global    = vid->monitor_index;       \
-    }
-#define VAXMATE_MONITOR_EPILOGUE()                          \
-    {                                                       \
-        monitor_index_global = vid->prev_monitor_index;     \
-    }
 
 static video_timings_t timing_vaxmate = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32,
                                                               .read_b = 8, .read_w = 16, .read_l = 32 };
@@ -583,7 +573,7 @@ vaxmate_vid_render_text(vaxmate_vid_t *vid, int line)
             col            = vaxmate_vlt_color(vid, vid->vlt[idx]);
 
             for (p = 0; p < pix; p++)
-                buffer32->line[line][x * cw + c * pix + p] = col;
+                vid->monitor->target_buffer->line[line][x * cw + c * pix + p] = col;
         }
     }
 }
@@ -620,7 +610,7 @@ vaxmate_vid_render_graphics(vaxmate_vid_t *vid, int line, int displine)
                    entry 0. CPS/SIC only apply to the 4-color modes (Table 7-9). */
                 v = idx ? vaxmate_attr_to_vlt(vid->color_select & 0x0f) : 0;
                 vid->last_irgb = vid->vlt[v] & 0x0f;
-                buffer32->line[line][x] = vaxmate_vlt_color(vid, vid->vlt[v]);
+                vid->monitor->target_buffer->line[line][x] = vaxmate_vlt_color(vid, vid->vlt[v]);
                 break;
 
             case 2:
@@ -628,14 +618,14 @@ vaxmate_vid_render_graphics(vaxmate_vid_t *vid, int line, int displine)
                 idx = (v >> (6 - 2 * (x & 3))) & 3;
                 v   = vaxmate_pal4[((vid->color_select >> 4) & 3)][idx] & 0x0f;
                 vid->last_irgb = vid->vlt[v] & 0x0f;
-                buffer32->line[line][x] = vaxmate_vlt_color(vid, vid->vlt[v]);
+                vid->monitor->target_buffer->line[line][x] = vaxmate_vlt_color(vid, vid->vlt[v]);
                 break;
 
             default:
                 v   = vid->vram[(off + (uint32_t) (x >> 1)) & (VAXMATE_VRAM - 1)];
                 idx = (v >> (4 - 4 * (x & 1))) & 0x0f;
                 vid->last_irgb = vid->vlt[idx] & 0x0f;
-                buffer32->line[line][x] = vaxmate_vlt_color(vid, vid->vlt[idx]);
+                vid->monitor->target_buffer->line[line][x] = vaxmate_vlt_color(vid, vid->vlt[idx]);
                 break;
         }
     }
@@ -646,8 +636,6 @@ vaxmate_vid_poll(void *priv)
 {
     vaxmate_vid_t *vid = (vaxmate_vid_t *) priv;
     int lpr, vdisp_rows, row, sub, start, active, total;
-
-    VAXMATE_MONITOR_PROLOGUE()
 
     /* Frame height is fixed: 25 rows of an 8x16 cell in text (TRM 7-6), 400
        lines in graphics. R6/R9 hold the guest's "industry standard" values
@@ -688,8 +676,6 @@ vaxmate_vid_poll(void *priv)
         vid->hphase = 1;
         timer_advance_u64(&vid->timer, vid->dispontime);
 
-        VAXMATE_MONITOR_EPILOGUE()
-
         return;
     }
 
@@ -709,7 +695,7 @@ vaxmate_vid_poll(void *priv)
         sub = vid->displine % lpr;
 
         if (vid->displine == 0)
-            video_wait_for_buffer();
+            video_wait_for_buffer_monitor(vid->monitor);
 
         /* R12/R13 are a 16-bit character address (the ROM BIOS writes the
            page start here), so both bytes are used in full. */
@@ -734,18 +720,18 @@ vaxmate_vid_poll(void *priv)
         if (w < 320) w = 640;
         if (h < 200) h = 400;
 
-        if ((xsize != w) || (ysize != h) || video_force_resize_get()) {
-            xsize = w;
-            ysize = h;
-            set_screen_size(xsize, ysize);
-            if (video_force_resize_get())
-                video_force_resize_set(0);
+        if ((vid->monitor->mon_xsize != w) || (vid->monitor->mon_ysize != h) || video_force_resize_get_monitor(vid->monitor)) {
+            vid->monitor->mon_xsize = w;
+            vid->monitor->mon_ysize = h;
+            set_screen_size_monitor(vid->monitor->mon_xsize, vid->monitor->mon_ysize, vid->monitor);
+            if (video_force_resize_get_monitor(vid->monitor))
+                video_force_resize_set_monitor(0, vid->monitor);
         }
 
-        video_blit_memtoscreen(0, 0, w, h);
-        video_res_x = w;
-        video_res_y = h;
-        video_bpp   = 1;
+        video_blit_memtoscreen_monitor(0, 0, w, h, vid->monitor);
+        vid->monitor->mon_res_x = w;
+        vid->monitor->mon_res_y = h;
+        vid->monitor->mon_bpp   = 1;
 
         vid->displine = 0;
         vid->vc       = 0;
@@ -757,7 +743,6 @@ vaxmate_vid_poll(void *priv)
        guest writes to the CRTC. */
     timer_advance_u64(&vid->timer, vid->dispofftime);
 
-    VAXMATE_MONITOR_EPILOGUE()
 }
 
 static uint8_t
@@ -918,12 +903,12 @@ static void *
 vaxmate_vid_init(UNUSED(const device_t *info))
 {
     vaxmate_vid_t *vid = calloc(1, sizeof(vaxmate_vid_t));
+    vid->monitor = video_monitor_pending;
 
     vid->display_type = (uint8_t) device_get_config_int("display_type");
 
-    video_inform(VIDEO_FLAG_TYPE_MDA, &timing_vaxmate);
+    video_inform_monitor(VIDEO_FLAG_TYPE_MDA, &timing_vaxmate, vid->monitor);
 
-    vid->monitor_index = monitor_index_global;
     vid->ctrl_a        = CTLA_DISPLAY_EN | VMODE_TEXT80;   /* 09h: 80x25 text */
     vid->ctrl_b        = CTLB_DISPLAY_EN | CTLB_SAVER;
     vid->mode          = VMODE_TEXT80;

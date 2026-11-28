@@ -268,7 +268,7 @@ deb_read(uint32_t addr, void *priv)
 static void
 deb_line(ogc_t *ogc, int width)
 {
-    uint32_t     *p      = &buffer32->line[ogc->cga.displine][8];
+    uint32_t     *p      = &ogc->cga.monitor->target_buffer->line[ogc->cga.displine][8];
     const int     n      = (ogc->cga.vc * (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1)) + ogc->cga.scanline;
     const int     y      = (n << 1) | ogc->lineff;
     const int     blink1 = (ogc->cga.cgablink >> 3) & 1; /* period 16 frames */
@@ -325,9 +325,7 @@ ogc_poll(void *priv)
     int      underline = 0;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = ogc->cga.monitor_used;
 
     // Composite color appears dark blue
 
@@ -336,7 +334,6 @@ ogc_poll(void *priv)
         !(ogc->deb_vram && (ogc->deb_mode & DEB_MODE_LUTOUT) && (ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS))) {
         /* standard cga mode */
         cga_poll(&ogc->cga);
-        monitor_index_global = prev_monitor_index;
         return;
     } else {
         /* mode 40h or text mode */
@@ -350,7 +347,7 @@ ogc_poll(void *priv)
             if (ogc->cga.cgadispon) {
                 if (ogc->cga.displine < ogc->cga.firstline) {
                     ogc->cga.firstline = ogc->cga.displine;
-                    video_wait_for_buffer();
+                    video_wait_for_buffer_monitor(ogc->cga.monitor);
                 }
                 ogc->cga.lastline = ogc->cga.displine;
                 /* 80-col */
@@ -394,13 +391,13 @@ ogc_poll(void *priv)
                         if (underline && (ogc->cga.scanline == 7)) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
-                                buffer32->line[ogc->cga.displine][(x << 3) + c + 8] = mdaattr[attr][blink][1];
+                                ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 3) + c + 8] = mdaattr[attr][blink][1];
                         } else if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[ogc->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[ogc->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+                                ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
                         ogc->cga.memaddr++;
@@ -443,13 +440,13 @@ ogc_poll(void *priv)
                         if (underline && (ogc->cga.scanline == 7)) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
-                                buffer32->line[ogc->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[ogc->cga.displine][(x << 4) + (c << 1) + 1 + 8] = mdaattr[attr][blink][1];
+                                ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + (c << 1) + 8] = ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + (c << 1) + 1 + 8] = mdaattr[attr][blink][1];
                         } else if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[ogc->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[ogc->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + (c << 1) + 8] = ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[ogc->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[ogc->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+                                ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + (c << 1) + 8] = ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((ogc->cga.scanline & 7) << 1) | ogc->lineff] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
                         ogc->cga.memaddr++;
@@ -477,7 +474,7 @@ ogc_poll(void *priv)
                         ogc->cga.memaddr++;
 
                         for (c = 0; c < 16; c++) {
-                            buffer32->line[ogc->cga.displine][(x << 4) + c + 8] = cols[dat >> 15];
+                            ogc->cga.monitor->target_buffer->line[ogc->cga.displine][(x << 4) + c + 8] = cols[dat >> 15];
                             dat <<= 1;
                         }
                     }
@@ -492,9 +489,9 @@ ogc_poll(void *priv)
                 if (ogc->deb_vram && (ogc->deb_mode & DEB_MODE_LUTOUT))
                     cols[0] = 16;
                 if (ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES)
-                    hline(buffer32, 0, ogc->cga.displine, ((ogc->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
+                    hline(ogc->cga.monitor->target_buffer, 0, ogc->cga.displine, ((ogc->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
                 else
-                    hline(buffer32, 0, ogc->cga.displine, ((ogc->cga.crtc[CGA_CRTC_HDISP] << 4) + 16) << 2, cols[0]);
+                    hline(ogc->cga.monitor->target_buffer, 0, ogc->cga.displine, ((ogc->cga.crtc[CGA_CRTC_HDISP] << 4) + 16) << 2, cols[0]);
             }
 
             /* 80 columns */
@@ -503,8 +500,8 @@ ogc_poll(void *priv)
             else
                 x = (ogc->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
 
-            video_process_8(x, ogc->cga.displine);
-            video_lightpen_check_trigger_strobe(8, ogc->cga.displine * (ogc->cga.double_type ? 2 : 1), 0, ogc->cga.firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), ogc->cga.monitor_used);
+            video_process_8_monitor(x, ogc->cga.displine, ogc->cga.monitor);
+            video_lightpen_check_trigger_strobe(8, ogc->cga.displine * (ogc->cga.double_type ? 2 : 1), 0, ogc->cga.firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), ogc->cga.monitor);
 
             ogc->cga.scanline = scanline_old;
             if (ogc->cga.vc == ogc->cga.crtc[CGA_CRTC_VSYNC] && !ogc->cga.scanline)
@@ -514,7 +511,7 @@ ogc_poll(void *priv)
                 ogc->cga.displine = 0;
         } else {
             timer_advance_u64(&ogc->cga.timer, ogc->cga.dispontime);
-            video_lightpen_hsync();
+            video_lightpen_hsync(ogc->cga.monitor);
             if (ogc->cga.cgadispon)
                 ogc->cga.cgastat &= ~1;
             ogc->cga.linepos = 0;
@@ -576,7 +573,7 @@ ogc_poll(void *priv)
                     if (ogc->cga.vc == ogc->cga.crtc[CGA_CRTC_VSYNC]) {
                         ogc->cga.cgadispon = 0;
                         ogc->cga.displine  = 0;
-                        video_lightpen_vsync();
+                        video_lightpen_vsync(ogc->cga.monitor);
                         /* ogc specific */
                         ogc->cga.vsynctime = (ogc->cga.crtc[CGA_CRTC_HSYNC_WIDTH] >> 4) + 1;
                         if (ogc->cga.crtc[CGA_CRTC_VSYNC]) {
@@ -590,48 +587,48 @@ ogc_poll(void *priv)
                             ys_temp = (ogc->cga.lastline - ogc->cga.firstline);
 
                             if ((xs_temp > 0) && (ys_temp > 0)) {
-                                if (xsize < 64)
+                                if (ogc->cga.monitor->mon_xsize < 64)
                                     xs_temp = 656;
                                 /* ogc specific */
-                                if (ysize < 32)
+                                if (ogc->cga.monitor->mon_ysize < 32)
                                     ys_temp = 200;
                                 if (!enable_overscan)
                                     xs_temp -= 16;
 
-                                if ((ogc->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
-                                    xsize = xs_temp;
-                                    ysize = ys_temp;
-                                    set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                                if ((ogc->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != ogc->cga.monitor->mon_xsize) || (ys_temp != ogc->cga.monitor->mon_ysize) || video_force_resize_get_monitor(ogc->cga.monitor))) {
+                                    ogc->cga.monitor->mon_xsize = xs_temp;
+                                    ogc->cga.monitor->mon_ysize = ys_temp;
+                                    set_screen_size_monitor(ogc->cga.monitor->mon_xsize, ogc->cga.monitor->mon_ysize + (enable_overscan ? 16 : 0), ogc->cga.monitor);
 
-                                    if (video_force_resize_get())
-                                        video_force_resize_set(0);
+                                    if (video_force_resize_get_monitor(ogc->cga.monitor))
+                                        video_force_resize_set_monitor(0, ogc->cga.monitor);
                                 }
                                 /* ogc specific */
                                 if (enable_overscan) {
-                                    video_blit_memtoscreen(0, (ogc->cga.firstline - 8),
-                                                           xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16);
+                                    video_blit_memtoscreen_monitor(0, (ogc->cga.firstline - 8),
+                                                           ogc->cga.monitor->mon_xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16, ogc->cga.monitor);
                                 } else {
-                                    video_blit_memtoscreen(8, ogc->cga.firstline,
-                                                           xsize, (ogc->cga.lastline - ogc->cga.firstline));
+                                    video_blit_memtoscreen_monitor(8, ogc->cga.firstline,
+                                                           ogc->cga.monitor->mon_xsize, (ogc->cga.lastline - ogc->cga.firstline), ogc->cga.monitor);
                                 }
                             }
                             frames++;
 
-                            video_res_x = xsize;
-                            video_res_y = ysize;
+                            ogc->cga.monitor->mon_res_x = ogc->cga.monitor->mon_xsize;
+                            ogc->cga.monitor->mon_res_y = ogc->cga.monitor->mon_ysize;
                             /* 80-col */
                             if (ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES) {
-                                video_res_x /= 8;
-                                video_res_y /= (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
-                                video_bpp = 0;
+                                ogc->cga.monitor->mon_res_x /= 8;
+                                ogc->cga.monitor->mon_res_y /= (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
+                                ogc->cga.monitor->mon_bpp = 0;
                                 /* 40-col */
                             } else if (!(ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                                video_res_x /= 16;
-                                video_res_y /= (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
-                                video_bpp = 0;
+                                ogc->cga.monitor->mon_res_x /= 16;
+                                ogc->cga.monitor->mon_res_y /= (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * 2;
+                                ogc->cga.monitor->mon_bpp = 0;
                             } else if (!(ogc->ctrl_3de & 1)) {
-                                video_res_y /= 2;
-                                video_bpp = 1;
+                                ogc->cga.monitor->mon_res_y /= 2;
+                                ogc->cga.monitor->mon_bpp = 1;
                             }
                         }
                         ogc->cga.firstline = 1000;
@@ -659,7 +656,6 @@ ogc_poll(void *priv)
         }
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -716,10 +712,10 @@ ogc_init(UNUSED(const device_t *info))
     int display_type;
 #endif
     ogc_t *ogc = (ogc_t *) calloc(1, sizeof(ogc_t));
+    ogc->cga.monitor = video_monitor_pending;
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_ogc, ogc->cga.monitor);
 
-    ogc->cga.monitor_used = monitor_index_global;
 
     video_load_font("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
 
@@ -748,10 +744,10 @@ ogc_init(UNUSED(const device_t *info))
                         deb_write, NULL, NULL, NULL, 0, ogc);
     }
 
-    overscan_x = overscan_y = 16;
+    ogc->cga.monitor->mon_overscan_x = ogc->cga.monitor->mon_overscan_y = 16;
     ogc->cga.rgb_type       = device_get_config_int("rgb_type");
-    cga_palette             = (ogc->cga.rgb_type << 1);
-    cgapal_rebuild();
+    *ogc->cga.monitor->mon_cga_palette             = (ogc->cga.rgb_type << 1);
+    cgapal_rebuild_monitor(ogc->cga.monitor);
     ogc_mdaattr_rebuild();
 
     /* color display */

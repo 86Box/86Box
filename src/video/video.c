@@ -45,12 +45,12 @@
 #include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/vid_svga.h>
 #include <86box/automation.h>
 
 #include <minitrace/minitrace.h>
 
-volatile int screenshots = 0;
 uint8_t      edatlookup[4][4];
 uint8_t      egaremap2bpp[256];
 uint8_t      fontdat[2048][8];            /* IBM CGA font */
@@ -66,15 +66,16 @@ int          frames               = 0;
 int          fullchange           = 0;
 int          video_grayscale      = 0;
 int          video_graytype       = 0;
-int          monitor_index_global = 0;
 uint32_t    *video_6to8           = NULL;
 uint32_t    *video_8togs          = NULL;
 uint32_t    *video_8to32          = NULL;
 uint32_t    *video_15to32         = NULL;
 uint32_t    *video_16to32         = NULL;
-monitor_t          monitors[MONITORS_NUM];
-monitor_settings_t monitor_settings[MONITORS_NUM];
-atomic_bool        doresize_monitors[MONITORS_NUM];
+monitor_t *video_primary_monitor;
+monitor_t *video_monitor_pending;
+
+static mutex_t *monitor_mutex;
+static struct blit_data_struct *monitor_list;
 
 #ifdef _WIN32
 void * (*__cdecl video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
@@ -209,10 +210,12 @@ const uint32_t shade[5][256] = {
 
 typedef struct blit_data_struct {
     int x, y, w, h;
-    int busy;
-    int buffer_in_use;
-    int thread_run;
-    int monitor_index;
+    atomic_bool busy;
+    atomic_bool buffer_in_use;
+    atomic_bool thread_run;
+    int id;
+    monitor_t *monitor;
+    struct blit_data_struct *next;
 
     thread_t *blit_thread;
     event_t  *wake_blit_thread;
@@ -222,7 +225,8 @@ typedef struct blit_data_struct {
 
 static uint32_t cga_2_table[16];
 
-static void (*blit_func)(int x, int y, int w, int h, int monitor_index);
+typedef void (*video_blit_fn)(int x, int y, int w, int h, monitor_t *monitor);
+static _Atomic(video_blit_fn) blit_func;
 
 #ifdef ENABLE_VIDEO_LOG
 int video_do_log = ENABLE_VIDEO_LOG;
@@ -243,24 +247,24 @@ video_log(const char *fmt, ...)
 #endif
 
 void
-video_setblit(void (*blit)(int, int, int, int, int))
+video_setblit(void (*blit)(int, int, int, int, monitor_t *))
 {
     blit_func = blit;
 }
 
 void
-video_blit_complete_monitor(int monitor_index)
+video_blit_complete_monitor(monitor_t *monitor)
 {
-    blit_data_t *blit_data_ptr   = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t *blit_data_ptr   = monitor->mon_blit_data_ptr;
     blit_data_ptr->buffer_in_use = 0;
 
     thread_set_event(blit_data_ptr->buffer_not_in_use);
 }
 
 void
-video_wait_for_blit_monitor(int monitor_index)
+video_wait_for_blit_monitor(monitor_t *monitor)
 {
-    blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t *blit_data_ptr = monitor->mon_blit_data_ptr;
 
     while (blit_data_ptr->busy)
         thread_wait_event(blit_data_ptr->blit_complete, -1);
@@ -268,25 +272,24 @@ video_wait_for_blit_monitor(int monitor_index)
 }
 
 void
-video_wait_for_buffer_monitor(int monitor_index)
+video_wait_for_buffer_monitor(monitor_t *monitor)
 {
-    blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t *blit_data_ptr = monitor->mon_blit_data_ptr;
 
     while (blit_data_ptr->buffer_in_use)
         thread_wait_event(blit_data_ptr->buffer_not_in_use, -1);
     thread_reset_event(blit_data_ptr->buffer_not_in_use);
 }
 
-static png_structp png_ptr[MONITORS_NUM];
-static png_infop   info_ptr[MONITORS_NUM];
-
 static void
-video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
+video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, monitor_t *monitor)
 {
+    png_structp        png_ptr = NULL;
+    png_infop          info_ptr = NULL;
     png_bytep         *b_rgb         = NULL;
     FILE              *fp            = NULL;
     uint32_t           temp          = 0x00000000;
-    const blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    const blit_data_t *blit_data_ptr = monitor->mon_blit_data_ptr;
 
     /* create file */
     fp = plat_fopen(fn, (const char *) "wb");
@@ -296,36 +299,38 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
     }
 
     /* initialize stuff */
-    png_ptr[monitor_index] = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
-    if (!png_ptr[monitor_index]) {
+    if (!png_ptr) {
         video_log("[video_take_screenshot] png_create_write_struct failed");
         fclose(fp);
         return;
     }
 
-    info_ptr[monitor_index] = png_create_info_struct(png_ptr[monitor_index]);
-    if (!info_ptr[monitor_index]) {
+    info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
         video_log("[video_take_screenshot] png_create_info_struct failed");
+        png_destroy_write_struct(&png_ptr, NULL);
         fclose(fp);
         return;
     }
 
-    png_init_io(png_ptr[monitor_index], fp);
+    png_init_io(png_ptr, fp);
 
-    png_set_IHDR(png_ptr[monitor_index], info_ptr[monitor_index], blit_data_ptr->w, blit_data_ptr->h,
+    png_set_IHDR(png_ptr, info_ptr, blit_data_ptr->w, blit_data_ptr->h,
                  8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
                  PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
     b_rgb = (png_bytep *) calloc(blit_data_ptr->h, sizeof(png_bytep));
     if (b_rgb == NULL) {
         video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
+        png_destroy_write_struct(&png_ptr, &info_ptr);
         fclose(fp);
         return;
     }
 
     for (int y = 0; y < blit_data_ptr->h; ++y) {
-        b_rgb[y] = (png_byte *) calloc(1, png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
+        b_rgb[y] = (png_byte *) calloc(1, png_get_rowbytes(png_ptr, info_ptr));
         for (int x = 0; x < blit_data_ptr->w; ++x) {
             if (buf == NULL)
                 memset(&(b_rgb[y][x * 3]), 0x00, 3);
@@ -338,11 +343,11 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
         }
     }
 
-    png_write_info(png_ptr[monitor_index], info_ptr[monitor_index]);
+    png_write_info(png_ptr, info_ptr);
 
-    png_write_image(png_ptr[monitor_index], b_rgb);
+    png_write_image(png_ptr, b_rgb);
 
-    png_write_end(png_ptr[monitor_index], NULL);
+    png_write_end(png_ptr, NULL);
 
     /* cleanup heap allocation */
     for (int i = 0; i < blit_data_ptr->h; i++)
@@ -352,15 +357,18 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
     if (b_rgb)
         free(b_rgb);
 
-    if (fp)
-        fclose(fp);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    fclose(fp);
 }
 
 void
-video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
+video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, monitor_t *monitor)
 {
     char path[1024];
     char fn[256];
+
+    if (!(monitor->flags & VIDEO_MONITOR_SCREENSHOT))
+        return;
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
@@ -372,23 +380,16 @@ video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, i
 
     path_slash(path);
     strcat(path, "Monitor_");
-    snprintf(&path[strlen(path)], 42, "%d_", monitor_index + 1);
+    snprintf(&path[strlen(path)], 42, "%d_", video_monitor_id(monitor) + 1);
 
     plat_tempfile(fn, NULL, ".png");
     strcat(path, fn);
 
     video_log("taking screenshot to: %s\n", path);
 
-    video_take_screenshot_monitor((const char *) path, buf, start_x, start_y, row_len, monitor_index);
-    png_destroy_write_struct(&png_ptr[monitor_index], &info_ptr[monitor_index]);
+    video_take_screenshot_monitor((const char *) path, buf, start_x, start_y, row_len, monitor);
 
-    atomic_fetch_sub(&monitors[monitor_index].mon_screenshots_raw, 1);
-}
-
-void
-video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
-{
-    video_screenshot_monitor(buf, start_x, start_y, row_len, 0);
+    atomic_fetch_sub(&monitor->mon_screenshots_raw, 1);
 }
 
 #ifdef _WIN32
@@ -424,13 +425,18 @@ blit_thread(void *param)
        frame; default QoS makes those waits E-core-latency-bound. */
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
 #endif
-    while (data->thread_run) {
+    for (;;) {
         thread_wait_event(data->wake_blit_thread, -1);
         thread_reset_event(data->wake_blit_thread);
+        if (!data->thread_run)
+            break;
         MTR_BEGIN("video", "blit_thread");
 
-        if (blit_func)
-            blit_func(data->x, data->y, data->w, data->h, data->monitor_index);
+        video_blit_fn blit = blit_func;
+        if (blit)
+            blit(data->x, data->y, data->w, data->h, data->monitor);
+        else
+            video_blit_complete_monitor(data->monitor);
 
         data->busy = 0;
 
@@ -440,26 +446,25 @@ blit_thread(void *param)
 }
 
 void
-video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
+video_blit_memtoscreen_monitor(int x, int y, int w, int h, monitor_t *monitor)
 {
-    MTR_BEGIN("video", "video_blit_memtoscreen");
-
     if ((w <= 0) || (h <= 0))
         return;
 
-    video_wait_for_blit_monitor(monitor_index);
+    MTR_BEGIN("video", "video_blit_memtoscreen");
+    video_wait_for_blit_monitor(monitor);
 
-    automation_frame(x, y, w, h, monitor_index);
+    automation_frame(x, y, w, h, monitor);
 
-    monitors[monitor_index].mon_blit_data_ptr->busy          = 1;
-    monitors[monitor_index].mon_blit_data_ptr->buffer_in_use = 1;
-    monitors[monitor_index].mon_blit_data_ptr->x             = x;
-    monitors[monitor_index].mon_blit_data_ptr->y             = y;
-    monitors[monitor_index].mon_blit_data_ptr->w             = w;
-    monitors[monitor_index].mon_blit_data_ptr->h             = h;
-    monitors[monitor_index].mon_renderedframes++;
+    monitor->mon_blit_data_ptr->busy          = 1;
+    monitor->mon_blit_data_ptr->buffer_in_use = 1;
+    monitor->mon_blit_data_ptr->x             = x;
+    monitor->mon_blit_data_ptr->y             = y;
+    monitor->mon_blit_data_ptr->w             = w;
+    monitor->mon_blit_data_ptr->h             = h;
+    monitor->mon_renderedframes++;
 
-    thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
+    thread_set_event(monitor->mon_blit_data_ptr->wake_blit_thread);
     MTR_END("video", "video_blit_memtoscreen");
 }
 
@@ -499,7 +504,7 @@ pixel_to_color(uint8_t *pixels32, uint8_t pos)
 }
 
 void
-video_blend_monitor(int x, int y, int monitor_index)
+video_blend_monitor(int x, int y, monitor_t *monitor)
 {
     uint32_t            pixels32_1;
     uint32_t            pixels32_2;
@@ -513,43 +518,43 @@ video_blend_monitor(int x, int y, int monitor_index)
     if (!x)
         carry = 0;
 
-    val1       = pixels8(&(monitors[monitor_index].target_buffer->line[y][x]));
+    val1       = pixels8(&(monitor->target_buffer->line[y][x]));
     val2       = (val1 >> 1) + carry;
     carry      = (val1 & 1) << 7;
     pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
     pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
     for (uint8_t xx = 0; xx < 4; xx++) {
-        monitors[monitor_index].target_buffer->line[y][x + xx]       = pixel_to_color((uint8_t *) &pixels32_1, xx);
-        monitors[monitor_index].target_buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
+        monitor->target_buffer->line[y][x + xx]       = pixel_to_color((uint8_t *) &pixels32_1, xx);
+        monitor->target_buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
     }
 }
 
 void
-video_process_8_monitor(int x, int y, int monitor_index)
+video_process_8_monitor(int x, int y, monitor_t *monitor)
 {
     for (int xx = 0; xx < x; xx++) {
-        if (monitors[monitor_index].target_buffer->line[y][xx] <= 0xff)
-            monitors[monitor_index].target_buffer->line[y][xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y][xx]];
+        if (monitor->target_buffer->line[y][xx] <= 0xff)
+            monitor->target_buffer->line[y][xx] = monitor->mon_pal_lookup[monitor->target_buffer->line[y][xx]];
         else
-            monitors[monitor_index].target_buffer->line[y][xx] = 0x00000000;
+            monitor->target_buffer->line[y][xx] = 0x00000000;
     }
 }
 
 void
-cgapal_rebuild_monitor(int monitor_index)
+cgapal_rebuild_monitor(monitor_t *monitor)
 {
     int       c;
-    uint32_t *palette_lookup      = monitors[monitor_index].mon_pal_lookup;
+    uint32_t *palette_lookup      = monitor->mon_pal_lookup;
     int       cga_palette_monitor = 0;
 
     /* We cannot do this (yet) if we have not been enabled yet. */
     if (video_6to8 == NULL)
         return;
 
-    if (monitors[monitor_index].target_buffer == NULL || monitors[monitor_index].mon_cga_palette == NULL)
+    if (monitor->target_buffer == NULL || monitor->mon_cga_palette == NULL)
         return;
 
-    cga_palette_monitor = *monitors[monitor_index].mon_cga_palette;
+    cga_palette_monitor = *monitor->mon_cga_palette;
 
     for (c = 0; c < 256; c++) {
         palette_lookup[c] = makecol(video_6to8[cgapal[c].r],
@@ -615,80 +620,69 @@ cgapal_rebuild_monitor(int monitor_index)
 }
 
 void
-video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
+video_inform_monitor(int type, const video_timings_t *ptr, monitor_t *monitor)
 {
-    monitor_t *monitor       = &monitors[monitor_index];
     monitor->mon_vid_type    = type;
     monitor->mon_vid_timings = ptr;
     /* The built-in panel belongs to the machine, not to a video controller
      * that may also drive displays in other machines or secondary monitors. */
-    monitor->mon_device_aspect_x = (monitor_index == 0) ? machines[machine].display_aspect_x : 0;
-    monitor->mon_device_aspect_y = (monitor_index == 0) ? machines[machine].display_aspect_y : 0;
+    monitor->mon_device_aspect_x = (monitor == video_primary_monitor) ? machines[machine].display_aspect_x : 0;
+    monitor->mon_device_aspect_y = (monitor == video_primary_monitor) ? machines[machine].display_aspect_y : 0;
 }
 
 int
-video_get_type_monitor(int monitor_index)
+video_get_type_monitor(monitor_t *monitor)
 {
-    return monitors[monitor_index].mon_vid_type;
+    return monitor->mon_vid_type;
+}
+
+static void
+video_update_monitor_timing(monitor_t *monitor, UNUSED(void *priv))
+{
+    const video_timings_t *monitor_vid_timings = monitor->mon_vid_timings;
+    if (!monitor_vid_timings)
+        return;
+
+    if (monitor_vid_timings->type == VIDEO_ISA) {
+        monitor->mon_video_timing_read_b  = ISA_CYCLES(monitor_vid_timings->read_b);
+        monitor->mon_video_timing_read_w  = ISA_CYCLES(monitor_vid_timings->read_w);
+        monitor->mon_video_timing_read_l  = ISA_CYCLES(monitor_vid_timings->read_l);
+        monitor->mon_video_timing_write_b = ISA_CYCLES(monitor_vid_timings->write_b);
+        monitor->mon_video_timing_write_w = ISA_CYCLES(monitor_vid_timings->write_w);
+        monitor->mon_video_timing_write_l = ISA_CYCLES(monitor_vid_timings->write_l);
+    } else if (monitor_vid_timings->type == VIDEO_PCI) {
+        monitor->mon_video_timing_read_b  = (int) (pci_timing * monitor_vid_timings->read_b);
+        monitor->mon_video_timing_read_w  = (int) (pci_timing * monitor_vid_timings->read_w);
+        monitor->mon_video_timing_read_l  = (int) (pci_timing * monitor_vid_timings->read_l);
+        monitor->mon_video_timing_write_b = (int) (pci_timing * monitor_vid_timings->write_b);
+        monitor->mon_video_timing_write_w = (int) (pci_timing * monitor_vid_timings->write_w);
+        monitor->mon_video_timing_write_l = (int) (pci_timing * monitor_vid_timings->write_l);
+    } else if (monitor_vid_timings->type == VIDEO_AGP) {
+        monitor->mon_video_timing_read_b  = (int) (agp_timing * monitor_vid_timings->read_b);
+        monitor->mon_video_timing_read_w  = (int) (agp_timing * monitor_vid_timings->read_w);
+        monitor->mon_video_timing_read_l  = (int) (agp_timing * monitor_vid_timings->read_l);
+        monitor->mon_video_timing_write_b = (int) (agp_timing * monitor_vid_timings->write_b);
+        monitor->mon_video_timing_write_w = (int) (agp_timing * monitor_vid_timings->write_w);
+        monitor->mon_video_timing_write_l = (int) (agp_timing * monitor_vid_timings->write_l);
+    } else {
+        monitor->mon_video_timing_read_b  = (int) (bus_timing * monitor_vid_timings->read_b);
+        monitor->mon_video_timing_read_w  = (int) (bus_timing * monitor_vid_timings->read_w);
+        monitor->mon_video_timing_read_l  = (int) (bus_timing * monitor_vid_timings->read_l);
+        monitor->mon_video_timing_write_b = (int) (bus_timing * monitor_vid_timings->write_b);
+        monitor->mon_video_timing_write_w = (int) (bus_timing * monitor_vid_timings->write_w);
+        monitor->mon_video_timing_write_l = (int) (bus_timing * monitor_vid_timings->write_l);
+    }
+
+    if (cpu_16bitbus) {
+        monitor->mon_video_timing_read_l  = monitor->mon_video_timing_read_w * 2;
+        monitor->mon_video_timing_write_l = monitor->mon_video_timing_write_w * 2;
+    }
 }
 
 void
 video_update_timing(void)
 {
-    const video_timings_t *monitor_vid_timings = NULL;
-    int                   *vid_timing_read_b   = NULL;
-    int                   *vid_timing_read_l   = NULL;
-    int                   *vid_timing_read_w   = NULL;
-    int                   *vid_timing_write_b  = NULL;
-    int                   *vid_timing_write_l  = NULL;
-    int                   *vid_timing_write_w  = NULL;
-
-    for (uint8_t i = 0; i < MONITORS_NUM; i++) {
-        monitor_vid_timings = monitors[i].mon_vid_timings;
-        if (!monitor_vid_timings)
-            continue;
-        vid_timing_read_b  = &monitors[i].mon_video_timing_read_b;
-        vid_timing_read_l  = &monitors[i].mon_video_timing_read_l;
-        vid_timing_read_w  = &monitors[i].mon_video_timing_read_w;
-        vid_timing_write_b = &monitors[i].mon_video_timing_write_b;
-        vid_timing_write_l = &monitors[i].mon_video_timing_write_l;
-        vid_timing_write_w = &monitors[i].mon_video_timing_write_w;
-
-        if (monitor_vid_timings->type == VIDEO_ISA) {
-            *vid_timing_read_b  = ISA_CYCLES(monitor_vid_timings->read_b);
-            *vid_timing_read_w  = ISA_CYCLES(monitor_vid_timings->read_w);
-            *vid_timing_read_l  = ISA_CYCLES(monitor_vid_timings->read_l);
-            *vid_timing_write_b = ISA_CYCLES(monitor_vid_timings->write_b);
-            *vid_timing_write_w = ISA_CYCLES(monitor_vid_timings->write_w);
-            *vid_timing_write_l = ISA_CYCLES(monitor_vid_timings->write_l);
-        } else if (monitor_vid_timings->type == VIDEO_PCI) {
-            *vid_timing_read_b  = (int) (pci_timing * monitor_vid_timings->read_b);
-            *vid_timing_read_w  = (int) (pci_timing * monitor_vid_timings->read_w);
-            *vid_timing_read_l  = (int) (pci_timing * monitor_vid_timings->read_l);
-            *vid_timing_write_b = (int) (pci_timing * monitor_vid_timings->write_b);
-            *vid_timing_write_w = (int) (pci_timing * monitor_vid_timings->write_w);
-            *vid_timing_write_l = (int) (pci_timing * monitor_vid_timings->write_l);
-        } else if (monitor_vid_timings->type == VIDEO_AGP) {
-            *vid_timing_read_b  = (int) (agp_timing * monitor_vid_timings->read_b);
-            *vid_timing_read_w  = (int) (agp_timing * monitor_vid_timings->read_w);
-            *vid_timing_read_l  = (int) (agp_timing * monitor_vid_timings->read_l);
-            *vid_timing_write_b = (int) (agp_timing * monitor_vid_timings->write_b);
-            *vid_timing_write_w = (int) (agp_timing * monitor_vid_timings->write_w);
-            *vid_timing_write_l = (int) (agp_timing * monitor_vid_timings->write_l);
-        } else {
-            *vid_timing_read_b  = (int) (bus_timing * monitor_vid_timings->read_b);
-            *vid_timing_read_w  = (int) (bus_timing * monitor_vid_timings->read_w);
-            *vid_timing_read_l  = (int) (bus_timing * monitor_vid_timings->read_l);
-            *vid_timing_write_b = (int) (bus_timing * monitor_vid_timings->write_b);
-            *vid_timing_write_w = (int) (bus_timing * monitor_vid_timings->write_w);
-            *vid_timing_write_l = (int) (bus_timing * monitor_vid_timings->write_l);
-        }
-
-        if (cpu_16bitbus) {
-            *vid_timing_read_l  = *vid_timing_read_w * 2;
-            *vid_timing_write_l = *vid_timing_write_w * 2;
-        }
-    }
+    video_monitor_for_each(video_update_monitor_timing, NULL);
 }
 
 int
@@ -803,7 +797,14 @@ create_bitmap(int x, int y)
 {
     bitmap_t *b = calloc(1, sizeof(bitmap_t));
 
-    b->dat = calloc((size_t) x * y, 4);
+    if (!b)
+        return NULL;
+
+    b->dat = calloc((size_t) x * y, sizeof(*b->dat));
+    if (!b->dat) {
+        free(b);
+        return NULL;
+    }
     for (int c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;
@@ -812,67 +813,157 @@ create_bitmap(int x, int y)
     return b;
 }
 
-void
-video_monitor_init(int index)
+int
+video_monitor_id(const monitor_t *monitor)
 {
-    memset(&monitors[index], 0, sizeof(monitor_t));
-    monitors[index].mon_xsize                            = 640;
-    monitors[index].mon_ysize                            = 480;
-    monitors[index].mon_res_x                            = 640;
-    monitors[index].mon_res_y                            = 480;
-    monitors[index].mon_picture_x                        = 640;
-    monitors[index].mon_picture_y                        = 480;
-    monitors[index].mon_scrnsz_x                         = 640;
-    monitors[index].mon_scrnsz_y                         = 480;
-    monitors[index].mon_efscrnsz_y                       = 480;
-    monitors[index].mon_unscaled_size_x                  = 480;
-    monitors[index].mon_unscaled_size_y                  = 480;
-    monitors[index].mon_bpp                              = 8;
-    monitors[index].mon_changeframecount                 = 2;
-    monitors[index].target_buffer                        = create_bitmap(2048, 2048);
-    monitors[index].mon_blit_data_ptr                    = calloc(1, sizeof(blit_data_t));
-    monitors[index].mon_blit_data_ptr->wake_blit_thread  = thread_create_event();
-    monitors[index].mon_blit_data_ptr->blit_complete     = thread_create_event();
-    monitors[index].mon_blit_data_ptr->buffer_not_in_use = thread_create_event();
-    monitors[index].mon_blit_data_ptr->thread_run        = 1;
-    monitors[index].mon_blit_data_ptr->monitor_index     = index;
-    monitors[index].mon_pal_lookup                       = calloc(sizeof(uint32_t), 256);
-    monitors[index].mon_cga_palette                      = calloc(1, sizeof(int));
-    monitors[index].mon_force_resize                     = 1;
-    monitors[index].mon_vid_type                         = VIDEO_FLAG_TYPE_NONE;
-    monitors[index].mon_dpms                             = 0;
-    atomic_init(&doresize_monitors[index], 0);
-    atomic_init(&monitors[index].mon_screenshots, 0);
-    atomic_init(&monitors[index].mon_screenshots_clipboard, 0);
-    atomic_init(&monitors[index].mon_screenshots_raw, 0);
-    atomic_init(&monitors[index].mon_screenshots_raw_clipboard, 0);
-    if (index >= 1)
-        ui_init_monitor(index);
-    monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
+    return monitor->mon_blit_data_ptr->id;
+}
+
+/* The caller must keep the monitor alive while using it. Use this lookup
+   only at boundaries that receive a display number. */
+monitor_t *
+video_monitor_by_id(int id)
+{
+    monitor_t *monitor = NULL;
+
+    if (!monitor_mutex || id < 0)
+        return NULL;
+
+    thread_wait_mutex(monitor_mutex);
+    for (blit_data_t *data = monitor_list; data; data = data->next) {
+        if (data->id == id) {
+            monitor = data->monitor;
+            break;
+        }
+    }
+    thread_release_mutex(monitor_mutex);
+
+    return monitor;
 }
 
 void
-video_monitor_close(int monitor_index)
+video_monitor_for_each(void (*callback)(monitor_t *monitor, void *priv), void *priv)
 {
-    if (monitors[monitor_index].target_buffer == NULL) {
+    if (!monitor_mutex)
         return;
+
+    thread_wait_mutex(monitor_mutex);
+    for (blit_data_t *data = monitor_list; data; data = data->next)
+        callback(data->monitor, priv);
+    thread_release_mutex(monitor_mutex);
+}
+
+monitor_t *
+video_monitor_create(unsigned flags)
+{
+    monitor_t *monitor = calloc(1, sizeof(*monitor));
+    blit_data_t *data = calloc(1, sizeof(*data));
+    if (!monitor || !data)
+        fatal("Unable to allocate a video monitor\n");
+
+    monitor->flags                 = flags;
+    monitor->mon_xsize             = 640;
+    monitor->mon_ysize             = 480;
+    monitor->mon_res_x             = 640;
+    monitor->mon_res_y             = 480;
+    monitor->mon_picture_x         = 640;
+    monitor->mon_picture_y         = 480;
+    monitor->mon_scrnsz_x          = 640;
+    monitor->mon_scrnsz_y          = 480;
+    monitor->mon_efscrnsz_y        = 480;
+    monitor->mon_unscaled_size_x   = 480;
+    monitor->mon_unscaled_size_y   = 480;
+    monitor->mon_bpp               = 8;
+    monitor->mon_changeframecount  = 2;
+    monitor->target_buffer         = create_bitmap(2048, 2048);
+    monitor->mon_blit_data_ptr     = data;
+    monitor->mon_pal_lookup        = calloc(256, sizeof(uint32_t));
+    monitor->mon_cga_palette       = calloc(1, sizeof(int));
+    monitor->mon_force_resize      = 1;
+    monitor->mon_vid_type          = VIDEO_FLAG_TYPE_NONE;
+
+    atomic_init(&monitor->mon_actualrenderedframes, 0);
+    atomic_init(&monitor->mon_screenshots, 0);
+    atomic_init(&monitor->mon_screenshots_clipboard, 0);
+    atomic_init(&monitor->mon_screenshots_raw, 0);
+    atomic_init(&monitor->mon_screenshots_raw_clipboard, 0);
+    atomic_init(&monitor->mon_interlace, 0);
+    atomic_init(&monitor->mon_composite, 0);
+    atomic_init(&monitor->mon_dpms, 0);
+    atomic_init(&data->busy, 0);
+    atomic_init(&data->buffer_in_use, 0);
+    atomic_init(&data->thread_run, 1);
+
+    data->monitor           = monitor;
+    data->wake_blit_thread  = thread_create_event();
+    data->blit_complete     = thread_create_event();
+    data->buffer_not_in_use = thread_create_event();
+    if (!monitor->target_buffer || !monitor->mon_pal_lookup || !monitor->mon_cga_palette ||
+        !data->wake_blit_thread || !data->blit_complete || !data->buffer_not_in_use)
+        fatal("Unable to initialize a video monitor\n");
+
+    cgapal_rebuild_monitor(monitor);
+
+    /* Keep display numbers stable and reuse vacant numbers for window settings. */
+    thread_wait_mutex(monitor_mutex);
+    blit_data_t **link = &monitor_list;
+    while (*link && (*link)->id == data->id) {
+        data->id++;
+        link = &(*link)->next;
     }
-    monitors[monitor_index].mon_blit_data_ptr->thread_run = 0;
-    thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
-    thread_wait(monitors[monitor_index].mon_blit_data_ptr->blit_thread);
-    if (monitor_index >= 1)
-        ui_deinit_monitor(monitor_index);
-    thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->buffer_not_in_use);
-    thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->blit_complete);
-    thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
-    free(monitors[monitor_index].mon_blit_data_ptr);
-    if (!monitors[monitor_index].mon_pal_lookup_static)
-        free(monitors[monitor_index].mon_pal_lookup);
-    if (!monitors[monitor_index].mon_cga_palette_static)
-        free(monitors[monitor_index].mon_cga_palette);
-    destroy_bitmap(monitors[monitor_index].target_buffer);
-    monitors[monitor_index].target_buffer = NULL;
-    memset(&monitors[monitor_index], 0, sizeof(monitor_t));
+    data->next = *link;
+    *link = data;
+    thread_release_mutex(monitor_mutex);
+
+    if (data->id != 0)
+        ui_init_monitor(monitor);
+    data->blit_thread = thread_create(blit_thread, data);
+    if (!data->blit_thread)
+        fatal("Unable to start a video blit thread\n");
+
+    return monitor;
+}
+
+void
+video_monitor_close(monitor_t *monitor)
+{
+    if (!monitor)
+        return;
+
+    blit_data_t *data = monitor->mon_blit_data_ptr;
+
+    video_wait_for_blit_monitor(monitor);
+    data->thread_run = 0;
+    thread_set_event(data->wake_blit_thread);
+    thread_wait(data->blit_thread);
+
+    thread_wait_mutex(monitor_mutex);
+    blit_data_t **link = &monitor_list;
+    while (*link != data)
+        link = &(*link)->next;
+    *link = data->next;
+    thread_release_mutex(monitor_mutex);
+
+    ui_deinit_monitor(monitor);
+    mouse_clear_input_monitor(monitor);
+
+    thread_destroy_event(data->buffer_not_in_use);
+    thread_destroy_event(data->blit_complete);
+    thread_destroy_event(data->wake_blit_thread);
+    free(data);
+    if (!monitor->mon_pal_lookup_static)
+        free(monitor->mon_pal_lookup);
+    if (!monitor->mon_cga_palette_static)
+        free(monitor->mon_cga_palette);
+    destroy_bitmap(monitor->target_buffer);
+    free(monitor);
+}
+
+void
+video_monitor_close_secondary(void)
+{
+    while (monitor_list && monitor_list->next)
+        video_monitor_close(monitor_list->next->monitor);
 }
 
 void
@@ -943,14 +1034,23 @@ video_init(void)
     for (uint32_t c = 0; c < 65536; c++)
         video_16to32[c] = calc_16to32(c);
 
-    memset(monitors, 0, sizeof(monitors));
-    video_monitor_init(0);
+    monitor_mutex = thread_create_mutex();
+    if (!monitor_mutex)
+        fatal("Unable to initialize the video monitor list\n");
+
+    video_primary_monitor = video_monitor_create(VIDEO_MONITOR_VIDEO);
+    video_monitor_pending = video_primary_monitor;
 }
 
 void
 video_close(void)
 {
-    video_monitor_close(0);
+    video_monitor_close_secondary();
+    video_monitor_close(video_primary_monitor);
+    video_primary_monitor = NULL;
+    video_monitor_pending = NULL;
+    thread_close_mutex(monitor_mutex);
+    monitor_mutex = NULL;
 
     free(video_16to32);
     free(video_15to32);
@@ -970,15 +1070,15 @@ video_close(void)
 }
 
 uint8_t
-video_force_resize_get_monitor(int monitor_index)
+video_force_resize_get_monitor(monitor_t *monitor)
 {
-    return monitors[monitor_index].mon_force_resize;
+    return monitor->mon_force_resize;
 }
 
 void
-video_force_resize_set_monitor(uint8_t res, int monitor_index)
+video_force_resize_set_monitor(uint8_t res, monitor_t *monitor)
 {
-    monitors[monitor_index].mon_force_resize = res;
+    monitor->mon_force_resize = res;
 }
 
 void

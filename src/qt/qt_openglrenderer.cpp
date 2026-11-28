@@ -825,8 +825,9 @@ OpenGLRenderer::read_shader_config()
     }
 }
 
-OpenGLRenderer::OpenGLRenderer(QWidget *parent)
+OpenGLRenderer::OpenGLRenderer(QWidget *parent, monitor_t *monitor)
     : QWindow((QWindow*)nullptr)
+    , RendererCommon(monitor)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
@@ -1187,7 +1188,6 @@ OpenGLRenderer::finalize()
     isFinalized = true;
 }
 
-extern void take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i);
 
 void
 OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
@@ -1232,9 +1232,6 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     if (video_framerate == -1)
         render();
 
-    if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
-        take_screenshot_clipboard_monitor(x, y, w, h, r_monitor_index);
-    }
 }
 
 std::vector<std::tuple<uint8_t *, std::atomic_flag *>>
@@ -1816,7 +1813,7 @@ OpenGLRenderer::render()
     /* Screenshots only cover the part of the image that is inside the window. */
     const QRect read_rect = QRect(window_rect.x, window_rect.y, window_rect.w, window_rect.h).intersected(QRect(QPoint(0, 0), output_size));
 
-    if (monitors[r_monitor_index].mon_screenshots) {
+    if (r_monitor->mon_screenshots) {
         int  width = read_rect.width(), height = read_rect.height();
         char path[1024];
         char fn[256];
@@ -1831,7 +1828,7 @@ OpenGLRenderer::render()
 
         path_slash(path);
         strcat(path, "Monitor_");
-        snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
+        snprintf(&path[strlen(path)], 42, "%d_", video_monitor_id(r_monitor) + 1);
 
         plat_tempfile(fn, NULL, (char *) ".png");
         strcat(path, fn);
@@ -1844,10 +1841,10 @@ OpenGLRenderer::render()
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
         image.IMG_FLIPPED.save(path, "png");
-        monitors[r_monitor_index].mon_screenshots--;
+        r_monitor->mon_screenshots--;
         free(rgb);
     }
-    if (monitors[r_monitor_index].mon_screenshots_clipboard) {
+    if (r_monitor->mon_screenshots_clipboard) {
         int  width = read_rect.width(), height = read_rect.height();
 
         unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
@@ -1858,7 +1855,7 @@ OpenGLRenderer::render()
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
         util::copyImageToClipboard(image.IMG_FLIPPED);
-        monitors[r_monitor_index].mon_screenshots_clipboard--;
+        r_monitor->mon_screenshots_clipboard--;
         free(rgb);
     }
 

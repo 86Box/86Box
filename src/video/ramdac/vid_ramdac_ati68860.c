@@ -297,7 +297,7 @@ ati68860_hwcursor_draw(svga_t *svga, int displine)
 
             y_pos = displine;
             x_pos = offset + svga->x_add;
-            p     = buffer32->line[y_pos];
+            p     = svga->monitor->target_buffer->line[y_pos];
 
             if (offset >= svga->dac_hwcursor_latch.x) {
                 switch (comb) {

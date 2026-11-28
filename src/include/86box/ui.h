@@ -31,6 +31,8 @@ extern "C" {
 #define MBX_WARNING     0x20
 #define MBX_FATAL       0x40
 
+struct monitor_t;
+
 extern int ui_msgbox(int flags, char *message);
 extern int ui_msgbox_header(int flags, char *header, char *message);
 /* Configuration loading supplies names and categories; the UI owns all text. */
@@ -71,8 +73,8 @@ extern void  ui_emu_status(int speed_percent);
 #define UI_NOTIFY_SPEED     2 /* runctl_speed() has a new value */
 extern void  ui_notify(int what);
 extern void  ui_hard_reset_completed(void);
-extern void  ui_init_monitor(int monitor_index);
-extern void  ui_deinit_monitor(int monitor_index);
+extern void  ui_init_monitor(struct monitor_t *monitor);
+extern void  ui_deinit_monitor(struct monitor_t *monitor);
 extern void  ui_sb_set_ready(int ready);
 extern void  ui_sb_update_panes(void);
 extern void  ui_sb_update_text(void);

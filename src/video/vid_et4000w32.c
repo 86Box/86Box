@@ -296,7 +296,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -1030,7 +1030,7 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv)
             else {
                 if (((addr & 0x1fff) + et4000->mmu.base[et4000->bank]) < svga->vram_max) {
                     svga->vram[((addr & 0x1fff) + et4000->mmu.base[et4000->bank]) & et4000->vram_mask]                = val;
-                    svga->changedvram[(((addr & 0x1fff) + et4000->mmu.base[et4000->bank]) & et4000->vram_mask) >> 12] = changeframecount;
+                    svga->changedvram[(((addr & 0x1fff) + et4000->mmu.base[et4000->bank]) & et4000->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
                 }
             }
             break;
@@ -2247,7 +2247,7 @@ et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4
 
             /*Write the data*/
             svga->vram[et4000->acl.dest_addr & et4000->vram_mask]                = out;
-            svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = changeframecount;
+            svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
 
             if (et4000->acl.internal.xy_dir & 1)
                 et4000w32_decx(1, et4000);
@@ -2296,7 +2296,7 @@ et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4
 
             /*Write the data*/
             svga->vram[et4000->acl.dest_addr & et4000->vram_mask]                = out;
-            svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = changeframecount;
+            svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
 
             if (et4000->acl.internal.xy_dir & 1)
                 et4000w32_decx(1, et4000);
@@ -2351,7 +2351,7 @@ et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4
 
             /*Write the data*/
             svga->vram[et4000->acl.dest_addr & et4000->vram_mask]                = out;
-            svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = changeframecount;
+            svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
 
             if (et4000->acl.internal.xy_dir & 1)
                 et4000w32_decx(1, et4000);
@@ -2438,7 +2438,7 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
             et4000w32_log("%06X = %02X\n", et4000->acl.dest_addr & et4000->vram_mask, out);
             if (!(et4000->acl.internal.ctrl_routing & 0x40)) {
                 svga->vram[et4000->acl.dest_addr & et4000->vram_mask]                = out;
-                svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = changeframecount;
+                svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
             } else {
                 et4000->acl.cpu_dat |= ((uint64_t) out << (et4000->acl.cpu_dat_pos * 8));
                 et4000->acl.cpu_dat_pos++;
@@ -2546,7 +2546,7 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
 
             if (!(et4000->acl.internal.ctrl_routing & 0x40)) {
                 svga->vram[et4000->acl.dest_addr & et4000->vram_mask]                = out;
-                svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = changeframecount;
+                svga->changedvram[(et4000->acl.dest_addr & et4000->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
             } else {
                 et4000->acl.cpu_dat |= ((uint64_t) out << (et4000->acl.cpu_dat_pos * 8));
                 et4000->acl.cpu_dat_pos++;
@@ -2635,36 +2635,36 @@ et4000w32p_hwcursor_draw(svga_t *svga, int displine)
         if (!(xx % shift)) {
             xx2 = xx / shift;
             if (!(dat & 2))
-                buffer32->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
+                svga->monitor->target_buffer->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
             else if ((dat & 3) == 3)
-                buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                svga->monitor->target_buffer->line[displine][xx2] ^= 0xFFFFFF;
         }
         dat >>= 2;
         xx++;
         if (!(xx % shift)) {
             xx2 = xx / shift;
             if (!(dat & 2))
-                buffer32->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
+                svga->monitor->target_buffer->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
             else if ((dat & 3) == 3)
-                buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                svga->monitor->target_buffer->line[displine][xx2] ^= 0xFFFFFF;
         }
         dat >>= 2;
         xx++;
         if (!(xx % shift)) {
             xx2 = xx / shift;
             if (!(dat & 2))
-                buffer32->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
+                svga->monitor->target_buffer->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
             else if ((dat & 3) == 3)
-                buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                svga->monitor->target_buffer->line[displine][xx2] ^= 0xFFFFFF;
         }
         dat >>= 2;
         xx++;
         if (!(xx % shift)) {
             xx2 = xx / shift;
             if (!(dat & 2))
-                buffer32->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
+                svga->monitor->target_buffer->line[displine][xx2] = (dat & 1) ? 0xFFFFFF : 0;
             else if ((dat & 3) == 3)
-                buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                svga->monitor->target_buffer->line[displine][xx2] ^= 0xFFFFFF;
         }
         dat >>= 2;
 
@@ -2836,11 +2836,11 @@ et4000w32p_init(const device_t *info)
     video_clamp_vram(bios_flags, &et4000->vram_size);
 
     if (info->flags & DEVICE_PCI)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_pci);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_pci, video_monitor_pending);
     else if (info->flags & DEVICE_VLB)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_vlb);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_vlb, video_monitor_pending);
     else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_isa);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_isa, video_monitor_pending);
 
     svga_init(info, &et4000->svga, et4000, et4000->vram_size << 20,
               et4000w32p_recalctimings,
@@ -3076,7 +3076,7 @@ et4000w32p_force_redraw(void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
 
-    et4000->svga.fullchange = changeframecount;
+    et4000->svga.fullchange = et4000->svga.monitor->mon_changeframecount;
 }
 
 static const device_config_t et4000w32_config[] = {

@@ -176,7 +176,7 @@ typedef struct sigma_t {
     int plane;
     int revision;
     int fullchange;
-    int monitor_index;
+    monitor_t *monitor;
 } sigma_t;
 
 #define COMPOSITE_OLD 0
@@ -225,7 +225,7 @@ sigma_out(uint16_t addr, uint8_t val, void *priv)
                 sigma->crtc[sigma->crtcreg] = val & crtcmask[sigma->crtcreg];
                 if (old != val) {
                     if (sigma->crtcreg < 0xe || sigma->crtcreg > 0x10) {
-                        sigma->fullchange = monitors[sigma->monitor_index].mon_changeframecount;
+                        sigma->fullchange = sigma->monitor->mon_changeframecount;
                         sigma_recalctimings(sigma);
                     }
                 }
@@ -233,7 +233,7 @@ sigma_out(uint16_t addr, uint8_t val, void *priv)
 
             case 0x2D8:
                 sigma->sigmamode = val;
-                sigma->fullchange = monitors[sigma->monitor_index].mon_changeframecount;
+                sigma->fullchange = sigma->monitor->mon_changeframecount;
                 sigma_recalctimings(sigma);
                 return;
             case 0x2D9:
@@ -447,16 +447,16 @@ sigma_text80(sigma_t *sigma)
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
                 if (sigma->sigmamode & MODE_FONT16)
-                    buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
+                    sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
                 else
-                    buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
+                    sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
             }
         } else {
             for (uint8_t c = 0; c < 8; c++) {
                 if (sigma->sigmamode & MODE_FONT16)
-                    buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                    sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
                 else
-                    buffer32->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                    sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + c + 8] = cols[(fontdat[chr][sigma->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
         ++memaddr;
@@ -501,11 +501,11 @@ sigma_text40(sigma_t *sigma)
 
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                buffer32->line[sigma->displine][(x << 4) + 2 * c + 8] = buffer32->line[sigma->displine][(x << 4) + 2 * c + 9] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
+                sigma->monitor->target_buffer->line[sigma->displine][(x << 4) + 2 * c + 8] = sigma->monitor->target_buffer->line[sigma->displine][(x << 4) + 2 * c + 9] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
             }
         } else {
             for (uint8_t c = 0; c < 8; c++) {
-                buffer32->line[sigma->displine][(x << 4) + 2 * c + 8] = buffer32->line[sigma->displine][(x << 4) + 2 * c + 9] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                sigma->monitor->target_buffer->line[sigma->displine][(x << 4) + 2 * c + 8] = sigma->monitor->target_buffer->line[sigma->displine][(x << 4) + 2 * c + 9] = cols[(fontdatm[chr][sigma->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
         memaddr++;
@@ -531,7 +531,7 @@ sigma_gfx400(sigma_t *sigma)
         for (uint8_t c = 0, mask = 0x80; c < 8; c++, mask >>= 1) {
             col = ((plane[3] & mask) ? 8 : 0) | ((plane[2] & mask) ? 4 : 0) | ((plane[1] & mask) ? 2 : 0) | ((plane[0] & mask) ? 1 : 0);
             col |= 16;
-            buffer32->line[sigma->displine][(x << 3) + c + 8] = col;
+            sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + c + 8] = col;
         }
         if (x & 1)
             ++sigma->memaddr;
@@ -559,7 +559,7 @@ sigma_gfx200(sigma_t *sigma)
         for (uint8_t c = 0, mask = 0x80; c < 8; c++, mask >>= 1) {
             col = ((plane[3] & mask) ? 8 : 0) | ((plane[2] & mask) ? 4 : 0) | ((plane[1] & mask) ? 2 : 0) | ((plane[0] & mask) ? 1 : 0);
             col |= 16;
-            buffer32->line[sigma->displine][(x << 3) + c + 8] = col;
+            sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + c + 8] = col;
         }
 
         if (x & 1)
@@ -590,7 +590,7 @@ sigma_gfx4col(sigma_t *sigma)
             col |= 16;
             mask = mask >> 1;
 
-            buffer32->line[sigma->displine][(x << 3) + (c << 1) + 8] = buffer32->line[sigma->displine][(x << 3) + (c << 1) + 9] = col;
+            sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + (c << 1) + 8] = sigma->monitor->target_buffer->line[sigma->displine][(x << 3) + (c << 1) + 9] = col;
         }
 
         if (x & 1)
@@ -609,9 +609,7 @@ sigma_poll(void *priv)
     int      scanline_old;
 
     /* Bind the monitor macros to this card's own display. */
-    const int prev_monitor_index = monitor_index_global;
 
-    monitor_index_global = sigma->monitor_index;
 
     if (!sigma->linepos) {
         timer_advance_u64(&sigma->timer, sigma->dispofftime);
@@ -623,18 +621,18 @@ sigma_poll(void *priv)
         if (sigma->cgadispon) {
             if (sigma->displine < sigma->firstline) {
                 sigma->firstline = sigma->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(sigma->monitor);
             }
             sigma->lastline = sigma->displine;
 
             cols[0] = 16;
             /* Left overscan */
             for (c = 0; c < 8; c++) {
-                buffer32->line[sigma->displine][c] = cols[0];
+                sigma->monitor->target_buffer->line[sigma->displine][c] = cols[0];
                 if (sigma->sigmamode & MODE_80COLS)
-                    buffer32->line[sigma->displine][c + (sigma->crtc[1] << 4) + 8] = cols[0];
+                    sigma->monitor->target_buffer->line[sigma->displine][c + (sigma->crtc[1] << 4) + 8] = cols[0];
                 else
-                    buffer32->line[sigma->displine][c + (sigma->crtc[1] << 5) + 8] = cols[0];
+                    sigma->monitor->target_buffer->line[sigma->displine][c + (sigma->crtc[1] << 5) + 8] = cols[0];
             }
             if (sigma->sigmamode & MODE_GRAPHICS) {
                 if (sigma->sigmamode & MODE_640x400)
@@ -652,9 +650,9 @@ sigma_poll(void *priv)
         } else {
             cols[0] = 16;
             if (sigma->sigmamode & MODE_80COLS)
-                hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
+                hline(sigma->monitor->target_buffer, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
             else
-                hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
+                hline(sigma->monitor->target_buffer, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
         }
 
         if (sigma->sigmamode & MODE_80COLS)
@@ -663,9 +661,9 @@ sigma_poll(void *priv)
             x = (sigma->crtc[1] << 5) + 16;
 
         for (c = 0; c < x; c++)
-            buffer32->line[sigma->displine][c] = sigma->palette[buffer32->line[sigma->displine][c] & 0xf] | 16;
+            sigma->monitor->target_buffer->line[sigma->displine][c] = sigma->palette[sigma->monitor->target_buffer->line[sigma->displine][c] & 0xf] | 16;
 
-        video_process_8(x, sigma->displine);
+        video_process_8_monitor(x, sigma->displine, sigma->monitor);
 
         sigma->scanline = scanline_old;
         if (sigma->vc == sigma->crtc[7] && !sigma->scanline)
@@ -729,44 +727,44 @@ sigma_poll(void *priv)
                     else
                         x = (sigma->crtc[1] << 5) + 16;
                     sigma->lastline++;
-                    if ((x != xsize) || ((sigma->lastline - sigma->firstline) != ysize) || video_force_resize_get()) {
-                        xsize = x;
-                        ysize = sigma->lastline - sigma->firstline;
-                        if (xsize < 64)
-                            xsize = 656;
-                        if (ysize < 32)
-                            ysize = 200;
-                        if (ysize <= 250)
-                            set_screen_size(xsize, (ysize << 1) + 16);
+                    if ((x != sigma->monitor->mon_xsize) || ((sigma->lastline - sigma->firstline) != sigma->monitor->mon_ysize) || video_force_resize_get_monitor(sigma->monitor)) {
+                        sigma->monitor->mon_xsize = x;
+                        sigma->monitor->mon_ysize = sigma->lastline - sigma->firstline;
+                        if (sigma->monitor->mon_xsize < 64)
+                            sigma->monitor->mon_xsize = 656;
+                        if (sigma->monitor->mon_ysize < 32)
+                            sigma->monitor->mon_ysize = 200;
+                        if (sigma->monitor->mon_ysize <= 250)
+                            set_screen_size_monitor(sigma->monitor->mon_xsize, (sigma->monitor->mon_ysize << 1) + 16, sigma->monitor);
                         else
-                            set_screen_size(xsize, ysize + 8);
+                            set_screen_size_monitor(sigma->monitor->mon_xsize, sigma->monitor->mon_ysize + 8, sigma->monitor);
 
-                        if (video_force_resize_get())
-                            video_force_resize_set(0);
+                        if (video_force_resize_get_monitor(sigma->monitor))
+                            video_force_resize_set_monitor(0, sigma->monitor);
                     }
 
-                    video_blit_memtoscreen(0, sigma->firstline - 4, xsize, (sigma->lastline - sigma->firstline) + 8);
+                    video_blit_memtoscreen_monitor(0, sigma->firstline - 4, sigma->monitor->mon_xsize, (sigma->lastline - sigma->firstline) + 8, sigma->monitor);
                     frames++;
 
-                    video_res_x = xsize - 16;
-                    video_res_y = ysize;
+                    sigma->monitor->mon_res_x = sigma->monitor->mon_xsize - 16;
+                    sigma->monitor->mon_res_y = sigma->monitor->mon_ysize;
                     if (sigma->sigmamode & MODE_GRAPHICS) {
                         if (sigma->sigmamode & (MODE_HRGFX | MODE_640x400))
-                            video_bpp = 1;
+                            sigma->monitor->mon_bpp = 1;
                         else {
-                            video_res_x /= 2;
-                            video_bpp = 2;
+                            sigma->monitor->mon_res_x /= 2;
+                            sigma->monitor->mon_bpp = 2;
                         }
                     } else if (sigma->sigmamode & MODE_80COLS) {
                         /* 80-column text */
-                        video_res_x /= 8;
-                        video_res_y /= sigma->crtc[9] + 1;
-                        video_bpp = 0;
+                        sigma->monitor->mon_res_x /= 8;
+                        sigma->monitor->mon_res_y /= sigma->crtc[9] + 1;
+                        sigma->monitor->mon_bpp = 0;
                     } else {
                         /* 40-column text */
-                        video_res_x /= 16;
-                        video_res_y /= sigma->crtc[9] + 1;
-                        video_bpp = 0;
+                        sigma->monitor->mon_res_x /= 16;
+                        sigma->monitor->mon_res_y /= sigma->crtc[9] + 1;
+                        sigma->monitor->mon_bpp = 0;
                     }
                 }
                 sigma->firstline = 1000;
@@ -785,7 +783,6 @@ sigma_poll(void *priv)
             sigma->cursorvisible = 1;
     }
 
-    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -793,12 +790,12 @@ sigma_init(UNUSED(const device_t *info))
 {
     int      bios_addr;
     sigma_t *sigma = calloc(1, sizeof(sigma_t));
+    sigma->monitor = video_monitor_pending;
 
     bios_addr = device_get_config_hex20("bios_addr");
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_sigma);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_sigma, sigma->monitor);
 
-    sigma->monitor_index = monitor_index_global;
 
     sigma->enable_nmi = device_get_config_int("enable_nmi");
 
@@ -831,10 +828,10 @@ sigma_init(UNUSED(const device_t *info))
     /* Start with ROM paged in, BIOS RAM paged out */
     sigma->rom_paged = 0x80;
 
-    cga_palette = device_get_config_int("rgb_type") << 1;
-    if (cga_palette > 6)
-        cga_palette = 0;
-    cgapal_rebuild();
+    *sigma->monitor->mon_cga_palette = device_get_config_int("rgb_type") << 1;
+    if (*sigma->monitor->mon_cga_palette > 6)
+        *sigma->monitor->mon_cga_palette = 0;
+    cgapal_rebuild_monitor(sigma->monitor);
 
     if (sigma->enable_nmi)
         sigma->sigmastat = STATUS_LPEN_T;

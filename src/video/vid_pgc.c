@@ -3055,10 +3055,10 @@ pgc_cga_text(pgc_t *dev, int w)
             else
                 val = cols[(fontdatm[chr + dev->fontbase][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             if (cw == 8) /* 80x25 CGA text screen. */
-                buffer32->line[dev->displine][(x * cw) + c] = val;
+                dev->monitor->target_buffer->line[dev->displine][(x * cw) + c] = val;
             else { /* 40x25 CGA text screen. */
-                buffer32->line[dev->displine][(x * cw) + (c * 2)]     = val;
-                buffer32->line[dev->displine][(x * cw) + (c * 2) + 1] = val;
+                dev->monitor->target_buffer->line[dev->displine][(x * cw) + (c * 2)]     = val;
+                dev->monitor->target_buffer->line[dev->displine][(x * cw) + (c * 2) + 1] = val;
             }
         }
 
@@ -3103,7 +3103,7 @@ pgc_cga_gfx40(pgc_t *dev)
         dat  = (addr[0] << 8) | addr[1];
         dev->memaddr++;
         for (uint8_t c = 0; c < 8; c++) {
-            buffer32->line[dev->displine][(x << 4) + (c << 1)] = buffer32->line[dev->displine][(x << 4) + (c << 1) + 1] = cols[dat >> 14];
+            dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1)] = dev->monitor->target_buffer->line[dev->displine][(x << 4) + (c << 1) + 1] = cols[dat >> 14];
             dat <<= 2;
         }
     }
@@ -3126,7 +3126,7 @@ pgc_cga_gfx80(pgc_t *dev)
         dat  = (addr[0] << 8) | addr[1];
         dev->memaddr++;
         for (uint8_t c = 0; c < 16; c++) {
-            buffer32->line[dev->displine][(x << 4) + c] = cols[dat >> 15];
+            dev->monitor->target_buffer->line[dev->displine][(x << 4) + c] = cols[dat >> 15];
             dat <<= 1;
         }
     }
@@ -3145,7 +3145,7 @@ pgc_cga_poll(pgc_t *dev)
 
         if (dev->cgadispon) {
             if (dev->displine == 0)
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
 
             if ((dev->mapram[0x03d8] & 0x12) == 0x12)
                 pgc_cga_gfx80(dev);
@@ -3157,10 +3157,10 @@ pgc_cga_poll(pgc_t *dev)
                 pgc_cga_text(dev, 40);
         } else {
             cols[0] = ((dev->mapram[0x03d8] & 0x12) == 0x12) ? 0 : ((dev->mapram[0x03d9] & 15) + 16);
-            hline(buffer32, 0, dev->displine, PGC_CGA_WIDTH, cols[0]);
+            hline(dev->monitor->target_buffer, 0, dev->displine, PGC_CGA_WIDTH, cols[0]);
         }
 
-        video_process_8(PGC_CGA_WIDTH, dev->displine);
+        video_process_8_monitor(PGC_CGA_WIDTH, dev->displine, dev->monitor);
 
         if (++dev->displine == PGC_CGA_HEIGHT) {
             dev->mapram[0x3da] |= 8;
@@ -3178,33 +3178,33 @@ pgc_cga_poll(pgc_t *dev)
         dev->linepos = 0;
 
         if (dev->displine == PGC_CGA_HEIGHT) {
-            if (PGC_CGA_WIDTH != xsize || PGC_CGA_HEIGHT != ysize) {
-                xsize = PGC_CGA_WIDTH;
-                ysize = PGC_CGA_HEIGHT;
-                set_screen_size(xsize, ysize);
+            if (PGC_CGA_WIDTH != dev->monitor->mon_xsize || PGC_CGA_HEIGHT != dev->monitor->mon_ysize) {
+                dev->monitor->mon_xsize = PGC_CGA_WIDTH;
+                dev->monitor->mon_ysize = PGC_CGA_HEIGHT;
+                set_screen_size_monitor(dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(dev->monitor))
+                    video_force_resize_set_monitor(0, dev->monitor);
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
             frames++;
             dev->vsyncs++;
             pgc_wake(dev);
 
             /* We have a fixed 640x400 screen for CGA modes. */
-            video_res_x = PGC_CGA_WIDTH;
-            video_res_y = PGC_CGA_HEIGHT;
+            dev->monitor->mon_res_x = PGC_CGA_WIDTH;
+            dev->monitor->mon_res_y = PGC_CGA_HEIGHT;
             switch (dev->mapram[0x3d8] & 0x12) {
                 case 0x12:
-                    video_bpp = 1;
+                    dev->monitor->mon_bpp = 1;
                     break;
 
                 case 0x02:
-                    video_bpp = 2;
+                    dev->monitor->mon_bpp = 2;
                     break;
 
                 default:
-                    video_bpp = 0;
+                    dev->monitor->mon_bpp = 0;
                     break;
             }
             dev->cgablink++;
@@ -3231,18 +3231,18 @@ pgc_poll(void *priv)
         dev->linepos = 1;
         if (dev->cgadispon && (uint32_t) dev->displine < dev->maxh) {
             if (dev->displine == 0)
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(dev->monitor);
 
             /* Rows outside the framebuffer are blank; columns wrap. */
             y = dev->scan_top + dev->displine;
             for (uint32_t x = 0; x < dev->screenw; x++) {
                 if (y >= 0 && y < (int32_t) dev->maxh)
-                    buffer32->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + ((uint32_t) dev->scan_left + x) % dev->maxw]];
+                    dev->monitor->target_buffer->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + ((uint32_t) dev->scan_left + x) % dev->maxw]];
                 else
-                    buffer32->line[dev->displine][x] = dev->palette[0];
+                    dev->monitor->target_buffer->line[dev->displine][x] = dev->palette[0];
             }
         } else {
-            hline(buffer32, 0, dev->displine, dev->screenw, dev->palette[0]);
+            hline(dev->monitor->target_buffer, 0, dev->displine, dev->screenw, dev->palette[0]);
         }
 
         if (++dev->displine == dev->screenh) {
@@ -3262,22 +3262,22 @@ pgc_poll(void *priv)
         dev->linepos = 0;
 
         if (dev->displine == dev->screenh) {
-            if (dev->screenw != xsize || dev->screenh != ysize) {
-                xsize = dev->screenw;
-                ysize = dev->screenh;
-                set_screen_size(xsize, ysize);
+            if (dev->screenw != dev->monitor->mon_xsize || dev->screenh != dev->monitor->mon_ysize) {
+                dev->monitor->mon_xsize = dev->screenw;
+                dev->monitor->mon_ysize = dev->screenh;
+                set_screen_size_monitor(dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if (video_force_resize_get_monitor(dev->monitor))
+                    video_force_resize_set_monitor(0, dev->monitor);
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
+            video_blit_memtoscreen_monitor(0, 0, dev->monitor->mon_xsize, dev->monitor->mon_ysize, dev->monitor);
             frames++;
             dev->vsyncs++;
             pgc_wake(dev);
 
-            video_res_x = dev->screenw;
-            video_res_y = dev->screenh;
-            video_bpp   = 8;
+            dev->monitor->mon_res_x = dev->screenw;
+            dev->monitor->mon_res_y = dev->screenh;
+            dev->monitor->mon_bpp   = 8;
             dev->cgablink++;
         }
     }
@@ -3482,6 +3482,7 @@ pgc_standalone_init(const device_t *info)
     pgc_t *dev;
 
     dev = (pgc_t *) calloc(1, sizeof(pgc_t));
+    dev->monitor = video_monitor_pending;
     dev->type = info->local;
 
     pgc_load_font();
@@ -3489,7 +3490,7 @@ pgc_standalone_init(const device_t *info)
     /* Framebuffer and screen are both 640x480. */
     pgc_init(dev, 640, 480, 640, 480, input_byte, 25175000.0);
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pgc);
+    video_inform_monitor(VIDEO_FLAG_TYPE_CGA, &timing_pgc, dev->monitor);
 
     return dev;
 }

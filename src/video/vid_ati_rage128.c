@@ -2783,7 +2783,7 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
     }
     dev->vram_mask = dev->vram_size - 1;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, dev->is_agp ? &timing_rage128_agp : &timing_rage128);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, dev->is_agp ? &timing_rage128_agp : &timing_rage128, video_monitor_pending);
 
     svga_init(info, svga, dev, dev->vram_size,
               rage128_recalctimings,

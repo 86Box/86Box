@@ -44,7 +44,7 @@ public:
 class VulkanWindowRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
 public:
-    VulkanWindowRenderer(QWidget *parent);
+    VulkanWindowRenderer(QWidget *parent, monitor_t *monitor);
     ~VulkanWindowRenderer();
     void finalize() override final;
 

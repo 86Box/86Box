@@ -36,8 +36,12 @@ class RendererStack : public QWidget {
     Q_OBJECT
 
 public:
-    explicit RendererStack(QWidget *parent = nullptr, int monitor_index = 0);
+    explicit RendererStack(QWidget *parent = nullptr, monitor_t *monitor = nullptr);
     ~RendererStack();
+    void stopRenderer();
+
+    monitor_t *monitor() const { return m_monitor; }
+    bool acceptsGuestInput() const;
 
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -147,6 +151,7 @@ private:
 
     int currentBuf      = 0;
     int isMouseDown     = 0;
+    monitor_t *m_monitor = nullptr;
     int m_monitor_index = 0;
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> imagebufs;

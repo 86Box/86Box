@@ -1317,7 +1317,8 @@ voodoo_card_init(const device_t *info)
 
     timer_add(&voodoo->timer, voodoo_callback, voodoo, 1);
 
-    voodoo->svga     = svga_get_pri();
+    voodoo->svga    = svga_get_pri();
+    voodoo->monitor = video_monitor_pending;
 
     voodoo->wake_fifo_thread         = thread_create_event();
     voodoo->wake_render_thread[0]    = thread_create_event();
@@ -1447,11 +1448,12 @@ voodoo_card_init(const device_t *info)
 }
 
 void *
-voodoo_2d3d_card_init(int type)
+voodoo_2d3d_card_init(int type, monitor_t *monitor)
 {
     int       c;
     voodoo_t *voodoo = calloc(1, sizeof(voodoo_t));
 
+    voodoo->monitor = monitor;
     voodoo_init_relax_settings(voodoo);
     voodoo->bilinear_enabled  = device_get_config_int("bilinear");
     voodoo->dithersub_enabled = device_get_config_int("dithersub");

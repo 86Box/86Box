@@ -270,7 +270,7 @@ ati28800_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -629,10 +629,10 @@ ati28800k_init(const device_t *info)
 
     if (ati28800->type_korean == 0) {
         ati28800->memory = device_get_config_int("memory");
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800, video_monitor_pending);
     } else {
         ati28800->memory = 512;
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800_spc);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800_spc, video_monitor_pending);
     }
 
     ati28800->port_03dd_val               = 0;
@@ -691,7 +691,7 @@ ati28800_init(const device_t *info)
     ati28800_t *ati28800;
     ati28800 = calloc(1, sizeof(ati28800_t));
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
+    video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800, video_monitor_pending);
 
     ati28800->type      = (info->local == USE_CONFIG_BIOS) ?
                           (int) device_get_bios_local(info, device_get_config_bios("bios")) :
@@ -829,7 +829,7 @@ ati28800_force_redraw(void *priv)
 {
     ati28800_t *ati28800 = (ati28800_t *) priv;
 
-    ati28800->svga.fullchange = changeframecount;
+    ati28800->svga.fullchange = ati28800->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off

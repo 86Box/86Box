@@ -14,10 +14,11 @@
 #include <vector>
 
 class QWidget;
+struct monitor_t;
 
 class RendererCommon {
 public:
-    RendererCommon();
+    explicit RendererCommon(monitor_t *monitor);
 
     void         onResize(int width, int height);
     float        osdLayoutScaleHint() const;
@@ -42,7 +43,7 @@ public:
     /* Should the renderer take screenshots itself? */
     virtual bool rendererTakeScreenshot() { return false; }
 
-    int    r_monitor_index = 0;
+    monitor_t *const r_monitor;
     QRectF destinationF    = QRectF(0, 0, 1, 1); /* normalized to 0.0-1.0 range. */
 
 protected:

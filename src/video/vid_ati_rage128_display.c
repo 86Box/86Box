@@ -1351,7 +1351,7 @@ rage128_overscan_apply(rage128_t *dev, svga_t *svga)
 
     if ((svga->monitor->mon_overscan_x != (int) (left + right))
         || (svga->monitor->mon_overscan_y != (int) (top + bottom)))
-        video_force_resize_set_monitor(1, svga->monitor_index);
+        video_force_resize_set_monitor(1, svga->monitor);
 
     svga->monitor->mon_overscan_x = (int) (left + right);
     svga->monitor->mon_overscan_y = (int) (top + bottom);
@@ -2600,7 +2600,7 @@ rage128_hwcursor_draw(svga_t *svga, int displine)
     uint32_t   col1   = makecol32((dev->cur_clr1 >> 16) & 0xff,
                                   (dev->cur_clr1 >> 8) & 0xff,
                                   dev->cur_clr1 & 0xff);
-    uint32_t  *line   = buffer32->line[displine] + svga->x_add;
+    uint32_t  *line   = svga->monitor->target_buffer->line[displine] + svga->x_add;
     int        offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
     int        sh     = rage128_hdbl_shift(dev);
 

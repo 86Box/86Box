@@ -113,7 +113,7 @@ ibm_rgb528_render_4bpp(svga_t *svga)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -191,7 +191,7 @@ ibm_rgb528_render_8bpp(svga_t *svga)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -276,7 +276,7 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
         partition &= 0xc0;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -394,7 +394,7 @@ ibm_rgb528_render_24bpp(svga_t *svga)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -486,7 +486,7 @@ ibm_rgb528_render_32bpp(svga_t *svga)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
@@ -1073,7 +1073,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
 
     y_pos = displine;
     x_pos = offset + svga->x_add;
-    p     = buffer32->line[y_pos];
+    p     = svga->monitor->target_buffer->line[y_pos];
 
     for (int x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x++) {
         if (!(x & 3))
