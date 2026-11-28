@@ -71,6 +71,7 @@ public:
 
     fm_type  type() const { return m_type; }
     int8_t   flags() const { return m_flags; }
+    void     set_pos_clock(const int *clock) { if (clock != nullptr) m_buf_pos_global = clock; }
     void     set_do_cycles(int8_t do_cycles) { do_cycles ? m_flags |= FLAG_CYCLES : m_flags &= ~FLAG_CYCLES; }
     int32_t *buffer() const { return (int32_t *) m_buffer; }
     void     reset_buffer() { m_buf_pos = 0; }
@@ -86,7 +87,7 @@ public:
 protected:
     int32_t  m_buffer[MUSICBUFLEN * 2];
     int      m_buf_pos;
-    int      *m_buf_pos_global;
+    const int *m_buf_pos_global;
     int8_t   m_flags;
     fm_type  m_type;
     uint32_t m_samplerate;
@@ -478,6 +479,14 @@ ymfm_opl2board_drv_reset_buffer(void *priv)
 }
 
 static void
+ymfm_opl2board_drv_set_clock(void *priv, const int *clock)
+{
+    OPLBOARDChipBase *drv = (OPLBOARDChipBase *) priv;
+
+    drv->set_pos_clock(clock);
+}
+
+static void
 ymfm_opl2board_drv_set_do_cycles(void *priv, int8_t do_cycles)
 {
     OPLBOARDChipBase *drv = (OPLBOARDChipBase *) priv;
@@ -514,6 +523,7 @@ const fm_drv_t ymfm_opl2board_drv {
     .update        = &ymfm_opl2board_drv_update,
     .reset_buffer  = &ymfm_opl2board_drv_reset_buffer,
     .set_do_cycles = &ymfm_opl2board_drv_set_do_cycles,
+    .set_clock     = &ymfm_opl2board_drv_set_clock,
     .priv          = NULL,
     .generate      = ymfm_opl2board_drv_generate
 };

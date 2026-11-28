@@ -47,32 +47,37 @@ mmb_log(const char *fmt, ...)
 #    define mmb_log(fmt, ...)
 #endif
 
-void
-mmb_update(mmb_t *mmb)
+static void
+mmb_update_chip(ay_3_891x_t *ay)
 {
-    for (; mmb->pos < sound_pos_global; mmb->pos++) {
-        ayumi_process(&mmb->first.chip);
-        ayumi_process(&mmb->second.chip);
+    for (; ay->pos < SOUND_CLOCK(ay->clock, sound_pos_global); ay->pos++) {
+        ayumi_process(&ay->chip);
+        ayumi_remove_dc(&ay->chip);
 
-        ayumi_remove_dc(&mmb->first.chip);
-        ayumi_remove_dc(&mmb->second.chip);
-
-        mmb->buffer[mmb->pos << 1]       = (mmb->first.chip.left + mmb->second.chip.left) * 16000;
-        mmb->buffer[(mmb->pos << 1) + 1] = (mmb->first.chip.right + mmb->second.chip.right) * 16000;
+        ay->buffer[ay->pos << 1]       = ay->chip.left * 16000;
+        ay->buffer[(ay->pos << 1) + 1] = ay->chip.right * 16000;
     }
 }
 
 void
+mmb_update(mmb_t *mmb)
+{
+    mmb_update_chip(&mmb->first);
+    mmb_update_chip(&mmb->second);
+}
+
+/* Each AY chip is a stream of its own. */
+void
 mmb_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
-    mmb_t *mmb = (mmb_t *) priv;
+    ay_3_891x_t *ay = (ay_3_891x_t *) priv;
 
-    mmb_update(mmb);
+    mmb_update_chip(ay);
 
     for (uint16_t c = 0; c < len * 2; c++)
-        buffer[c] += mmb->buffer[c];
+        buffer[c] += ay->buffer[c];
 
-    mmb->pos = 0;
+    ay->pos = 0;
 }
 
 void
@@ -228,7 +233,12 @@ mmb_init(UNUSED(const device_t *info))
     uint16_t addr = 0x300;
 
 #endif
-    sound_add_handler(mmb_get_buffer, mmb);
+    mmb->first.source  = sound_source_add_stream(I_NORMAL, mmb_get_buffer, &mmb->first);
+    sound_source_set_label(mmb->first.source, "AY-3-8910 #1");
+    mmb->first.clock   = sound_source_get_pos_ptr(mmb->first.source);
+    mmb->second.source = sound_source_add_stream(I_NORMAL, mmb_get_buffer, &mmb->second);
+    sound_source_set_label(mmb->second.source, "AY-3-8910 #2");
+    mmb->second.clock  = sound_source_get_pos_ptr(mmb->second.source);
 
     ayumi_configure(&mmb->first.chip, 0, MMB_CLOCK, MMB_FREQ);
     ayumi_configure(&mmb->second.chip, 0, MMB_CLOCK, MMB_FREQ);
@@ -251,6 +261,8 @@ mmb_close(void *priv)
 {
     mmb_t *mmb = (mmb_t *) priv;
 
+    sound_source_remove(mmb->first.source);
+    sound_source_remove(mmb->second.source);
     free(mmb);
 }
 

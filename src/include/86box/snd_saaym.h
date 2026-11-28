@@ -27,6 +27,9 @@ typedef struct saaym_t {
 
     fm_drv_t opm;
 
+    void *cms_source;
+    void *opm_source;
+
     void * log;
 } saaym_t;
 

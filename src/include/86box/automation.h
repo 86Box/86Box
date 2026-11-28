@@ -44,7 +44,7 @@ extern void automation_frame(int x, int y, int w, int h, int monitor_index);
 /* Called by the CPU core on every reset (hard = 1 for power-on/hard reset). */
 extern void automation_reset(int hard);
 /* Called by the sound core with every block of a stream (any thread). */
-extern void automation_audio(int src, const void *buf, int size, int is_float);
+extern void automation_audio(int src, const void *buf, int size);
 /* For COM ports with the "automation" backend (char_automation.c), on the
    CPU thread; port is 1 for COM1. The buffers outlive the backend, which a
    hard reset closes and opens again. */
@@ -67,7 +67,7 @@ extern void automation_fatal(const char *msg);
 #    define automation_quantum()
 #    define automation_frame(x, y, w, h, monitor_index)
 #    define automation_reset(hard)
-#    define automation_audio(src, buf, size, is_float)
+#    define automation_audio(src, buf, size)
 #    define automation_log_text(text, newline)
 #    define automation_fatal(msg)
 #endif

@@ -345,14 +345,14 @@ midi_config_changed(void)
 
     midi_in_close();
 
-    closeal();
+    sound_output_close();
 
     /* The new device sets the MIDI stream's sample rate and buffer size
        (al_set_midi) when it opens, so open it before the output. */
     midi_out_device_init();
     midi_in_device_init();
 
-    inital();
+    sound_output_init();
 }
 
 void

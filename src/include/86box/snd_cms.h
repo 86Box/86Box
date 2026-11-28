@@ -39,6 +39,9 @@ typedef struct cms_s {
     int16_t buffer[SOUNDBUFLEN * 2];
 
     uint16_t pos;
+
+    const int *clock; /* NULL: the shared stream clock */
+    void      *source;
 } cms_t;
 
 extern void    cms_update(cms_t *cms);

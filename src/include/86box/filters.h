@@ -1,6 +1,8 @@
 #ifndef EMU_FILTERS_H
 #define EMU_FILTERS_H
 
+#include <math.h>
+
 #define NCoef 2
 
 /* fc=150Hz */
@@ -19,8 +21,8 @@ adgold_highpass_iir(int i, float NewSample)
         0.97261396931534050000
     };
 
-    static float y[2][NCoef + 1]; /* output samples */
-    static float x[2][NCoef + 1]; /* input samples */
+    static float y[4][NCoef + 1]; /* output samples */
+    static float x[4][NCoef + 1]; /* input samples */
     int          n;
 
     /* shift the old samples */
@@ -54,8 +56,8 @@ adgold_lowpass_iir(int i, float NewSample)
         0.97261396931306277000
     };
 
-    static float y[2][NCoef + 1]; /* output samples */
-    static float x[2][NCoef + 1]; /* input samples */
+    static float y[4][NCoef + 1]; /* output samples */
+    static float x[4][NCoef + 1]; /* input samples */
     int          n;
 
     /* shift the old samples */
@@ -75,7 +77,7 @@ adgold_lowpass_iir(int i, float NewSample)
 
 /* fc=56Hz */
 static inline float
-adgold_pseudo_stereo_iir(float NewSample)
+adgold_pseudo_stereo_iir(int i, float NewSample)
 {
     float ACoef[NCoef + 1] = {
         0.00001409030866231767,
@@ -89,23 +91,23 @@ adgold_pseudo_stereo_iir(float NewSample)
         0.98738361004063568000
     };
 
-    static float y[NCoef + 1]; /* output samples */
-    static float x[NCoef + 1]; /* input samples */
+    static float y[2][NCoef + 1]; /* output samples */
+    static float x[2][NCoef + 1]; /* input samples */
     int          n;
 
     /* shift the old samples */
     for (n = NCoef; n > 0; n--) {
-        x[n] = x[n - 1];
-        y[n] = y[n - 1];
+        x[i][n] = x[i][n - 1];
+        y[i][n] = y[i][n - 1];
     }
 
     /* Calculate the new output */
-    x[0] = NewSample;
-    y[0] = ACoef[0] * x[0];
+    x[i][0] = NewSample;
+    y[i][0] = ACoef[0] * x[i][0];
     for (n = 1; n <= NCoef; n++)
-        y[0] += ACoef[n] * x[n] - BCoef[n] * y[n];
+        y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
 
-    return y[0];
+    return y[i][0];
 }
 
 /* fc=3.2kHz - probably incorrect */
@@ -178,6 +180,76 @@ dac_iir(int i, float NewSample)
     return y[i][0];
 }
 
+
+/* The bass/treble and SB filters are 2nd order Butterworth filters, designed for
+   the rate their user runs at, which is set per user with filters_set_rate(). */
+#define FILTER_USERS 6
+
+enum {
+    FILTER_LOW = 0,
+    FILTER_LOW_CUT,
+    FILTER_HIGH,
+    FILTER_HIGH_CUT,
+    FILTER_SB,
+    FILTER_KINDS
+};
+
+typedef struct filter_coefs_t {
+    double rate;
+    double a[3];
+    double b[3];
+} filter_coefs_t;
+
+static double         filter_user_rate[FILTER_USERS] = { 48000.0, 48000.0, 48000.0, 48000.0, 48000.0, 48000.0 };
+static filter_coefs_t filter_coefs[FILTER_KINDS][FILTER_USERS];
+
+static inline void
+filters_set_rate(const int c, const double rate)
+{
+    if ((c >= 0) && (c < FILTER_USERS) && (rate > 0.0))
+        filter_user_rate[c] = rate;
+}
+
+static inline const filter_coefs_t *
+filter_get_coefs(const int kind, const int c)
+{
+    static const double fcs[FILTER_KINDS]  = { 350.0, 350.0, 3500.0, 3500.0, 3200.0 };
+    static const int    highs[FILTER_KINDS] = { 0, 1, 1, 0, 0 };
+    filter_coefs_t *    f                  = &filter_coefs[kind][c];
+    const double        fs                 = filter_user_rate[c];
+
+    if (f->rate != fs) {
+        double fc = fcs[kind];
+        double w;
+        double alpha;
+        double cosw;
+        double a0;
+
+        if (fc > (0.45 * fs))
+            fc = 0.45 * fs;
+
+        w     = 2.0 * 3.14159265358979323846 * fc / fs;
+        alpha = sin(w) / (2.0 * 0.70710678118654752440);
+        cosw    = cos(w);
+        a0    = 1.0 + alpha;
+
+        if (highs[kind]) {
+            f->a[0] = ((1.0 + cosw) / 2.0) / a0;
+            f->a[1] = -(1.0 + cosw) / a0;
+        } else {
+            f->a[0] = ((1.0 - cosw) / 2.0) / a0;
+            f->a[1] = (1.0 - cosw) / a0;
+        }
+        f->a[2] = f->a[0];
+        f->b[0] = 1.0;
+        f->b[1] = (-2.0 * cosw) / a0;
+        f->b[2] = (1.0 - alpha) / a0;
+        f->rate = fs;
+    }
+
+    return f;
+}
+
 #undef NCoef
 #define NCoef 2
 
@@ -185,17 +257,9 @@ dac_iir(int i, float NewSample)
 static inline double
 low_iir(int c, int i, double NewSample)
 {
-    double ACoef[NCoef + 1] = {
-        0.00049713569693400649,
-        0.00099427139386801299,
-        0.00049713569693400649
-    };
-
-    double BCoef[NCoef + 1] = {
-        1.00000000000000000000,
-        -1.93522955470669530000,
-        0.93726236021404663000
-    };
+    const filter_coefs_t *coefs = filter_get_coefs(FILTER_LOW, c);
+    const double *       ACoef  = coefs->a;
+    const double *       BCoef  = coefs->b;
 
     static double y[6][2][NCoef + 1]; /* output samples */
     static double x[6][2][NCoef + 1]; /* input samples */
@@ -220,17 +284,9 @@ low_iir(int c, int i, double NewSample)
 static inline double
 low_cut_iir(int c, int i, double NewSample)
 {
-    double ACoef[NCoef + 1] = {
-        0.96839970114733542000,
-        -1.93679940229467080000,
-        0.96839970114733542000
-    };
-
-    double BCoef[NCoef + 1] = {
-        1.00000000000000000000,
-        -1.93522955471202770000,
-        0.93726236021916731000
-    };
+    const filter_coefs_t *coefs = filter_get_coefs(FILTER_LOW_CUT, c);
+    const double *       ACoef  = coefs->a;
+    const double *       BCoef  = coefs->b;
 
     static double y[6][2][NCoef + 1]; /* output samples */
     static double x[6][2][NCoef + 1]; /* input samples */
@@ -255,17 +311,9 @@ low_cut_iir(int c, int i, double NewSample)
 static inline double
 high_iir(int c, int i, double NewSample)
 {
-    double ACoef[NCoef + 1] = {
-        0.72248704753064896000,
-        -1.44497409506129790000,
-        0.72248704753064896000
-    };
-
-    double BCoef[NCoef + 1] = {
-        1.00000000000000000000,
-        -1.36640781670578510000,
-        0.52352474706139873000
-    };
+    const filter_coefs_t *coefs = filter_get_coefs(FILTER_HIGH, c);
+    const double *       ACoef  = coefs->a;
+    const double *       BCoef  = coefs->b;
     static double y[6][2][NCoef + 1]; /* output samples */
     static double x[6][2][NCoef + 1]; /* input samples */
     int           n;
@@ -289,17 +337,9 @@ high_iir(int c, int i, double NewSample)
 static inline double
 high_cut_iir(int c, int i, double NewSample)
 {
-    double ACoef[NCoef + 1] = {
-        0.03927726802250377400,
-        0.07855453604500754700,
-        0.03927726802250377400
-    };
-
-    double BCoef[NCoef + 1] = {
-        1.00000000000000000000,
-        -1.36640781666419950000,
-        0.52352474703279628000
-    };
+    const filter_coefs_t *coefs = filter_get_coefs(FILTER_HIGH_CUT, c);
+    const double *       ACoef  = coefs->a;
+    const double *       BCoef  = coefs->b;
     static double y[6][2][NCoef + 1]; /* output samples */
     static double x[6][2][NCoef + 1]; /* input samples */
     int           n;
@@ -360,17 +400,9 @@ deemph_iir(int i, double NewSample)
 static inline double
 sb_iir(int c, int i, double NewSample)
 {
-    double ACoef[NCoef + 1] = {
-        0.03356837051492005100,
-        0.06713674102984010200,
-        0.03356837051492005100
-    };
-
-    double BCoef[NCoef + 1] = {
-        1.00000000000000000000,
-        -1.41898265221812010000,
-        0.55326988968868285000
-    };
+    const filter_coefs_t *coefs = filter_get_coefs(FILTER_SB, c);
+    const double *       ACoef  = coefs->a;
+    const double *       BCoef  = coefs->b;
 
     static double y[6][2][NCoef + 1]; /* output samples */
     static double x[6][2][NCoef + 1]; /* input samples */

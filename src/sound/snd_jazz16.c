@@ -24,8 +24,8 @@
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/io.h>
-#include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/sound.h>
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
@@ -174,11 +174,14 @@ jazz16_init(UNUSED(const device_t *info))
                   sb->opl.read, NULL, NULL,
                   sb->opl.write, NULL, NULL, sb->opl.priv);
 
-    sound_add_handler(sb_get_buffer_sbpro, sb);
+    sb->src_snd   = sound_source_add_stream(I_NORMAL, sb_get_buffer_sbpro, sb);
+    sb->dsp.clock = sound_source_get_pos_ptr(sb->src_snd);
     sb->dsp.sbleftrighti = 0;
     sound_in_add_handler(sb_put_buffer_sbpro, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sbpro, sb);
+    sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, sb);
+    if (sb->opl.set_clock != NULL)
+        sb->opl.set_clock(sb->opl.priv, sound_source_get_pos_ptr(sb->src_music));
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     if (device_get_config_int("mpu401")) {

@@ -111,6 +111,8 @@ typedef struct _cmi8x38_ {
     uint8_t  irq_state;
 
     sb_t *sb;
+    void *src_snd;
+    const int *clock;
     void *gameport;
     void *io_traps[TRAP_MAX];
 
@@ -1141,7 +1143,9 @@ cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
     int32_t            l     = (dma->out_fl * mixer->voice_l) * mixer->master_l;
     int32_t            r     = (dma->out_fr * mixer->voice_r) * mixer->master_r;
 
-    for (; dma->pos < sound_pos_global; dma->pos++) {
+    const int          clk   = SOUND_CLOCK(dev->clock, sound_pos_global);
+
+    for (; dma->pos < clk; dma->pos++) {
         dma->buffer[dma->pos * 2]     = l;
         dma->buffer[dma->pos * 2 + 1] = r;
     }
@@ -1423,7 +1427,7 @@ static void
 cmi8x38_put_buffer(int16_t *buffer, int len, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const uint32_t keep = ((cap_rate > 0) ? cap_rate : SOUND_FREQ) / 4;
 
     if (!dev->in_started)
@@ -1681,6 +1685,10 @@ stereo:
     if (cmi8x38_do_log)
         ui_sb_bugui(buf);
 #endif
+
+    /* Both channels are summed into one stream, so it runs at channel 0's rate. */
+    if (dev->src_snd != NULL)
+        sound_source_set_rate(dev->src_snd, dev->dma[0].rate);
 }
 
 static void
@@ -1783,7 +1791,9 @@ cmi8x38_init(const device_t *info)
 
     /* Initialize playback handler and CD audio filter. */
     sound_in_add_handler(cmi8x38_put_buffer, dev); /* recording */
-    sound_add_handler(cmi8x38_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, cmi8x38_get_buffer, dev);
+    cmi8x38_speed_changed(dev);
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, dev->sb);
 
     /* Initialize game port. */
@@ -1820,6 +1830,7 @@ cmi8x38_close(void *priv)
     dev->dma[0].record_enabled = dev->dma[1].record_enabled = 0;
     cmi8x38_adc_input(dev);
 
+    sound_source_remove(dev->src_snd);
     free(dev);
 }
 

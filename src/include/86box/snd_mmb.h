@@ -29,14 +29,18 @@ typedef struct ay_3_891x_s {
     uint8_t index;
     uint8_t regs[16];
     struct  ayumi chip;
+
+    int16_t buffer[SOUNDBUFLEN * 2];
+    int     pos;
+
+    void      *source;
+    const int *clock;
 } ay_3_891x_t;
 
 typedef struct mmb_s {
     ay_3_891x_t first;
     ay_3_891x_t second;
 
-    int16_t buffer[SOUNDBUFLEN * 2];
-    int     pos;
 } mmb_t;
 
 #endif /* _SOUND_SND_MMB_H_ */

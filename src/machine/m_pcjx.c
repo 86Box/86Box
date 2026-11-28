@@ -732,6 +732,8 @@ typedef struct pcjx_t {
     pc_timer_t cassette_timer;
     int16_t cassette_buffer[SOUNDBUFLEN];
     unsigned cassette_pos;
+    void *cassette_source;
+    const int *cassette_clock;
 } pcjx_t;
 
 /* PIT callbacks receive the PIT object, not a motherboard opaque pointer. */
@@ -973,7 +975,7 @@ pcjx_cassette_sample(void *priv)
     int16_t sample = 0;
     if (cassette && !(dev->pb & 0x18) && (dev->pb & 0x60) == 0x20)
         sample = pc_cas_get_inp(cassette) ? 2048 : -2048;
-    while (dev->cassette_pos < (unsigned) sound_pos_global && dev->cassette_pos < SOUNDBUFLEN)
+    while (dev->cassette_pos < (unsigned) SOUND_CLOCK(dev->cassette_clock, sound_pos_global) && dev->cassette_pos < SOUNDBUFLEN)
         dev->cassette_buffer[dev->cassette_pos++] = sample;
     timer_advance_u64(&dev->cassette_timer, TIMER_USEC * 1000000 / SOUND_FREQ);
 }
@@ -1289,6 +1291,8 @@ pcjx_close(void *priv)
     io_removehandler(0x1ff, 1, pcjx_decoder_read, NULL, NULL, pcjx_decoder_write, NULL, NULL, dev);
     timer_disable(&dev->video.timer);
     timer_disable(&dev->cassette_timer);
+    sound_source_remove(dev->cassette_source);
+    sn76489_close(&dev->psg);
     pcjx_keyboard_close(&dev->keyboard);
     if (dev->rtc_enabled)
         pcjx_clock_close(&dev->clock);
@@ -1418,7 +1422,8 @@ pcjx_init(const machine_t *model, unsigned profile)
     pcjx_keyboard_init(&dev->keyboard, pcjx_keyboard_line, dev);
     if (dev->rtc_enabled)
         pcjx_clock_init(&dev->clock);
-    sound_add_handler(pcjx_cassette_mix, dev);
+    dev->cassette_source = sound_source_add_stream(I_NORMAL, pcjx_cassette_mix, dev);
+    dev->cassette_clock  = sound_source_get_pos_ptr(dev->cassette_source);
     /* Start half a sample after the sound poll timer: timers due together swap
        order on every tick, which makes the update write two samples, then none. */
     timer_add(&dev->cassette_timer, pcjx_cassette_sample, dev, 0);

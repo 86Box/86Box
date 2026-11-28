@@ -13615,6 +13615,7 @@ void MusicFeatureCard::RegisterIoHandlers(const io_port_t port)
 ///////////////////////////////////////////////////////////
 
 static std::unique_ptr<MusicFeatureCard> imfc = {};
+static void                             *imfc_src = nullptr;
 
 static void Intel8253_TimerEvent(const uint32_t val)
 {
@@ -13692,7 +13693,7 @@ void*
 imfc_card_init(const device_t *info)
 {
     imfc = std::make_unique<MusicFeatureCard>(device_get_config_hex16("base"), device_get_config_int("irq"));
-    wavetable_add_handler(imfc_get_buffer, imfc.get());
+    imfc_src = sound_source_add_stream(I_WT, imfc_get_buffer, imfc.get());
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, imfc_input_msg, imfc_input_sysex, imfc_input_remain, imfc.get());
 
@@ -13707,6 +13708,8 @@ imfc_card_init(const device_t *info)
 void
 imfc_card_close(void *priv)
 {
+    sound_source_remove(imfc_src);
+    imfc_src = nullptr;
     imfc.reset(nullptr);
 }
 

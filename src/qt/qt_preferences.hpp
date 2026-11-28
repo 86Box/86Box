@@ -7,6 +7,7 @@
 
 class PreferencesGeneral;
 class PreferencesEmulator;
+class PreferencesSound;
 class PreferencesInput;
 class PreferencesKeyBindings;
 class PreferencesManager;
@@ -61,6 +62,7 @@ private:
 
     PreferencesGeneral         *general;
     PreferencesEmulator        *emulator;
+    PreferencesSound           *sound;
     PreferencesInput           *input;
     PreferencesKeyBindings     *key_bindings;
     PreferencesManager         *manager = nullptr;

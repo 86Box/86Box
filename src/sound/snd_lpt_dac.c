@@ -79,6 +79,9 @@ typedef struct lpt_dac_s {
     uint16_t pos;
 
     void *log;
+
+    void      *source;
+    const int *clock;
 } lpt_dac_t;
 
 static void
@@ -89,7 +92,7 @@ dac_update(lpt_dac_t *const lpt_dac)
     const int16_t sample_l = (int16_t) ((int8_t) (lpt_dac->dac_val_l ^ 0x80) * 0x40 * vol);
     const int16_t sample_r = (int16_t) ((int8_t) (lpt_dac->dac_val_r ^ 0x80) * 0x40 * vol);
 
-    for (; lpt_dac->pos < sound_pos_global; lpt_dac->pos++) {
+    for (; lpt_dac->pos < SOUND_CLOCK(lpt_dac->clock, sound_pos_global); lpt_dac->pos++) {
         lpt_dac->buffer[DAC_CHANNEL_LEFT][lpt_dac->pos] = sample_l;
         lpt_dac->buffer[DAC_CHANNEL_RIGHT][lpt_dac->pos] = sample_r;
     }
@@ -220,7 +223,8 @@ dac_init(const device_t *info)
                               NULL,
                               lpt_dac);
 
-    sound_add_handler(dac_get_buffer, lpt_dac);
+    lpt_dac->source = sound_source_add_stream(I_NORMAL, dac_get_buffer, lpt_dac);
+    lpt_dac->clock  = sound_source_get_pos_ptr(lpt_dac->source);
 
     lpt_dac->log = log_open("LPT DAC");
     lpt_dac_log(lpt_dac->log, "Init device=%s channel=%u\n",
@@ -241,6 +245,7 @@ dac_close(void *priv)
     lpt_dac_log(lpt_dac->log, "Close\n");
     if (lpt_dac->log)
         log_close(lpt_dac->log);
+    sound_source_remove(lpt_dac->source);
     free(lpt_dac);
 }
 

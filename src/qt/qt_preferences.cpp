@@ -40,6 +40,7 @@ extern "C" {
 
 #include "qt_preferencesgeneral.hpp"
 #include "qt_preferencesemulator.hpp"
+#include "qt_preferencessound.hpp"
 #include "qt_preferencesinput.hpp"
 #include "qt_preferenceskeybindings.hpp"
 #include "qt_preferencesmanager.hpp"
@@ -66,6 +67,7 @@ extern "C" {
 static const QVector<PagedDialog::Page> preferencesPages = {
     { "General",      "settings"      },
     { "Emulator",     "emulator"      },
+    { "Sound",        "sound"         },
     { "Input",        "input_devices" },
     { "Key bindings", "key_bindings"  },
 };
@@ -127,11 +129,13 @@ Preferences::Preferences(bool showManager, bool machinesRunning, QWidget *parent
 {
     general                   = new PreferencesGeneral(this);
     emulator                  = new PreferencesEmulator(this);
+    sound                     = new PreferencesSound(this);
     input                     = new PreferencesInput(this);
     key_bindings              = new PreferencesKeyBindings(this);
 
     pageStack()->addWidget(general);
     pageStack()->addWidget(emulator);
+    pageStack()->addWidget(sound);
     pageStack()->addWidget(input);
     pageStack()->addWidget(key_bindings);
 
@@ -155,6 +159,7 @@ Preferences::save()
 {
     general->save();
     emulator->save();
+    sound->save();
     input->save();
     key_bindings->save();
     if (manager)

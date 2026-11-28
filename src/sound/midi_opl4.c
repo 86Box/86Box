@@ -313,7 +313,6 @@ typedef struct opl4_midi {
     MIDI_CHANNEL_DATA midi_channel_data[16];
     VOICE_DATA        voice_data[24];
     int16_t           buffer[BUFFER_SAMPLES];
-    float             buffer_float[BUFFER_SAMPLES];
     pc_timer_t        poll_timer;
     uint32_t          buffer_pos;
     uint32_t          block_frames;
@@ -817,16 +816,11 @@ opl4_render(opl4_midi_t *opl4_midi, uint32_t target)
         opl4_midi->opl4.generate(opl4_midi->opl4.priv, buffer, frames);
         for (uint32_t i = 0; i < frames * 2; i++) {
             double sample = buffer[i];
-            if (sound_is_float)
-                sample /= 32768.0;
             if (filter_midi != NULL)
                 filter_midi(i & 1, &sample, filter_midi_p);
 
             const uint32_t pos = opl4_midi->buffer_pos + i;
-            if (sound_is_float)
-                opl4_midi->buffer_float[pos] = (float) sample;
-            else
-                opl4_midi->buffer[pos] = (int16_t) round(sample);
+            opl4_midi->buffer[pos] = (int16_t) round(sample);
         }
 
         opl4_midi->block_frames += frames;
@@ -844,8 +838,7 @@ opl4_midi_poll(void *priv)
     opl4_render(opl4_midi, RENDER_FRAMES);
     opl4_midi->block_frames = 0;
     if (opl4_midi->buffer_pos == BUFFER_SAMPLES) {
-        givealbuffer_midi(sound_is_float ? (const void *) opl4_midi->buffer_float : opl4_midi->buffer,
-                          BUFFER_SAMPLES);
+        givealbuffer_midi(opl4_midi->buffer, BUFFER_SAMPLES);
         opl4_midi->buffer_pos = 0;
     }
 }

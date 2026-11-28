@@ -66,6 +66,8 @@ static double ymf701_input_gain_vols_4bits[16];
 typedef struct ymf701_t {
     uint8_t type;
 
+    void *src_wss;
+
     uint8_t wss_config;
     uint8_t reg_enabled;
 
@@ -202,7 +204,7 @@ ymf701_put_buffer(int16_t *buffer, int len, void *priv)
     ymf701_t *ymf701 = (ymf701_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     int rate = 0;
     if (ymf701->ad1848.regs[9] & 0x02)
@@ -321,6 +323,8 @@ static void
 ymf701_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf701_t *ymf701 = (ymf701_t *) priv;
+
+    sound_source_set_rate(ymf701->src_wss, (ymf701->ad1848.enable && ymf701->ad1848.freq > 0) ? (double) ymf701->ad1848.freq : 0.0);
 
     /* wss part */
     ad1848_update(&ymf701->ad1848);
@@ -615,12 +619,18 @@ ymf701_init(const device_t *info)
 
     io_sethandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
 
-    sound_add_handler(ymf701_get_buffer, ymf701);
-    sound_add_handler(ymf701_get_sbpro_buffer, ymf701);
+    ymf701->src_wss      = sound_source_add_stream(I_NORMAL, ymf701_get_buffer, ymf701);
+    sound_source_set_label(ymf701->src_wss, "WSS");
+    ymf701->ad1848.clock = sound_source_get_pos_ptr(ymf701->src_wss);
+    ymf701->sb->src_snd   = sound_source_add_stream(I_NORMAL, ymf701_get_sbpro_buffer, ymf701);
+    sound_source_set_label(ymf701->sb->src_snd, "Sound Blaster");
+    ymf701->sb->dsp.clock = sound_source_get_pos_ptr(ymf701->sb->src_snd);
     sound_in_add_handler(ymf701_put_buffer, ymf701);
     sound_in_start_input();
 
-    music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
+    ymf701->sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, ymf701->sb);
+    if (ymf701->sb->opl.set_clock != NULL)
+        ymf701->sb->opl.set_clock(ymf701->sb->opl.priv, sound_source_get_pos_ptr(ymf701->sb->src_music));
     ad1848_set_cd_audio_channel(&ymf701->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
 
@@ -660,6 +670,7 @@ ymf701_close(void *priv)
         ymf701->log = NULL;
     }
 
+    sound_source_remove(ymf701->src_wss);
     sb_close(ymf701->sb);
     free(ymf701->mpu);
     free(priv);

@@ -54,6 +54,7 @@ opl2board_device_log(const char *fmt, ...)
 
 typedef struct opl2board_device_t {
     fm_drv_t opl;
+    void    *src_music;
     uint8_t  pos_regs[8];
 } opl2board_device_t;
 
@@ -130,7 +131,9 @@ opl2board_device_init(UNUSED(const device_t *info))
                   serial->opl.read, NULL, NULL,
                   serial->opl.write, NULL, NULL,
                   serial->opl.priv);
-    music_add_handler(opl2board_device_get_buffer, serial);
+    serial->src_music = sound_source_add_stream(I_MUSIC, opl2board_device_get_buffer, serial);
+    if (serial->opl.set_clock != NULL)
+        serial->opl.set_clock(serial->opl.priv, sound_source_get_pos_ptr(serial->src_music));
 
     return serial;
 }
@@ -159,6 +162,8 @@ void
 opl2board_device_close(void *priv)
 {
     opl2board_device_t *serial = (opl2board_device_t *) priv;
+
+    sound_source_remove(serial->src_music);
     free(serial);
 }
 

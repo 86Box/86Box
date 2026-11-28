@@ -17,6 +17,8 @@
 
 add_library(snd OBJECT
     sound.c
+    snd_backend.c
+    snd_source.c
     snd_opl.c
     snd_opl2_nuked.c
     snd_opl3_nuked.c
@@ -82,6 +84,10 @@ add_library(snd OBJECT
     snd_ymz263b.c
     snd_optimc.c
     snd_opl_esfm.c
+    snd_pc98_opn.cpp
+    snd_pc98_26k.c
+    snd_pc98_86.c
+    snd_pc98_spb.c
     snd_ps1_midi.c
     snd_sensation.c
     snd_ymf701.c
@@ -97,11 +103,20 @@ set_source_files_properties(
     PROPERTIES COMPILE_OPTIONS "$<IF:$<C_COMPILER_ID:MSVC>,/w,-w>"
 )
 
-# TODO: Should platform-specific audio driver be here?
+# Sound backends: every backend that is available on the platform is built,
+# and the one to use is selected in the Preferences dialog.
+set(SND_BACKEND_FOUND OFF)
+
 if(AUDIO4)
-    target_sources(snd PRIVATE audio4.c)
-elseif(SNDIO)
-    target_sources(snd PRIVATE sndio.c)
+    target_sources(snd PRIVATE snd_backend_audio4.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_AUDIO4)
+    set(SND_BACKEND_FOUND ON)
+endif()
+
+if(SNDIO)
+    target_sources(snd PRIVATE snd_backend_sndio.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_SNDIO)
+    set(SND_BACKEND_FOUND ON)
     find_package(PkgConfig REQUIRED)
 
     pkg_check_modules(SNDIO IMPORTED_TARGET sndio)
@@ -115,38 +130,48 @@ elseif(SNDIO)
     endif()
 
     include_directories(${SNDIO_INCLUDE_DIRS})
-elseif(OPENAL)
-    if(VCPKG_TOOLCHAIN)
-        find_package(OpenAL CONFIG REQUIRED)
-    elseif(MINGW)
-        find_package(OpenAL MODULE REQUIRED)
-    else()
-        find_package(OpenAL REQUIRED)
-    endif()
+endif()
 
-    if(TARGET OpenAL::OpenAL)
-        target_link_libraries(86Box OpenAL::OpenAL)
-        target_link_libraries(snd PRIVATE OpenAL::OpenAL)
-        if(WIN32 AND STATIC_BUILD)
-            target_link_libraries(OpenAL::OpenAL INTERFACE avrt)
-        endif()
-    else()
-        target_link_libraries(86Box ${OPENAL_LIBRARY})
-        target_include_directories(snd PRIVATE ${OPENAL_INCLUDE_DIR})
-        if(WIN32 AND STATIC_BUILD)
-            target_link_libraries(${OPENAL_LIBRARY} INTERFACE avrt)
-        endif()
-    endif()
-
-    include_directories(${OPENAL_INCLUDE_DIR})
-
-    target_sources(snd PRIVATE openal.c)
+if(VCPKG_TOOLCHAIN)
+    find_package(OpenAL CONFIG REQUIRED)
+elseif(MINGW)
+    find_package(OpenAL MODULE REQUIRED)
 else()
-    if(WIN32)
-        option(FAUDIO "Use FAudio instead of XAudio2" OFF)
-    endif()
+    find_package(OpenAL REQUIRED)
+endif()
 
-    target_sources(snd PRIVATE xaudio2.c)
+if(TARGET OpenAL::OpenAL)
+    target_link_libraries(86Box OpenAL::OpenAL)
+    target_link_libraries(snd PRIVATE OpenAL::OpenAL)
+    if(WIN32 AND STATIC_BUILD)
+        target_link_libraries(OpenAL::OpenAL INTERFACE avrt)
+    endif()
+else()
+    target_link_libraries(86Box ${OPENAL_LIBRARY})
+    target_include_directories(snd PRIVATE ${OPENAL_INCLUDE_DIR})
+    if(WIN32 AND STATIC_BUILD)
+        target_link_libraries(${OPENAL_LIBRARY} INTERFACE avrt)
+    endif()
+endif()
+
+include_directories(${OPENAL_INCLUDE_DIR})
+
+target_sources(snd PRIVATE snd_backend_openal.c)
+target_compile_definitions(snd PRIVATE SND_BACKEND_OPENAL)
+set(SND_BACKEND_FOUND ON)
+
+if(WIN32)
+    option(FAUDIO "Use FAudio instead of XAudio2" OFF)
+else()
+    # FAudio, a reimplementation of XAudio2, is offered wherever it is installed.
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(FAUDIO_PROBE QUIET FAudio)
+    option(FAUDIO "Use FAudio as the XAudio2 backend" ${FAUDIO_PROBE_FOUND})
+endif()
+
+if(WIN32 OR FAUDIO)
+    target_sources(snd PRIVATE snd_backend_xaudio2.c)
+    target_compile_definitions(snd PRIVATE SND_BACKEND_XAUDIO2)
 
     if(NOT WIN32 OR FAUDIO)
         find_package(PkgConfig REQUIRED)
@@ -164,7 +189,7 @@ else()
 
         include_directories(${FAUDIO_INCLUDE_DIRS})
 
-        set_property(SOURCE xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
+        set_property(SOURCE snd_backend_xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
     endif()
 endif()
 

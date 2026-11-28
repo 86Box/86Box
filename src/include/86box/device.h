@@ -271,6 +271,7 @@ extern void        device_migrate_config_bios(const void *priv, const char *name
 extern const char *device_get_config_string(const char *name);
 extern void        device_set_config_string(const char *str, const char *val);
 extern int         device_get_instance(void);
+extern const device_t *device_get_current(void);
 
 extern const char *device_get_internal_name(const device_t *dev);
 

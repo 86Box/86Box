@@ -2,6 +2,7 @@
 #define QT_SOUNDGAIN_HPP
 
 #include <QDialog>
+#include <vector>
 
 namespace Ui {
 class SoundGain;
@@ -15,14 +16,13 @@ public:
     ~SoundGain();
 
 private slots:
-    void on_verticalSlider_valueChanged(int value);
-
     void on_SoundGain_accepted();
     void on_SoundGain_rejected();
 
 private:
     Ui::SoundGain *ui;
     int            sound_gain_orig;
+    std::vector<int> source_gain_orig;
 };
 
 #endif // QT_SOUNDGAIN_HPP

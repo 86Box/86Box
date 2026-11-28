@@ -109,6 +109,9 @@ typedef struct ad1816_t {
     uint32_t rec_dma_data;
     int16_t buffer[SOUNDBUFLEN * 2];
     int pos;
+
+    const int *clock;
+    void      *src_snd;
     uint8_t playback_pos : 2;
     uint8_t rec_pos : 2;
     uint8_t enable;
@@ -200,7 +203,9 @@ ad1816_filter_opl(void *priv, double *out_l, double *out_r)
 void
 ad1816_update(ad1816_t *ad1816)
 {
-    for (; ad1816->pos < sound_pos_global; ad1816->pos++) {
+    const int clk = SOUND_CLOCK(ad1816->clock, sound_pos_global);
+
+    for (; ad1816->pos < clk; ad1816->pos++) {
         ad1816->buffer[ad1816->pos * 2]     = ad1816->out_l;
         ad1816->buffer[ad1816->pos * 2 + 1] = ad1816->out_r;
     }
@@ -663,7 +668,7 @@ ad1816_put_buffer(int16_t *buffer, int len, void *priv)
     ad1816_t                *ad1816 = (ad1816_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ad1816->rec_freq;
 
@@ -778,6 +783,8 @@ static void
 ad1816_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ad1816_t *ad1816 = (ad1816_t *) priv;
+
+    sound_source_set_rate(ad1816->src_snd, (ad1816->enable && ad1816->freq > 0) ? (double) ad1816->freq : 0.0);
 
     /* Don't play audio if the DAC mute or chip powerdown bits are set */
     if ((ad1816->iregs[44] & 0x8000) || (ad1816->iregs[44] & 0x0008))
@@ -1292,11 +1299,17 @@ ad1816_init(UNUSED(const device_t *info))
 
     io_sethandler(ad1816->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ad1816->sb);
 
-    sound_add_handler(ad1816_get_buffer, ad1816);
-    sound_add_handler(ad1816_get_sbpro_buffer, ad1816);
+    ad1816->src_snd         = sound_source_add_stream(I_NORMAL, ad1816_get_buffer, ad1816);
+    sound_source_set_label(ad1816->src_snd, "WSS");
+    ad1816->clock           = sound_source_get_pos_ptr(ad1816->src_snd);
+    ad1816->sb->src_snd     = sound_source_add_stream(I_NORMAL, ad1816_get_sbpro_buffer, ad1816);
+    sound_source_set_label(ad1816->sb->src_snd, "Sound Blaster");
+    ad1816->sb->dsp.clock   = sound_source_get_pos_ptr(ad1816->sb->src_snd);
     sound_in_add_handler(ad1816_put_buffer, ad1816);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sbpro, ad1816->sb);
+    ad1816->sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, ad1816->sb);
+    if (ad1816->sb->opl.set_clock != NULL)
+        ad1816->sb->opl.set_clock(ad1816->sb->opl.priv, sound_source_get_pos_ptr(ad1816->sb->src_music));
 
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, ad1816->sb); /* Default SBPro mode CD audio filter */
@@ -1414,6 +1427,7 @@ ad1816_close(void *priv)
         ad1816->log = NULL;
     }
 
+    sound_source_remove(ad1816->src_snd);
     sb_close(ad1816->sb);
     free(ad1816->mpu);
     free(priv);

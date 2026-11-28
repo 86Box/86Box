@@ -64,6 +64,7 @@ typedef struct solo1_t {
     uint8_t onboard;
 
     void   *legacy;
+    void   *src_snd;
 
     uint16_t io_base_mapped;
     uint16_t sb_base_mapped;
@@ -794,7 +795,7 @@ static void
 solo1_put_buffer(int16_t *buffer, int len, void *priv)
 {
     solo1_t  *dev      = (solo1_t *) priv;
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     uint32_t  keep;
 
     if (!dev->in_started)
@@ -830,6 +831,12 @@ solo1_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     if (!src_rate)
         src_rate = 8000;
 
+    /* Let the host source run at the Audio 2 rate the guest programmed. */
+    if ((dev->io_regs[0x06] & 0x02) && ((dev->mixer_regs[0x78] & 0x03) == 0x03) && dev->a2_cur_count)
+        sound_source_set_rate(dev->src_snd, (double) src_rate);
+
+    const uint32_t host_rate = (uint32_t) sound_source_get_rate(dev->src_snd);
+
     for (uint16_t i = 0; i < len; i++) {
         const int active = (dev->io_regs[0x06] & 0x02) &&
                            ((dev->mixer_regs[0x78] & 0x03) == 0x03) &&
@@ -838,8 +845,8 @@ solo1_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         if (active) {
             dev->a2_rate_accum += src_rate;
 
-            while (dev->a2_rate_accum >= (uint32_t) sound_sample_rate) {
-                dev->a2_rate_accum -= (uint32_t) sound_sample_rate;
+            while (dev->a2_rate_accum >= host_rate) {
+                dev->a2_rate_accum -= host_rate;
                 solo1_a2_fetch_frame(dev);
             }
 
@@ -1636,7 +1643,7 @@ solo1_init(const device_t *info)
     dev->onboard = (uint8_t) (info->local != 0);
 
     dev->legacy = ess_solo1_legacy_init();
-    sound_add_handler(solo1_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, solo1_get_buffer, dev);
     sound_in_add_handler(solo1_put_buffer, dev); /* Audio 1 record */
     timer_add(&dev->a1_timer, solo1_a1_timer, dev, 0);
     timer_add(&dev->input_stop_timer, solo1_stop_input, dev, 0);
@@ -1660,6 +1667,7 @@ solo1_close(void *priv)
        freed by the gameport device.
      */
     ess->gameport = NULL;
+    sound_source_remove(dev->src_snd);
     timer_disable(&dev->a1_timer);
     solo1_stop_input(dev);
     solo1_update_native_mappings(dev);

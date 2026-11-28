@@ -131,11 +131,14 @@ saaym_init(UNUSED(const device_t *info))
     io_sethandler(addr + 0x08, 0x02, saaym_read, NULL, NULL, saaym_write, NULL, NULL, saaym);
     io_sethandler(addr + 0x0a, 0x02, cms_read, NULL, NULL, cms_write, NULL, NULL, &saaym->cms);
     io_sethandler(addr + 0x0c, 0x04, saaym_read, NULL, NULL, saaym_write, NULL, NULL, saaym);
-    sound_add_handler(cms_get_buffer, &saaym->cms);
+    saaym->cms_source = sound_source_add_stream(I_NORMAL, cms_get_buffer, &saaym->cms);
+    saaym->cms.clock  = sound_source_get_pos_ptr(saaym->cms_source);
 
     /* OPM init */
     fm_driver_get(FM_YM2151, &saaym->opm);
-    ym2151_add_handler(saaym_get_ym2151_buffer, saaym);
+    saaym->opm_source = sound_source_add_stream(I_YM2151, saaym_get_ym2151_buffer, saaym);
+    if (saaym->opm.set_clock != NULL)
+        saaym->opm.set_clock(saaym->opm.priv, sound_source_get_pos_ptr(saaym->opm_source));
 
     return saaym;
 }
@@ -144,6 +147,9 @@ void
 saaym_close(void *priv)
 {
     saaym_t *saaym = (saaym_t *) priv;
+
+    sound_source_remove(saaym->opm_source);
+    sound_source_remove(saaym->cms_source);
 
     if (saaym->log != NULL) {
         log_close(saaym->log);
