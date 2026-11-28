@@ -24,6 +24,7 @@ add_library(mem OBJECT
     mem.c
     mmu_2386.c
     nmc93cxx.c
+    pc98_bios_patch.c
     pc98_rom.c
     rom.c
     row.c
