@@ -939,7 +939,7 @@ msgid "Name"
 msgstr "Назва"
 
 msgid "ROM images"
-msgstr ""
+msgstr "Образи ПЗП"
 
 msgid "Unknown device"
 msgstr ""
