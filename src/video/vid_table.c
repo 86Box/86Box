@@ -122,6 +122,7 @@ video_cards[] = {
     { .device = &gd5428_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5429_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5434_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &compaq_qvision_1024i_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &v7_vram_2_ergo_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ht216_standalone_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &inmos_isa_device,                              .flags = VIDEO_FLAG_TYPE_XGA       },
@@ -135,7 +136,6 @@ video_cards[] = {
     { .device = &s3_86c805_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32i_isa_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &compaq_qvision_1024i_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
     /* EISA */
     { .device = &compaq_qvision_1024e_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
     /* MCA */
