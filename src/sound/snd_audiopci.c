@@ -143,8 +143,8 @@ typedef struct es137x_t {
     uint32_t adc_word;
     int      adc_bytes;
 
-    /* ES1370: each DAC has a source and a poll of its own, running at the
-       rate of its own clock, so one DAC starting or stopping does not
+    /* Each DAC has a source of its own (and, on the ES1370, a poll running at
+       the rate of its own clock), so one DAC starting or stopping does not
        disturb the other. */
     double     dac_rate[2];
     void      *src_dac[2];
@@ -164,12 +164,6 @@ typedef struct es137x_t {
     int cd_vol_r;
 
     uint8_t pci_slot;
-
-    int     pos;
-
-    const int *clock;
-    void      *src_snd;
-    int16_t buffer[WTBUFLEN * 2];
 
     uint32_t type;
 
@@ -2372,16 +2366,12 @@ es137x_next_sample_filtered(es137x_t *dev, int dac_nr, int out_idx)
     dev->dac[dac_nr].buffer_pos++;
 }
 
+/* The ES1371 family: each DAC through its own volume, then PCM and master. */
 static void
-es137x_update(es137x_t *dev)
+es1371_update(es137x_t *dev, int dac_nr)
 {
-    int32_t l;
-    int32_t r;
-
-    l = (dev->dac[0].out_l * dev->dac[0].vol_l) >> 12;
-    l += ((dev->dac[1].out_l * dev->dac[1].vol_l) >> 12);
-    r = (dev->dac[0].out_r * dev->dac[0].vol_r) >> 12;
-    r += ((dev->dac[1].out_r * dev->dac[1].vol_r) >> 12);
+    int32_t l = (dev->dac[dac_nr].out_l * dev->dac[dac_nr].vol_l) >> 12;
+    int32_t r = (dev->dac[dac_nr].out_r * dev->dac[dac_nr].vol_r) >> 12;
 
     l >>= 1;
     r >>= 1;
@@ -2398,11 +2388,11 @@ es137x_update(es137x_t *dev)
     else if (r > 32767)
         r = 32767;
 
-    const int clk = SOUND_CLOCK(dev->clock, sound_pos_global);
+    const int clk = SOUND_CLOCK(dev->dac_clock[dac_nr], sound_pos_global);
 
-    for (; dev->pos < clk; dev->pos++) {
-        dev->buffer[dev->pos * 2]     = l;
-        dev->buffer[dev->pos * 2 + 1] = r;
+    for (; dev->dac_pos[dac_nr] < clk; dev->dac_pos[dac_nr]++) {
+        dev->dac_buffer[dac_nr][dev->dac_pos[dac_nr] * 2]     = l;
+        dev->dac_buffer[dac_nr][dev->dac_pos[dac_nr] * 2 + 1] = r;
     }
 }
 
@@ -2439,6 +2429,15 @@ es1370_update(es137x_t *dev, int dac_nr)
         dev->dac_buffer[dac_nr][dev->dac_pos[dac_nr] * 2]     = l;
         dev->dac_buffer[dac_nr][dev->dac_pos[dac_nr] * 2 + 1] = r;
     }
+}
+
+static void
+es137x_update(es137x_t *dev, int dac_nr)
+{
+    if (dev->type == AUDIOPCI_ES1370)
+        es1370_update(dev, dac_nr);
+    else
+        es1371_update(dev, dac_nr);
 }
 
 /* At the end of each loop, DAC2's sample address advances by P2_END_INC bytes
@@ -2761,7 +2760,7 @@ es1370_poll(es137x_t *dev, int dac_nr)
     if (dac_nr)
         es137x_scan_fifo(dev);
 
-    es1370_update(dev, dac_nr);
+    es137x_update(dev, dac_nr);
 
     /* Pause holds the last output sample, DMA position and sample count,
        and so does the end of a transfer in stop mode. */
@@ -2793,7 +2792,8 @@ es137x_poll(void *priv)
 
     es137x_scan_fifo(dev);
 
-    es137x_update(dev);
+    es137x_update(dev, 0);
+    es137x_update(dev, 1);
 
     for (int dac_nr = 0; dac_nr < 2; dac_nr++) {
         const uint32_t enable = dac_nr ? INT_DAC2_EN : INT_DAC1_EN;
@@ -2837,22 +2837,9 @@ es137x_poll(void *priv)
 }
 
 static void
-es137x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
+es137x_get_buffer(int32_t *buffer, uint16_t len, int dac_nr, es137x_t *dev)
 {
-    es137x_t *dev = (es137x_t *) priv;
-
-    es137x_update(dev);
-
-    for (uint16_t c = 0; c < len * 2; c++)
-        buffer[c] += (dev->buffer[c] / 2);
-
-    dev->pos = 0;
-}
-
-static void
-es1370_get_buffer(int32_t *buffer, uint16_t len, int dac_nr, es137x_t *dev)
-{
-    es1370_update(dev, dac_nr);
+    es137x_update(dev, dac_nr);
 
     for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (dev->dac_buffer[dac_nr][c] / 2);
@@ -2861,15 +2848,15 @@ es1370_get_buffer(int32_t *buffer, uint16_t len, int dac_nr, es137x_t *dev)
 }
 
 static void
-es1370_get_buffer_dac1(int32_t *buffer, uint16_t len, void *priv)
+es137x_get_buffer_dac1(int32_t *buffer, uint16_t len, void *priv)
 {
-    es1370_get_buffer(buffer, len, 0, (es137x_t *) priv);
+    es137x_get_buffer(buffer, len, 0, (es137x_t *) priv);
 }
 
 static void
-es1370_get_buffer_dac2(int32_t *buffer, uint16_t len, void *priv)
+es137x_get_buffer_dac2(int32_t *buffer, uint16_t len, void *priv)
 {
-    es1370_get_buffer(buffer, len, 1, (es137x_t *) priv);
+    es137x_get_buffer(buffer, len, 1, (es137x_t *) priv);
 }
 
 static void
@@ -2986,8 +2973,8 @@ es1370_init(const device_t *info)
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     sound_in_add_handler(es137x_put_buffer, dev);
-    dev->src_dac[0]   = sound_source_add_stream(I_WT, es1370_get_buffer_dac1, dev);
-    dev->src_dac[1]   = sound_source_add_stream(I_WT, es1370_get_buffer_dac2, dev);
+    dev->src_dac[0]   = sound_source_add_stream(I_WT, es137x_get_buffer_dac1, dev);
+    dev->src_dac[1]   = sound_source_add_stream(I_WT, es137x_get_buffer_dac2, dev);
     sound_source_set_label(dev->src_dac[0], "DAC1");
     sound_source_set_label(dev->src_dac[1], "DAC2");
     dev->dac_clock[0] = sound_source_get_pos_ptr(dev->src_dac[0]);
@@ -3043,8 +3030,12 @@ es1371_init(const device_t *info)
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     sound_in_add_handler(es137x_put_buffer, dev);
-    dev->src_snd = sound_source_add_stream(I_NORMAL, es137x_get_buffer, dev);
-    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
+    dev->src_dac[0]   = sound_source_add_stream(I_NORMAL, es137x_get_buffer_dac1, dev);
+    dev->src_dac[1]   = sound_source_add_stream(I_NORMAL, es137x_get_buffer_dac2, dev);
+    sound_source_set_label(dev->src_dac[0], "DAC1");
+    sound_source_set_label(dev->src_dac[1], "DAC2");
+    dev->dac_clock[0] = sound_source_get_pos_ptr(dev->src_dac[0]);
+    dev->dac_clock[1] = sound_source_get_pos_ptr(dev->src_dac[1]);
     sound_set_cd_audio_filter(es1371_filter_cd_audio, dev);
 
     dev->gameport = gameport_add(&gameport_pnp_device);
@@ -3085,7 +3076,6 @@ es137x_close(void *priv)
     es137x_t *dev = (es137x_t *) priv;
 
     es137x_adc_input(dev, 0);
-    sound_source_remove(dev->src_snd);
     sound_source_remove(dev->src_dac[0]);
     sound_source_remove(dev->src_dac[1]);
 
