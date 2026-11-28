@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 18:28+0000\n"
+"PO-Revision-Date: 2026-11-28 07:12+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -51,7 +51,7 @@ msgid "&Hide status bar"
 msgstr "&Приховати рядок стану"
 
 msgid "Show US&B activity"
-msgstr ""
+msgstr "Показати активність &USB"
 
 msgid "Hide &toolbar"
 msgstr "&Приховати панель інструментів"
@@ -87,7 +87,7 @@ msgid "Force &4:3 display ratio"
 msgstr "Встановити відношення сторін &4:3"
 
 msgid "Force &machine display ratio"
-msgstr ""
+msgstr "Примусити співвідношення сторін дисплея"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Встановити відношення сторін &%1:%2"
@@ -280,7 +280,7 @@ msgid "&MT-32 Reset"
 msgstr "Перезавантажити &MT-32"
 
 msgid "All &notes off"
-msgstr ""
+msgstr "&Вимкнути усі ноти"
 
 msgid "Show MIDI &LCD"
 msgstr "Показати &LCD-екран MIDI"
