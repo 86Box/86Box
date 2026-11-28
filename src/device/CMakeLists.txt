@@ -46,6 +46,7 @@ add_library(dev OBJECT
     isapnp.c
     kbc_3270pc.c
     kbc_at.c
+    ../upi42.c
     kbc_at_dev.c
     kbc_at_upi42.c
     kbc_ps2_m25.c
@@ -72,6 +73,11 @@ add_library(dev OBJECT
     mouse_elo_touchscreen.c
     mouse_ps2.c
     mouse_upc.c
+    nec_mate_unk.c
+    # Generic Intel 8251/8255 cores used by PC-98
+    pc98_i8251.c
+    pc98_mouse.c
+    pc98_ppi8255.c
     mouse_serial.c
     mouse_vaxmate.c
     novell_cardkey.c

@@ -538,8 +538,10 @@ pit_close(void *priv)
     if (dev == pit_ps2_watchdog)
         pit_ps2_watchdog = NULL;
 
-    if (dev != NULL)
+    if (dev != NULL) {
+        timer_disable(&dev->callback_timer);
         free(dev);
+    }
 }
 
 static void *
@@ -1667,8 +1669,10 @@ pit_close(void *priv)
     if (dev == pit_ps2_watchdog)
         pit_ps2_watchdog = NULL;
 
-    if (dev != NULL)
+    if (dev != NULL) {
+        timer_disable(&dev->callback_timer);
         free(dev);
+    }
 }
 
 static void *

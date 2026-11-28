@@ -23,6 +23,7 @@ extern "C" {
 extern const device_t postcard_device;
 
 /* Functions. */
+extern void postcard_pc98_diag_write(uint8_t value);
 
 #ifdef __cplusplus
 }

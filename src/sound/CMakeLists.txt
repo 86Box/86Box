@@ -93,6 +93,11 @@ add_library(snd OBJECT
     snd_ymf701.c
     snd_ymf71x.c
     sound_util.c
+    # NEC PC-9801-26K / PC-9801-86
+    snd_pc98_opn.cpp
+    snd_pc98_26k.c
+    snd_pc98_86.c
+    snd_pc98_spb.c
 )
 
 # Vendored Musashi 68000 core (Ensoniq Soundscape on-board processor)

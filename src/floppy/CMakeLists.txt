@@ -32,6 +32,8 @@ add_library(fdd OBJECT
     fdd_86f.c
     fdd_fdi.c
     fdd_imd.c
+    # Japanese D88/D77 sector image container
+    fdd_d88.c
     fdd_img.c
     fdd_pcjs.c
     fdd_mfm.c

@@ -605,6 +605,8 @@ extern void mem_reset(void);
 extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top_ex_nomid(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
+/* Permit remapping above 16 MiB on CPUs with a 32-bit address bus. */
+extern void mem_remap_top_extended(int kb);
 extern void mem_remap_top_nomid(int kb);
 
 extern void pcjr_waitstates(void *);

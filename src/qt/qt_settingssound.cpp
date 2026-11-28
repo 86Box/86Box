@@ -525,7 +525,7 @@ SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index)
         return;
 
     ui->pushButtonConfigureMidiOut->setEnabled(midi_out_device_has_config(ui->comboBoxMidiOut->currentData().toInt()));
-    ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
+    ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA) || machine_has_bus(machineId, MACHINE_PC98)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 
     if (!inMachineChange)
@@ -545,7 +545,7 @@ SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index)
         return;
 
     ui->pushButtonConfigureMidiIn->setEnabled(midi_in_device_has_config(ui->comboBoxMidiIn->currentData().toInt()));
-    ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
+    ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA) || machine_has_bus(machineId, MACHINE_PC98)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 
     if (!inMachineChange)
@@ -568,7 +568,9 @@ SettingsSound::on_checkBoxMPU401_stateChanged(int state)
 void
 SettingsSound::on_pushButtonConfigureMPU401_clicked()
 {
-    if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0)
+    if (machine_has_bus(machineId, MACHINE_PC98) > 0)
+        mpu401_cfg_changed |= DeviceConfig::ConfigureDevice(&mpu401_pc98_device);
+    else if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0)
         mpu401_cfg_changed |= DeviceConfig::ConfigureDevice(&mpu401_mca_device);
     else
         mpu401_cfg_changed |= DeviceConfig::ConfigureDevice(&mpu401_device);

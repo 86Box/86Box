@@ -40,6 +40,7 @@ SettingsBusTracking::SettingsBusTracking()
 
     mke_tracking  = 0x0000000000000000ULL;
     mfm_tracking  = 0x0000000000000000ULL;
+    sasi_tracking = 0x0000000000000000ULL;
     esdi_tracking = 0x0000000000000000ULL;
     xta_tracking  = 0x0000000000000000ULL;
 
@@ -96,6 +97,23 @@ SettingsBusTracking::next_free_mfm_channel()
         mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (!(mfm_tracking & mask)) {
+            ret = (uint8_t) i;
+            break;
+        }
+    }
+
+    return ret;
+}
+
+uint8_t
+SettingsBusTracking::next_free_sasi_channel()
+{
+    uint64_t mask;
+    uint8_t  ret = CHANNEL_NONE;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+        if (!(sasi_tracking & mask)) {
             ret = (uint8_t) i;
             break;
         }
@@ -236,6 +254,21 @@ SettingsBusTracking::mfm_bus_full()
 }
 
 int
+SettingsBusTracking::sasi_bus_full()
+{
+    uint64_t mask;
+    uint8_t  count = 0;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+        if (sasi_tracking & mask)
+            count++;
+    }
+
+    return (count == 2);
+}
+
+int
 SettingsBusTracking::esdi_bus_full()
 {
     uint64_t mask;
@@ -348,6 +381,13 @@ SettingsBusTracking::busChannelsInUse(const int bus)
                     channelsInUse.append(i);
             }
             break;
+        case HDD_BUS_SASI:
+            for (uint8_t i = 0; i < 2; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (sasi_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
         case HDD_BUS_ESDI:
             for (uint8_t i = 0; i < 2; i++) {
                 mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
@@ -449,6 +489,15 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
                 mfm_tracking |= mask;
             else
                 mfm_tracking &= ~mask;
+            break;
+
+        case HDD_BUS_SASI:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                sasi_tracking |= mask;
+            else
+                sasi_tracking &= ~mask;
             break;
 
         case HDD_BUS_ESDI:

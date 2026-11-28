@@ -427,6 +427,13 @@ extern const device_t opti_82c931_device;
 
 /* PC Speaker */
 extern const device_t speaker_device;
+extern const device_t speaker_pc98_device;
+
+/* PC-98 C-BUS sound boards. */
+extern const device_t pc98_26k_device;
+extern const device_t pc98_86_device;
+extern const device_t pc98_speakboard_device;
+extern const device_t pc98_sparkboard_device;
 
 /* PC-98 C-BUS sound boards. */
 extern const device_t pc98_26k_device;

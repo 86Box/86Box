@@ -26,6 +26,7 @@ add_library(cpu OBJECT
     vx0.c
     vx0_biu.c
     386.c
+    pc98_wait.c
     386_common.c
     386_dynarec.c
     cache_as_ram.c

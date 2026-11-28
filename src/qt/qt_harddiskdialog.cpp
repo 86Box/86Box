@@ -49,6 +49,7 @@ extern "C" {
 HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::HarddiskDialog)
+    , existingImageDialog(existing)
 {
     ui->setupUi(this);
     Harddrives::widenPopup(ui->comboBoxChannel);
@@ -96,7 +97,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
                             tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
 
     if (existing) {
-        ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+        ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "nhd", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
         setWindowTitle(tr("Add Existing Hard Disk"));
         ui->lineEditCylinders->setEnabled(false);
@@ -167,6 +168,10 @@ HarddiskDialog::speed() const
 void
 HarddiskDialog::on_comboBoxFormat_currentIndexChanged(int index)
 {
+    if (!existingImageDialog) {
+        sectorSize_ = (bus() == HDD_BUS_SASI && index == IMG_FMT_HDI) ? 256u : 512u;
+        recalcSize();
+    }
     bool enabled;
     if (index == 5) { /* They switched to a diff VHD; disable the geometry fields. */
         enabled = false;
@@ -391,14 +396,16 @@ HarddiskDialog::onCreateNewFile()
 
     ui->progressBar->setEnabled(true);
     setResult(QDialog::Rejected);
-    uint32_t sector_size = 512;
+    const int img_format  = ui->comboBoxFormat->currentIndex();
+    uint32_t  sector_size = (bus() == HDD_BUS_SASI && img_format == IMG_FMT_HDI)
+        ? 256u
+        : 512u;
     quint64  size        = (static_cast<uint64_t>(cylinders_) * static_cast<uint64_t>(heads_) * static_cast<uint64_t>(sectors_) * static_cast<uint64_t>(sector_size));
     if (size > 0x1FFFFFFE00LL) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
     }
 
-    int      img_format = ui->comboBoxFormat->currentIndex();
     uint32_t zero       = 0;
     uint32_t base       = 0x1000;
 
@@ -653,13 +660,16 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     }
 
     QFileInfo fi(file);
-    if (image_is_hdi(fileNameUtf8.data()) || image_is_hdx(fileNameUtf8.data(), 1)) {
+    const bool isHdi = image_is_hdi(fileNameUtf8.data());
+    const bool isHdx = image_is_hdx(fileNameUtf8.data(), 1);
+    const bool isNhd = fi.suffix().compare(QStringLiteral("nhd"), Qt::CaseInsensitive) == 0;
+    if (isHdi || isHdx) {
         file.seek(0x10);
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         stream >> sector_size;
-        if (sector_size != 512) {
-            QMessageBox::critical(this, tr("Unsupported disk image"), tr("HDI or HDX images with a sector size other than 512 are not supported."));
+        if (sector_size != 512 && !(isHdi && sector_size == 256)) {
+            QMessageBox::critical(this, tr("Unsupported disk image"), tr("The disk image has an unsupported sector size."));
             return;
         }
 
@@ -667,6 +677,37 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
         stream >> sectors;
         stream >> heads;
         stream >> cylinders;
+        if (isHdi) {
+            uint32_t headerSize = 0;
+            file.seek(0x08);
+            stream >> headerSize;
+            const uint64_t payload = uint64_t(cylinders) * heads * sectors * sector_size;
+            if (headerSize < 0x20 || !payload || uint64_t(file.size()) < uint64_t(headerSize) + payload) {
+                QMessageBox::critical(this, tr("Unsupported disk image"), tr("Invalid HDI geometry or truncated image."));
+                return;
+            }
+        }
+    } else if (isNhd) {
+        if (!file.seek(0))
+            return;
+        const QByteArray signature = file.read(16);
+        if (!signature.startsWith("T98HDDIMAGE.R0") || !file.seek(0x110)) {
+            QMessageBox::critical(this, tr("Unsupported disk image"), tr("Invalid NHD header."));
+            return;
+        }
+        QDataStream stream(&file);
+        stream.setByteOrder(QDataStream::LittleEndian);
+        uint32_t headerSize = 0;
+        uint16_t nhdHeads = 0, nhdSectors = 0, nhdSectorSize = 0;
+        stream >> headerSize >> cylinders >> nhdHeads >> nhdSectors >> nhdSectorSize;
+        heads                  = nhdHeads;
+        sectors                = nhdSectors;
+        sector_size            = nhdSectorSize;
+        const uint64_t payload = uint64_t(cylinders) * heads * sectors * sector_size;
+        if ((sector_size != 256 && sector_size != 512) || headerSize < 0x120 || uint64_t(file.size()) < headerSize + payload) {
+            QMessageBox::critical(this, tr("Unsupported disk image"), tr("Invalid NHD geometry or sector size."));
+            return;
+        }
     } else if (image_is_vhd(fileNameUtf8.data(), 1)) {
         MVHDMeta *vhd = mvhd_open(fileNameUtf8.data(), 0, &vhd_error);
         if (vhd == nullptr) {
@@ -721,7 +762,12 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
         cylinders = ((size >> 9) / heads) / sectors;
     }
 
-    if ((sectors > max_sectors) || (heads > max_heads) || (cylinders > max_cylinders)) {
+    if (sector_size == 256 && (isHdi || isNhd)) {
+        const int sasiIndex = ui->comboBoxBus->findData(HDD_BUS_SASI);
+        if (sasiIndex >= 0)
+            ui->comboBoxBus->setCurrentIndex(sasiIndex);
+    }
+    if (!sectors || !heads || !cylinders || (sectors > max_sectors) || (heads > max_heads) || (cylinders > max_cylinders)) {
         QMessageBox::critical(this, tr("Unable to read file"), tr("Failed to read the disk image.") % QChar(' ') % tr("Make sure the file exists and is readable."));
         return;
     }
@@ -729,6 +775,7 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     heads_     = heads;
     sectors_   = sectors;
     cylinders_ = cylinders;
+    sectorSize_ = sector_size ? sector_size : 512u;
     ui->lineEditCylinders->setText(QString::number(cylinders));
     ui->lineEditHeads->setText(QString::number(heads));
     ui->lineEditSectors->setText(QString::number(sectors));
@@ -748,8 +795,13 @@ HarddiskDialog::recalcSize()
 {
     if (disallowSizeModifications)
         return;
-    uint64_t size = (static_cast<uint64_t>(cylinders_) * static_cast<uint64_t>(heads_) * static_cast<uint64_t>(sectors_)) << 9;
-    ui->lineEditSize->setText(QString::number(size >> 20));
+    uint64_t size = static_cast<uint64_t>(cylinders_) * heads_ * sectors_ * sectorSize_;
+    /* The four SASI drive classes are just below their nominal size in MiB;
+     * truncating 5 MB to "4 MB" makes the selected class misleading. */
+    const uint64_t shownMiB = (!existingImageDialog && bus() == HDD_BUS_SASI && sectorSize_ == 256u)
+        ? (size + 0xfffffu) >> 20
+        : size >> 20;
+    ui->lineEditSize->setText(QString::number(shownMiB));
 }
 
 bool
@@ -809,6 +861,27 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_heads     = 15;
             max_cylinders = 2047;
             break;
+        case HDD_BUS_SASI:
+            max_sectors   = 33;
+            max_heads     = 8;
+            max_cylinders = 615;
+            if (!existingImageDialog) {
+                /* Start new PC-9801-27 media with its 5 MB user geometry.
+                 * A SASI HDI stores 256-byte sectors and travels between
+                 * emulators without a private 512-byte translation. */
+                ui->comboBoxType->setCurrentIndex(127);
+                cylinders_ = 153;
+                heads_     = 4;
+                sectors_   = 33;
+                ui->lineEditCylinders->setText(QString::number(cylinders_));
+                ui->lineEditHeads->setText(QString::number(heads_));
+                ui->lineEditSectors->setText(QString::number(sectors_));
+                if (ui->comboBoxFormat->currentIndex() == DEFAULT_DISK_FORMAT)
+                    ui->comboBoxFormat->setCurrentIndex(IMG_FMT_HDI);
+                sectorSize_ = ui->comboBoxFormat->currentIndex() == IMG_FMT_HDI ? 256u : 512u;
+                recalcSize();
+            }
+            break;
         case HDD_BUS_XTA:
             max_sectors   = 63;
             max_heads     = 16;
@@ -858,6 +931,9 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
         case HDD_BUS_MFM:
             chanIdx = (Harddrives::busTrackClass->next_free_mfm_channel());
             break;
+        case HDD_BUS_SASI:
+            chanIdx = (Harddrives::busTrackClass->next_free_sasi_channel());
+            break;
         case HDD_BUS_XTA:
             chanIdx = (Harddrives::busTrackClass->next_free_xta_channel());
             break;
@@ -889,8 +965,17 @@ HarddiskDialog::on_lineEditSize_textEdited(const QString &text)
 {
     disallowSizeModifications = true;
     uint32_t size             = text.toUInt();
-    /* This is needed to ensure VHD standard compliance. */
-    hdd_image_calc_chs(&cylinders_, &heads_, &sectors_, size);
+    if (!existingImageDialog && bus() == HDD_BUS_SASI && ui->comboBoxFormat->currentIndex() == IMG_FMT_HDI) {
+        /* The board BIOS offers four user geometries.  Keep a newly made
+         * SASI HDI on one of them instead of calculating a PC/AT CHS. */
+        cylinders_ = size <= 5 ? 153u : size <= 10 ? 310u
+                                                   : 615u;
+        heads_     = size <= 20 ? 4u : 8u;
+        sectors_   = 33u;
+    } else {
+        /* This is needed to ensure VHD standard compliance. */
+        hdd_image_calc_chs(&cylinders_, &heads_, &sectors_, size);
+    }
     ui->lineEditCylinders->setText(QString::number(cylinders_));
     ui->lineEditHeads->setText(QString::number(heads_));
     ui->lineEditSectors->setText(QString::number(sectors_));

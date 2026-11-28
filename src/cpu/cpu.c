@@ -32,6 +32,8 @@
 #include "x86.h"
 #include "x87_sf.h"
 #include <86box/device.h>
+#include <86box/ini.h>
+#include <86box/config.h>
 #include <86box/machine.h>
 #include <86box/io.h>
 #include "x86_ops.h"
@@ -535,8 +537,51 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     uint8_t          i;
     double           multi;
 
+    /* Native PC-98 choices stay bounded even under full override. The VX's
+       firmware patch explicitly enables selected CPU upgrades. Read the
+       prospective machine's section: Settings may not have saved it yet. */
+    const int allow_override = !(machine_s->bus_flags & MACHINE_PC98);
+    if (machine_s->init == machine_pc9801vx_init) {
+        const device_t *cfg_device = machine_get_device(machine);
+        const int       upgraded   = cfg_device && config_get_int(cfg_device->name, "skip_timer_checks", 0);
+        if (cpu_s->cpu_type == CPU_286) {
+            if ((cpu_s->rspeed != 8000000 && cpu_s->rspeed != 10000000) || cpu_s->multi != 1.0)
+                return 0;
+        } else {
+            const int   sx       = cpu_s->cpu_type == CPU_386SX && cpu_family->package == CPU_PKG_386SX && (!strcmp(cpu_family->internal_name, "i386sx") || !strcmp(cpu_family->internal_name, "am386sx"));
+            const int   dx       = cpu_s->cpu_type == CPU_386DX && cpu_family->package == CPU_PKG_386DX && (!strcmp(cpu_family->internal_name, "i386dx") || !strcmp(cpu_family->internal_name, "am386dx"));
+            const char *family   = cpu_family->internal_name;
+            const int   intel_sx = !strcmp(family, "i486sx") && cpu_s->cpu_type == CPU_i486SX;
+            const int   intel_dx = (!strcmp(family, "i486dx") || !strcmp(family, "i486dx2")) && cpu_s->cpu_type == CPU_i486DX;
+            /* Intel DX4 uses the SL-enhanced core in the catalogue. Admit
+               that requested family, but not the other enhanced families. */
+            const int      intel_dx4        = !strcmp(family, "idx4") && cpu_s->cpu_type == CPU_i486DX_SLENH;
+            const int      amd_sx           = !strcmp(family, "am486sx") && cpu_s->cpu_type == CPU_Am486SX;
+            const int      amd_dx           = (!strcmp(family, "am486dx") || !strcmp(family, "am486dx2") || !strcmp(family, "am486dx4")) && cpu_s->cpu_type == CPU_Am486DX;
+            const double   expected_multi   = intel_dx4 || !strcmp(family, "am486dx4") ? 3.0 : !strcmp(family, "i486dx2") || !strcmp(family, "am486dx2") ? 2.0
+                                                                                                                                                         : 1.0;
+            const uint32_t expected_package = !strcmp(family, "am486dx4") ? CPU_PKG_SOCKET3 : CPU_PKG_SOCKET1;
+            const int      cpu486           = (intel_sx || intel_dx || intel_dx4 || amd_sx || amd_dx) && (cpu_family->package & expected_package) && cpu_s->multi == expected_multi && cpu_s->rspeed >= 16000000 && cpu_s->rspeed <= 100000000;
+            if (upgraded && cpu486)
+                return 1;
+            if (!(sx || dx) || cpu_s->rspeed < 16000000 || cpu_s->rspeed > (upgraded ? 40000000 : 33333333) || cpu_s->multi != 1.0)
+                return 0;
+            if (upgraded)
+                return 1;
+        }
+    }
+
+    if (machine_s->init == machine_pc9801bx4_init) {
+        /* NEC's BX4/U2 has DX2-66; Intel DX4-100 is its documented ODP.
+         * Do not expose other Socket 1 CPUs merely because their package fits. */
+        const int dx2 = (!strcmp(cpu_family->internal_name, "i486dx2") || !strcmp(cpu_family->internal_name, "i486dx2_slenh")) && cpu_s->rspeed == 66666666 && cpu_s->multi == 2.0;
+        const int dx4 = !strcmp(cpu_family->internal_name, "idx4") && cpu_s->rspeed == 100000000 && cpu_s->multi == 3.0;
+        if (!(dx2 || dx4))
+            return 0;
+    }
+
     /* Full override. */
-    if (cpu_override > 1)
+    if (allow_override && cpu_override > 1)
         return 1;
 
     /* Add implicit CPU package compatibility. */
@@ -551,7 +596,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
         return 0;
 
     /* Partial override. */
-    if (cpu_override)
+    if (allow_override && cpu_override)
         return 1;
 
     /* Cyrix 6x86MX on the NuPRO 592. */

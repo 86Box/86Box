@@ -32,6 +32,10 @@ add_library(mch OBJECT
     m_elt.c
     m_xt_olivetti.c
     m_xt_ibm5550.c
+    # NEC PC-9801 motherboard support
+    m_pc98.c
+    pc98_rom.c
+    pc98_bios_patch.c
     m_tandy1k.c
     m_tandy2k.c
     m_v86p.c

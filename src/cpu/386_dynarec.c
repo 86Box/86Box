@@ -1480,6 +1480,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                         nmi = 0;
 #    endif
                     } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                        cpu_pc98_interrupt_wait();
                         vector = x86_external_interrupt_vector();
                         if (vector != -1) {
                             /* An interrupt that came after the HLT looked: past the
@@ -1934,6 +1935,7 @@ block_ended:
                 nmi = 0;
 #endif
             } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
+                cpu_pc98_interrupt_wait();
                 vector = x86_external_interrupt_vector();
                 if (vector != -1) {
                     flags_rebuild();

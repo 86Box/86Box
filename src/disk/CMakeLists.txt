@@ -44,6 +44,11 @@ add_library(hdd OBJECT
     hdc_ide_um8673f.c
     hdc_ide_w83769f.c
     hdd_audio.c
+    # NEC PC-9801-27 SASI interface
+    pc98_sasi.c
+    pc98_hdi.c
+    pc98_hdi_import.c
+    hdc_pc98_sasi.c
 )
 
 add_library(rdisk OBJECT rdisk.c)

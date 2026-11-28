@@ -601,7 +601,7 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
         hdd_images[id].vhd->error = 0;
         non_transferred_sectors   = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
         hdd_images[id].pos        = sector + count - non_transferred_sectors - 1;
-        if (hdd_images[id].vhd->error)
+        if (hdd_images[id].vhd->error || non_transferred_sectors)
             return -1;
     } else {
         if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
@@ -611,7 +611,7 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 
         num_read           = fread(buffer, 512, count, hdd_images[id].file);
         hdd_images[id].pos = sector + num_read;
-        if ((num_read < count) && !feof(hdd_images[id].file))
+        if (num_read < count)
             return -1;
     }
 
@@ -629,22 +629,23 @@ hdd_image_get_last_sector(uint8_t id)
     return hdd_images[id].last_sector;
 }
 
-uint32_t
-hdd_sectors(uint8_t id)
+static uint32_t
+hdd_image_transfer_count(uint8_t id, uint32_t sector, uint32_t count)
 {
-    return hdd_image_get_last_sector(id) - 1;
+    /* last_sector is an inclusive LBA.  Use 64 bits so a full 32-bit
+     * address space can be represented without wrapping the capacity. */
+    const uint64_t sectors = (uint64_t) hdd_image_get_last_sector(id) + 1u;
+    if (sector >= sectors)
+        return 0;
+    return (sectors - sector < count) ? (uint32_t) (sectors - sector) : count;
 }
 
 int
 hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-    uint32_t transfer_sectors = count;
-    uint32_t sectors          = hdd_sectors(id);
+    const uint32_t transfer_sectors = hdd_image_transfer_count(id, sector, count);
 
-    if ((sectors - sector) < transfer_sectors)
-        transfer_sectors = sectors - sector;
-
-    if (hdd_image_read(id, sector, transfer_sectors, buffer) < 0)
+    if (transfer_sectors && hdd_image_read(id, sector, transfer_sectors, buffer) < 0)
         return -1;
 
     if (count != transfer_sectors)
@@ -667,7 +668,7 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
         hdd_images[id].vhd->error = 0;
         non_transferred_sectors   = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
         hdd_images[id].pos        = sector + count - non_transferred_sectors - 1;
-        if (hdd_images[id].vhd->error)
+        if (hdd_images[id].vhd->error || non_transferred_sectors)
             return -1;
     } else {
         if (!hdd_images[id].file || (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1)) {
@@ -677,8 +678,7 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 
         num_write          = fwrite(buffer, 512, count, hdd_images[id].file);
         hdd_images[id].pos = sector + num_write;
-        fflush(hdd_images[id].file);
-        if (num_write < count)
+        if (fflush(hdd_images[id].file) != 0 || num_write < count)
             return -1;
     }
 
@@ -688,13 +688,9 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 int
 hdd_image_write_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
-    uint32_t transfer_sectors = count;
-    uint32_t sectors          = hdd_sectors(id);
+    const uint32_t transfer_sectors = hdd_image_transfer_count(id, sector, count);
 
-    if ((sectors - sector) < transfer_sectors)
-        transfer_sectors = sectors - sector;
-
-    if (hdd_image_write(id, sector, transfer_sectors, buffer) < 0)
+    if (transfer_sectors && hdd_image_write(id, sector, transfer_sectors, buffer) < 0)
         return -1;
 
     if (count != transfer_sectors)
@@ -714,7 +710,7 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
         hdd_images[id].vhd->error   = 0;
         int non_transferred_sectors = mvhd_format_sectors(hdd_images[id].vhd, sector, count);
         hdd_images[id].pos          = sector + count - non_transferred_sectors - 1;
-        if (hdd_images[id].vhd->error)
+        if (hdd_images[id].vhd->error || non_transferred_sectors)
             return -1;
     } else {
         memset(empty_sector, 0, 512);
@@ -725,15 +721,13 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
         }
 
         for (uint32_t i = 0; i < count; i++) {
-            if (feof(hdd_images[id].file))
-                break;
-
             hdd_images[id].pos = sector + i;
             if (!fwrite(empty_sector, 512, 1, hdd_images[id].file))
                 return -1;
         }
 
-        fflush(hdd_images[id].file);
+        if (fflush(hdd_images[id].file) != 0)
+            return -1;
     }
 
     return 0;
@@ -742,13 +736,10 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
 int
 hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
 {
-    uint32_t transfer_sectors = count;
-    uint32_t sectors          = hdd_sectors(id);
+    const uint32_t transfer_sectors = hdd_image_transfer_count(id, sector, count);
 
-    if ((sectors - sector) < transfer_sectors)
-        transfer_sectors = sectors - sector;
-
-    hdd_image_zero(id, sector, transfer_sectors);
+    if (transfer_sectors && hdd_image_zero(id, sector, transfer_sectors) < 0)
+        return -1;
 
     if (count != transfer_sectors)
         return 1;
