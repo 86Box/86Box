@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-28 07:25+0000\n"
+"PO-Revision-Date: 2026-11-28 07:57+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -1057,13 +1057,13 @@ msgid "%1 (not detected)"
 msgstr "%1 (не виявлено)"
 
 msgid "%1 Hz (host will resample)"
-msgstr ""
+msgstr "%1 Гц (основна система зробить передискретизацію)"
 
 msgid "Network"
 msgstr "Мережа"
 
 msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
-msgstr ""
+msgstr "Отримувати IPv4 й ARP як 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "Порти (COM и LPT)"
@@ -1135,52 +1135,58 @@ msgid "Other peripherals"
 msgstr "Інша периферія"
 
 msgid "empty"
-msgstr ""
+msgstr "порожьно"
 
 msgid "CompactFlash: %1 (write-protected)"
-msgstr ""
+msgstr "CompactFlash: %1 (захищений від запису)"
 
 msgid "CompactFlash: %1"
-msgstr ""
+msgstr "CompactFlash: %1"
 
 msgid "Empty (take the card out)"
-msgstr ""
+msgstr "Спорожнити (вийняти картку)"
 
 msgid "CompactFlash"
-msgstr ""
+msgstr "CompactFlash"
 
 msgid "&New CompactFlash card…"
-msgstr ""
+msgstr "&Нова карта CompactFlash…"
 
 msgid "New CompactFlash card"
-msgstr ""
+msgstr "Нова картка CompactFlash"
 
 msgid "Insert CompactFlash card"
-msgstr ""
+msgstr "Вставити картку CompactFlash"
 
 msgid "&Remove CompactFlash card"
-msgstr ""
+msgstr "&Вийняти картку CompactFlash"
 
 msgid "Could not use %1 as a CompactFlash image."
-msgstr ""
+msgstr "Не вдалося використати %1 як образ картки CompactFlash."
 
 msgid "PCMCIA"
-msgstr ""
+msgstr "PCMCIA"
 
 msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
-msgstr ""
+msgstr "Контролер PC Card (Cirrus Logic CL-PD6722, ISA, порти 3E0h-3E1h)"
 
 msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
 msgstr ""
+"Контролер PC Card (PCMCIA), сумісний з Intel 82365SL і оснащений двома "
+"слотами; зустрічаються в ноутбуках, а також на адаптерах PC Card.\n"
+"Він розпізнається службами роботи з картами та слотами в DOS, а також у "
+"Windows 95/98 і Linux (драйвер i82365)."
 
 msgid "Network:"
-msgstr ""
+msgstr "Мережа:"
 
+#, fuzzy
 msgid "Socket %1"
-msgstr ""
+msgstr "Слот %1"
 
+#, fuzzy
 msgid "Socket %1: %2"
-msgstr ""
+msgstr "Слот %1: %2"
 
 msgid "Other devices"
 msgstr "Інші пристрої"
@@ -1351,22 +1357,22 @@ msgid "MO images"
 msgstr "Образи магнітооптичних дисків"
 
 msgid "MD DATA images"
-msgstr ""
+msgstr "Образи дисків MD DATA"
 
 msgid "&MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "&MD DATA %1 (%2): %3"
 
 msgid "MD DATA %1 (%2): %3"
-msgstr ""
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
-msgstr "Ласкаво просимо в 86Box!"
+msgstr "Ласкаво просимо до 86Box!"
 
 msgid "Internal device"
 msgstr "Вбудований пристрій"
 
 msgid "External"
-msgstr ""
+msgstr "Зовнішній пристрій"
 
 msgid "&File"
 msgstr "&Файл"
@@ -1390,94 +1396,106 @@ msgid "No ROMs found"
 msgstr "ПЗП не знайдені"
 
 msgid "Unsupported Hardware"
-msgstr ""
+msgstr "Непідтримуване апаратне обладнання"
 
 msgid "Hardware in this machine profile is not supported by this current build of 86Box."
 msgstr ""
+"Апаратне обладнання у профілі цієї машини не підтримується поточною збіркою "
+"86Box."
 
 msgid "(and %i others)"
-msgstr ""
+msgstr "(та %i ін.)"
 
 msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
 msgstr ""
+"Завантаження конфігурації в будь-якому разі призведе до заміни машини та "
+"перезапису наявної конфігурації."
 
 msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
 msgstr ""
+"Завантаження конфігурації в будь-якому разі призведе до видалення цих "
+"компонентів і перезапису наявної конфігурації."
 
 msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
 msgstr ""
+"Завантаження конфігурації в будь-якому разі призведе до заміни машини, "
+"видалення інших компонентів і перезапису наявної конфігурації."
 
 msgid "Do you want to continue?"
-msgstr ""
+msgstr "Чи ви бажаєте продовжити?"
 
 msgid "Machine type \"%s\""
-msgstr ""
+msgstr "Тип машини \"%s\""
 
 msgid "Video card \"%s\""
-msgstr ""
+msgstr "Відеокарта \"%s\""
 
 msgid "Keyboard \"%s\""
-msgstr ""
+msgstr "Клавіатура \"%s\""
 
 msgid "Mouse \"%s\""
-msgstr ""
+msgstr "Миша \"%s\""
 
 msgid "Tablet \"%s\""
-msgstr ""
+msgstr "Планшет \"%s\""
 
 msgid "Joystick \"%s\""
-msgstr ""
+msgstr "Джойстик \"%s\""
 
 msgid "Sound card \"%s\""
-msgstr ""
+msgstr "Звукова карта \"%s\""
 
 msgid "MIDI output device \"%s\""
-msgstr ""
+msgstr "Пристрій виведення MIDI \"%s\""
 
 msgid "MIDI input device \"%s\""
-msgstr ""
+msgstr "Пристрій введення MIDI \"%s\""
 
 msgid "Network card \"%s\""
-msgstr ""
+msgstr "Мережева карта \"%s\""
 
 msgid "Serial port device \"%s\""
-msgstr ""
+msgstr "Пристрій послідовного порту \"%s\""
 
 msgid "Parallel port device \"%s\""
-msgstr ""
+msgstr "Пристрій паралельного порту \"%s\""
 
 msgid "Game port \"%s\""
-msgstr ""
+msgstr "Ігровий порт \"%s\""
 
 msgid "SCSI card \"%s\""
-msgstr ""
+msgstr "Карта SCSI \"%s\""
 
 msgid "Floppy controller \"%s\""
-msgstr ""
+msgstr "Контролер гнучких дисків \"%s\""
 
 msgid "Disk controller \"%s\""
-msgstr ""
+msgstr "Дисковий контролер \"%s\""
 
 msgid "CD-ROM interface \"%s\""
-msgstr ""
+msgstr "Інтерфейс CD-ROM \"%s\""
 
 msgid "Memory expansion card \"%s\""
-msgstr ""
+msgstr "Карта розширення пам'яті \"%s\""
 
 msgid "ROM expansion card \"%s\""
-msgstr ""
+msgstr "Карта розширення ПЗП \"%s\""
 
 msgid "RTC card \"%s\""
-msgstr ""
+msgstr "Карта RTC \"%s\""
 
 msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
 msgstr ""
+"Образ \"%s\" перевищує максимальну ємність цього диска, тому його буде "
+"проігноровано."
 
 msgid "%s was not connected: every USB port of this machine is in use."
-msgstr ""
+msgstr "%s не було підключено, бо кожний USB-порт цієї машини вже зайнятий."
 
 msgid "%s was not connected: this machine has no USB controller that can take devices."
 msgstr ""
+"%s не було підключено, бо у цієї машини немає USB-контролера, що може "
+"приймати пристрої."
 
 msgid "Do you want to save the settings?"
 msgstr "Чи бажаєте ви зберегти налаштування?"
@@ -1516,22 +1534,22 @@ msgid "CD-ROM images"
 msgstr "Образи CD-ROM"
 
 msgid "&New CD-R image…"
-msgstr ""
+msgstr "Новий образ &CD-R…"
 
 msgid "New CD-R&W image…"
-msgstr ""
+msgstr "Новий образ CD-&RW…"
 
 msgid "CD-RW image"
-msgstr ""
+msgstr "Образ CD-RW"
 
 msgid "CD-R image"
-msgstr ""
+msgstr "Образ CD-R"
 
 msgid "Aaru images"
-msgstr ""
+msgstr "Образи формату Aaru"
 
 msgid "Unable to create image"
-msgstr ""
+msgstr "Не вдалося створити образ"
 
 msgid "%1 Device Configuration"
 msgstr "Конфігурація пристрою %1"
@@ -1691,7 +1709,9 @@ msgstr[2] "%n машин активні"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (ще +%n)"
+msgstr[1] " (ще +%n)"
+msgstr[2] " (ще +%n)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1919,10 +1939,10 @@ msgid "Power &off"
 msgstr "Вимкнути &живлення"
 
 msgid "Suspen&d"
-msgstr ""
+msgstr "Режим о&чікування"
 
 msgid "Suspend"
-msgstr ""
+msgstr "Режим очікування"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "Вимкнення емульованої машини може призвести до втрати даних. Ви впевнені, що хочете продовжити?"
@@ -2402,7 +2422,7 @@ msgid "PS/55 Keyboard"
 msgstr "Клавіатура PS/55"
 
 msgid "USB Keyboard"
-msgstr ""
+msgstr "Клавіатура USB"
 
 msgid "Keys"
 msgstr "Клавіші"
@@ -2435,13 +2455,13 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "Миша PS/2 QuickPort"
 
 msgid "USB Mouse"
-msgstr ""
+msgstr "Миша USB"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (послідовна)"
 
 msgid "USB Tablet"
-msgstr ""
+msgstr "Планшет USB"
 
 msgid "Default Baud rate"
 msgstr "Швидкість передачі даних за замовчуванням"
@@ -2468,7 +2488,7 @@ msgid "System MIDI"
 msgstr "Системний MIDI"
 
 msgid "USB Speaker"
-msgstr ""
+msgstr "Динамік USB"
 
 msgid "MIDI Input Device"
 msgstr "Пристрій введення MIDI"
@@ -3761,16 +3781,16 @@ msgid "Dark"
 msgstr "Темний"
 
 msgid "Style:"
-msgstr ""
+msgstr "Стиль:"
 
 msgid "Windows 11"
-msgstr ""
+msgstr "Windows 11"
 
 msgid "Windows Native"
-msgstr ""
+msgstr "Windows (нативний)"
 
 msgid "Windows Classic"
-msgstr ""
+msgstr "Windows (класичний)"
 
 msgid "Force interpretation"
 msgstr "Примусове тлумачення"
@@ -4346,10 +4366,10 @@ msgid "Commands share the memory viewer's address space and selection. Type help
 msgstr ""
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Запустити процесор (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Зупинити процесор на наступній інструкції (F5)"
 
 msgid "Too many breakpoints."
 msgstr ""
@@ -4382,28 +4402,30 @@ msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Введіть адресу."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "Не вдалося знайти селектор."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Невідомий сегмент \"%1\"."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Невідомий зсув \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Лінійна адреса не відображається на фізичну пам'ять."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" не є адресою або регістром."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Використання: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
+"Вибір є фізичним; використовуйте лінійну адресу або перейдіть до лінійного "
+"простору."
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
@@ -4715,76 +4737,76 @@ msgid "Archives"
 msgstr ""
 
 msgid "New USB flash drive"
-msgstr ""
+msgstr "Новий флеш-накопичувач USB"
 
 msgid "&New USB flash drive…"
-msgstr ""
+msgstr "&Новий флеш-накопичувач USB…"
 
 msgid "unplugged"
-msgstr ""
+msgstr "від'єднано"
 
 msgid "&Unplug"
-msgstr ""
+msgstr "&Від'єднати"
 
 msgid "&Unplug %1"
-msgstr ""
+msgstr "&Від'єднати %1"
 
 msgid "Plug in %1 (%2)"
-msgstr ""
+msgstr "Приєднати в %1 (%2)"
 
 msgid "&Move %1 to"
-msgstr ""
+msgstr "&Перемістити %1 в"
 
 msgid "Size:"
-msgstr ""
+msgstr "Розмір:"
 
 msgid "Custom size:"
-msgstr ""
+msgstr "Власний розмір:"
 
 msgid "None (blank)"
-msgstr ""
+msgstr "Немає (порожній)"
 
 msgid "FAT16"
-msgstr ""
+msgstr "FAT16"
 
 msgid "FAT32"
-msgstr ""
+msgstr "FAT32"
 
 msgid "Format:"
-msgstr ""
+msgstr "Формат:"
 
 msgid "Could not create %1."
-msgstr ""
+msgstr "Не вдалося створити %1."
 
 msgid "%1 already exists. Replace it?"
-msgstr ""
+msgstr "%1 вже існує. Замінити його?"
 
 msgid "USB port %1 (%2)"
-msgstr ""
+msgstr "USB-порт %1 (%2)"
 
 msgid "USB port"
-msgstr ""
+msgstr "USB-порт"
 
 msgid "%1 (write-protected)"
-msgstr ""
+msgstr "%1 (захист від запису)"
 
 msgid "USB flash drive"
-msgstr ""
+msgstr "Флеш-накопичувач USB"
 
 msgid "%1 is not a disk image."
-msgstr ""
+msgstr "%1 не є образом диска."
 
 msgid "Flash drive images"
-msgstr ""
+msgstr "Образи флеш-накопичувачів"
 
 msgid "PCI card"
-msgstr ""
+msgstr "PCI-карта"
 
 msgid "hub"
-msgstr ""
+msgstr "хаб"
 
 msgid "board"
-msgstr ""
+msgstr "плата"
 
 msgid "now in port %1"
-msgstr ""
+msgstr "наразі в порту %1"
