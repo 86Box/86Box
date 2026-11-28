@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-28 07:12+0000\n"
-"Last-Translator: TheCawa <vos80584@gmail.com>\n"
+"PO-Revision-Date: 2026-11-28 07:24+0000\n"
+"Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -364,7 +364,7 @@ msgid "Removable disk type:"
 msgstr "Тип знімного диска:"
 
 msgid "MO type:"
-msgstr ""
+msgstr "Тип магнитооптичного диска:"
 
 msgid "Settings"
 msgstr "Налаштування"
@@ -461,15 +461,20 @@ msgstr "FPU:"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
 msgstr ""
+"Прив'язаний до пам'яті у C0000000h співпроцесор для операцій із плаваючою "
+"комою. Сумісні програми можуть використати його разом з або замість співп. "
+"387."
 
 msgid "Weitek WTL 3167 coprocessor"
-msgstr ""
+msgstr "Співпроцесор Weitek WTL 3167"
 
 msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
 msgstr ""
+"Прив'язаний до пам'яті у C0000000h співпроцесор для операцій із плаваючою "
+"комою для програмного обладнання, сумісного з процесорами 486."
 
 msgid "Weitek WTL 4167 coprocessor"
-msgstr ""
+msgstr "Співпроцесор Weitek WTL 4167"
 
 msgid "Internal"
 msgstr "Вбудований"
@@ -481,13 +486,13 @@ msgid "MB"
 msgstr "МБ"
 
 msgid "GB"
-msgstr ""
+msgstr "ГБ"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 МБ"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 ГБ"
 
 msgid "Memory:"
 msgstr "Пам'ять:"
@@ -529,7 +534,7 @@ msgid "Dynamic recompiler"
 msgstr "Динамічний рекомпілятор"
 
 msgid "Dynamic recompiler is active"
-msgstr ""
+msgstr "Динамічний рекомпілятор активний"
 
 msgid "Dynamic recompiler is inactive"
 msgstr ""
@@ -771,25 +776,27 @@ msgid "Channel:"
 msgstr "Канал:"
 
 msgid "%1 (Onboard)"
-msgstr ""
+msgstr "%1 (на платі)"
 
 msgid "(none)"
-msgstr ""
+msgstr "(немає)"
 
 msgid "Onboard"
-msgstr ""
+msgstr "На платі"
 
 msgid "%1: no free channels"
-msgstr ""
+msgstr "%1: нема вільних каналів"
 
 msgid "%1: channels %2 in use"
-msgstr ""
+msgstr "%1: використані канали %2"
 
 msgid "IDE Conflict"
-msgstr ""
+msgstr "Конфлікт IDE"
 
 msgid "These IDE controllers need channels that another device already has, and will not work:"
 msgstr ""
+"Даним контролерам IDE потрібні канали, які вже зайняті іншим пристроєм, тому "
+"вони не працюватимуть:"
 
 msgid "Do you want to save the configuration anyway?"
 msgstr ""
@@ -873,7 +880,7 @@ msgid "MO drives"
 msgstr "Магнітооптичні дисководи"
 
 msgid "MD DATA drives"
-msgstr ""
+msgstr "Дисководи MD DATA"
 
 msgid "MO:"
 msgstr "Дисководи MO:"
@@ -916,6 +923,8 @@ msgstr "Стандартна плата ПЗП ISA"
 
 msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"Пристроїв не знайдено. Переконайтеся, що VT-d або IOMMU увімкнено на вашій "
+"системі."
 
 msgid "Custom ROM:"
 msgstr ""
@@ -954,7 +963,7 @@ msgid "Fatal error"
 msgstr "Непереробна помилка"
 
 msgid " - PAUSED"
-msgstr " - ПРИЗУПИНЕННЯ"
+msgstr " - ЗУПИНЕНО"
 
 msgid "Speed"
 msgstr "Швидкість"
