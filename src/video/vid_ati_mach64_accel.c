@@ -512,7 +512,6 @@ mach64_wake_fifo_thread(mach64_t *mach64)
 static void
 mach64_fifo_run_one(mach64_t *mach64)
 {
-    uint64_t      start_time = plat_timer_read();
     fifo_entry_t *fifo       = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
     uint32_t      val        = fifo->val;
     uint32_t      addr       = fifo->addr_type & FIFO_ADDR;
@@ -547,8 +546,6 @@ mach64_fifo_run_one(mach64_t *mach64)
 
     fifo->addr_type = FIFO_INVALID;
     mach64->fifo_read_idx++;
-
-    mach64->blitter_time += plat_timer_read() - start_time;
 }
 
 /* A short wait in a spin loop. */
@@ -585,12 +582,18 @@ mach64_wait_fifo_entry(mach64_t *mach64, int idx)
 void
 mach64_wait_fifo_idle(mach64_t *mach64)
 {
+    uint64_t start_time;
+
     if (FIFO_EMPTY)
         return;
 
+    if (mach64->ragepro)
+        atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
     thread_wait_mutex(mach64->fifo_mutex);
+    start_time = plat_timer_read();
     while (!FIFO_EMPTY)
         mach64_fifo_run_one(mach64);
+    mach64->blitter_time += plat_timer_read() - start_time;
     thread_release_mutex(mach64->fifo_mutex);
 }
 
@@ -604,10 +607,17 @@ mach64_fifo_thread(void *param)
         thread_reset_event(mach64->wake_fifo_thread);
         atomic_store(&mach64->fifo_wake_pending, 0);
         mach64->blitter_busy = 1;
+        if (mach64->ragepro)
+            atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
         while (!FIFO_EMPTY) {
+            uint64_t start_time;
+            int      budget = 128;
+
             thread_wait_mutex(mach64->fifo_mutex);
-            if (!FIFO_EMPTY)
+            start_time = plat_timer_read();
+            while (!FIFO_EMPTY && (budget-- > 0))
                 mach64_fifo_run_one(mach64);
+            mach64->blitter_time += plat_timer_read() - start_time;
             thread_release_mutex(mach64->fifo_mutex);
         }
 #ifdef DMA_BM
@@ -685,16 +695,27 @@ typedef struct mach64_timing_rect_t {
     int      dst_read;
 } mach64_timing_rect_t;
 
+typedef struct mach64_timing_clock_snap_t {
+    uint8_t  pll_regs[10]; /* pll_regs[2..11] */
+    uint8_t  clock_sel;
+    uint8_t  crtc_ext_disp;
+    uint8_t  bpp;
+    uint8_t  valid;
+    uint32_t crtc_h_total_disp;
+    uint32_t crtc_v_total_disp;
+} mach64_timing_clock_snap_t;
+
 struct mach64_timing_t {
-    mach64_timing_entry_t  ring[TIMING_RING];
-    uint32_t               head; /* the oldest entry still in the FIFO */
-    uint32_t               fold; /* the first whose start is not known */
-    uint32_t               tail;
-    uint64_t               free_at;              /* the engine is busy until then */
-    double                 fifo_ns[TIMING_RING]; /* by draw engine FIFO index */
-    uint64_t               floor;                /* time already charged */
-    uint32_t               clock_key;
-    mach64_timing_clocks_t clocks;
+    mach64_timing_entry_t      ring[TIMING_RING];
+    uint32_t                   head; /* the oldest entry still in the FIFO */
+    uint32_t                   fold; /* the first whose start is not known */
+    uint32_t                   tail;
+    uint64_t                   free_at;              /* the engine is busy until then */
+    double                     fifo_ns[TIMING_RING]; /* by draw engine FIFO index */
+    uint64_t                   floor;                /* time already charged */
+    mach64_timing_clock_snap_t snap;
+    mach64_timing_clocks_t     clocks;
+    double                     take_ns;
 };
 
 static double
@@ -957,21 +978,30 @@ mach64_timing_measure(const mach64_t *mach64)
     return clocks;
 }
 
+static inline void
+mach64_timing_snapshot(const mach64_t *mach64, mach64_timing_clock_snap_t *s)
+{
+    memcpy(s->pll_regs, &mach64->pll_regs[2], sizeof(s->pll_regs));
+    s->clock_sel         = (uint8_t) (mach64->clock_cntl & 3);
+    s->crtc_ext_disp     = (uint8_t) ((mach64->crtc_gen_cntl >> 24) & 1);
+    s->bpp               = (uint8_t) mach64->svga.bpp;
+    s->valid             = 1;
+    s->crtc_h_total_disp = mach64->crtc_h_total_disp;
+    s->crtc_v_total_disp = mach64->crtc_v_total_disp;
+}
+
 /* The CPU thread's clocks, measured again when the PLL or the mode change. */
 static const mach64_timing_clocks_t *
 mach64_timing_clocks(mach64_t *mach64)
 {
-    mach64_timing_t *timing = mach64->timing;
-    uint32_t         key    = 2166136261u;
+    mach64_timing_t           *timing = mach64->timing;
+    mach64_timing_clock_snap_t snap;
 
-    for (int i = 2; i <= 11; i++)
-        key = (key ^ mach64->pll_regs[i]) * 16777619u;
-    key = (key ^ (mach64->clock_cntl & 3) ^ ((mach64->crtc_gen_cntl >> 20) & 0x10) ^ ((uint32_t) mach64->svga.bpp << 8)) * 16777619u;
-    key = (key ^ mach64->crtc_h_total_disp) * 16777619u;
-    key = (key ^ mach64->crtc_v_total_disp) * 16777619u;
-    if ((key != timing->clock_key) || (timing->clocks.mclk == 0.0)) {
-        timing->clocks    = mach64_timing_measure(mach64);
-        timing->clock_key = key;
+    mach64_timing_snapshot(mach64, &snap);
+    if ((memcmp(&snap, &timing->snap, sizeof(snap)) != 0) || (timing->clocks.mclk == 0.0)) {
+        timing->clocks  = mach64_timing_measure(mach64);
+        timing->take_ns = 1000000000.0 / timing->clocks.xclk;
+        timing->snap    = snap;
         mach64_log("Rage II+ engine timing: MCLK %.1f MHz, XCLK %.1f MHz, display %.0f%% of memory\n",
                    timing->clocks.mclk / 1000000.0, timing->clocks.xclk / 1000000.0, timing->clocks.crtc_fraction * 100.0);
     }
@@ -1047,7 +1077,7 @@ mach64_timing_wait(mach64_timing_t *timing, uint64_t until)
 }
 
 /* Before a register write: room in the FIFO for it. */
-static void
+static uint64_t
 mach64_timing_before_write(mach64_t *mach64)
 {
     mach64_timing_t *timing = mach64->timing;
@@ -1068,20 +1098,20 @@ mach64_timing_before_write(mach64_t *mach64)
         now = mach64_timing_wait(timing, timing->ring[timing->head & TIMING_RING_MASK].start);
         mach64_timing_depart(timing, now);
     }
+    return now;
 }
 
 /* After it: the write as an entry. One the engine never sees, a bus master
    setting, costs it a clock; a queued one's cost is known once it has run. */
 static void
-mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx)
+mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx, uint64_t now)
 {
-    mach64_timing_t       *timing  = mach64->timing;
-    double                 take_ns = 1000000000.0 / mach64_timing_clocks(mach64)->xclk;
-    mach64_timing_entry_t *e       = &timing->ring[timing->tail & TIMING_RING_MASK];
+    mach64_timing_t       *timing = mach64->timing;
+    mach64_timing_entry_t *e      = &timing->ring[timing->tail & TIMING_RING_MASK];
 
-    e->arrival         = mach64_timing_now(timing);
+    e->arrival         = now;
     e->start           = 0;
-    e->cost            = queued ? 0 : mach64_timing_ticks(take_ns);
+    e->cost            = queued ? 0 : mach64_timing_ticks(timing->take_ns);
     e->fifo_idx        = fifo_idx;
     e->queued          = queued;
     timing->tail++;
@@ -1163,13 +1193,20 @@ mach64_timing_op(mach64_t *mach64, int op)
 void
 mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work)
 {
-    mach64_timing_work_t   engine = mach64_timing_3d_work(work);
-    mach64_timing_clocks_t clocks;
+    mach64_timing_t           *timing = mach64->timing;
+    mach64_timing_work_t       engine;
+    mach64_timing_clocks_t     clocks;
+    mach64_timing_clock_snap_t snap;
 
-    if (!mach64->timing)
+    if (!timing)
         return;
-    clocks = mach64_timing_measure(mach64);
-    mach64->timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&engine, &clocks) * 1000000000.0;
+    engine = mach64_timing_3d_work(work);
+    mach64_timing_snapshot(mach64, &snap);
+    if ((timing->clocks.mclk != 0.0) && (memcmp(&snap, &timing->snap, sizeof(snap)) == 0))
+        clocks = timing->clocks;
+    else
+        clocks = mach64_timing_measure(mach64);
+    timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&engine, &clocks) * 1000000000.0;
 }
 
 /* The modeled FIFO's entries in use and whether the engine is busy, for
@@ -1304,7 +1341,8 @@ mach64_queue_fifo(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 void
 mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
-    int idx;
+    uint64_t now;
+    int      idx;
 
     if (!mach64->timing) {
         if (!mach64_has_busmaster(mach64) || (addr & FIFO_ADDR_BLK1) || !mach64_ragepro_gui_write(mach64, addr, val, type))
@@ -1312,16 +1350,17 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
         return;
     }
 
-    mach64_timing_before_write(mach64);
+    now = mach64_timing_before_write(mach64);
+    mach64_timing_clocks(mach64);
     if (mach64_has_busmaster(mach64) && !(addr & FIFO_ADDR_BLK1) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
-        mach64_timing_after_write(mach64, 0, 0);
+        mach64_timing_after_write(mach64, 0, 0, now);
         return;
     }
     /* The engine adds the operation's cost to this entry when it runs it. */
     idx                                             = mach64->fifo_write_idx;
-    mach64->timing->fifo_ns[idx & TIMING_RING_MASK] = 1000000000.0 / mach64_timing_clocks(mach64)->xclk;
+    mach64->timing->fifo_ns[idx & TIMING_RING_MASK] = mach64->timing->take_ns;
     mach64_queue_fifo(mach64, addr, val, type);
-    mach64_timing_after_write(mach64, 1, idx);
+    mach64_timing_after_write(mach64, 1, idx, now);
 }
 
 /* Pixel access by the draw engine. Width is a mach64_width[] code: 0, 1

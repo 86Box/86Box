@@ -26,6 +26,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <simde/x86/sse2.h>
 #include "vid_ati_mach64.h"
 #include <86box/dma.h>
 #include <86box/agpgart.h>
@@ -244,7 +245,7 @@ typedef struct mach64_3d_row_t {
 
 #define MACH64_3D_ROWS    128 /* rows walked before they are drawn */
 #define MACH64_3D_THREADS 4   /* the emulation thread and up to three helpers */
-#define MACH64_RP_AGP_PAGES 64
+#define MACH64_RP_AGP_PAGES 256
 
 typedef struct mach64_3d_rows_job_t mach64_3d_rows_job_t;
 typedef struct mach64_rp_tri_t      mach64_rp_tri_t;
@@ -255,6 +256,7 @@ typedef struct mach64_rp_tri_t      mach64_rp_tri_t;
    between triangles, so they hold for one. Each drawing thread has its
    own. */
 typedef struct mach64_rp_agp_cache_t {
+    unsigned       gen;
     uint32_t       tag[MACH64_RP_AGP_PAGES];
     const uint8_t *ptr[MACH64_RP_AGP_PAGES];
 } mach64_rp_agp_cache_t;
@@ -328,6 +330,7 @@ struct mach64_3d_t {
     mach64_rp_agp_cache_t agp;
     mach64_rp_span_t      rp_spans[MACH64_3D_ROWS];
     int                   rp_nspans;
+    void                 *rp_tex_cache;
 };
 
 static void mach64_rp_draw_spans(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
@@ -533,6 +536,34 @@ mach64_3d_vram_changed(mach64_t *mach64, uint32_t addr, unsigned bytes)
         mach64->svga.changedvram[first >> 12] = stamp;
     if (((first >> 12) != (last >> 12)) && (mach64->svga.changedvram[last >> 12] != stamp))
         mach64->svga.changedvram[last >> 12] = stamp;
+}
+
+/* Marks every 4 KB page touched by a contiguous or wrapping span. */
+static inline void
+mach64_3d_vram_mark_range(mach64_t *mach64, uint32_t addr, uint32_t bytes)
+{
+    uint32_t first_pg = (addr & mach64->vram_mask) >> 12;
+    uint32_t last_pg  = ((addr + bytes - 1) & mach64->vram_mask) >> 12;
+    uint8_t  stamp    = mach64->svga.monitor->mon_changeframecount;
+    uint8_t *chg      = mach64->svga.changedvram;
+
+    if (first_pg <= last_pg) {
+        for (uint32_t pg = first_pg; pg <= last_pg; pg++) {
+            if (chg[pg] != stamp)
+                chg[pg] = stamp;
+        }
+    } else {
+        uint32_t max_pg = mach64->vram_mask >> 12;
+
+        for (uint32_t pg = first_pg; pg <= max_pg; pg++) {
+            if (chg[pg] != stamp)
+                chg[pg] = stamp;
+        }
+        for (uint32_t pg = 0; pg <= last_pg; pg++) {
+            if (chg[pg] != stamp)
+                chg[pg] = stamp;
+        }
+    }
 }
 
 static inline void
@@ -945,6 +976,40 @@ static const uint8_t mach64_3d_bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 
    dropped][Y and X in the cell], made by mach64_3d_dither_table_init. */
 static uint8_t mach64_3d_dither_add[8][16];
 
+static uint16_t mach64_rp_dither_r5_565[16][256];
+static uint16_t mach64_rp_dither_g6_565[16][256];
+static uint8_t  mach64_rp_dither_b5[16][256];
+static uint16_t mach64_rp_dither_r5_555[16][256];
+static uint16_t mach64_rp_dither_g5_555[16][256];
+
+static void
+mach64_dither_rp_luts_init(void)
+{
+    for (int rank = 0; rank < 16; rank++) {
+        for (int v = 0; v < 256; v++) {
+            int m5 = 2 * v - (v >> 4) + (v >> 7);
+            int q5 = (m5 + rank) >> 4;
+            int mg5 = m5 - ((v >> 3) & ~(v >> 6) & 1);
+            int qg5 = (mg5 + rank) >> 4;
+            int m6 = 4 * v - (v >> 4) + (v >> 6);
+            int q6 = (m6 + rank) >> 4;
+
+            if (q5 > 31)
+                q5 = 31;
+            if (qg5 > 31)
+                qg5 = 31;
+            if (q6 > 63)
+                q6 = 63;
+
+            mach64_rp_dither_r5_565[rank][v] = (uint16_t) (q5 << 11);
+            mach64_rp_dither_g6_565[rank][v] = (uint16_t) (q6 << 5);
+            mach64_rp_dither_b5[rank][v]     = (uint8_t) q5;
+            mach64_rp_dither_r5_555[rank][v] = (uint16_t) (q5 << 10);
+            mach64_rp_dither_g5_555[rank][v] = (uint16_t) (qg5 << 5);
+        }
+    }
+}
+
 static void
 mach64_3d_dither_table_init(void)
 {
@@ -954,6 +1019,7 @@ mach64_3d_dither_table_init(void)
         for (int i = 0; i < 16; i++)
             mach64_3d_dither_add[drop][i] = (mach64_3d_bayer4[i] * span + 7) / 15;
     }
+    mach64_dither_rp_luts_init();
 }
 
 static inline int
@@ -1198,17 +1264,26 @@ mach64_3d_write_dst(mach64_3d_t *ctx, mach64_3d_dither_t *dither, uint32_t addr,
     mach64_3d_write_dst_raw(ctx, addr, format, raw);
 }
 
+/* Exact (x / 255) for all 0 <= x <= 65025 (255 * 255). */
+static inline int
+mach64_3d_div255(int x)
+{
+    return (x + 1 + (x >> 8)) >> 8;
+}
+
 /* Alpha and fog weights run from 0 to 255 inclusive. */
-static rgba_t
+static inline rgba_t
 mach64_3d_lerp(rgba_t a, rgba_t b, int t)
 {
     rgba_t r;
+    int    it;
 
     t   = mach64_3d_clamp8(t);
-    r.r = (a.r * (255 - t) + b.r * t + 127) / 255;
-    r.g = (a.g * (255 - t) + b.g * t + 127) / 255;
-    r.b = (a.b * (255 - t) + b.b * t + 127) / 255;
-    r.a = (a.a * (255 - t) + b.a * t + 127) / 255;
+    it  = 255 - t;
+    r.r = mach64_3d_div255(a.r * it + b.r * t + 127);
+    r.g = mach64_3d_div255(a.g * it + b.g * t + 127);
+    r.b = mach64_3d_div255(a.b * it + b.b * t + 127);
+    r.a = mach64_3d_div255(a.a * it + b.a * t + 127);
     return r;
 }
 
@@ -2305,8 +2380,13 @@ mach64_3d_ranges_overlap(uint64_t a, uint64_t a_len, uint64_t b, uint64_t b_len,
     uint64_t a_to_b;
     uint64_t b_to_a;
 
-    a %= size;
-    b %= size;
+    if ((size & (size - 1)) == 0) {
+        a &= size - 1;
+        b &= size - 1;
+    } else {
+        a %= size;
+        b %= size;
+    }
     a_to_b = (b >= a) ? (b - a) : (b + size - a);
     b_to_a = (a >= b) ? (a - b) : (a + size - b);
     return (a_to_b < a_len) || (b_to_a < b_len);
@@ -4105,14 +4185,39 @@ mach64_rp_map_tiled(mach64_rp_map_t *map)
 }
 
 typedef struct mach64_rp_texture_t {
-    int             levels; /* maps[0] the largest */
-    mach64_rp_map_t maps[11];
-    int             bilinear_mag;
-    int             blend_fcn; /* TEX_BLEND_FCN, or the composite's 2 or 0 */
-    double          lod_bias;  /* log2 of the threshold stride (the composite) */
-    int             bias16;    /* the LOD bias field, sixteenths of a level (the primary) */
-    int             lod_used;  /* there are levels, or the filters differ */
+    int                    levels; /* maps[0] the largest */
+    mach64_rp_map_t        maps[11];
+    const mach64_rp_map_t *active_map;
+    int                    active_bilinear;
+    int                    bilinear_mag;
+    int                    blend_fcn; /* TEX_BLEND_FCN, or the composite's 2 or 0 */
+    double                 lod_bias;  /* log2 of the threshold stride (the composite) */
+    int                    bias16;    /* the LOD bias field, sixteenths of a level (the primary) */
+    int                    lod_used;  /* there are levels, or the filters differ */
 } mach64_rp_texture_t;
+
+typedef struct mach64_rp_tex_cache_t {
+    int                 pri_valid;
+    uint32_t            pri_cntl;
+    uint32_t            pri_tex_cntl;
+    uint32_t            pri_tsp;
+    uint32_t            pri_dp_pix;
+    uint32_t            pri_clr_cntl;
+    uint32_t            pri_clr_clr;
+    uint32_t            pri_clr_mask;
+    uint32_t            pri_off[11];
+    mach64_rp_texture_t pri_tx;
+    int                 comp_valid;
+    uint32_t            comp_mip_dis;
+    uint32_t            comp_tex_cntl;
+    uint32_t            comp_tsp;
+    uint32_t            comp_dp_pix;
+    uint32_t            comp_clr_cntl;
+    uint32_t            comp_clr_clr;
+    uint32_t            comp_clr_mask;
+    uint32_t            comp_off;
+    mach64_rp_texture_t comp_tx;
+} mach64_rp_tex_cache_t;
 
 static void
 mach64_rp_map_level(mach64_3d_t *ctx, mach64_rp_map_t *map, int format, uint32_t base, int l2w, int l2h, int clamp_s, int clamp_t)
@@ -4246,11 +4351,13 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
         if ((tex_cntl & RP_TEXTURE_TILING) && (!vq || RP_VQ_TILED_INDEX_MAP))
             mach64_rp_map_tiled(&tx->maps[n]);
     }
-    tx->bilinear_mag = !!(cntl & BILINEAR_TEX_EN);
-    tx->blend_fcn    = (cntl >> TEX_BLEND_FCN) & 3;
-    tx->lod_bias     = 0.0;
-    tx->bias16       = bias;
-    tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
+    tx->bilinear_mag    = !!(cntl & BILINEAR_TEX_EN);
+    tx->blend_fcn       = (cntl >> TEX_BLEND_FCN) & 3;
+    tx->lod_bias        = 0.0;
+    tx->bias16          = bias;
+    tx->lod_used        = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
+    tx->active_map      = &tx->maps[0];
+    tx->active_bilinear = tx->bilinear_mag;
     return 1;
 }
 
@@ -4299,11 +4406,13 @@ mach64_rp_composite_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
             mach64_rp_map_tiled(&tx->maps[n]);
         base += tx->maps[n].w * tx->maps[n].h * tx->maps[n].tex.bpp;
     }
-    tx->bilinear_mag = !!(tex_cntl & RP_COMP_FILTER_BILIN);
-    tx->blend_fcn    = (tex_cntl & RP_COMP_BLEND_BILINEAR) ? 2 : 0;
-    tx->lod_bias     = 0.0;
-    tx->bias16       = 0;
-    tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
+    tx->bilinear_mag    = !!(tex_cntl & RP_COMP_FILTER_BILIN);
+    tx->blend_fcn       = (tex_cntl & RP_COMP_BLEND_BILINEAR) ? 2 : 0;
+    tx->lod_bias        = 0.0;
+    tx->bias16          = 0;
+    tx->lod_used        = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
+    tx->active_map      = &tx->maps[0];
+    tx->active_bilinear = tx->bilinear_mag;
     return 1;
 }
 
@@ -4372,12 +4481,23 @@ mach64_rp_texel_vq(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp
     return argb;
 }
 
-/* A texel of a map in AGP memory, decoded as mach64_3d_texel_at does. */
-static uint32_t
-mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
+static inline void
+mach64_rp_agp_sync(mach64_t *mach64, mach64_rp_agp_cache_t *agp)
+{
+    unsigned gen = atomic_load_explicit(&mach64->rp.agp_gen, memory_order_acquire);
+
+    if (agp->gen != gen) {
+        memset(agp->tag, 0, sizeof(agp->tag));
+        agp->gen = gen;
+    }
+}
+
+static inline uint32_t
+mach64_rp_texel_agp_addr(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3d_texture_t *map, uint32_t off, int u,
+                         int *inhibits)
 {
     mach64_t *mach64 = ctx->mach64;
-    uint32_t  addr   = mach64->rp.agp_base + map->base + (v * map->width + u) * map->bpp;
+    uint32_t  addr   = mach64->rp.agp_base + map->base + off;
     uint32_t  raw    = 0;
     uint32_t  argb;
 
@@ -4399,7 +4519,7 @@ mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3
             argb = mach64_3d_argb4444(raw, map->dynamic_range);
             break;
         case 11:
-            mach64_rp_agp_read(agp, mach64->rp.agp_base + map->base + (v * map->width + (u & ~1)) * 2, &raw, 4);
+            mach64_rp_agp_read(agp, mach64->rp.agp_base + map->base + off, &raw, 4);
             argb = mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255));
             break;
         default:
@@ -4415,22 +4535,81 @@ mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3
     return argb;
 }
 
+__attribute__((unused)) static inline uint32_t
+mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
+{
+    uint32_t off = (map->format == 11) ? ((uint32_t) (v * map->width + (u & ~1)) * 2u) :
+                                         ((uint32_t) (v * map->width + u) * (uint32_t) map->bpp);
+
+    return mach64_rp_texel_agp_addr(ctx, agp, map, off, u, inhibits);
+}
+
+static inline uint32_t
+mach64_rp_texel_vram_addr(mach64_3d_t *ctx, const mach64_3d_texture_t *map, uint32_t off, int u, int *inhibits)
+{
+    mach64_t *mach64 = ctx->mach64;
+    uint32_t  addr   = map->base + off;
+    uint32_t  raw;
+    uint32_t  argb;
+
+    switch (map->format) {
+        case 3:
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb1555(raw, map->dynamic_range);
+            break;
+        case 4:
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb565(raw, map->dynamic_range);
+            break;
+        case 6:
+            raw  = argb = mach64_3d_vram_read32(mach64, addr);
+            break;
+        case 15:
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb4444(raw, map->dynamic_range);
+            break;
+        case 11:
+            raw  = mach64_3d_vram_read32(mach64, addr);
+            argb = mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255));
+            break;
+        default:
+            raw  = mach64_3d_vram_read(mach64, addr, map->bpp);
+            argb = mach64_3d_unpack_argb(ctx, map->format, raw, 1);
+            if (map->format == 2) {
+                *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw));
+                return argb;
+            }
+            break;
+    }
+    *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texel_key_value(map->format, raw, argb));
+    return argb;
+}
+
 static inline uint32_t
 mach64_rp_texel(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, int *inhibits)
 {
+    uint32_t idx;
+    uint32_t off;
+
     u = mach64_rp_wrap(u, map->w, map->clamp_s);
     v = mach64_rp_wrap(v, map->h, map->clamp_t);
     if (map->vq)
         return mach64_rp_texel_vq(ctx, agp, map, u, v, inhibits);
-    if (map->tile_u) {
-        uint32_t i = map->tile_u[u] ^ map->tile_v[v];
+    if (map->tex.format == 11) {
+        if (map->tile_u) {
+            uint32_t i = map->tile_u[u] ^ map->tile_v[v];
 
-        u = i & (map->w - 1);
-        v = i / map->w;
+            u = i & (map->w - 1);
+            v = i / map->w;
+        }
+        off = (uint32_t) (v * map->w + (u & ~1)) * 2u;
+    } else {
+        idx = map->tile_u ? (map->tile_u[u] ^ map->tile_v[v]) : (uint32_t) (v * map->w + u);
+        off = idx * (uint32_t) map->tex.bpp;
     }
     if (map->agp)
-        return mach64_rp_texel_agp(ctx, agp, &map->tex, u, v, inhibits);
-    return mach64_3d_texel_at(ctx, &map->tex, u, v, inhibits);
+        return mach64_rp_texel_agp_addr(ctx, agp, &map->tex, off, u, inhibits);
+    return mach64_rp_texel_vram_addr(ctx, &map->tex, off, u, inhibits);
 }
 
 /*
@@ -4479,19 +4658,66 @@ mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
 
     if (map->agp) {
         uint32_t base = mach64->rp.agp_base + tex->base;
+        uint32_t a0   = base + idx[0] * bpp;
+        uint32_t a1   = base + idx[1] * bpp;
+        uint32_t a2   = base + idx[2] * bpp;
+        uint32_t a3   = base + idx[3] * bpp;
 
-        for (int i = 0; i < 4; i++)
-            mach64_rp_agp_read(agp, base + idx[i] * bpp, &raw[i], bpp);
+        if ((((a0 ^ a1) | (a0 ^ a2) | (a0 ^ a3)) & ~0xfffu) == 0 && ((a0 & (bpp - 1)) == 0)) {
+            uint32_t page = a0 & ~0xfffu;
+            unsigned slot = (page >> 12) & (MACH64_RP_AGP_PAGES - 1);
+
+            if (agp->tag[slot] != (page | 1)) {
+                agp->tag[slot] = page | 1;
+                agp->ptr[slot] = agpgart_bus_ptr(page, 0x1000);
+            }
+            if (agp->ptr[slot]) {
+                const uint8_t *pg = agp->ptr[slot];
+
+                if (bpp == 2) {
+                    raw[0] = *(const uint16_t *) (pg + (a0 & 0xfff));
+                    raw[1] = *(const uint16_t *) (pg + (a1 & 0xfff));
+                    raw[2] = *(const uint16_t *) (pg + (a2 & 0xfff));
+                    raw[3] = *(const uint16_t *) (pg + (a3 & 0xfff));
+                } else if (bpp == 4) {
+                    raw[0] = *(const uint32_t *) (pg + (a0 & 0xfff));
+                    raw[1] = *(const uint32_t *) (pg + (a1 & 0xfff));
+                    raw[2] = *(const uint32_t *) (pg + (a2 & 0xfff));
+                    raw[3] = *(const uint32_t *) (pg + (a3 & 0xfff));
+                } else {
+                    raw[0] = pg[a0 & 0xfff];
+                    raw[1] = pg[a1 & 0xfff];
+                    raw[2] = pg[a2 & 0xfff];
+                    raw[3] = pg[a3 & 0xfff];
+                }
+                goto decode;
+            }
+        }
+        mach64_rp_agp_read(agp, a0, &raw[0], bpp);
+        mach64_rp_agp_read(agp, a1, &raw[1], bpp);
+        mach64_rp_agp_read(agp, a2, &raw[2], bpp);
+        mach64_rp_agp_read(agp, a3, &raw[3], bpp);
     } else if (bpp == 4) {
         for (int i = 0; i < 4; i++)
             raw[i] = mach64_3d_vram_read32(mach64, tex->base + idx[i] * 4);
     } else if (bpp == 2) {
-        for (int i = 0; i < 4; i++)
-            raw[i] = mach64_3d_vram_read16(mach64, tex->base + idx[i] * 2);
+        if ((idx[1] == idx[0] + 1) && (idx[3] == idx[2] + 1)) {
+            uint32_t p0 = mach64_3d_vram_read32(mach64, tex->base + idx[0] * 2);
+            uint32_t p1 = mach64_3d_vram_read32(mach64, tex->base + idx[2] * 2);
+
+            raw[0] = p0 & 0xffff;
+            raw[1] = p0 >> 16;
+            raw[2] = p1 & 0xffff;
+            raw[3] = p1 >> 16;
+        } else {
+            for (int i = 0; i < 4; i++)
+                raw[i] = mach64_3d_vram_read16(mach64, tex->base + idx[i] * 2);
+        }
     } else {
         for (int i = 0; i < 4; i++)
             raw[i] = mach64_3d_vram_read8(mach64, tex->base + idx[i]);
     }
+decode:
 
     switch (tex->format) {
         case 2:
@@ -4636,14 +4862,10 @@ mach64_rp_point_coord(double coord)
     return (int) mach64_rp_floor(coord * (1.0 - 1.0 / (1 << 20)));
 }
 
-/* One map at s, t (0-1 across it): the nearest texel, or the 2x2 filter of
-   the four whose centers surround the point. */
-static uint32_t
-mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int bilinear, double s, double t,
-                     int *inhibits)
+static inline uint32_t
+mach64_rp_sample_map_scaled(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int bilinear, double fs,
+                            double ft, int *inhibits)
 {
-    double   fs = s * map->w;
-    double   ft = t * map->h;
     int      inh[4];
     uint32_t c[4];
     int      u, v;
@@ -4671,6 +4893,15 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
     return mach64_3d_lerp_texel(mach64_3d_lerp_texel(c[0], c[1], fu), mach64_3d_lerp_texel(c[2], c[3], fu), fv);
 }
 
+/* One map at s, t (0-1 across it): the nearest texel, or the 2x2 filter of
+   the four whose centers surround the point. */
+static uint32_t
+mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int bilinear, double s, double t,
+                     int *inhibits)
+{
+    return mach64_rp_sample_map_scaled(ctx, agp, map, bilinear, s * map->w, t * map->h, inhibits);
+}
+
 /*
  * A texture at s, t, with lod the log2 of the texels a pixel steps across in
  * the largest map. TEX_BLEND_FCN picks the minifying filter: 0 the nearest
@@ -4685,44 +4916,7 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
  * be. Both are what Direct3D's software rasteriser does, and what
  * alphabox's Rage Pro matched it with, pixel for pixel.
  */
-static uint32_t
-mach64_rp_sample(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_texture_t *tx, double s, double t, double lod,
-                 int *inhibits)
-{
-    int      top = tx->levels - 1;
-    int      level;
-    unsigned frac;
-    int      ia;
-    int      ib;
-    uint32_t a;
-    uint32_t b;
-
-    lod -= tx->lod_bias;
-    if ((lod <= 0.0) || !top)
-        return mach64_rp_sample_map(ctx, agp, &tx->maps[0], (lod <= 0.0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
-
-    if (lod > top)
-        lod = top;
-    level = (int) lod;
-
-    switch (tx->blend_fcn) {
-        case 1:
-        case 3:
-            if (level >= top)
-                return mach64_rp_sample_map(ctx, agp, &tx->maps[top], tx->blend_fcn == 3, s, t, inhibits);
-            frac = (unsigned) ((exp2(lod - level) - 1.0) * 256.0);
-            if (frac > 255)
-                frac = 255;
-            a = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
-            b = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
-            *inhibits = (frac >= 128) ? ib : ia;
-            return mach64_3d_lerp_texel(a, b, frac);
-        case 2:
-            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 1, s, t, inhibits);
-        default:
-            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 0, s, t, inhibits);
-    }
-}
+/* Replaced by mach64_rp_sample_composite above. */
 
 /*
  * The primary texture at s, t, with the level named by the triangle's
@@ -4912,24 +5106,62 @@ mach64_rp_blend(uint32_t cntl, rgba_t src, rgba_t dst)
     int    out[4];
     rgba_t o;
 
+    if (!sat) {
+        if ((src_code == 4) && (dst_code == 5)) {
+            int sa = src.a + 1;
+            int ia = 256 - src.a;
+
+            o.r = ((src.r * sa) >> 8) + ((dst.r * ia) >> 8);
+            o.g = ((src.g * sa) >> 8) + ((dst.g * ia) >> 8);
+            o.b = ((src.b * sa) >> 8) + ((dst.b * ia) >> 8);
+            o.a = mach64_3d_clamp8(mach64_3d_div255(src.a * src.a + dst.a * (255 - src.a) + 127));
+            return o;
+        }
+        if ((src_code == 4) && (dst_code == 1)) {
+            int sa = src.a + 1;
+
+            o.r = mach64_3d_clamp8(((src.r * sa) >> 8) + dst.r);
+            o.g = mach64_3d_clamp8(((src.g * sa) >> 8) + dst.g);
+            o.b = mach64_3d_clamp8(((src.b * sa) >> 8) + dst.b);
+            o.a = mach64_3d_clamp8(mach64_3d_div255(src.a * src.a + dst.a * 255 + 127));
+            return o;
+        }
+        if ((src_code == 1) && (dst_code == 1)) {
+            o.r = mach64_3d_clamp8(src.r + dst.r);
+            o.g = mach64_3d_clamp8(src.g + dst.g);
+            o.b = mach64_3d_clamp8(src.b + dst.b);
+            o.a = mach64_3d_clamp8(src.a + dst.a);
+            return o;
+        }
+        if (((src_code == 2) && (dst_code == 0)) || ((src_code == 0) && (dst_code == 2))) {
+            o.r = mach64_3d_div255(src.r * dst.r + 127);
+            o.g = mach64_3d_div255(src.g * dst.g + 127);
+            o.b = mach64_3d_div255(src.b * dst.b + 127);
+            o.a = mach64_3d_div255(src.a * dst.a + 127);
+            return o;
+        }
+        if ((src_code == 1) && (dst_code == 5)) {
+            int ia = 255 - src.a;
+
+            o.r = mach64_3d_clamp8(src.r + mach64_3d_div255(dst.r * ia + 127));
+            o.g = mach64_3d_clamp8(src.g + mach64_3d_div255(dst.g * ia + 127));
+            o.b = mach64_3d_clamp8(src.b + mach64_3d_div255(dst.b * ia + 127));
+            o.a = mach64_3d_clamp8(src.a + mach64_3d_div255(dst.a * ia + 127));
+            return o;
+        }
+    }
+
     for (int ch = 0; ch < 4; ch++) {
         int s = mach64_3d_component(src, ch);
         int d = mach64_3d_component(dst, ch);
 
-        /*
-         * The color channels of the two source-alpha blends a real Rage Pro
-         * was measured on, in 8 bits with the alpha taken as a/256 and
-         * (256 - a)/256 of the sides, each side's product truncated, rather
-         * than the exact division by 255 used for the other combinations.
-         */
         if ((ch < 3) && !sat && (src_code == 4) && (dst_code == 5))
             out[ch] = ((s * (src.a + 1)) >> 8) + ((d * (256 - src.a)) >> 8);
         else if ((ch < 3) && !sat && (src_code == 4) && (dst_code == 1))
             out[ch] = mach64_3d_clamp8(((s * (src.a + 1)) >> 8) + d);
         else
-            out[ch] = mach64_3d_clamp8((s * mach64_rp_blend_factor(src_code, src, dst, ch, 1, sat) +
-                                        d * mach64_rp_blend_factor(dst_code, src, dst, ch, 0, sat) + 127) /
-                                       255);
+            out[ch] = mach64_3d_clamp8(mach64_3d_div255(s * mach64_rp_blend_factor(src_code, src, dst, ch, 1, sat) +
+                                                        d * mach64_rp_blend_factor(dst_code, src, dst, ch, 0, sat) + 127));
     }
     o.r = out[0];
     o.g = out[1];
@@ -5003,15 +5235,22 @@ struct mach64_rp_tri_t {
     int                 w_const; /* W is the same at every pixel: its reciprocal and LOD term are per triangle */
     double              w_rcp;
     int32_t             w_term;
+    uint8_t             pack_mode;       /* 0 = trunc, 1 = round, 2 = Rage Pro ordered dither, 3 = error diffusion */
+    uint8_t             full_write_mask; /* WRITE_MASK covers all destination pixel bits */
+    uint8_t             tex_agp;         /* primary or composite texture lives in AGP memory */
 };
 
 /* The plane through the three values a0, a1, a2 at the vertices, from the
    triangle's 1/area as the driver gave it, X and Y in pixels. */
-static void
-mach64_rp_plane(mach64_rp_plane_t *p, const double *vx, const double *vy, double a0, double a1, double a2, double ooa)
+static inline void
+mach64_rp_plane_factors(mach64_rp_plane_t *p, const double *vx, const double *vy, double a0, double a1, double a2,
+                        double dx0, double dx1, double dy0, double dy1)
 {
-    p->dx = ((a0 - a2) * (vy[1] - vy[2]) - (a1 - a2) * (vy[0] - vy[2])) * ooa;
-    p->dy = ((a1 - a2) * (vx[0] - vx[2]) - (a0 - a2) * (vx[1] - vx[2])) * ooa;
+    double da0 = a0 - a2;
+    double da1 = a1 - a2;
+
+    p->dx = da0 * dx0 - da1 * dx1;
+    p->dy = da1 * dy0 - da0 * dy1;
     p->c  = a2 - p->dx * vx[2] - p->dy * vy[2];
 }
 
@@ -5043,8 +5282,8 @@ mach64_rp_at8_floor(const mach64_rp_plane_t *p, double x, double y)
    pixel steps across, along the screen axis that steps across more.
    d(S/W)/dx = (dS/dx - s dW/dx) / W. */
 static double
-mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const mach64_rp_plane_t *pw, double s, double t, double rw,
-              const mach64_rp_map_t *largest)
+mach64_rp_rho2(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const mach64_rp_plane_t *pw, double s, double t, double rw,
+               const mach64_rp_map_t *largest)
 {
     double dsdx = (ps->dx - s * pw->dx) * rw * largest->w;
     double dtdx = (pt->dx - t * pw->dx) * rw * largest->h;
@@ -5052,9 +5291,70 @@ mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const ma
     double dtdy = (pt->dy - t * pw->dy) * rw * largest->h;
     double rx   = dsdx * dsdx + dtdx * dtdx;
     double ry   = dsdy * dsdy + dtdy * dtdy;
-    double rho2 = (rx > ry) ? rx : ry;
 
-    return (rho2 > 0.0) ? (0.5 * log2(rho2)) : -1.0;
+    return (rx > ry) ? rx : ry;
+}
+
+static uint32_t
+mach64_rp_sample_composite(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_texture_t *tx, double s, double t,
+                           double rho2, int *inhibits)
+{
+    static const double inv_pow2[12] = {
+        1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125, 0.00390625, 0.001953125, 0.0009765625, 0.00048828125
+    };
+    int      top = tx->levels - 1;
+    int      level;
+    unsigned frac;
+    int      ia;
+    int      ib;
+    uint32_t a;
+    uint32_t b;
+
+    if (!(rho2 > 1.0) || !top)
+        return mach64_rp_sample_map(ctx, agp, &tx->maps[0], !(rho2 > 1.0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
+
+#if (DBL_MANT_DIG == 53) && (DBL_MAX_EXP == 1024)
+    {
+        uint64_t bits;
+        int      exp;
+
+        memcpy(&bits, &rho2, sizeof(bits));
+        exp = (int) ((bits >> 52) & 0x7ff);
+        if (exp && (exp != 0x7ff))
+            level = (exp - 1023) >> 1;
+        else {
+            double lod = 0.5 * log2(rho2);
+
+            level = (lod > top) ? top : (int) lod;
+        }
+    }
+#else
+    {
+        double lod = 0.5 * log2(rho2);
+
+        level = (lod > top) ? top : (int) lod;
+    }
+#endif
+    if (level > top)
+        level = top;
+
+    switch (tx->blend_fcn) {
+        case 1:
+        case 3:
+            if (level >= top)
+                return mach64_rp_sample_map(ctx, agp, &tx->maps[top], tx->blend_fcn == 3, s, t, inhibits);
+            frac = (unsigned) ((sqrt(rho2) * inv_pow2[level] - 1.0) * 256.0);
+            if (frac > 255)
+                frac = 255;
+            a = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
+            b = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
+            *inhibits = (frac >= 128) ? ib : ia;
+            return mach64_3d_lerp_texel(a, b, frac);
+        case 2:
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 1, s, t, inhibits);
+        default:
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 0, s, t, inhibits);
+    }
 }
 
 /*
@@ -5092,10 +5392,32 @@ mach64_rp_modulate(int p, int s)
     return n ? ((16 * (n + 1) * p) >> 8) : 0;
 }
 
+static inline uint32_t
+mach64_rp_pack16(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, int format, rgba_t c, int x, int y)
+{
+    int r = mach64_3d_clamp8(c.r);
+    int g = mach64_3d_clamp8(c.g);
+    int b = mach64_3d_clamp8(c.b);
+
+    if (tri->pack_mode == 2) {
+        unsigned rk = mach64_3d_dither_rank[y & 7][x & 3];
+
+        if (format == 4)
+            return mach64_rp_dither_r5_565[rk][r] | mach64_rp_dither_g6_565[rk][g] | mach64_rp_dither_b5[rk][b];
+        return ((c.a >= 128) ? 0x8000u : 0u) | mach64_rp_dither_r5_555[rk][r] | mach64_rp_dither_g5_555[rk][g] | mach64_rp_dither_b5[rk][b];
+    }
+    if (tri->pack_mode == 0) {
+        if (format == 4)
+            return ((uint32_t) (r >> 3) << 11) | ((uint32_t) (g >> 2) << 5) | (uint32_t) (b >> 3);
+        return ((c.a >= 128) ? 0x8000u : 0u) | ((uint32_t) (r >> 3) << 10) | ((uint32_t) (g >> 3) << 5) | (uint32_t) (b >> 3);
+    }
+    return mach64_3d_pack(ctx, dither, format, c, x, y);
+}
+
 /* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
 __attribute__((always_inline)) static inline void
 mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp, int x, int y,
-                uint32_t addr, uint32_t z_addr, const unsigned k)
+                uint32_t addr, uint32_t z_addr, uint8_t *vram_dst, uint16_t *vram_z, int *wrote, const unsigned k)
 {
     mach64_t *mach64    = ctx->mach64;
     const int simple    = !!(k & RPK_SIMPLE);
@@ -5117,23 +5439,17 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     int       fog_f  = 255;
 
     if (z_on && ((tri->z_test != 7) || tri->z_write)) {
-        double z = mach64_rp_at(&tri->pl[RPP_Z], fx, fy);
+        double   z     = mach64_rp_at(&tri->pl[RPP_Z], fx, fy);
+        uint16_t dst_z;
 
         depth = (z <= 0.0) ? 0 : ((z >= 65535.0) ? 65535 : (uint16_t) z);
-        if ((tri->z_test != 7) && !mach64_3d_z_test(depth, mach64_3d_vram_read16(mach64, z_addr), tri->z_test))
-            return;
+        if (tri->z_test != 7) {
+            dst_z = vram_z ? *vram_z : mach64_3d_vram_read16(mach64, z_addr);
+            if (!mach64_3d_z_test(depth, dst_z, tri->z_test))
+                return;
+        }
     }
 
-    shade = tri->flat_shade;
-    if (!tri->shade_flat) {
-        if (tri->shade_rgb) {
-            shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
-            shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
-            shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
-        }
-        shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
-    }
-    src = shade;
     if (textured) {
         double   w    = tri->w_const ? tri->pl[RPP_W].c : mach64_rp_at(&tri->pl[RPP_W], fx, fy);
         double   rw   = tri->w_const ? tri->w_rcp : ((w != 0.0) ? (1.0 / w) : 1.0);
@@ -5148,7 +5464,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
 
             argb = mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, tri->texture_lmi + w_term, &inhibit);
         } else
-            argb = mach64_rp_sample_map(ctx, agp, &tri->tex.maps[0], tri->tex.bilinear_mag, s, t, &inhibit);
+            argb = mach64_rp_sample_map(ctx, agp, tri->tex.active_map, tri->tex.active_bilinear, s, t, &inhibit);
 
         if (inhibit)
             return;
@@ -5169,10 +5485,10 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                 s2  = mach64_rp_at(ps, fx, fy) * rw2;
                 t2  = mach64_rp_at(pt, fx, fy) * rw2;
             }
-            double   l2  = tri->tex2.lod_used ? mach64_rp_lod(ps, pt, pw, s2, t2, rw2, &tri->tex2.maps[0]) : 0.0;
+            double   rho2 = tri->tex2.lod_used ? mach64_rp_rho2(ps, pt, pw, s2, t2, rw2, &tri->tex2.maps[0]) : 0.0;
             int      inh2;
-            uint32_t c2  = mach64_rp_sample(ctx, agp, &tri->tex2, s2, t2, l2, &inh2);
-            rgba_t   sec = mach64_3d_argb_rgba(c2);
+            uint32_t c2   = mach64_rp_sample_composite(ctx, agp, &tri->tex2, s2, t2, rho2, &inh2);
+            rgba_t   sec  = mach64_3d_argb_rgba(c2);
             int      f;
 
             switch ((tri->tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) {
@@ -5188,6 +5504,12 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                     comp_mod = 1;
                     break;
                 default: /* specular addition: the primary lit, plus the composite */
+                    shade = tri->flat_shade;
+                    if (!tri->shade_flat && tri->shade_rgb) {
+                        shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
+                        shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
+                        shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
+                    }
                     texel.r = mach64_3d_clamp8(texel.r * shade.r / 255 + sec.r);
                     texel.g = mach64_3d_clamp8(texel.g * shade.g / 255 + sec.g);
                     texel.b = mach64_3d_clamp8(texel.b * shade.b / 255 + sec.b);
@@ -5195,17 +5517,33 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
             }
         }
 
-        tex_a = (ctx->regs[SCALE_3D_CNTL >> 2] & TEX_MAP_AEN) ? texel.a : 255;
+        tex_a = (tri->cntl & TEX_MAP_AEN) ? texel.a : 255;
+        if ((tri->cntl & (TEX_MAP_AEN | TEX_AMASK_AEN | TEX_AMASK_MODE)) == (TEX_MAP_AEN | TEX_AMASK_AEN)) {
+            if (!(texel.a & 1))
+                return;
+        }
+
+        shade = tri->flat_shade;
+        if (!tri->shade_flat) {
+            if (tri->shade_rgb) {
+                shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
+                shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
+                shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
+            }
+            if (!(tri->cntl & TEX_MAP_AEN) || (tri->cntl & TEX_AMASK_AEN) || (tri->texture_light == 1) || (tri->texture_light == 2) ||
+                (tri->alpha_fog == ALPHA_FOG_BLEND) || ((tri->alpha_tst & RP_ALPHA_TEST_EN) && (tri->alpha_tst & RP_ALPHA_TST_SRC_ALPHA)) ||
+                (((tri->alpha_tst >> RP_ALPHA_DST_SHIFT) & 6) == 4))
+                shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
+        }
+
         if (!(tri->cntl & TEX_MAP_AEN))
             texel.a = shade.a;
         else if (tri->cntl & TEX_AMASK_AEN) {
             int mask = texel.a & 1;
 
-            if (!(tri->cntl & TEX_AMASK_MODE)) {
-                if (!mask)
-                    return;
+            if (!(tri->cntl & TEX_AMASK_MODE))
                 texel.a = shade.a;
-            } else
+            else
                 texel.a = mask ? 255 : shade.a;
         }
 
@@ -5219,11 +5557,11 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                         src.g = (texel.g * (shade.g + 1)) >> 8;
                         src.b = (texel.b * (shade.b + 1)) >> 8;
                     } else {
-                        src.r = texel.r * shade.r / 255;
-                        src.g = texel.g * shade.g / 255;
-                        src.b = texel.b * shade.b / 255;
+                        src.r = mach64_3d_div255(texel.r * shade.r);
+                        src.g = mach64_3d_div255(texel.g * shade.g);
+                        src.b = mach64_3d_div255(texel.b * shade.b);
                     }
-                    src.a = (tri->cntl & TEX_MAP_AEN) ? (texel.a * shade.a / 255) : shade.a;
+                    src.a = (tri->cntl & TEX_MAP_AEN) ? mach64_3d_div255(texel.a * shade.a) : shade.a;
                     break;
                 case 2: /* alpha decal */
                     src   = mach64_3d_lerp(shade, texel, texel.a);
@@ -5234,6 +5572,17 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                     break;
             }
         }
+    } else {
+        shade = tri->flat_shade;
+        if (!tri->shade_flat) {
+            if (tri->shade_rgb) {
+                shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
+                shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
+                shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
+            }
+            shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
+        }
+        src = shade;
     }
 
     if (!simple && (tri->alpha_tst & RP_SPECULAR_LIGHT_EN)) {
@@ -5263,10 +5612,26 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
 
     dst.r = dst.g = dst.b = 0;
     dst.a = 255;
-    if ((tri->alpha_fog == ALPHA_FOG_BLEND) || (((tri->alpha_tst >> RP_ALPHA_DST_SHIFT) & 6) == 6)) {
-        dst = mach64_3d_read_dst(ctx, addr, format);
-        if (!mach64_rp_format_has_alpha(format))
-            dst.a = 255;
+    {
+        int need_dst = (((tri->alpha_tst >> RP_ALPHA_DST_SHIFT) & 6) == 6);
+
+        if (!need_dst && (tri->alpha_fog == ALPHA_FOG_BLEND)) {
+            int sc = (tri->cntl >> ALPHA_BLEND_SRC) & 7;
+            int dc = (tri->cntl >> ALPHA_BLEND_DST) & 7;
+
+            if ((dc != 0) || (sc == 2) || (sc == 3) || (sc == 6) || (sc == 7) || (tri->cntl & RP_ALPHA_BLEND_SAT))
+                need_dst = 1;
+        }
+        if (need_dst) {
+            if (vram_dst && ((format == 3) || (format == 4))) {
+                uint16_t raw_dst = *(const uint16_t *) vram_dst;
+
+                dst = mach64_3d_argb_rgba((format == 4) ? mach64_3d_argb565(raw_dst, 1) : mach64_3d_argb1555(raw_dst, 1));
+            } else
+                dst = mach64_3d_read_dst(ctx, addr, format);
+            if (!mach64_rp_format_has_alpha(format))
+                dst.a = 255;
+        }
     }
     if (tri->alpha_fog == ALPHA_FOG_BLEND) {
         int a = src.a;
@@ -5281,14 +5646,24 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                                                mach64_3d_vram_read(mach64, addr, tri->dst.bpp), tri->dst_compare_mask))
         return;
 
-    if (!simple && tri->dp_constant)
+    if (!simple && tri->dp_constant) {
         mach64_3d_write_dst_raw(ctx, addr, format,
                                 mach64_3d_dp_select_source(mach64->dp_src, mach64->dp_bkgd_clr, mach64->dp_frgd_clr,
                                                            mach64_3d_pack(ctx, dither, format, src, x, y)));
-    else
+    } else if (vram_dst && tri->full_write_mask && ((format == 3) || (format == 4))) {
+        *(uint16_t *) vram_dst = (uint16_t) mach64_rp_pack16(ctx, tri, dither, format, src, x, y);
+        *wrote                 = 1;
+    } else {
         mach64_3d_write_dst(ctx, dither, addr, format, src, x, y);
-    if (z_on && tri->z_write)
-        mach64_3d_vram_write(mach64, z_addr, depth, 2);
+    }
+    if (z_on && tri->z_write) {
+        if (vram_z) {
+            *vram_z = depth;
+            *wrote  = 1;
+        } else {
+            mach64_3d_vram_write(mach64, z_addr, depth, 2);
+        }
+    }
 }
 
 /* Each edge supplies an inclusive X bound, or clips a whole row if horizontal.
@@ -5336,24 +5711,368 @@ mach64_rp_edge_advance(mach64_rp_edge_t *edge)
     }
 }
 
+static inline simde__m128i
+mach64_rp_simd_clamp_u8_4(simde__m128d v01, simde__m128d v23)
+{
+    const simde__m128d zero = simde_mm_setzero_pd();
+    const simde__m128d maxv = simde_mm_set1_pd(255.0);
+    simde__m128i       i01  = simde_mm_cvttpd_epi32(simde_mm_min_pd(simde_mm_max_pd(v01, zero), maxv));
+    simde__m128i       i23  = simde_mm_cvttpd_epi32(simde_mm_min_pd(simde_mm_max_pd(v23, zero), maxv));
+
+    return simde_mm_packs_epi32(simde_mm_unpacklo_epi64(i01, i23), simde_mm_setzero_si128());
+}
+
+static inline simde__m128i
+mach64_rp_simd_dither_5(simde__m128i v, simde__m128i rk)
+{
+    simde__m128i m = simde_mm_add_epi16(simde_mm_sub_epi16(simde_mm_slli_epi16(v, 1), simde_mm_srli_epi16(v, 4)), simde_mm_srli_epi16(v, 7));
+
+    return simde_mm_min_epi16(simde_mm_srli_epi16(simde_mm_add_epi16(m, rk), 4), simde_mm_set1_epi16(31));
+}
+
+static inline simde__m128i
+mach64_rp_simd_dither_555g(simde__m128i v, simde__m128i rk)
+{
+    simde__m128i m   = simde_mm_add_epi16(simde_mm_sub_epi16(simde_mm_slli_epi16(v, 1), simde_mm_srli_epi16(v, 4)), simde_mm_srli_epi16(v, 7));
+    simde__m128i adj = simde_mm_and_si128(simde_mm_andnot_si128(simde_mm_srli_epi16(v, 6), simde_mm_srli_epi16(v, 3)), simde_mm_set1_epi16(1));
+
+    return simde_mm_min_epi16(simde_mm_srli_epi16(simde_mm_add_epi16(simde_mm_sub_epi16(m, adj), rk), 4), simde_mm_set1_epi16(31));
+}
+
+static inline simde__m128i
+mach64_rp_simd_dither_6(simde__m128i v, simde__m128i rk)
+{
+    simde__m128i m = simde_mm_add_epi16(simde_mm_sub_epi16(simde_mm_slli_epi16(v, 2), simde_mm_srli_epi16(v, 4)), simde_mm_srli_epi16(v, 6));
+
+    return simde_mm_min_epi16(simde_mm_srli_epi16(simde_mm_add_epi16(m, rk), 4), simde_mm_set1_epi16(63));
+}
+
 /* Every step-th span found, from the first-th on, knowing k of them. */
 __attribute__((always_inline)) static inline void
 mach64_rp_draw_spans_k(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
                        mach64_rp_agp_cache_t *agp, const unsigned k)
 {
-    const int bpp  = (k & RPK_SIMPLE) ? 2 : tri->dst.bpp;
-    const int z_on = (k & RPK_SIMPLE) ? !!(k & RPK_Z) : tri->z_on;
+    mach64_t *mach64  = ctx->mach64;
+    const int simple  = !!(k & RPK_SIMPLE);
+    const int bpp     = simple ? 2 : tri->dst.bpp;
+    const int z_on    = simple ? !!(k & RPK_Z) : tri->z_on;
+    const int textured = simple ? !!(k & RPK_TEX) : tri->textured;
+    const int format  = simple ? ((k & RPK_565) ? 4 : 3) : tri->dst.format;
+    const int use_agp = tri->tex_agp;
+    uint32_t  vsize   = mach64->vram_mask + 1;
+    uint8_t  *vram    = mach64->svga.vram;
+    const int opaque_fast = simple && (tri->alpha_fog == 0) && !(tri->alpha_tst & RP_ALPHA_TEST_EN) &&
+                            (!z_on || (tri->z_test == 1) || (tri->z_test == 2)) && tri->full_write_mask &&
+                            ((tri->pack_mode == 2) || (tri->pack_mode == 0)) &&
+                            (!textured || (!tri->tex.lod_used && !(tri->cntl & TEX_AMASK_AEN) &&
+                                           !tri->tex.active_map->tex.key_fcn && !tri->tex.active_map->vq &&
+                                           (tri->texture_light <= 1)));
+
+    if (use_agp)
+        mach64_rp_agp_sync(mach64, agp);
 
     for (int i = first; i < ctx->rp_nspans; i += step) {
-        const mach64_rp_span_t *sp     = &ctx->rp_spans[i];
-        uint32_t                addr   = tri->dst.base + (sp->y * tri->dst.pitch + sp->first) * bpp;
-        uint32_t                z_addr = z_on ? (tri->z_base + (sp->y * tri->z_pitch + sp->first) * 2) : 0;
+        const mach64_rp_span_t *sp       = &ctx->rp_spans[i];
+        uint32_t                len      = (uint32_t) (sp->last - sp->first + 1);
+        uint32_t                addr     = tri->dst.base + (sp->y * tri->dst.pitch + sp->first) * bpp;
+        uint32_t                z_addr   = z_on ? (tri->z_base + (sp->y * tri->z_pitch + sp->first) * 2) : 0;
+        uint32_t                dst_a    = addr & mach64->vram_mask;
+        uint32_t                z_a      = z_addr & mach64->vram_mask;
+        int                     nowrap   = ((dst_a + len * (uint32_t) bpp) <= vsize) && (!z_on || ((z_a + len * 2u) <= vsize));
+        uint8_t                *vram_dst = nowrap ? &vram[dst_a] : NULL;
+        uint16_t               *vram_z   = (nowrap && z_on) ? (uint16_t *) &vram[z_a] : NULL;
+        int                     wrote    = 0;
+        int                     x        = sp->first;
 
-        for (int x = sp->first; x <= sp->last; x++) {
-            mach64_rp_pixel(ctx, tri, dither, agp, x, sp->y, addr, z_addr, k);
-            addr += bpp;
-            if (z_on)
-                z_addr += 2;
+        if (opaque_fast && nowrap) {
+            double                 fy      = sp->y + 0.5;
+            double                 z_cy    = z_on ? (tri->pl[RPP_Z].c + tri->pl[RPP_Z].dy * fy) : 0.0;
+            double                 z_dx    = z_on ? tri->pl[RPP_Z].dx : 0.0;
+            double                 r_cy    = (!tri->shade_flat && tri->shade_rgb) ? (tri->pl[RPP_R].c + tri->pl[RPP_R].dy * fy) : 0.0;
+            double                 g_cy    = (!tri->shade_flat && tri->shade_rgb) ? (tri->pl[RPP_G].c + tri->pl[RPP_G].dy * fy) : 0.0;
+            double                 b_cy    = (!tri->shade_flat && tri->shade_rgb) ? (tri->pl[RPP_B].c + tri->pl[RPP_B].dy * fy) : 0.0;
+            double                 r_dx    = (!tri->shade_flat && tri->shade_rgb) ? tri->pl[RPP_R].dx : 0.0;
+            double                 g_dx    = (!tri->shade_flat && tri->shade_rgb) ? tri->pl[RPP_G].dx : 0.0;
+            double                 b_dx    = (!tri->shade_flat && tri->shade_rgb) ? tri->pl[RPP_B].dx : 0.0;
+            const mach64_rp_map_t *map     = textured ? tri->tex.active_map : NULL;
+            int                    bilin   = textured ? tri->tex.active_bilinear : 0;
+            double                 w_cy    = (textured && !tri->w_const) ? (tri->pl[RPP_W].c + tri->pl[RPP_W].dy * fy) : 0.0;
+            double                 w_dx    = (textured && !tri->w_const) ? tri->pl[RPP_W].dx : 0.0;
+            double                 s_cy    = textured ? (tri->pl[RPP_S].c + tri->pl[RPP_S].dy * fy) : 0.0;
+            double                 s_dx    = textured ? tri->pl[RPP_S].dx : 0.0;
+            double                 t_cy    = textured ? (tri->pl[RPP_T].c + tri->pl[RPP_T].dy * fy) : 0.0;
+            double                 t_dx    = textured ? tri->pl[RPP_T].dx : 0.0;
+            double                 fs_cy   = (textured && tri->w_const) ? (s_cy * tri->w_rcp * map->w) : 0.0;
+            double                 fs_dx   = (textured && tri->w_const) ? (s_dx * tri->w_rcp * map->w) : 0.0;
+            double                 ft_cy   = (textured && tri->w_const) ? (t_cy * tri->w_rcp * map->h) : 0.0;
+            double                 ft_dx   = (textured && tri->w_const) ? (t_dx * tri->w_rcp * map->h) : 0.0;
+            const uint8_t         *rk_row  = mach64_3d_dither_rank[sp->y & 7];
+
+            const int need_alpha = (format == 3) && !(textured && (tri->cntl & TEX_MAP_AEN));
+            const int simd_ok    = !need_alpha || tri->shade_flat;
+
+            if (simd_ok) {
+                const simde__m128i z_bias  = simde_mm_set1_epi16((int16_t) 0x8000);
+                const simde__m128i z_bias32 = simde_mm_set1_epi32(32768);
+                const simde__m128d zero_d  = simde_mm_setzero_pd();
+                const simde__m128d maxz_d  = simde_mm_set1_pd(65535.0);
+                const simde__m128d one_d   = simde_mm_set1_pd(1.0);
+                const simde__m128i ones_16 = simde_mm_set1_epi16(1);
+                const simde__m128i a1555   = simde_mm_set1_epi16((format == 3 && !textured && tri->flat_shade.a >= 128) ? (int16_t) 0x8000 : 0);
+
+                for (; (x + 3) <= sp->last; x += 4, vram_dst += 8) {
+                    simde__m128i pass     = simde_mm_set1_epi16(-1);
+                    simde__m128i src_z_16 = simde_mm_setzero_si128();
+                    int          zmask    = 0xff;
+                    simde__m128d fx01     = simde_mm_set_pd((double) x + 1.5, (double) x + 0.5);
+                    simde__m128d fx23     = simde_mm_set_pd((double) x + 3.5, (double) x + 2.5);
+
+                    if (z_on) {
+                        simde__m128d zv01 = simde_mm_min_pd(simde_mm_max_pd(simde_mm_add_pd(simde_mm_set1_pd(z_cy), simde_mm_mul_pd(simde_mm_set1_pd(z_dx), fx01)), zero_d), maxz_d);
+                        simde__m128d zv23 = simde_mm_min_pd(simde_mm_max_pd(simde_mm_add_pd(simde_mm_set1_pd(z_cy), simde_mm_mul_pd(simde_mm_set1_pd(z_dx), fx23)), zero_d), maxz_d);
+                        simde__m128i zi01 = simde_mm_sub_epi32(simde_mm_cvttpd_epi32(zv01), z_bias32);
+                        simde__m128i zi23 = simde_mm_sub_epi32(simde_mm_cvttpd_epi32(zv23), z_bias32);
+                        simde__m128i sz_b = simde_mm_packs_epi32(simde_mm_unpacklo_epi64(zi01, zi23), simde_mm_setzero_si128());
+                        simde__m128i dz_b = simde_mm_xor_si128(simde_mm_loadl_epi64((const simde__m128i *) vram_z), z_bias);
+
+                        src_z_16 = simde_mm_xor_si128(sz_b, z_bias);
+                        if (tri->z_test == 1)
+                            pass = simde_mm_cmplt_epi16(sz_b, dz_b);
+                        else
+                            pass = simde_mm_andnot_si128(simde_mm_cmpgt_epi16(sz_b, dz_b), simde_mm_set1_epi16(-1));
+                        zmask = simde_mm_movemask_epi8(pass) & 0xff;
+                        if (!zmask) {
+                            vram_z += 4;
+                            continue;
+                        }
+                    }
+
+                    simde__m128i rv, gv, bv, av1555 = a1555;
+                    if (textured) {
+                        double   fs[4], ft[4];
+                        uint32_t tex_c[4] = { 0, 0, 0, 0 };
+                        int      inh_dummy;
+
+                        if (tri->w_const) {
+                            simde_mm_storeu_pd(&fs[0], simde_mm_add_pd(simde_mm_set1_pd(fs_cy), simde_mm_mul_pd(simde_mm_set1_pd(fs_dx), fx01)));
+                            simde_mm_storeu_pd(&fs[2], simde_mm_add_pd(simde_mm_set1_pd(fs_cy), simde_mm_mul_pd(simde_mm_set1_pd(fs_dx), fx23)));
+                            simde_mm_storeu_pd(&ft[0], simde_mm_add_pd(simde_mm_set1_pd(ft_cy), simde_mm_mul_pd(simde_mm_set1_pd(ft_dx), fx01)));
+                            simde_mm_storeu_pd(&ft[2], simde_mm_add_pd(simde_mm_set1_pd(ft_cy), simde_mm_mul_pd(simde_mm_set1_pd(ft_dx), fx23)));
+                        } else {
+                            simde__m128d w01  = simde_mm_add_pd(simde_mm_set1_pd(w_cy), simde_mm_mul_pd(simde_mm_set1_pd(w_dx), fx01));
+                            simde__m128d w23  = simde_mm_add_pd(simde_mm_set1_pd(w_cy), simde_mm_mul_pd(simde_mm_set1_pd(w_dx), fx23));
+                            simde__m128d nz01 = simde_mm_cmpneq_pd(w01, zero_d);
+                            simde__m128d nz23 = simde_mm_cmpneq_pd(w23, zero_d);
+                            simde__m128d rw01 = simde_mm_or_pd(simde_mm_and_pd(nz01, simde_mm_div_pd(one_d, w01)), simde_mm_andnot_pd(nz01, one_d));
+                            simde__m128d rw23 = simde_mm_or_pd(simde_mm_and_pd(nz23, simde_mm_div_pd(one_d, w23)), simde_mm_andnot_pd(nz23, one_d));
+                            simde__m128d mw   = simde_mm_set1_pd((double) map->w);
+                            simde__m128d mh   = simde_mm_set1_pd((double) map->h);
+
+                            simde_mm_storeu_pd(&fs[0], simde_mm_mul_pd(simde_mm_mul_pd(simde_mm_add_pd(simde_mm_set1_pd(s_cy), simde_mm_mul_pd(simde_mm_set1_pd(s_dx), fx01)), rw01), mw));
+                            simde_mm_storeu_pd(&fs[2], simde_mm_mul_pd(simde_mm_mul_pd(simde_mm_add_pd(simde_mm_set1_pd(s_cy), simde_mm_mul_pd(simde_mm_set1_pd(s_dx), fx23)), rw23), mw));
+                            simde_mm_storeu_pd(&ft[0], simde_mm_mul_pd(simde_mm_mul_pd(simde_mm_add_pd(simde_mm_set1_pd(t_cy), simde_mm_mul_pd(simde_mm_set1_pd(t_dx), fx01)), rw01), mh));
+                            simde_mm_storeu_pd(&ft[2], simde_mm_mul_pd(simde_mm_mul_pd(simde_mm_add_pd(simde_mm_set1_pd(t_cy), simde_mm_mul_pd(simde_mm_set1_pd(t_dx), fx23)), rw23), mh));
+                        }
+                        for (int j = 0; j < 4; j++) {
+                            if (zmask & (3 << (j * 2)))
+                                tex_c[j] = mach64_rp_sample_map_scaled(ctx, agp, map, bilin, fs[j], ft[j], &inh_dummy);
+                        }
+                        rv = simde_mm_set_epi16(0, 0, 0, 0, (tex_c[3] >> 16) & 0xff, (tex_c[2] >> 16) & 0xff, (tex_c[1] >> 16) & 0xff, (tex_c[0] >> 16) & 0xff);
+                        gv = simde_mm_set_epi16(0, 0, 0, 0, (tex_c[3] >> 8) & 0xff, (tex_c[2] >> 8) & 0xff, (tex_c[1] >> 8) & 0xff, (tex_c[0] >> 8) & 0xff);
+                        bv = simde_mm_set_epi16(0, 0, 0, 0, tex_c[3] & 0xff, tex_c[2] & 0xff, tex_c[1] & 0xff, tex_c[0] & 0xff);
+                        if (format == 3) {
+                            if (tri->cntl & TEX_MAP_AEN) {
+                                av1555 = simde_mm_set_epi16(0, 0, 0, 0, ((tex_c[3] >> 24) >= 128) ? (int16_t) 0x8000 : 0,
+                                                            ((tex_c[2] >> 24) >= 128) ? (int16_t) 0x8000 : 0,
+                                                            ((tex_c[1] >> 24) >= 128) ? (int16_t) 0x8000 : 0,
+                                                            ((tex_c[0] >> 24) >= 128) ? (int16_t) 0x8000 : 0);
+                            } else
+                                av1555 = simde_mm_set1_epi16((tri->flat_shade.a >= 128) ? (int16_t) 0x8000 : 0);
+                        }
+                        if (tri->texture_light == 1) {
+                            simde__m128i sr, sg, sb;
+
+                            if (tri->shade_flat || !tri->shade_rgb) {
+                                sr = simde_mm_set1_epi16((int16_t) tri->flat_shade.r);
+                                sg = simde_mm_set1_epi16((int16_t) tri->flat_shade.g);
+                                sb = simde_mm_set1_epi16((int16_t) tri->flat_shade.b);
+                            } else {
+                                sr = mach64_rp_simd_clamp_u8_4(simde_mm_add_pd(simde_mm_set1_pd(r_cy), simde_mm_mul_pd(simde_mm_set1_pd(r_dx), fx01)),
+                                                               simde_mm_add_pd(simde_mm_set1_pd(r_cy), simde_mm_mul_pd(simde_mm_set1_pd(r_dx), fx23)));
+                                sg = mach64_rp_simd_clamp_u8_4(simde_mm_add_pd(simde_mm_set1_pd(g_cy), simde_mm_mul_pd(simde_mm_set1_pd(g_dx), fx01)),
+                                                               simde_mm_add_pd(simde_mm_set1_pd(g_cy), simde_mm_mul_pd(simde_mm_set1_pd(g_dx), fx23)));
+                                sb = mach64_rp_simd_clamp_u8_4(simde_mm_add_pd(simde_mm_set1_pd(b_cy), simde_mm_mul_pd(simde_mm_set1_pd(b_dx), fx01)),
+                                                               simde_mm_add_pd(simde_mm_set1_pd(b_cy), simde_mm_mul_pd(simde_mm_set1_pd(b_dx), fx23)));
+                            }
+                            simde__m128i pr = simde_mm_add_epi16(simde_mm_mullo_epi16(rv, sr), ones_16);
+                            simde__m128i pg = simde_mm_add_epi16(simde_mm_mullo_epi16(gv, sg), ones_16);
+                            simde__m128i pb = simde_mm_add_epi16(simde_mm_mullo_epi16(bv, sb), ones_16);
+                            rv = simde_mm_srli_epi16(simde_mm_add_epi16(pr, simde_mm_srli_epi16(pr, 8)), 8);
+                            gv = simde_mm_srli_epi16(simde_mm_add_epi16(pg, simde_mm_srli_epi16(pg, 8)), 8);
+                            bv = simde_mm_srli_epi16(simde_mm_add_epi16(pb, simde_mm_srli_epi16(pb, 8)), 8);
+                        }
+                    } else {
+                        if (tri->shade_flat || !tri->shade_rgb) {
+                            rv = simde_mm_set1_epi16((int16_t) tri->flat_shade.r);
+                            gv = simde_mm_set1_epi16((int16_t) tri->flat_shade.g);
+                            bv = simde_mm_set1_epi16((int16_t) tri->flat_shade.b);
+                        } else {
+                            rv = mach64_rp_simd_clamp_u8_4(simde_mm_add_pd(simde_mm_set1_pd(r_cy), simde_mm_mul_pd(simde_mm_set1_pd(r_dx), fx01)),
+                                                           simde_mm_add_pd(simde_mm_set1_pd(r_cy), simde_mm_mul_pd(simde_mm_set1_pd(r_dx), fx23)));
+                            gv = mach64_rp_simd_clamp_u8_4(simde_mm_add_pd(simde_mm_set1_pd(g_cy), simde_mm_mul_pd(simde_mm_set1_pd(g_dx), fx01)),
+                                                           simde_mm_add_pd(simde_mm_set1_pd(g_cy), simde_mm_mul_pd(simde_mm_set1_pd(g_dx), fx23)));
+                            bv = mach64_rp_simd_clamp_u8_4(simde_mm_add_pd(simde_mm_set1_pd(b_cy), simde_mm_mul_pd(simde_mm_set1_pd(b_dx), fx01)),
+                                                           simde_mm_add_pd(simde_mm_set1_pd(b_cy), simde_mm_mul_pd(simde_mm_set1_pd(b_dx), fx23)));
+                        }
+                    }
+
+                    simde__m128i packed;
+                    if (tri->pack_mode == 2) {
+                        simde__m128i rk = simde_mm_set_epi16(0, 0, 0, 0, rk_row[(x + 3) & 3], rk_row[(x + 2) & 3], rk_row[(x + 1) & 3], rk_row[x & 3]);
+                        simde__m128i qr = mach64_rp_simd_dither_5(rv, rk);
+                        simde__m128i qb = mach64_rp_simd_dither_5(bv, rk);
+
+                        if (format == 4) {
+                            simde__m128i qg = mach64_rp_simd_dither_6(gv, rk);
+                            packed          = simde_mm_or_si128(simde_mm_slli_epi16(qr, 11), simde_mm_or_si128(simde_mm_slli_epi16(qg, 5), qb));
+                        } else {
+                            simde__m128i qg = mach64_rp_simd_dither_555g(gv, rk);
+                            packed          = simde_mm_or_si128(av1555, simde_mm_or_si128(simde_mm_slli_epi16(qr, 10), simde_mm_or_si128(simde_mm_slli_epi16(qg, 5), qb)));
+                        }
+                    } else {
+                        simde__m128i qr = simde_mm_srli_epi16(rv, 3);
+                        simde__m128i qb = simde_mm_srli_epi16(bv, 3);
+
+                        if (format == 4) {
+                            simde__m128i qg = simde_mm_srli_epi16(gv, 2);
+                            packed          = simde_mm_or_si128(simde_mm_slli_epi16(qr, 11), simde_mm_or_si128(simde_mm_slli_epi16(qg, 5), qb));
+                        } else {
+                            simde__m128i qg = simde_mm_srli_epi16(gv, 3);
+                            packed          = simde_mm_or_si128(av1555, simde_mm_or_si128(simde_mm_slli_epi16(qr, 10), simde_mm_or_si128(simde_mm_slli_epi16(qg, 5), qb)));
+                        }
+                    }
+
+                    if (!z_on || (zmask == 0xff)) {
+                        simde_mm_storel_epi64((simde__m128i *) vram_dst, packed);
+                        if (z_on && tri->z_write)
+                            simde_mm_storel_epi64((simde__m128i *) vram_z, src_z_16);
+                    } else {
+                        simde__m128i old_dst = simde_mm_loadl_epi64((const simde__m128i *) vram_dst);
+                        simde__m128i new_dst = simde_mm_or_si128(simde_mm_and_si128(pass, packed), simde_mm_andnot_si128(pass, old_dst));
+
+                        simde_mm_storel_epi64((simde__m128i *) vram_dst, new_dst);
+                        if (tri->z_write) {
+                            simde__m128i old_z = simde_mm_loadl_epi64((const simde__m128i *) vram_z);
+                            simde__m128i new_z = simde_mm_or_si128(simde_mm_and_si128(pass, src_z_16), simde_mm_andnot_si128(pass, old_z));
+
+                            simde_mm_storel_epi64((simde__m128i *) vram_z, new_z);
+                        }
+                    }
+                    wrote = 1;
+                    if (z_on)
+                        vram_z += 4;
+                }
+            }
+            for (; x <= sp->last; x++, vram_dst += 2) {
+                double   fx    = x + 0.5;
+                uint16_t depth = 0;
+
+                if (z_on) {
+                    double   z     = z_cy + z_dx * fx;
+                    uint16_t dst_z = *vram_z;
+
+                    depth = (z <= 0.0) ? 0 : ((z >= 65535.0) ? 65535 : (uint16_t) z);
+                    if ((tri->z_test == 1) ? !(depth < dst_z) : !(depth <= dst_z)) {
+                        vram_z++;
+                        continue;
+                    }
+                }
+
+                rgba_t src = tri->flat_shade;
+                if (!tri->shade_flat) {
+                    if (tri->shade_rgb) {
+                        double rv = r_cy + r_dx * fx;
+                        double gv = g_cy + g_dx * fx;
+                        double bv = b_cy + b_dx * fx;
+
+                        src.r = !(rv >= 0.0) ? 0 : ((rv >= 255.0) ? 255 : (int) rv);
+                        src.g = !(gv >= 0.0) ? 0 : ((gv >= 255.0) ? 255 : (int) gv);
+                        src.b = !(bv >= 0.0) ? 0 : ((bv >= 255.0) ? 255 : (int) bv);
+                    }
+                    if ((format == 3) && !(textured && (tri->cntl & TEX_MAP_AEN)))
+                        src.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
+                }
+
+                if (textured) {
+                    double   fs, ft;
+                    int      inh_dummy;
+                    uint32_t argb;
+                    rgba_t   texel;
+
+                    if (tri->w_const) {
+                        fs = fs_cy + fs_dx * fx;
+                        ft = ft_cy + ft_dx * fx;
+                    } else {
+                        double w  = w_cy + w_dx * fx;
+                        double rw = (w != 0.0) ? (1.0 / w) : 1.0;
+
+                        fs = (s_cy + s_dx * fx) * rw * map->w;
+                        ft = (t_cy + t_dx * fx) * rw * map->h;
+                    }
+                    argb  = mach64_rp_sample_map_scaled(ctx, agp, map, bilin, fs, ft, &inh_dummy);
+                    texel = mach64_3d_argb_rgba(argb);
+                    if (!(tri->cntl & TEX_MAP_AEN))
+                        texel.a = src.a;
+                    if (tri->texture_light == 1) {
+                        src.r = mach64_3d_div255(texel.r * src.r);
+                        src.g = mach64_3d_div255(texel.g * src.g);
+                        src.b = mach64_3d_div255(texel.b * src.b);
+                        src.a = (tri->cntl & TEX_MAP_AEN) ? mach64_3d_div255(texel.a * src.a) : src.a;
+                    } else
+                        src = texel;
+                }
+
+                uint32_t packed;
+                if (tri->pack_mode == 2) {
+                    unsigned rk = rk_row[x & 3];
+
+                    if (format == 4)
+                        packed = mach64_rp_dither_r5_565[rk][src.r] | mach64_rp_dither_g6_565[rk][src.g] | mach64_rp_dither_b5[rk][src.b];
+                    else
+                        packed = ((src.a >= 128) ? 0x8000u : 0u) | mach64_rp_dither_r5_555[rk][src.r] |
+                                 mach64_rp_dither_g5_555[rk][src.g] | mach64_rp_dither_b5[rk][src.b];
+                } else {
+                    if (format == 4)
+                        packed = ((uint32_t) (src.r >> 3) << 11) | ((uint32_t) (src.g >> 2) << 5) | (uint32_t) (src.b >> 3);
+                    else
+                        packed = ((src.a >= 128) ? 0x8000u : 0u) | ((uint32_t) (src.r >> 3) << 10) |
+                                 ((uint32_t) (src.g >> 3) << 5) | (uint32_t) (src.b >> 3);
+                }
+                *(uint16_t *) vram_dst = (uint16_t) packed;
+                if (z_on) {
+                    if (tri->z_write)
+                        *vram_z = depth;
+                    vram_z++;
+                }
+                wrote = 1;
+            }
+        } else {
+            for (; x <= sp->last; x++) {
+                mach64_rp_pixel(ctx, tri, dither, agp, x, sp->y, addr, z_addr, vram_dst, vram_z, &wrote, k);
+                addr += bpp;
+                if (vram_dst)
+                    vram_dst += bpp;
+                if (z_on) {
+                    z_addr += 2;
+                    if (vram_z)
+                        vram_z++;
+                }
+            }
+        }
+        if (wrote) {
+            mach64_3d_vram_mark_range(mach64, dst_a, len * (uint32_t) bpp);
+            if (z_on && tri->z_write)
+                mach64_3d_vram_mark_range(mach64, z_a, len * 2u);
         }
     }
 }
@@ -5597,6 +6316,39 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     cross = (qx[0] - qx[2]) * (qy[1] - qy[2]) - (qy[0] - qy[2]) * (qx[1] - qx[2]);
     if (!cross)
         return;
+
+    {
+        int64_t qx_min = qx[0], qx_max = qx[0];
+        int64_t qy_min = qy[0], qy_max = qy[0];
+
+        if (qx[1] < qx_min) qx_min = qx[1];
+        if (qx[2] < qx_min) qx_min = qx[2];
+        if (qx[1] > qx_max) qx_max = qx[1];
+        if (qx[2] > qx_max) qx_max = qx[2];
+        if (qy[1] < qy_min) qy_min = qy[1];
+        if (qy[2] < qy_min) qy_min = qy[2];
+        if (qy[1] > qy_max) qy_max = qy[1];
+        if (qy[2] > qy_max) qy_max = qy[2];
+
+        x0 = (int) (qx_min >> 2);
+        x1 = (int) ((qx_max + 3) >> 2);
+        y0 = (int) (qy_min >> 2);
+        y1 = (int) ((qy_max + 3) >> 2);
+        if (x0 < tri.dst.left)
+            x0 = tri.dst.left;
+        if (x1 > tri.dst.right)
+            x1 = tri.dst.right;
+        if (y0 < tri.dst.top)
+            y0 = tri.dst.top;
+        if (y1 > tri.dst.bottom)
+            y1 = tri.dst.bottom;
+        /* Rows past the end of video memory would only wrap over it again. */
+        if ((y1 - y0) > (int) ((mach64->vram_mask + 1) / (uint32_t) (tri.dst.pitch * tri.dst.bpp)))
+            y1 = y0 + (int) ((mach64->vram_mask + 1) / (uint32_t) (tri.dst.pitch * tri.dst.bpp));
+        if ((x0 > x1) || (y0 > y1))
+            return;
+    }
+
     /* ooa is 1/area in pixels; with the winding it has the sign of cross. */
     if ((cross > 0) != (ooa > 0.0))
         mach64_log("Rage Pro setup: ONE_OVER_AREA %g against a doubled area of %g\n", ooa, cross / 16.0);
@@ -5618,19 +6370,79 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     tri.fog.a     = 255;
     tri.dst_compare      = mach64_3d_destination_compare_enabled(mach64->clr_cmp_cntl);
     tri.dst_compare_mask = (tri.dst.bpp == 1) ? 0xff : ((tri.dst.bpp == 2) ? 0xffff : 0xffffffff);
+    tri.full_write_mask  = ((mach64->write_mask & tri.dst_compare_mask) == tri.dst_compare_mask);
     tri.dp_constant      = (((mach64->dp_src >> 16) & 3) == MONO_SRC_1) &&
                       ((((mach64->dp_src >> 8) & 7) == SRC_BG) || (((mach64->dp_src >> 8) & 7) == SRC_FG));
     tri.texture_light = (tri.cntl >> TEX_LIGHT_FCN) & 3;
+    if ((tri.cntl & (DITHER_EN | SCALE_DITHER)) == (DITHER_EN | SCALE_DITHER))
+        tri.pack_mode = mach64->ragepro ? 2 : 1;
+    else if (tri.cntl & DITHER_EN) {
+#ifdef MACH64_RAGEPRO_ERROR_DIFFUSION
+        tri.pack_mode = 3;
+#else
+        tri.pack_mode = (tri.cntl & ROUND_EN) ? 1 : 0;
+#endif
+    } else
+        tri.pack_mode = (tri.cntl & ROUND_EN) ? 1 : 0;
+
     tri.composite = 0;
+    tri.tex_agp   = 0;
     if (tri.textured) {
-        if (!mach64_rp_texture_init(ctx, &tri.tex))
-            return;
-        tri.composite = (tri.tex_cntl & RP_TEXTURE_COMPOSITE) && mach64_rp_composite_init(ctx, &tri.tex2);
-        if (tri.tex_cntl & RP_TEX_SRC_AGP) {
-            memset(ctx->agp.tag, 0, sizeof(ctx->agp.tag));
-            for (int i = 0; i < (MACH64_3D_THREADS - 1); i++)
-                memset(ctx->helpers[i].agp.tag, 0, sizeof(ctx->helpers[i].agp.tag));
+        mach64_rp_tex_cache_t *tc       = (mach64_rp_tex_cache_t *) ctx->rp_tex_cache;
+        uint32_t               tsp      = ctx->regs[TEX_SIZE_PITCH >> 2];
+        uint32_t               pri_cntl = tri.cntl & (SCALE_PIX_EXPAND | MIP_MAP_DISABLE | BILINEAR_TEX_EN | (3u << TEX_BLEND_FCN));
+
+        if (tc && tc->pri_valid && (tc->pri_cntl == pri_cntl) && (tc->pri_tex_cntl == tri.tex_cntl) &&
+            (tc->pri_tsp == tsp) && (tc->pri_dp_pix == mach64->dp_pix_width) &&
+            (tc->pri_clr_cntl == mach64->clr_cmp_cntl) && (tc->pri_clr_clr == mach64->clr_cmp_clr) &&
+            (tc->pri_clr_mask == mach64->clr_cmp_mask) &&
+            (memcmp(tc->pri_off, &ctx->regs[TEX_0_OFF >> 2], sizeof(tc->pri_off)) == 0)) {
+            tri.tex            = tc->pri_tx;
+            tri.tex.active_map = &tri.tex.maps[0];
+        } else {
+            if (!mach64_rp_texture_init(ctx, &tri.tex))
+                return;
+            if (tc) {
+                tc->pri_valid    = 1;
+                tc->pri_cntl     = pri_cntl;
+                tc->pri_tex_cntl = tri.tex_cntl;
+                tc->pri_tsp      = tsp;
+                tc->pri_dp_pix   = mach64->dp_pix_width;
+                tc->pri_clr_cntl = mach64->clr_cmp_cntl;
+                tc->pri_clr_clr  = mach64->clr_cmp_clr;
+                tc->pri_clr_mask = mach64->clr_cmp_mask;
+                memcpy(tc->pri_off, &ctx->regs[TEX_0_OFF >> 2], sizeof(tc->pri_off));
+                tc->pri_tx = tri.tex;
+            }
         }
+        if (tri.tex_cntl & RP_TEXTURE_COMPOSITE) {
+            uint32_t mip_dis  = tri.cntl & MIP_MAP_DISABLE;
+            uint32_t comp_off = ctx->regs[RP_SECONDARY_TEX_OFF >> 2];
+
+            if (tc && tc->comp_valid && (tc->comp_mip_dis == mip_dis) && (tc->comp_tex_cntl == tri.tex_cntl) &&
+                (tc->comp_tsp == tsp) && (tc->comp_dp_pix == mach64->dp_pix_width) &&
+                (tc->comp_clr_cntl == mach64->clr_cmp_cntl) && (tc->comp_clr_clr == mach64->clr_cmp_clr) &&
+                (tc->comp_clr_mask == mach64->clr_cmp_mask) && (tc->comp_off == comp_off)) {
+                tri.tex2            = tc->comp_tx;
+                tri.tex2.active_map = &tri.tex2.maps[0];
+                tri.composite       = 1;
+            } else if (mach64_rp_composite_init(ctx, &tri.tex2)) {
+                tri.composite = 1;
+                if (tc) {
+                    tc->comp_valid    = 1;
+                    tc->comp_mip_dis  = mip_dis;
+                    tc->comp_tex_cntl = tri.tex_cntl;
+                    tc->comp_tsp      = tsp;
+                    tc->comp_dp_pix   = mach64->dp_pix_width;
+                    tc->comp_clr_cntl = mach64->clr_cmp_cntl;
+                    tc->comp_clr_clr  = mach64->clr_cmp_clr;
+                    tc->comp_clr_mask = mach64->clr_cmp_mask;
+                    tc->comp_off      = comp_off;
+                    tc->comp_tx       = tri.tex2;
+                }
+            }
+        }
+        tri.tex_agp = !!(tri.tex_cntl & RP_TEX_SRC_AGP);
     }
 
     /* The vertices' values; FLAT_SHADE_VERTEX_n gives every vertex the
@@ -5642,6 +6454,8 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     tri.shade_rgb = !tri.textured || (tri.texture_light == 1) || (tri.texture_light == 2) ||
                     (tri.composite && (((tri.tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) >= 2));
     tri.secondary_stw = tri.composite && (tri.tex_cntl & RP_SECONDARY_STW);
+    double raw_s[3] = { 0.0, 0.0, 0.0 };
+    double raw_t[3] = { 0.0, 0.0, 0.0 };
     for (int i = 0; i < 3; i++) {
         int      ci   = flat ? (flat - 1) : i;
         uint32_t argb = ctx->vtx[ci][RP_ARGB];
@@ -5667,9 +6481,11 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
             s = 0.0;
         if (!isfinite(t))
             t = 0.0;
-        a[RPP_W][i]   = w;
-        a[RPP_S][i]   = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? s : (s * w);
-        a[RPP_T][i]   = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? t : (t * w);
+        raw_s[i]    = s;
+        raw_t[i]    = t;
+        a[RPP_W][i] = w;
+        a[RPP_S][i] = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? s : (s * w);
+        a[RPP_T][i] = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? t : (t * w);
         /* The composite texture's own S, T and W with SECONDARY_STW, else
            the primary's. */
         if (tri.secondary_stw) {
@@ -5702,11 +6518,18 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
         planes |= (1u << RPP_W) | (1u << RPP_S) | (1u << RPP_T);
     if (tri.secondary_stw)
         planes |= (1u << RPP_W2) | (1u << RPP_S2) | (1u << RPP_T2);
-    while (planes) {
-        unsigned p = __builtin_ctz(planes);
+    {
+        double dx0 = (vy[1] - vy[2]) * ooa;
+        double dx1 = (vy[0] - vy[2]) * ooa;
+        double dy0 = (vx[0] - vx[2]) * ooa;
+        double dy1 = (vx[1] - vx[2]) * ooa;
 
-        mach64_rp_plane(&tri.pl[p], vx, vy, a[p][0], a[p][1], a[p][2], ooa);
-        planes &= planes - 1;
+        while (planes) {
+            unsigned p = __builtin_ctz(planes);
+
+            mach64_rp_plane_factors(&tri.pl[p], vx, vy, a[p][0], a[p][1], a[p][2], dx0, dx1, dy0, dy1);
+            planes &= planes - 1;
+        }
     }
     tri.w_const = tri.textured && (tri.pl[RPP_W].dx == 0.0) && (tri.pl[RPP_W].dy == 0.0);
     if (tri.w_const) {
@@ -5722,24 +6545,32 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     if (tri.textured) {
         mach64_rp_plane_t pu;
         mach64_rp_plane_t pv;
-        double            wmax = 0.0;
+        double            wmax = a[RPP_W][0];
+        double            wmin = a[RPP_W][0];
         double            step;
         double            rcp = ooa;
 
-        for (int i = 0; i < 3; i++) {
-            double w = a[RPP_W][i];
-
-            wmax = (w > wmax) ? w : wmax;
-        }
+        if (a[RPP_W][1] > wmax) wmax = a[RPP_W][1];
+        if (a[RPP_W][2] > wmax) wmax = a[RPP_W][2];
+        if (a[RPP_W][1] < wmin) wmin = a[RPP_W][1];
+        if (a[RPP_W][2] < wmin) wmin = a[RPP_W][2];
         if (wmax <= 0.0)
             wmax = 1.0;
         {
             double u[3];
             double v[3];
+            double dx0, dx1, dy0, dy1;
 
-            for (int i = 0; i < 3; i++) {
-                u[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_S][i] / a[RPP_W][i]) : 0.0;
-                v[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_T][i] / a[RPP_W][i]) : 0.0;
+            if (tri.tex_cntl & RP_TEX_ST_DIRECT) {
+                for (int i = 0; i < 3; i++) {
+                    u[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_S][i] / a[RPP_W][i]) : 0.0;
+                    v[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_T][i] / a[RPP_W][i]) : 0.0;
+                }
+            } else {
+                for (int i = 0; i < 3; i++) {
+                    u[i] = (a[RPP_W][i] != 0.0) ? raw_s[i] : 0.0;
+                    v[i] = (a[RPP_W][i] != 0.0) ? raw_t[i] : 0.0;
+                }
             }
             /* Inferred approximation: the card's gradients seem to come from a
                reciprocal a little below the true one. A triangle whose step is
@@ -5752,14 +6583,51 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
                are still not reproduced (known divergences in the tests). */
             if (fabs(rcp * (cross / 16.0)) > 1.0)
                 rcp = (double) nextafterf((float) rcp, 0.0f);
-            mach64_rp_plane(&pu, vx, vy, u[0], u[1], u[2], rcp);
-            mach64_rp_plane(&pv, vx, vy, v[0], v[1], v[2], rcp);
+            dx0 = (vy[1] - vy[2]) * rcp;
+            dx1 = (vy[0] - vy[2]) * rcp;
+            dy0 = (vx[0] - vx[2]) * rcp;
+            dy1 = (vx[1] - vx[2]) * rcp;
+            mach64_rp_plane_factors(&pu, vx, vy, u[0], u[1], u[2], dx0, dx1, dy0, dy1);
+            mach64_rp_plane_factors(&pv, vx, vy, v[0], v[1], v[2], dx0, dx1, dy0, dy1);
         }
         step = fmax(fmax(fabs(pu.dx), fabs(pu.dy)) * tri.tex.maps[0].w, fmax(fabs(pv.dx), fabs(pv.dy)) * tri.tex.maps[0].h) * wmax;
         int32_t lmi = mach64_rp_log_max_inc(step);
 
         tri.texture_lmi = lmi - 4096 * tri.tex.bias16;
         ctx->regs[RP_LOG_MAX_INC >> 2] = ((uint32_t) (lmi >> 16) & 0xff) << 16 | (((uint32_t) lmi >> 12) & 15) << 12;
+
+        if (tri.tex.lod_used && (wmin > 0.0)) {
+            int32_t lmi_min = tri.texture_lmi + mach64_rp_w_term(wmax);
+            int32_t lmi_max = tri.texture_lmi + mach64_rp_w_term(wmin);
+            int     top     = tri.tex.levels - 1;
+
+            if ((lmi_max <= 0) || !top) {
+                tri.tex.lod_used        = 0;
+                tri.tex.active_map      = &tri.tex.maps[0];
+                tri.tex.active_bilinear = tri.tex.bilinear_mag;
+            } else if (lmi_min > 0) {
+                int last = ((tri.tex.blend_fcn >= 2) && (top >= 2)) ? (top - 2) : top;
+
+                if ((tri.tex.blend_fcn != 1) && (tri.tex.blend_fcn != 3)) {
+                    int lv_lo = (lmi_min >> 16) + !!(lmi_min & 0xffff);
+                    int lv_hi = (lmi_max >> 16) + !!(lmi_max & 0xffff);
+
+                    if (lv_lo > last)
+                        lv_lo = last;
+                    if (lv_hi > last)
+                        lv_hi = last;
+                    if (lv_lo == lv_hi) {
+                        tri.tex.lod_used        = 0;
+                        tri.tex.active_map      = &tri.tex.maps[lv_lo];
+                        tri.tex.active_bilinear = (tri.tex.blend_fcn == 2);
+                    }
+                } else if ((lmi_min >> 16) >= last) {
+                    tri.tex.lod_used        = 0;
+                    tri.tex.active_map      = &tri.tex.maps[last];
+                    tri.tex.active_bilinear = (tri.tex.blend_fcn == 3);
+                }
+            }
+        }
     }
 
     /* Edges as functions of quarter-pixel coordinates, positive inside. */
@@ -5780,24 +6648,6 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
         ec[e]   = -(nx[e] * qx[i] + ny[e] * qy[i]);
         bias[e] = mach64_rp_edge_top_left(nx[e], ny[e]) ? 0 : -1;
     }
-
-    x0 = (int) floor(fmin(vx[0], fmin(vx[1], vx[2])));
-    x1 = (int) ceil(fmax(vx[0], fmax(vx[1], vx[2])));
-    y0 = (int) floor(fmin(vy[0], fmin(vy[1], vy[2])));
-    y1 = (int) ceil(fmax(vy[0], fmax(vy[1], vy[2])));
-    if (x0 < tri.dst.left)
-        x0 = tri.dst.left;
-    if (x1 > tri.dst.right)
-        x1 = tri.dst.right;
-    if (y0 < tri.dst.top)
-        y0 = tri.dst.top;
-    if (y1 > tri.dst.bottom)
-        y1 = tri.dst.bottom;
-    /* Rows past the end of video memory would only wrap over it again. */
-    if ((y1 - y0) > (int) ((mach64->vram_mask + 1) / (uint32_t) (tri.dst.pitch * tri.dst.bpp)))
-        y1 = y0 + (int) ((mach64->vram_mask + 1) / (uint32_t) (tri.dst.pitch * tri.dst.bpp));
-    if ((x0 > x1) || (y0 > y1))
-        return;
 
     /* At the first pixel centre of row y0, edge k is in where
        (4 nx) x + nx (2) + ny (4y0 + 2) + ec + bias >= 0. */
@@ -5984,8 +6834,12 @@ mach64_3d_init(mach64_t *mach64)
     mach64_3d_expand_table_init();
     mach64_3d_dither_table_init();
     mach64_rp_tile_init();
-    ctx->mach64  = mach64;
-    ctx->threads = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
+    ctx->mach64       = mach64;
+    ctx->threads      = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
+    ctx->rp_tex_cache = calloc(1, sizeof(mach64_rp_tex_cache_t));
+    ctx->agp.gen      = ~0u;
+    for (int i = 0; i < (MACH64_3D_THREADS - 1); i++)
+        ctx->helpers[i].agp.gen = ~0u;
     return ctx;
 }
 
@@ -5993,5 +6847,6 @@ void
 mach64_3d_close(mach64_3d_t *ctx)
 {
     mach64_3d_helpers_close(ctx);
+    free(ctx->rp_tex_cache);
     free(ctx);
 }

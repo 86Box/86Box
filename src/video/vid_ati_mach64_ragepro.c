@@ -412,6 +412,7 @@ mach64_ragepro_gui_master(mach64_t *mach64)
     int      limit = size / 16;
 
     mach64->rp.running = 1;
+    atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
     for (int n = 0; n < limit; n++) {
         uint32_t count;
         uint32_t target;
@@ -471,18 +472,48 @@ mach64_ragepro_bm_copy(mach64_t *mach64, int to_host)
         return;
     }
     if (to_host) {
+        uint32_t start = fb & mach64->vram_mask;
+        uint32_t first = mach64->vram_mask - start + 1;
+
         sys = (sys & ~3) | (fb & 3);
-        for (uint32_t i = 0; i < count; i++)
-            buf[i] = svga->vram[(fb + i) & mach64->vram_mask];
+        if (count <= first)
+            memcpy(buf, &svga->vram[start], count);
+        else {
+            memcpy(buf, &svga->vram[start], first);
+            memcpy(buf + first, &svga->vram[0], count - first);
+        }
         dma_bm_write(sys, buf, count, 1);
     } else {
-        fb = (fb & ~3) | (sys & 3);
-        dma_bm_read(sys, buf, count, 1);
-        for (uint32_t i = 0; i < count; i++) {
-            uint32_t a = (fb + i) & mach64->vram_mask;
+        uint32_t start = ((fb & ~3) | (sys & 3)) & mach64->vram_mask;
+        uint32_t first = mach64->vram_mask - start + 1;
+        uint8_t  stamp = svga->monitor->mon_changeframecount;
 
-            svga->vram[a]              = buf[i];
-            svga->changedvram[a >> 12] = svga->monitor->mon_changeframecount;
+        dma_bm_read(sys, buf, count, 1);
+        if (count <= first) {
+            uint32_t p0 = start >> 12;
+            uint32_t p1 = (start + count - 1) >> 12;
+
+            memcpy(&svga->vram[start], buf, count);
+            for (uint32_t p = p0; p <= p1; p++) {
+                if (svga->changedvram[p] != stamp)
+                    svga->changedvram[p] = stamp;
+            }
+        } else {
+            uint32_t rem = count - first;
+            uint32_t p0  = start >> 12;
+            uint32_t p1  = mach64->vram_mask >> 12;
+            uint32_t p2  = (rem - 1) >> 12;
+
+            memcpy(&svga->vram[start], buf, first);
+            memcpy(&svga->vram[0], buf + first, rem);
+            for (uint32_t p = p0; p <= p1; p++) {
+                if (svga->changedvram[p] != stamp)
+                    svga->changedvram[p] = stamp;
+            }
+            for (uint32_t p = 0; p <= p2; p++) {
+                if (svga->changedvram[p] != stamp)
+                    svga->changedvram[p] = stamp;
+            }
         }
     }
 }
@@ -501,6 +532,7 @@ mach64_ragepro_system_master(mach64_t *mach64, uint32_t table)
 
     mach64_wait_fifo_idle(mach64);
     mach64->rp.running = 1;
+    atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
     for (int n = 0; n < BM_MAX_DESCRIPTORS; n++) {
         mach64_ragepro_bm_descriptor(mach64, addr);
         addr += 16;
@@ -533,6 +565,7 @@ mach64_ragepro_gui_copy(mach64_t *mach64, int to_host)
     int      limit = size / 16;
 
     mach64->rp.running = 1;
+    atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
     for (int n = 0; n < limit; n++) {
         mach64_ragepro_bm_descriptor(mach64, addr);
         addr                 = base | ((addr + 16) & (size - 1));
@@ -595,9 +628,11 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
     switch (reg) {
         case RP1_AGP_BASE:
             mach64->rp.agp_base = v;
+            atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
             break;
         case RP1_AGP_CNTL:
             mach64->rp.agp_cntl = v;
+            atomic_fetch_add_explicit(&mach64->rp.agp_gen, 1, memory_order_release);
             break;
         case RP1_GUI_CNTL:
             /* XL RRG 5-64: IDCT_PRSR_MODE (16), BLOCK_GUI_INITIATOR (17). */
