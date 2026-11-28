@@ -491,6 +491,7 @@ typedef struct mach64_t {
         int      wlog;          /* log the next N GUI register writes */
         uint32_t last_dst;      /* the last triangle's destination base and pitch, bytes */
         uint32_t last_pitch;
+        atomic_uint agp_gen;    /* bumped when guest execution may have updated AGP/GART */
         uint32_t i2c_cntl0;     /* I2C_CNTL_0 but for GO, which the engine clears */
         uint32_t i2c_cntl1;     /* I2C_CNTL_1; its 7:0 are the data FIFO's port */
         uint8_t  i2c_fifo[16];  /* the I2C engine's data FIFO */
