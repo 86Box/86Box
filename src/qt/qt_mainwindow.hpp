@@ -49,7 +49,7 @@ public:
     QString mouseStringCaptured;
     void    updateMouseStrings();
 
-    std::vector<std::unique_ptr<RendererStack>> renderers{1};
+    std::vector<std::unique_ptr<RendererStack>> renderers;
 signals:
     void paint(const QImage &image);
     void resizeContents(int w, int h);

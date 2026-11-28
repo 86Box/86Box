@@ -213,6 +213,7 @@ processEventsOnlyWhenPausedOrModal()
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , renderers(1)
     , ui(new Ui::MainWindow)
 {
     mm             = std::make_shared<MediaMenu>(this);
