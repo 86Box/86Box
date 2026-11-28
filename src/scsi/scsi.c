@@ -103,6 +103,7 @@ static SCSI_CARD scsi_cards[] = {
     { &scsi_rt1000mc_device,     },
     { &scsi_t228_device,         },
     /* VLB */
+    { &aha284xvl_device,         },
     { &buslogic_445s_device,     },
     { &buslogic_445c_device,     },
     /* PCI */

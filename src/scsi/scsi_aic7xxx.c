@@ -23,7 +23,8 @@
  *          not compressed. It keeps the same SCB and command semantics, so
  *          it is the same table with more entries, not a second driver.
  *
- *          The boards: the AIC-7770 on the EISA AHA-2740, the AIC-7870 on
+ *          The boards: the AIC-7770 on the EISA AHA-2740 and on the VL-bus
+ *          AHA-284xVL, the AIC-7870 on
  *          the AHA-2940 and 2940W, the AIC-7880 as the chip on a
  *          motherboard and as the AHA-2940 Ultra and Ultra Wide cards, and
  *          the AIC-7890 as the AHA-2940U2W and as the chip on a
@@ -310,7 +311,10 @@ aic_log(const char *tag, const char *fmt, ...)
    what the board straps and which PCI IDs it answers with. */
 #define BOARD_2940U2W     13
 #define BOARD_7890        14
+#define BOARD_284XVL      15
 #define AIC_BOARD_EISA(b) (((b) >= BOARD_2740) && ((b) <= BOARD_2744W))
+#define AIC_BOARD_VL(b)   ((b) == BOARD_284XVL)
+#define AIC_BOARD_7770(b) (AIC_BOARD_EISA(b) || AIC_BOARD_VL(b))
 /* A card entry that covers several models takes the board from its Model
    option (and, for the 274x, its floppy jumper) instead of from .local. */
 #define BOARD_FROM_CONFIG 0xff
@@ -362,6 +366,17 @@ aic_log(const char *tag, const char *fmt, ...)
    in the middle of a larger image, and the firmware's write-read test of
    its own overlay failed with "Host Adapter shadow RAM test failure!". */
 #define AIC_BIOS_RAMSIZE 0x0080
+
+#define AIC_VL_SEECTL 0xc0
+#define AIC_VL_CS     0x04
+#define AIC_VL_CK     0x02
+#define AIC_VL_DO     0x01
+#define AIC_VL_STATUS 0xc1
+#define AIC_VL_TF     0x80
+#define AIC_VL_DI     0x01
+#define AIC_VL_RAMEN  0x0c
+#define AIC_VL_BANK   0x10
+#define AIC_VL_EDGE   0x80
 
 #define SEQCTL           0x60
 #define PERRORDIS        0x80
@@ -633,7 +648,7 @@ static const aic_chip_t aic_chip_7890;
 static const aic_chip_t *
 aic_board_chip(int board)
 {
-    if (AIC_BOARD_EISA(board))
+    if (AIC_BOARD_7770(board))
         return &aic_chip_7770;
     else if ((board == BOARD_2940) || (board == BOARD_2940W))
         return &aic_chip_7870;
@@ -1010,9 +1025,21 @@ typedef struct aic7xxx_t {
     uint8_t  scbcnt;
     uint8_t  sfunct;
 
-    /* The EISA part. Its settings come from the configuration chip rather
-       than a serial EEPROM, and a chip reset does not disturb them. */
+    /* The AIC-7770 part, on whichever bus, On an EISA board its settings
+       come from the configuration chip and a chip reset does not disturb
+       them; the VL-bus board has no such chip, but the same bytes are the
+       board's wiring (its interrupt, its FIFO threshold) and what the driver
+       loads from the EEPROM, so they are kept the same way */
     uint8_t eisa;
+    uint8_t vl;                             /* VLB board */
+    uint16_t vl_base;                       /* zC00 window */
+    uint8_t vl_seectl;                      /* Last value written to C0h */
+    uint8_t vl_adsel;                       /* SW1 to SW4, as C1h bits 4:1 */
+    uint8_t vl_biossel;                     /* SW6 and SW7, as C1h bits 6:5 */
+    uint8_t vl_cfg;                         /* Last value written to C1h */
+    uint8_t vl_ramen;                       /* The shadow RAM is over the ROM */
+    uint8_t vl_bank;                        /* The window shows the upper half */
+    uint8_t vl_rom[0x10000];                /* The whole EPROM */
     uint8_t eisa_slot;
     uint8_t eisa_conf[6];                   /* 5a, 5b, 5c, 5d, 5e, 5f */
     uint8_t eisa_global;                    /* 56 */
@@ -1185,7 +1212,7 @@ aic_update_irq(aic7xxx_t *dev)
            mode straight out of it. So the old reading landed on level for
            the right outcome and the wrong reason, and would have been
            wrong the moment anything cleared IRQMS. */
-        if (!(dev->hcntrl & IRQMS)) {
+        if (dev->vl || !(dev->hcntrl & IRQMS)) {
             if (fire)
                 picint(1 << dev->irq);
             else
@@ -3752,8 +3779,10 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 dev->irq = val & 0x0f;
             } else if (addr == HA_274_BIOSCTRL) {
                 dev->bios_ctl_set = 1;
-                aic_eisa_bios_overlay(dev);
-                aic_eisa_bios_remap(dev);
+                if (!dev->vl) {
+                    aic_eisa_bios_overlay(dev);
+                    aic_eisa_bios_remap(dev);
+                }
             }
         }
         return;
@@ -6128,6 +6157,267 @@ aic_eisa_write(uint16_t port, uint8_t val, void *priv)
     aic_write(dev, reg, val, 0);
 }
 
+/* ---- the VL-bus board --------------------------------------------------- */
+
+/* The one dump of the board's 64 KB EPROM. */
+#define AHA284XVL_ROM      "roms/scsi/adaptec/aha2840vl.bin"
+
+/* The AHA-284xVL's identifier is the EISA kind, as the 274x's is, and the
+   BIOS finds the board by it: ADP7756 with the board's BIOS on, ADP7757
+   with it switched off (SW8). */
+#define AIC_VL_ID0 0x04
+#define AIC_VL_ID1 0x90
+#define AIC_VL_ID2 0x77
+
+/* The 93C46 as the BIOS writes it when it finds the checksum wrong, which
+   is its table at 0C40h in the image and so the factory contents: thirty-one
+   words and their sum. Words 0 to 15 are the targets (synchronous,
+   disconnect, in the scan), 16 the BIOS options, 17 the host adapter's
+   (termination, parity, bus reset, FIFO threshold 100%) and 18 the bus
+   release time, the interrupt in bits 7:4 (11) and our SCSI ID (7). */
+static void
+aic_seeprom_284x(uint16_t *nvr)
+{
+    uint16_t sum = 0;
+
+    for (uint16_t i = 0; i < 128; i++)
+        nvr[i] = 0xffff;
+
+    for (uint8_t i = 0; i < 16; i++)
+        nvr[i] = 0x0218;
+    nvr[16] = 0x0015;
+    nvr[17] = 0x007c;
+    nvr[18] = 0x28b7;
+
+    for (uint8_t i = 0; i < 31; i++)
+        sum = (uint16_t) (sum + nvr[i]);
+    nvr[31] = sum;
+}
+
+/* What the 32 KB window shows. The CPU can run code straight out of the
+   buffer behind the mapping, so what is on offer is kept there rather than
+   worked out per access: the half of the EPROM the board has selected and,
+   over 3F80h to 3FFFh of the lower one, the shadow RAM when it is on. */
+static void
+aic_vl_window(aic7xxx_t *dev)
+{
+    memcpy(dev->bios.rom, &dev->vl_rom[dev->vl_bank ? 0x8000 : 0x0000], 0x8000);
+
+    if (dev->vl_ramen && !dev->vl_bank)
+        memcpy(&dev->bios.rom[aic_bios_ramoff(dev)], dev->bios_ram, AIC_BIOS_RAMSIZE);
+}
+
+static uint8_t
+aic_vl_rom_read(uint32_t addr, void *priv)
+{
+    aic7xxx_t *dev = (aic7xxx_t *) priv;
+
+    return dev->bios.rom[(addr - dev->bios.mapping.base) & 0x7fff];
+}
+
+static uint16_t
+aic_vl_rom_readw(uint32_t addr, void *priv)
+{
+    return aic_vl_rom_read(addr, priv) | ((uint16_t) aic_vl_rom_read(addr + 1, priv) << 8);
+}
+
+static uint32_t
+aic_vl_rom_readl(uint32_t addr, void *priv)
+{
+    return aic_vl_rom_readw(addr, priv) | ((uint32_t) aic_vl_rom_readw(addr + 2, priv) << 16);
+}
+
+static void
+aic_vl_rom_write(uint32_t addr, uint8_t val, void *priv)
+{
+    aic7xxx_t *dev = (aic7xxx_t *) priv;
+    uint32_t   off = (addr - dev->bios.mapping.base) & 0x7fff;
+
+    if (!dev->vl_ramen || dev->vl_bank || (off < aic_bios_ramoff(dev)) || (off >= (aic_bios_ramoff(dev) + AIC_BIOS_RAMSIZE)))
+        return;
+
+    dev->bios_ram[off - aic_bios_ramoff(dev)] = val;
+    dev->bios.rom[off]                        = val;
+}
+
+static void
+aic_vl_rom_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    aic_vl_rom_write(addr, val & 0xff, priv);
+    aic_vl_rom_write(addr + 1, (val >> 8) & 0xff, priv);
+}
+
+static void
+aic_vl_rom_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    aic_vl_rom_writew(addr, val & 0xffff, priv);
+    aic_vl_rom_writew(addr + 2, (val >> 16) & 0xffff, priv);
+}
+
+/* The 64 KB EPROM behind a 32 KB window at the address the switches give. */
+static int
+aic_vl_bios(aic7xxx_t *dev, uint32_t base)
+{
+    if (rom_init(&dev->bios, AHA284XVL_ROM, base, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL) < 0) {
+        aic_log(dev->tag, "could not map %s\n", AHA284XVL_ROM);
+        return 0;
+    }
+
+    memcpy(dev->vl_rom, dev->bios.rom, sizeof(dev->vl_rom));
+
+    mem_mapping_set_handler(&dev->bios.mapping,
+                            aic_vl_rom_read, aic_vl_rom_readw, aic_vl_rom_readl,
+                            aic_vl_rom_write, aic_vl_rom_writew, aic_vl_rom_writel);
+    mem_mapping_set_p(&dev->bios.mapping, dev);
+    mem_mapping_set_addr(&dev->bios.mapping, base, 0x8000);
+
+    dev->has_bios = 1;
+    dev->rom_size = 0x8000;
+    aic_vl_window(dev);
+
+    aic_log(dev->tag, "option ROM at %05x\n", base);
+    return 1;
+}
+
+static void
+aic_vl_config(aic7xxx_t *dev, uint8_t val)
+{
+    static const uint8_t irqs[8] = { 0, 9, 10, 11, 12, 14, 15, 0 };
+    const uint8_t        ramen   = !!(val & AIC_VL_RAMEN);
+    const uint8_t        bank    = !!(val & AIC_VL_BANK);
+    const uint8_t        irq     = irqs[(val >> 5) & 7];
+
+    aic_log(dev->tag, "VL config %02x: IRQ %i, RAM %s, EPROM %s half\n", val, irq,
+            ramen ? "on" : "off", bank ? "upper" : "lower");
+
+    dev->vl_cfg = val;
+
+    if (irq != 0)
+        aic_write(dev, INTDEF, AIC_VL_EDGE | irq, 0);
+
+    if ((ramen != dev->vl_ramen) || (bank != dev->vl_bank)) {
+        dev->vl_ramen = ramen;
+        dev->vl_bank  = bank;
+        if (dev->has_bios)
+            aic_vl_window(dev);
+    }
+}
+
+static void
+aic_vl_reset(aic7xxx_t *dev)
+{
+    dev->vl_cfg   = 0;
+    dev->vl_ramen = 0;
+    dev->vl_bank  = 0;
+    if (dev->has_bios)
+        aic_vl_window(dev);
+}
+
+static uint8_t
+aic_vl_read(uint16_t port, void *priv)
+{
+    aic7xxx_t *dev = (aic7xxx_t *) priv;
+    uint8_t    reg = (uint8_t) (port & 0xff);
+    uint8_t    ret;
+
+    if ((port & 0x0f00) != 0x0c00)
+        return 0xff;
+
+    switch (reg) {
+        case AIC_VL_SEECTL:
+            return dev->vl_seectl;
+        case AIC_VL_STATUS:
+            ret = AIC_VL_TF | dev->vl_biossel | dev->vl_adsel;
+            if (nmc93cxx_eeprom_read(dev->eeprom))
+                ret |= AIC_VL_DI;
+            return ret;
+        default:
+            return aic_read(dev, reg, 0);
+    }
+}
+
+static void
+aic_vl_write(uint16_t port, uint8_t val, void *priv)
+{
+    aic7xxx_t *dev = (aic7xxx_t *) priv;
+    uint8_t    reg = (uint8_t) (port & 0xff);
+
+    if ((port & 0x0f00) != 0x0c00)
+        return;
+
+    switch (reg) {
+        case AIC_VL_SEECTL:
+            dev->vl_seectl = val & (AIC_VL_CS | AIC_VL_CK | AIC_VL_DO);
+            nmc93cxx_eeprom_write(dev->eeprom, !!(val & AIC_VL_CS), !!(val & AIC_VL_CK),
+                                  !!(val & AIC_VL_DO));
+            break;
+        case AIC_VL_STATUS:
+            aic_vl_config(dev, val);
+            break;
+        default:
+            aic_write(dev, reg, val, 0);
+            break;
+    }
+}
+
+static int
+aic_vl_available(void)
+{
+    return rom_present(AHA284XVL_ROM);
+}
+
+static int
+aic_vl_init(aic7xxx_t *dev, const device_t *info)
+{
+    nmc93cxx_eeprom_params_t params;
+    uint16_t                 nvr[128];
+    char                     fn[1024] = { 0 };
+    const int                slot     = device_get_config_int("base");
+    const int                bios_on  = device_get_config_int("bios");
+    const uint32_t           bios_at  = (uint32_t) device_get_config_int("bios_addr");
+
+    dev->vl_base = (uint16_t) ((slot << 12) | 0x0c00);
+
+    dev->vl_adsel   = (uint8_t) ((0x10 - slot) << 1);
+    dev->vl_biossel = (uint8_t) ((bios_at == 0xe0000 ? 0 : bios_at == 0xd0000 ? 1
+                                                         : bios_at == 0xc8000 ? 2
+                                                                              : 3)
+                                 << 5);
+
+    memset(dev->eisa_conf, 0, sizeof(dev->eisa_conf));
+    dev->eisa_conf[SCSICONF - SCSICONF] = ENSPCHK | RESET_SCSI | 7;
+    dev->eisa_conf[INTDEF - SCSICONF]   = AIC_VL_EDGE | 11;
+    dev->eisa_conf[HOSTCONF - SCSICONF] = 0xc0; /* FIFO threshold 100% */
+    dev->eisa_global                    = 0x00;
+    dev->bios_ctl_set                   = 0;
+    dev->irq                            = 11;
+
+    dev->eisa_id[0] = AIC_VL_ID0;
+    dev->eisa_id[1] = AIC_VL_ID1;
+    dev->eisa_id[2] = AIC_VL_ID2;
+    dev->eisa_id[3] = bios_on ? 0x56 : 0x57;
+
+    if (bios_on)
+        aic_vl_bios(dev, bios_at);
+
+    aic_seeprom_284x(nvr);
+    snprintf(fn, sizeof(fn), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name,
+             device_get_instance());
+    params.type            = NMC_93C46_x16_64;
+    params.default_content = nvr;
+    params.filename        = fn;
+    dev->eeprom            = (nmc93cxx_eeprom_t *) device_add_inst_params(&nmc93cxx_device,
+                                                                          device_get_instance(),
+                                                                          &params);
+    if (dev->eeprom == NULL)
+        return 0;
+
+    io_sethandler(dev->vl_base, 0x0100, aic_vl_read, NULL, NULL, aic_vl_write, NULL, NULL, dev);
+    aic_log(dev->tag, "VL window %04x, BIOS %s\n", dev->vl_base, bios_on ? "on" : "off");
+
+    return 1;
+}
+
 static uint8_t
 aic_io_readb(uint16_t port, void *priv)
 {
@@ -6420,6 +6710,8 @@ aic_reset(void *priv)
 
     aic_ram_clear(dev);
     aic_chip_reset(dev);
+    if (dev->vl)
+        aic_vl_reset(dev);
     /* PCI RST# also initializes configuration space. HCNTRL.CHIPRST
        deliberately leaves it intact (AIC-7870 data book, pp. 2-15,
        4-69), so this belongs only in the machine-reset callback. */
@@ -6510,7 +6802,8 @@ aic_init(const device_t *info)
        The two cells are still modelled for a board that has both; what
        decides is the strap, and this card's is one connector. */
 
-    dev->eisa = AIC_BOARD_EISA(dev->board);
+    dev->eisa = AIC_BOARD_7770(dev->board);
+    dev->vl   = AIC_BOARD_VL(dev->board);
     /* Which part this board is built on, before anything asks. */
     dev->chip = aic_board_chip(dev->board);
     dev->bus  = scsi_get_bus();
@@ -6599,7 +6892,7 @@ aic_init(const device_t *info)
        rotation 86Box models for the drive, on every board. */
     dev->timed_dev = 1;
 
-    if (dev->eisa) {
+    if (dev->eisa && !dev->vl) {
         uint8_t id[4];
 
         dev->eisa_slot = (uint8_t) device_get_config_int("slot");
@@ -6673,6 +6966,11 @@ aic_init(const device_t *info)
             free(dev);
             return NULL;
         }
+    }
+
+    if (dev->vl && !aic_vl_init(dev, info)) {
+        free(dev);
+        return NULL;
     }
 
     /* The card's own BIOS. Every one of these images is an AHA-2940
@@ -6753,7 +7051,7 @@ aic_init(const device_t *info)
     /* The 2742s carry a floppy controller behind an enable jumper, off by
        default here because the machine's own controller answers at the
        same address: enable it only with the machine's disabled. */
-    if (AIC_BOARD_FDC(dev->board) && device_get_config_int("floppy"))
+    if ((AIC_BOARD_FDC(dev->board) || dev->vl) && device_get_config_int("floppy"))
         dev->fdc = device_add(&fdc_at_device);
 
     if (dev->twin) {
@@ -6784,6 +7082,9 @@ aic_close(void *priv)
         if (dev->cmds[i].used && (dev->cmds[i].data != NULL))
             free(dev->cmds[i].data);
     }
+
+    if (dev->vl)
+        io_removehandler(dev->vl_base, 0x0100, aic_vl_read, NULL, NULL, aic_vl_write, NULL, NULL, dev);
 
     if (dev->io_live)
         io_removehandler(dev->io_base, 0x100, aic_io_readb, aic_io_readw, aic_io_readl,
@@ -6870,6 +7171,78 @@ static const device_config_t aic7770_config[] = {
     {
         .name           = "floppy",
         .description    = "Floppy controller enabled (jumper)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t aha284xvl_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Port address",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1C00h", .value = 1  },
+            { .description = "2C00h", .value = 2  },
+            { .description = "3C00h", .value = 3  },
+            { .description = "4C00h", .value = 4  },
+            { .description = "5C00h", .value = 5  },
+            { .description = "6C00h", .value = 6  },
+            { .description = "7C00h", .value = 7  },
+            { .description = "8C00h", .value = 8  },
+            { .description = "9C00h", .value = 9  },
+            { .description = "AC00h", .value = 10 },
+            { .description = "BC00h", .value = 11 },
+            { .description = "CC00h", .value = 12 },
+            { .description = "DC00h", .value = 13 },
+            { .description = "EC00h", .value = 14 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS address",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0xd8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800h", .value = 0xc8000 },
+            { .description = "D000h", .value = 0xd0000 },
+            { .description = "D800h", .value = 0xd8000 },
+            { .description = "E000h", .value = 0xe0000 },
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "floppy",
+        .description    = "Enable floppy controller",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -7239,6 +7612,22 @@ const device_t aha274x_device = {
     .force_redraw  = NULL,
     .config        = aic7770_config,
     .short_name    = "AHA-274x",
+    .scsi_buses    = aic_scsi_buses
+};
+
+const device_t aha284xvl_device = {
+    .name          = "Adaptec AHA-284xVL",
+    .internal_name = "aha284xvl",
+    .flags         = DEVICE_VLB,
+    .local         = BOARD_284XVL,
+    .init          = aic_init,
+    .close         = aic_close,
+    .reset         = aic_reset,
+    .available     = aic_vl_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = aha284xvl_config,
+    .short_name    = "AHA-284xVL",
     .scsi_buses    = aic_scsi_buses
 };
 
