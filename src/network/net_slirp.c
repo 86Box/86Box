@@ -1081,7 +1081,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     int  external;
     int  internal;
     char category[32];
-    snprintf(category, sizeof(category), "SLiRP Port Forwarding #%d", card->card_num + 1);
+    snprintf(category, sizeof(category), NET_SLIRP_FWD_SECTION, card->card_num + 1);
     char key[20];
     while (1) {
         sprintf(key, "%d_protocol", i);
