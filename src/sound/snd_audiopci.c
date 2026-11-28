@@ -143,7 +143,14 @@ typedef struct es137x_t {
     uint32_t adc_word;
     int      adc_bytes;
 
-    double   host_rate; /* ES1370: the rate the poll and source run at */
+    /* ES1370: each DAC has a source and a poll of its own, running at the
+       rate of its own clock, so one DAC starting or stopping does not
+       disturb the other. */
+    double     dac_rate[2];
+    void      *src_dac[2];
+    const int *dac_clock[2];
+    int        dac_pos[2];
+    int16_t    dac_buffer[2][WTBUFLEN * 2];
     int64_t dac_latch;
     int64_t dac_time;
 
@@ -2371,30 +2378,16 @@ es137x_update(es137x_t *dev)
     int32_t l;
     int32_t r;
 
-    if (dev->type == AUDIOPCI_ES1370) {
-        l = dev->dac[0].out_l * (((dev->akm_codec.registers[0x4] & 0x80) ? 0 : akm4531_gain_2dbstep_5bits[(dev->akm_codec.registers[0x4] & 0x1f)]) / 32767.0);
-        r = dev->dac[0].out_r * (((dev->akm_codec.registers[0x5] & 0x80) ? 0 : akm4531_gain_2dbstep_5bits[(dev->akm_codec.registers[0x5] & 0x1f)]) / 32767.0);
+    l = (dev->dac[0].out_l * dev->dac[0].vol_l) >> 12;
+    l += ((dev->dac[1].out_l * dev->dac[1].vol_l) >> 12);
+    r = (dev->dac[0].out_r * dev->dac[0].vol_r) >> 12;
+    r += ((dev->dac[1].out_r * dev->dac[1].vol_r) >> 12);
 
-        l += dev->dac[1].out_l * (((dev->akm_codec.registers[0x2] & 0x80) ? 0 : akm4531_gain_2dbstep_5bits[(dev->akm_codec.registers[0x2] & 0x1f)]) / 32767.0);
-        r += dev->dac[1].out_r * (((dev->akm_codec.registers[0x3] & 0x80) ? 0 : akm4531_gain_2dbstep_5bits[(dev->akm_codec.registers[0x3] & 0x1f)]) / 32767.0);
+    l >>= 1;
+    r >>= 1;
 
-        l >>= 1;
-        r >>= 1;
-
-        l *= (((dev->akm_codec.registers[0x0] & 0x80) ? 0 : akm4531_att_2dbstep_5bits[(dev->akm_codec.registers[0x0] & 0x1f) ^ 0x1f]) / 32767.0);
-        r *= (((dev->akm_codec.registers[0x1] & 0x80) ? 0 : akm4531_att_2dbstep_5bits[(dev->akm_codec.registers[0x1] & 0x1f) ^ 0x1f]) / 32767.0);
-    } else {
-        l = (dev->dac[0].out_l * dev->dac[0].vol_l) >> 12;
-        l += ((dev->dac[1].out_l * dev->dac[1].vol_l) >> 12);
-        r = (dev->dac[0].out_r * dev->dac[0].vol_r) >> 12;
-        r += ((dev->dac[1].out_r * dev->dac[1].vol_r) >> 12);
-
-        l >>= 1;
-        r >>= 1;
-
-        l = (((l * dev->pcm_vol_l) >> 15) * dev->master_vol_l) >> 15;
-        r = (((r * dev->pcm_vol_r) >> 15) * dev->master_vol_r) >> 15;
-    }
+    l = (((l * dev->pcm_vol_l) >> 15) * dev->master_vol_l) >> 15;
+    r = (((r * dev->pcm_vol_r) >> 15) * dev->master_vol_r) >> 15;
 
     if (l < -32768)
         l = -32768;
@@ -2405,11 +2398,46 @@ es137x_update(es137x_t *dev)
     else if (r > 32767)
         r = 32767;
 
-    const int clk = SOUND_CLOCK(dev->clock, (dev->type == AUDIOPCI_ES1370) ? wavetable_pos_global : sound_pos_global);
+    const int clk = SOUND_CLOCK(dev->clock, sound_pos_global);
 
     for (; dev->pos < clk; dev->pos++) {
         dev->buffer[dev->pos * 2]     = l;
         dev->buffer[dev->pos * 2 + 1] = r;
+    }
+}
+
+/* The ES1370's DACs each go through their own AKM4531 volume, then the master. */
+static void
+es1370_update(es137x_t *dev, int dac_nr)
+{
+    const int     vl = dac_nr ? 0x2 : 0x4;
+    const int     vr = dac_nr ? 0x3 : 0x5;
+    int32_t       l;
+    int32_t       r;
+
+    l = dev->dac[dac_nr].out_l * (((dev->akm_codec.registers[vl] & 0x80) ? 0 : akm4531_gain_2dbstep_5bits[(dev->akm_codec.registers[vl] & 0x1f)]) / 32767.0);
+    r = dev->dac[dac_nr].out_r * (((dev->akm_codec.registers[vr] & 0x80) ? 0 : akm4531_gain_2dbstep_5bits[(dev->akm_codec.registers[vr] & 0x1f)]) / 32767.0);
+
+    l >>= 1;
+    r >>= 1;
+
+    l *= (((dev->akm_codec.registers[0x0] & 0x80) ? 0 : akm4531_att_2dbstep_5bits[(dev->akm_codec.registers[0x0] & 0x1f) ^ 0x1f]) / 32767.0);
+    r *= (((dev->akm_codec.registers[0x1] & 0x80) ? 0 : akm4531_att_2dbstep_5bits[(dev->akm_codec.registers[0x1] & 0x1f) ^ 0x1f]) / 32767.0);
+
+    if (l < -32768)
+        l = -32768;
+    else if (l > 32767)
+        l = 32767;
+    if (r < -32768)
+        r = -32768;
+    else if (r > 32767)
+        r = 32767;
+
+    const int clk = SOUND_CLOCK(dev->dac_clock[dac_nr], wavetable_pos_global);
+
+    for (; dev->dac_pos[dac_nr] < clk; dev->dac_pos[dac_nr]++) {
+        dev->dac_buffer[dac_nr][dev->dac_pos[dac_nr] * 2]     = l;
+        dev->dac_buffer[dac_nr][dev->dac_pos[dac_nr] * 2 + 1] = r;
     }
 }
 
@@ -2483,7 +2511,7 @@ es1370_poll_dac(es137x_t *dev, int dac_nr)
 {
     const uint32_t divider = dev->dac[dac_nr].clock_divider;
 
-    dev->dac[dac_nr].acd += (double) dev->dac[dac_nr].vf * ((double) WT_FREQ / dev->host_rate);
+    dev->dac[dac_nr].acd += (double) dev->dac[dac_nr].vf * ((double) WT_FREQ / dev->dac_rate[dac_nr]);
     while ((dev->dac[dac_nr].acd >= (double) divider) && !dev->dac[dac_nr].stopped) {
         if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
             es137x_fetch(dev, dac_nr);
@@ -2653,7 +2681,7 @@ es137x_poll_adc(es137x_t *dev)
         return;
 
     const double rate = es137x_adc_rate(dev);
-    const double tick = (dev->type == AUDIOPCI_ES1370) ? dev->host_rate : SOUND_FREQ;
+    const double tick = (dev->type == AUDIOPCI_ES1370) ? dev->dac_rate[1] : SOUND_FREQ;
 
     dev->adc_phase += rate / tick;
     while (dev->adc_phase >= 1.0) {
@@ -2694,38 +2722,72 @@ es137x_put_buffer(int16_t *buffer, int len, void *priv)
     }
 }
 
-/* The ES1370's DACs are discrete, running at their own clocks, so the poll
-   and the output stream follow the rate of the DAC that is playing (DAC2 takes
-   precedence). The ES1371 family's SRC always outputs at the AC'97 48 kHz. */
+/* The ES1370's DACs are discrete, running at their own clocks, so each DAC's
+   poll and output stream follow its own rate while it plays, and keep it
+   while it does not. The ES1371 family's SRC always outputs at the AC'97 48 kHz. */
 static void
-es1370_follow_rate(es137x_t *dev)
+es1370_follow_rate(es137x_t *dev, int dac_nr)
 {
-    double rate = (double) WT_FREQ;
+    const uint32_t enable = dac_nr ? INT_DAC2_EN : INT_DAC1_EN;
+    const uint32_t pause  = dac_nr ? SI_P2_PAUSE : SI_P1_PAUSE;
 
-    if ((dev->int_ctrl & INT_DAC2_EN) && !dev->dac[1].stopped && !(dev->si_cr & SI_P2_PAUSE))
-        rate = (double) dev->dac[1].vf * (double) WT_FREQ / (double) dev->dac[1].clock_divider;
-    else if ((dev->int_ctrl & INT_DAC1_EN) && !dev->dac[0].stopped && !(dev->si_cr & SI_P1_PAUSE))
-        rate = (double) dev->dac[0].vf * (double) WT_FREQ / (double) dev->dac[0].clock_divider;
+    if (!(dev->int_ctrl & enable) || (dev->si_cr & pause) || dev->dac[dac_nr].stopped)
+        return;
+
+    double rate = (double) dev->dac[dac_nr].vf * (double) WT_FREQ / (double) dev->dac[dac_nr].clock_divider;
 
     if (rate < (double) SOUND_MIN_RATE)
         rate = (double) SOUND_MIN_RATE;
     else if (rate > (double) sound_sample_rate)
         rate = (double) sound_sample_rate;
 
-    if (rate != dev->host_rate) {
-        dev->host_rate    = rate;
-        dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / rate));
-        sound_source_set_rate(dev->src_snd, rate);
+    if (rate != dev->dac_rate[dac_nr]) {
+        dev->dac_rate[dac_nr] = rate;
+        dev->dac[dac_nr].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / rate));
+        sound_source_set_rate(dev->src_dac[dac_nr], rate);
     }
+}
+
+static void
+es1370_poll(es137x_t *dev, int dac_nr)
+{
+    const uint32_t enable = dac_nr ? INT_DAC2_EN : INT_DAC1_EN;
+    const uint32_t pause  = dac_nr ? SI_P2_PAUSE : SI_P1_PAUSE;
+
+    es1370_follow_rate(dev, dac_nr);
+
+    timer_advance_u64(&dev->dac[dac_nr].timer, dev->dac[dac_nr].latch);
+
+    if (dac_nr)
+        es137x_scan_fifo(dev);
+
+    es1370_update(dev, dac_nr);
+
+    /* Pause holds the last output sample, DMA position and sample count,
+       and so does the end of a transfer in stop mode. */
+    if ((dev->int_ctrl & enable) && !(dev->si_cr & pause) && !dev->dac[dac_nr].stopped)
+        es1370_poll_dac(dev, dac_nr);
+
+    if (dac_nr)
+        es137x_poll_adc(dev);
+}
+
+static void
+es1370_poll_dac1(void *priv)
+{
+    es1370_poll((es137x_t *) priv, 0);
+}
+
+static void
+es1370_poll_dac2(void *priv)
+{
+    es1370_poll((es137x_t *) priv, 1);
 }
 
 static void
 es137x_poll(void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
-
-    if (dev->type == AUDIOPCI_ES1370)
-        es1370_follow_rate(dev);
 
     timer_advance_u64(&dev->dac[1].timer, dev->dac[1].latch);
 
@@ -2743,9 +2805,7 @@ es137x_poll(void *priv)
         if (!(dev->int_ctrl & enable) || (dev->si_cr & pause) || dev->dac[dac_nr].stopped)
             continue;
 
-        if (dev->type == AUDIOPCI_ES1370) {
-            es1370_poll_dac(dev, dac_nr);
-        } else if (((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & bypass)) {
+        if (((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & bypass)) {
             if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
                 es137x_fetch(dev, dac_nr);
 
@@ -2787,6 +2847,29 @@ es137x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         buffer[c] += (dev->buffer[c] / 2);
 
     dev->pos = 0;
+}
+
+static void
+es1370_get_buffer(int32_t *buffer, uint16_t len, int dac_nr, es137x_t *dev)
+{
+    es1370_update(dev, dac_nr);
+
+    for (uint16_t c = 0; c < len * 2; c++)
+        buffer[c] += (dev->dac_buffer[dac_nr][c] / 2);
+
+    dev->dac_pos[dac_nr] = 0;
+}
+
+static void
+es1370_get_buffer_dac1(int32_t *buffer, uint16_t len, void *priv)
+{
+    es1370_get_buffer(buffer, len, 0, (es137x_t *) priv);
+}
+
+static void
+es1370_get_buffer_dac2(int32_t *buffer, uint16_t len, void *priv)
+{
+    es1370_get_buffer(buffer, len, 1, (es137x_t *) priv);
 }
 
 static void
@@ -2903,8 +2986,12 @@ es1370_init(const device_t *info)
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     sound_in_add_handler(es137x_put_buffer, dev);
-    dev->src_snd = sound_source_add_stream(I_WT, es137x_get_buffer, dev);
-    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
+    dev->src_dac[0]   = sound_source_add_stream(I_WT, es1370_get_buffer_dac1, dev);
+    dev->src_dac[1]   = sound_source_add_stream(I_WT, es1370_get_buffer_dac2, dev);
+    sound_source_set_label(dev->src_dac[0], "DAC1");
+    sound_source_set_label(dev->src_dac[1], "DAC2");
+    dev->dac_clock[0] = sound_source_get_pos_ptr(dev->src_dac[0]);
+    dev->dac_clock[1] = sound_source_get_pos_ptr(dev->src_dac[1]);
     sound_set_cd_audio_filter(es1370_filter_cd_audio, dev);
 
     dev->gameport = gameport_add(&gameport_pnp_device);
@@ -2915,8 +3002,11 @@ es1370_init(const device_t *info)
     /* Run the poll half a sample behind the core poll timer: a timer started
        together with it alternates order with it on every tick, which makes
        es137x_update() write two samples, then none. */
-    timer_add(&dev->dac[1].timer, es137x_poll, dev, 0);
+    dev->dac_rate[0] = dev->dac_rate[1] = (double) WT_FREQ;
+    timer_add(&dev->dac[0].timer, es1370_poll_dac1, dev, 0);
+    timer_add(&dev->dac[1].timer, es1370_poll_dac2, dev, 0);
     es137x_speed_changed(dev);
+    timer_set_delay_u64(&dev->dac[0].timer, dev->dac[0].latch / 2);
     timer_set_delay_u64(&dev->dac[1].timer, dev->dac[1].latch / 2);
 
     generate_es137x_filter();
@@ -2996,6 +3086,8 @@ es137x_close(void *priv)
 
     es137x_adc_input(dev, 0);
     sound_source_remove(dev->src_snd);
+    sound_source_remove(dev->src_dac[0]);
+    sound_source_remove(dev->src_dac[1]);
 
     free(dev);
 }
@@ -3005,9 +3097,11 @@ es137x_speed_changed(void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 
-    if (dev->type == AUDIOPCI_ES1370)
-        dev->host_rate = (double) WT_FREQ;
-    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ((dev->type == AUDIOPCI_ES1370) ? WT_FREQ : SOUND_FREQ)));
+    if (dev->type == AUDIOPCI_ES1370) {
+        for (int c = 0; c < 2; c++)
+            dev->dac[c].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / dev->dac_rate[c]));
+    } else
+        dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
 }
 
 static const device_config_t es1370_config[] = {
