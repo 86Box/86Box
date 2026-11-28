@@ -44,8 +44,9 @@
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
 #include <86box/fdd_tape.h>
-#include <86box/fdc.h>
 #include <86box/fdd_audio.h>
+#include <86box/disksizes.h>
+#include <86box/fat_image.h>
 #include <86box/plat_floppy_ioctl.h>
 
 /* Flags:
@@ -333,8 +334,8 @@ fdd_do_seek(void *priv, const int track)
 {
     const fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    if ((drv != NULL) && (drv->seek != NULL))
-        drv->seek(priv, track);
+    if ((drv != NULL) && (drv->fmt.seek != NULL))
+        drv->fmt.seek(priv, track);
 }
 
 static void
@@ -396,24 +397,24 @@ fdd_seek_complete_callback(void *priv)
 
         switch (po->op) {
             case FDD_OP_READ:
-                if (drv->readsector)
-                    drv->readsector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->fmt.readsector)
+                    drv->fmt.readsector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_WRITE:
-                if (drv->writesector)
-                    drv->writesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->fmt.writesector)
+                    drv->fmt.writesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_COMPARE:
-                if (drv->comparesector)
-                    drv->comparesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->fmt.comparesector)
+                    drv->fmt.comparesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_READADDR:
-                if (drv->readaddress)
-                    drv->readaddress(drv, po->side, po->density);
+                if (drv->fmt.readaddress)
+                    drv->fmt.readaddress(drv, po->side, po->density);
                 break;
             case FDD_OP_FORMAT:
-                if (drv->format)
-                    drv->format(drv, po->side, po->density, po->fill);
+                if (drv->fmt.format)
+                    drv->fmt.format(drv, po->side, po->density, po->fill);
                 break;
             default:
                 break;
@@ -423,8 +424,8 @@ fdd_seek_complete_callback(void *priv)
         po->op      = FDD_OP_NONE;
     }
 
-    if (!had_pending || fdd_tape_present(drv))
-        fdc_seek_complete_interrupt((fdc_t *) drv->fdc, drv->id & 3);
+    if ((drv->ctrl != NULL) && (!had_pending || fdd_tape_present(drv)))
+        drv->ctrl->seek_complete_interrupt(drv->ctrl_priv, drv->id & 3);
 }
 
 /*
@@ -478,11 +479,11 @@ fdd_seek(void *priv, const int track_diff)
         return;
     }
 
-    fdc_t *fdc     = (fdc_t *) drv->fdc;
-
     int old_track = drv->track;
-    const int ibm5140 = (fdc != NULL) && (fdc->flags & FDC_FLAG_IBM5140);
-    const int degated = ibm5140 && fdc->drive_interface_gated;
+    const int ibm5140 = (drv->ctrl != NULL) &&
+                        drv->ctrl->is_ibm5140(drv->ctrl_priv);
+    const int degated = ibm5140 &&
+                        drv->ctrl->is_interface_gated(drv->ctrl_priv);
 
     if (!degated)
         drv->track += track_diff;
@@ -519,7 +520,7 @@ fdd_seek(void *priv, const int track_diff)
 
         /* Get seek timings from audio profile configuration with direction awareness */
         const int step_count = ibm5140 && !degated &&
-                               ((fdc->command & 0x1f) == 0x07) ?
+                               ((drv->xfer.command & 0x1f) == 0x07) ?
                                actual_track_diff : abs(track_diff);
         double seek_time_us = ibm5140 ? 6000.0 * step_count :
                               fdd_audio_get_seek_time(drv, actual_track_diff,
@@ -672,6 +673,8 @@ fdd_set_type(void *priv, int type)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
+    if (drv->folder_image && drv->type != type)
+        fdd_close(drv);
     if (fdd_type_invert_densel(drv->type) != fdd_type_invert_densel(type))
         drv->densel ^= 1;
     drv->type = type;
@@ -812,6 +815,91 @@ fdd_get_densel(void *priv)
 
 static __inline uint64_t fdd_byteperiod(void *priv);
 
+static void
+fdd_media_inserted(fdd_drive_t *drv)
+{
+    drv->empty = 0;
+    fdd_forced_seek(drv, 0);
+    drv->changed = 1;
+    /* A drive with its motor already running may have no poll timer. */
+    if (drv->motoron)
+        timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
+    ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
+}
+
+/* Mounts a folder or an archive as a FAT12 disk in the drive's own format, built in memory.
+   Writes go to that copy and are lost when it is ejected. */
+int
+fdd_mount_folder(void *priv, const char *path, int read_only, int *left_out)
+{
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    int          flags = fdd_get_flags(drv);
+    char         mounted_path[sizeof(drv->image_path)];
+
+    if (left_out)
+        *left_out = 0;
+
+    if (fdd_tape_present(drv) || (drive_types[drv->type].max_track <= 0))
+        return FAT_IMAGE_UNSUPPORTED;
+    const int path_length = snprintf(mounted_path, sizeof(mounted_path), "%s%s", read_only ? "wp://" : "", path);
+    if ((path_length < 0) || ((size_t) path_length >= sizeof(mounted_path)))
+        return FAT_IMAGE_READ_ERROR;
+
+    disk_size_t format;
+    if (flags & FLAG_525) {
+        if (flags & FLAG_HOLE1)
+            format = disk_sizes[6]; /* 1.2M */
+        else if (!(flags & FLAG_DS))
+            format = disk_sizes[1]; /* 180K */
+        else
+            format = disk_sizes[(flags & FLAG_DOUBLE_STEP) ? 5 : 3]; /* 720K or 360K */
+    } else if (flags & FLAG_HOLE2)
+        format = disk_sizes[11]; /* 2.88M */
+    else if (flags & FLAG_HOLE1)
+        format = disk_sizes[(flags & FLAG_INVERT_DENSEL) ? 7 : 8]; /* PC-98 1.25M or 1.44M */
+    else if (fdd_is_pcjx_360(drv))
+        format = disk_sizes[3]; /* PC JX 40-cylinder, double-sided 360K */
+    else {
+        format = disk_sizes[5]; /* 720K */
+        if (!(flags & FLAG_DS)) {
+            /* 80-cylinder, single-sided 360K. */
+            format.sides = 1;
+            format.spfat = 2;
+        }
+    }
+
+    fat_image_params_t params = {
+        .sectors           = (uint64_t) format.tracks * format.sides * format.sectors,
+        .sector_size       = 128 << format.sector_len,
+        .sectors_per_track = format.sectors,
+        .heads             = format.sides,
+        .pc98              = format.sector_len == 3,
+        .media_desc        = format.media_desc,
+        .spc               = format.spc,
+        .num_fats          = format.num_fats,
+        .spfat             = format.spfat,
+        .root_entries      = format.root_dir_entries
+    };
+    uint8_t           *image  = NULL;
+    fat_image_result_t result = fat_image_create_mem(path, &params, &image, left_out);
+    if (result != FAT_IMAGE_OK)
+        return result;
+
+    if (drv->d86f_priv)
+        fdd_close(drv);
+    d86f_setup(drv);
+    drv->read_only = !!read_only;
+    if (!img_load_ram(drv, image, &format)) {
+        free(image);
+        fdd_close(drv);
+        return FAT_IMAGE_NO_MEMORY;
+    }
+    memcpy(drv->image_path, mounted_path, (size_t) path_length + 1);
+    fdd_media_inserted(drv);
+    ui_sb_update_icon_state(SB_FLOPPY | drv->id, 0);
+    return FAT_IMAGE_OK;
+}
+
 void
 fdd_load(void *priv, char *fn)
 {
@@ -860,8 +948,14 @@ fdd_load(void *priv, char *fn)
 
         fdd_forced_seek(drv, 0);
         drv->changed = 1;
-        ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
+        ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
         return;
+    }
+
+    if (fat_image_is_source(fn)) {
+        if (fdd_mount_folder(drv, fn, drv->read_only, NULL) == FAT_IMAGE_OK)
+            return;
+        goto load_failed;
     }
 
     const char *p = path_get_extension(fn);
@@ -885,30 +979,54 @@ fdd_load(void *priv, char *fn)
                 d86f_setup(drv);
                 drv->image_close = loaders[c].close;
                 loaders[c].load(drv, drv->image_path + offs);
-                /* A failed loader clears the path; keep that media empty. */
-                drv->empty = drv->image_path[0] == '\0';
                 fdd_ready_start_spinup(drv);
-                fdd_forced_seek(drv, 0);
-                drv->changed = 1;
-                /* The flux engine is driven by the drive poll timer, which the motor enable
-                   only starts on a 0 -> 1 transition. On boards without a DOR (the Tandy 2000
-                   keeps the motor on all the time) the motor is already spinning when the disk
-                   is inserted, so that transition never happens again and the drive would stay
-                   unpolled, leaving READ ID and every other command unanswered. Kick the timer
-                   here as well. */
-                if (drv->motoron)
-                    timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
-                ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
+                fdd_media_inserted(drv);
                 return;
             }
             c++;
         }
     }
+load_failed:
     drv->empty = 1;
     fdd_ready_cancel(drv);
     fdd_set_head(drv, 0);
     memset(drv->image_path, 0, sizeof(drv->image_path));
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
+}
+
+void
+fdd_format_set(fdd_drive_t *drv, const fdd_format_t *fmt)
+{
+    if ((drv == NULL) || (fmt == NULL))
+        return;
+
+    if (fmt->seek != NULL)
+        drv->fmt.seek = fmt->seek;
+    if (fmt->readsector != NULL)
+        drv->fmt.readsector = fmt->readsector;
+    if (fmt->writesector != NULL)
+        drv->fmt.writesector = fmt->writesector;
+    if (fmt->comparesector != NULL)
+        drv->fmt.comparesector = fmt->comparesector;
+    if (fmt->readaddress != NULL)
+        drv->fmt.readaddress = fmt->readaddress;
+    if (fmt->format != NULL)
+        drv->fmt.format = fmt->format;
+    if (fmt->hole != NULL)
+        drv->fmt.hole = fmt->hole;
+    if (fmt->byteperiod != NULL)
+        drv->fmt.byteperiod = fmt->byteperiod;
+    if (fmt->stop != NULL)
+        drv->fmt.stop = fmt->stop;
+    if (fmt->poll != NULL)
+        drv->fmt.poll = fmt->poll;
+}
+
+void
+fdd_format_clear(fdd_drive_t *drv)
+{
+    if (drv != NULL)
+        memset(&drv->fmt, 0x00, sizeof(drv->fmt));
 }
 
 void
@@ -942,22 +1060,17 @@ fdd_close(void *priv)
     if (drv->fdc && !drv->empty)
         fdc_media_removed(drv->fdc, drv->id & 3);
 
-    drv->hole          = NULL;
-    drv->poll          = NULL;
-    drv->seek          = NULL;
-    drv->readsector    = NULL;
-    drv->writesector   = NULL;
-    drv->comparesector = NULL;
-    drv->readaddress   = NULL;
-    drv->format        = NULL;
-    drv->byteperiod    = NULL;
-    drv->stop          = NULL;
+    fdd_format_clear(drv);
+    drv->seek_in_progress = 0;
 
-    /* Close the backend that actually owns local, rather than choosing a
-     * destructor from the filename extension. */
-    if (drv->image_close)
-        drv->image_close(drv);
-    drv->image_close = NULL;
+    if (drv->folder_image) {
+        img_close(drv);
+        drv->folder_image = 0;
+    } else if (strstr(drv->image_path, "ioctl://") != NULL) {
+        floppy_ioctl_close(drv);
+        img_close(drv);
+    } else if (loaders[drv->driveloader].close)
+        loaders[drv->driveloader].close(drv);
 
     drv->empty = 1;
     fdd_ready_cancel(drv);
@@ -977,8 +1090,8 @@ fdd_hole(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     int          ret = 0;
 
-    if ((drv != NULL) && (drv->hole != NULL))
-        ret = drv->hole(drv);
+    if ((drv != NULL) && (drv->fmt.hole != NULL))
+        ret = drv->fmt.hole(drv);
 
     return ret;
 }
@@ -986,22 +1099,14 @@ fdd_hole(void *priv)
 int
 fdd_index(void *priv)
 {
-    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    if ((drv == NULL) || !drv->motoron ||
-        drv->empty || (drv->d86f_handler.index_hole_pos == NULL) ||
-        (drv->d86f_handler.get_raw_size == NULL))
+    if ((drv == NULL) || !drv->motoron || drv->empty)
         return 0;
 
-    const int      side      = fdd_get_head(drv);
-    const uint32_t raw_size  = d86f_get_raw_size(drv, side);
-    if (raw_size == 0)
-        return 0;
-    const uint32_t index_pos = drv->d86f_handler.index_hole_pos(drv, side);
-    const uint32_t pulse_pos = (d86f_get_track_pos(drv) + raw_size - index_pos) % raw_size;
-
-    /* A typical index pulse is active for about 4 ms of a 200 ms revolution. */
-    return pulse_pos < (raw_size / 50);
+    /* The revolution phase belongs to the bitstream engine; the mechanical
+       layer only asks whether the pulse is active right now. */
+    return d86f_index(drv);
 }
 
 static __inline uint64_t
@@ -1010,8 +1115,8 @@ fdd_byteperiod(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     uint64_t     ret = 32ULL * TIMER_USEC;
 
-    if ((drv != NULL) && (drv->byteperiod != NULL))
-        ret = drv->byteperiod(drv);
+    if ((drv != NULL) && (drv->fmt.byteperiod != NULL))
+        ret = drv->fmt.byteperiod(drv);
 
     return ret;
 }
@@ -1039,7 +1144,7 @@ fdd_set_motor_enable(void *priv, int motor_enable)
 static void
 fdd_poll(void *priv)
 {
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
 
     if (drv == NULL)
         return;
@@ -1047,17 +1152,11 @@ fdd_poll(void *priv)
 
     timer_advance_u64(&drv->poll_time, fdd_byteperiod((void *) drv));
 
-    if (drv->poll)
-        drv->poll((void *) drv);
+    if (drv->fmt.poll)
+        drv->fmt.poll((void *) drv);
 
-    if (drv->notfound) {
-        drv->notfound--;
-        if (!drv->notfound && fdc)
-            fdc_noidam(fdc);
-    }
-
-    if (drv->changed && fdc)
-        fdc_diskchange_interrupt(fdc, drv->id & 3);
+    if (drv->changed)
+        drv->ctrl->diskchange_interrupt(drv->ctrl_priv, drv->id);
 }
 
 int
@@ -1158,10 +1257,14 @@ fdd_readsector(void *priv, const int sector, const int track, const int side,
         return;
     }
 
-    if (drv->readsector != NULL)
-        drv->readsector(drv, sector, track, side, density, sector_size);
-    else
-        drv->notfound = 1000;
+    /* No diskette (or no drive): nothing passes the head, so there are no index
+       pulses, and the controller, which gives up on a sector only after two of
+       them, never ends the command. The BIOS times it out (80h, not ready).
+       Ending it with a missing address mark (02h) instead stopped BIOSes that
+       go on to the hard disk only after a timeout (Phoenix 386 1.10) when the
+       empty drive has no change line to check first (360K). */
+    if (drv->fmt.readsector != NULL)
+        drv->fmt.readsector(drv, sector, track, side, density, sector_size);
 }
 
 void
@@ -1191,10 +1294,9 @@ fdd_writesector(void *priv, const int sector, const int track, const int side,
         return;
     }
 
-    if (drv->writesector != NULL)
-        drv->writesector(drv, sector, track, side, density, sector_size);
-    else
-        drv->notfound = 1000;
+    /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
+    if (drv->fmt.writesector != NULL)
+        drv->fmt.writesector(drv, sector, track, side, density, sector_size);
 }
 
 void
@@ -1221,10 +1323,9 @@ fdd_comparesector(void *priv, const int sector, const int track,const  int side,
         return;
     }
 
-    if (drv->comparesector != NULL)
-        drv->comparesector(drv, sector, track, side, density, sector_size);
-    else
-        drv->notfound = 1000;
+    /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
+    if (drv->fmt.comparesector != NULL)
+        drv->fmt.comparesector(drv, sector, track, side, density, sector_size);
 }
 
 void
@@ -1248,8 +1349,8 @@ fdd_readaddress(void *priv, const int side, const int density)
         return;
     }
 
-    if (drv->readaddress != NULL)
-        drv->readaddress(drv, side, density);
+    if (drv->fmt.readaddress != NULL)
+        drv->fmt.readaddress(drv, side, density);
 }
 
 void
@@ -1274,10 +1375,9 @@ fdd_format(void *priv, int side, int density, uint8_t fill)
         return;
     }
 
-    if (drv->format == NULL)
-        drv->notfound = 1000;
-    else
-        drv->format(drv, side, density, fill);
+    /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
+    if (drv->fmt.format != NULL)
+        drv->fmt.format(drv, side, density, fill);
 }
 
 void
@@ -1287,24 +1387,23 @@ fdd_stop(void *priv)
 
     if (drv == NULL)
         return;
+
     fdc_t *fdc = (fdc_t *) drv->fdc;
 
-    drv->notfound = 0;
-
-    if ((fdc != NULL) && (fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_PC98))) {
+    if ((drv->ctrl != NULL) && ((fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_PC98)) ||
+                                drv->ctrl->is_pcjx(drv->ctrl_priv))) {
         /* Abort the pending operation, not the physical head position. */
         const int was_seeking = drv->seek_in_progress;
         timer_disable(&drv->seek_timer);
         drv->seek_in_progress = 0;
         drv->pending.pending = 0;
         drv->pending.op = FDD_OP_NONE;
-        drv->notfound         = 0;
         if (was_seeking)
             fdd_do_seek(drv, drv->track);
     }
 
-    if (drv->stop != NULL)
-        drv->stop(drv);
+    if (drv->fmt.stop != NULL)
+        drv->fmt.stop(drv);
 }
 
 void
@@ -1313,10 +1412,8 @@ fdd_init(void)
     int i;
 
     for (i = 0; i < FDD_NUM; i++) {
-        drives[i].poll       = 0;
-        drives[i].seek       = 0;
-        drives[i].readsector = 0;
-        drives[i].id         = i;
+        fdd_format_clear(&drives[i]);
+        drives[i].id = i;
     }
 
     d86f_init();

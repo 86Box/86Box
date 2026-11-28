@@ -53,23 +53,14 @@ static const device_config_t ibmat_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "ibm5170_111585",
+        .default_string = "ibm5170_111585_alt",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM BIOS - Revision 62X082x (11/15/85)",
-                .internal_name = "ibm5170_111585",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 65536,
-                .files         = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47.BIN", "" }
-            },
-            {
-                .name          = "IBM BIOS - Revision 61X9266 (11/15/85, alternate)",
+                .name          = "IBM BIOS - Revision 61X926x (11/15/85, EPROM)",
                 .internal_name = "ibm5170_111585_alt",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -78,7 +69,16 @@ static const device_config_t ibmat_config[] = {
                 .files         = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27_61X9266.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47_61X9265.BIN", "" }
             },
             {
-                .name          = "IBM BIOS - Revision 648009x (06/10/85)",
+                .name          = "IBM BIOS - Revision 62X082x (11/15/85, masked)",
+                .internal_name = "ibm5170_111585",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47.BIN", "" }
+            },
+            {
+                .name          = "IBM BIOS - Revision 648009x (06/10/85, masked)",
                 .internal_name = "ibm5170_061085",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -87,7 +87,7 @@ static const device_config_t ibmat_config[] = {
                 .files         = { "roms/machines/ibmat/BIOS_5170_10JUN85_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JUN85_U47.BIN", "" }
             },
             {
-                .name          = "IBM BIOS - Revision 618102x (01/10/84)",
+                .name          = "IBM BIOS - Revision 618102x (01/10/84, masked)",
                 .internal_name = "ibm5170_011084",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -143,7 +143,7 @@ machine_at_ibm_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    machine_at_add_kbc(model);
 
     mem_remap_top(384);
 
@@ -649,7 +649,7 @@ machine_at_siemens_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    machine_at_add_kbc(model);
 
     mem_remap_top(384);
 
@@ -737,7 +737,7 @@ machine_at_super286c_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    machine_at_add_kbc(model);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -1011,7 +1011,7 @@ machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
     machine_at_common_init(model);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    machine_at_add_kbc(model);
 
     if (is_v4)
         device_add(&scat_4_device);

@@ -147,8 +147,10 @@ extern "C" {
 #endif
 
 /* Global variables. */
-extern int dump_on_exit;        /* (O) dump regs on exit*/
-extern int start_in_fullscreen; /* (O) start in fullscreen */
+extern int dump_on_exit;          /* (O) dump regs on exit */
+extern int start_in_fullscreen;   /* (O) start in fullscreen */
+extern int start_fast_forward;    /* (O) start in fast forward mode */
+extern int start_paused;          /* (O) start paused */
 #ifdef _WIN32
 extern int force_debug; /* (O) force debug output */
 #endif
@@ -248,6 +250,7 @@ extern int    do_auto_pause;                /* (G) Auto-pause the emulator on fo
 extern int    do_auto_dialog_pause;         /* (G) Auto-pause the emulator on dialog boxes */
 extern int    auto_paused;
 extern int    force_constant_mouse;         /* (C) Force constant updating of the mouse */
+extern int    pause_on_sleep;               /* (C) Pause the emulator while the guest is in an ACPI sleeping state */
 extern double mouse_sensitivity;            /* (G) Mouse sensitivity scale */
 #ifdef _Atomic
 extern _Atomic double mouse_x_error;        /* Mouse error accumulator - Y */
@@ -280,7 +283,8 @@ extern int global_cfg_overridden;  /* global config file was overriden on comman
 extern int  monitor_edid;                   /* (C) Which EDID to use. 0=default, 1=custom. */
 extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
 
-extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
+extern int  color_scheme;                   /* (C) Color scheme of UI */
+extern char ui_style[64];                   /* (C) Qt style of UI, empty for the default */
 extern int fdd_sounds_enabled;              /* (C) Enable floppy drive sounds */
 
 extern int config_changed; /* config has changed */

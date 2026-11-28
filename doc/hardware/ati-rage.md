@@ -103,7 +103,11 @@ The apparently frozen or blank desktop had a separate cause. The factory
 driver sets `CRTC_DISPLAY_DIS` before a display-mode transition and enables
 the display again through VGA `ATTRX` bit 5. The emulator now handles this
 VGA display-enable write, including when the palette-enable value itself has
-not changed. Attribute data writes do not change this blanking state.
+not changed. Attribute data writes do not change this blanking state, and
+an index write with bit 5 clear does not set `CRTC_DISPLAY_DIS`: the Windows
+XP Rage II driver leaves bit 5 clear after restoring the attribute registers
+around its BIOS calls and writes `CRTC_GEN_CNTL` back as it reads it, which
+blanked its desktop.
 
 With the factory driver and original Rage, the fullscreen startup movie now
 plays and returns to the visible registration dialog. The subsequent movie

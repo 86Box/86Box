@@ -20,6 +20,7 @@ extern "C" {
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -36,7 +37,7 @@ machine_status_init(void)
         machine_status.fdd[i].empty        = (strlen(drv->image_path) == 0);
         machine_status.fdd[i].active       = false;
         machine_status.fdd[i].write_active = false;
-        machine_status.fdd[i].write_prot   = !!drv->read_only;
+        machine_status.fdd[i].write_prot   = !!drv->writeprot;
     }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         machine_status.cdrom[i].empty        = (strlen(cdrom[i].image_path) == 0);
@@ -64,6 +65,13 @@ machine_status_init(void)
         machine_status.tape[i].write_prot   = !!tape_drives[i].read_only;
     }
 
+    for (size_t i = 0; i < MD_NUM; i++) {
+        machine_status.md[i].empty        = (strlen(md_drives[i].image_path) == 0);
+        machine_status.md[i].active       = false;
+        machine_status.md[i].write_active = false;
+        machine_status.md[i].write_prot   = !!md_drives[i].read_only;
+    }
+
     for (size_t i = 0; i < 2; i++)
         machine_status.cartridge[i].empty  = (strlen(cart_fns[i]) == 0);
 
@@ -77,7 +85,7 @@ machine_status_init(void)
         machine_status.hdd[i].write_active = false;
     }
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CONF_MAX; i++) {
         machine_status.net[i].active       = false;
         machine_status.net[i].write_active = false;
         machine_status.net[i].write_prot   = false;

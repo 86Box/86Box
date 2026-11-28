@@ -154,6 +154,7 @@ jobs:
           libvdeplug-dev
           libserialport-dev
           libzstd-dev
+          libarchive-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

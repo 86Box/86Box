@@ -76,6 +76,14 @@ public:
     void tapeReload(int index, int slot);
     void tapeUpdateMenu(int i);
 
+    void mdNewImage(int i);
+    void mdSelectImage(int i, bool wp);
+    void mdMount(int i, const QString &filename, bool wp);
+    void mdEject(int i);
+    void mdReloadPrev(int i);
+    void mdReload(int index, int slot);
+    void mdUpdateMenu(int i);
+
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
@@ -108,6 +116,7 @@ private:
     QMap<int, QMenu *> rdiskMenus;
     QMap<int, QMenu *> moMenus;
     QMap<int, QMenu *> tapeMenus;
+    QMap<int, QMenu *> mdMenus;
     QMap<int, QMenu *> netMenus;
     QMap<int, QMenu *> usbMenus;
     QMap<int, QMenu *> usbPortMenus;
@@ -133,9 +142,9 @@ private:
     int floppyEjectPos;
     int floppyImageHistoryPos[MAX_PREV_IMAGES];
 
-    int cdromMutePos;
-    int cdromEjectPos;
-    int cdromImageHistoryPos[MAX_PREV_IMAGES];
+    int cdromMutePos[32];
+    int cdromEjectPos[32];
+    int cdromImageHistoryPos[32][MAX_PREV_IMAGES];
 
     int rdiskEjectPos;
     int rdiskImageHistoryPos[MAX_PREV_IMAGES];
@@ -145,6 +154,8 @@ private:
 
     int tapeEjectPos;
     int tapeImageHistoryPos[MAX_PREV_IMAGES];
+    int mdEjectPos;
+    int mdImageHistoryPos[MAX_PREV_IMAGES];
 
     int netDisconnPos;
 

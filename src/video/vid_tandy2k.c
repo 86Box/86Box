@@ -61,8 +61,29 @@
 
 #define TANDY2K_COLS        80
 #define TANDY2K_ROWS        25
-#define TANDY2K_XSIZE       (TANDY2K_COLS * 8)
-#define TANDY2K_YSIZE       (TANDY2K_ROWS * 16)
+#define TANDY2K_CELL_W      8
+#define TANDY2K_CELL_H      16
+#define TANDY2K_XSIZE       (TANDY2K_COLS * TANDY2K_CELL_W)
+#define TANDY2K_YSIZE       (TANDY2K_ROWS * TANDY2K_CELL_H)
+
+/* A double-width data row carries 40 characters and each glyph dot spans two
+   pixels, so the row still covers the full 640 dots. */
+#define TANDY2K_DW_COLS     40
+#define TANDY2K_DW_CELL_W   16
+
+/* Row table (VPAC registers 0Ch/0Dh): four bytes per data row in the window,
+   low byte first, the address' high six bits and the attribute in the byte
+   two above it. Bit 7-6 of register 0Dh select the addressing mode. */
+#define TANDY2K_REG_TABLE_LO      0x0c
+#define TANDY2K_REG_TABLE_HI      0x0d
+#define TANDY2K_ROW_ENTRY         4
+#define TANDY2K_ROW_ADDR_MASK     0x3f
+#define TANDY2K_ROW_ATTR_SHIFT    6
+#define TANDY2K_ROW_ATTR_MASK     0x03
+#define TANDY2K_ADDR_MODE_SHIFT   6
+#define TANDY2K_ADDR_MODE_MASK    0x03
+#define TANDY2K_ADDR_MODE_ROW_TABLE 2
+#define TANDY2K_ATTR_DOUBLE_WIDTH 0x01
 
 /* VPAC timing as programmed by the BIOS: 106 characters of 8 dots per
    horizontal period, 440 scan lines per frame, 22.4 MHz dot clock. */
@@ -394,6 +415,25 @@ vid_render_hires(t2kvid_t *vid)
     }
 }
 
+/* When VPAC register 0Dh selects the contiguous row table, the controller
+   takes one descriptor per data row from the table. The descriptor's address
+   covers 14 bits; the top two bits of its high byte hold the row attribute. */
+static int
+vid_row_start(t2kvid_t *vid, uint32_t table, int row, uint32_t *start, uint8_t *row_attr)
+{
+    const uint32_t off = (uint32_t) row * TANDY2K_ROW_ENTRY;
+    uint8_t       *lo  = vid_cell_ptr(vid, table + off);
+    uint8_t       *hi  = vid_cell_ptr(vid, table + off + 2);
+
+    if ((lo == NULL) || (hi == NULL))
+        return 0;
+
+    *start    = ((uint32_t) (*hi & TANDY2K_ROW_ADDR_MASK) << 8) | *lo;
+    *row_attr = (uint8_t) ((*hi >> TANDY2K_ROW_ATTR_SHIFT) & TANDY2K_ROW_ATTR_MASK);
+
+    return 1;
+}
+
 static void
 vid_render(t2kvid_t *vid)
 {
@@ -411,7 +451,14 @@ vid_render(t2kvid_t *vid)
     /* Port 101h holds A19-A15 of the 32 KB window; the text buffer is its last 5 KB. */
     int      blink_off = (int) ((vid->frames % TANDY2K_BLINK_FRAMES) < (TANDY2K_BLINK_FRAMES / 4));
     int      cursor_on = (int) ((vid->frames % TANDY2K_CURSOR_FRAMES) < (TANDY2K_CURSOR_FRAMES / 2));
-    uint32_t fb    = ((uint32_t) (vid->vbase & 0x1f) << 15) + TANDY2K_FB_TEXT;
+    uint32_t window = (uint32_t) (vid->vbase & 0x1f) << 15;
+    uint32_t fb     = window + TANDY2K_FB_TEXT;
+    /* Registers 0Ch/0Dh hold the row table's word address; its entries sit in
+       the same window, so the byte address is the stored value doubled. */
+    uint32_t table  = window + (((((uint32_t) vid->vpac[TANDY2K_REG_TABLE_HI] << 8) & 0x3f00) |
+                                 vid->vpac[TANDY2K_REG_TABLE_LO]) << 1);
+    int      row_table = (((vid->vpac[TANDY2K_REG_TABLE_HI] >> TANDY2K_ADDR_MODE_SHIFT) &
+                           TANDY2K_ADDR_MODE_MASK) == TANDY2K_ADDR_MODE_ROW_TABLE);
     uint32_t green[16];
 
     /* The character generator only has two pens, so expanding the sixteen
@@ -420,12 +467,33 @@ vid_render(t2kvid_t *vid)
         green[i] = pen_green((uint8_t) i);
 
     for (int row = 0; row < TANDY2K_ROWS; row++) {
-        for (int line = 0; line < 16; line++) {
-            uint32_t *p = buffer32->line[(row * 16) + line];
+        uint32_t row_start = fb + ((uint32_t) row * TANDY2K_COLS * 2);
+        uint32_t cells     = TANDY2K_COLS;
+        int      cell_w    = TANDY2K_CELL_W;
 
-            for (int col = 0; col < TANDY2K_COLS; col++) {
-                uint32_t cell = (uint32_t) ((row * TANDY2K_COLS) + col) * 2;
-                uint8_t *cellp = vid_cell_ptr(vid, fb + cell);
+        /* 40-column rows are not a separate mode: the row table marks them
+           with the double-width attribute, and the controller fetches half
+           as many characters. */
+        if (row_table) {
+            uint32_t start    = 0;
+            uint8_t  row_attr = 0x00;
+
+            if (vid_row_start(vid, table, row, &start, &row_attr)) {
+                row_start = window + (start << 1);
+
+                if (row_attr != 0x00) {
+                    cells  = TANDY2K_DW_COLS;
+                    cell_w = (row_attr == TANDY2K_ATTR_DOUBLE_WIDTH) ? TANDY2K_DW_CELL_W
+                                                                     : TANDY2K_CELL_W;
+                }
+            }
+        }
+
+        for (int line = 0; line < TANDY2K_CELL_H; line++) {
+            uint32_t *p = buffer32->line[(row * TANDY2K_CELL_H) + line];
+
+            for (uint32_t col = 0; col < cells; col++) {
+                uint8_t *cellp = vid_cell_ptr(vid, row_start + (col * 2));
                 uint8_t  code = 0x00;
                 uint8_t  attr = 0x00;
                 uint8_t  bits = 0x00;
@@ -455,11 +523,20 @@ vid_render(t2kvid_t *vid)
 
                 /* CURSOR stays active for the whole data row and the VAC
                    inverts the character, so every scan line is covered. */
-                if (cursor_on && (row == vid->vpac[0x18]) && (col == vid->vpac[0x19]))
+                if (cursor_on && (row == vid->vpac[0x18]) &&
+                    (col == (uint32_t) vid->vpac[0x19]))
                     bits = (uint8_t) ~bits;
 
-                for (int dot = 0; dot < 8; dot++)
-                    p[(col * 8) + dot] = (bits & (0x80 >> dot)) ? fg : bg;
+                /* A double-width row repeats every dot, so one eight-dot glyph
+                   covers sixteen pixels; the others stay eight dots wide. */
+                for (int dot = 0; dot < TANDY2K_CELL_W; dot++) {
+                    const uint32_t colour = (bits & (0x80 >> dot)) ? fg : bg;
+                    const uint32_t x      = (col * (uint32_t) cell_w) +
+                                            ((uint32_t) dot * (uint32_t) cell_w / TANDY2K_CELL_W);
+
+                    for (int n = 0; n < (cell_w / TANDY2K_CELL_W); n++)
+                        p[x + n] = colour;
+                }
             }
         }
     }

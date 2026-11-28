@@ -19,12 +19,6 @@
  *          Copyright      2026 mr b0nk 500
  */
 
-/*
- * TODO:
- * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
- *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
- *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
- */
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -192,6 +186,7 @@ typedef struct gus_t {
 
     pc_timer_t samp_timer;
     uint64_t   samp_latch;
+    uint64_t   samp_latch_cur; /* period the sample timer runs at */
 
     uint8_t *ram;
     uint8_t *rom;
@@ -258,6 +253,7 @@ typedef struct gus_t {
     void   *gameport;
 
     uint8_t max_ctrl;
+    uint8_t daughter; /* 16-bit recording daughter card (CS4231) fitted */
 
     ad1848_t ad1848;
 
@@ -561,7 +557,7 @@ gus_gp_write(uint16_t addr, uint8_t val, void *priv)
                 if (gus->reg_ctrl & 0x08) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 gus->usrr |= 0x08;
@@ -571,7 +567,7 @@ gus_gp_write(uint16_t addr, uint8_t val, void *priv)
                 if (gus->reg_ctrl & 0x10) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 gus->usrr |= 0x20;
@@ -594,7 +590,7 @@ gus_gp_read(uint16_t addr, void *priv)
                 if (gus->reg_ctrl & 0x08) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 ret = gus->gp1_out;
@@ -604,7 +600,7 @@ gus_gp_read(uint16_t addr, void *priv)
                 if (gus->reg_ctrl & 0x10) {
                     if (gus->sb_nmi)
                         nmi_raise();
-                    else
+                    else if (gus->irq_midi != -1)
                         picint(1 << gus->irq_midi);
                 }
                 ret = gus->gp2_out;
@@ -1402,6 +1398,14 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x200:
             gus->latch_enable = val;
+            /* Line out disable bit also mutes CD audio */
+            if (gus->type == GUS_MAX || gus->type == GUS_INTERWAVE || gus->daughter) {
+                if (val & 0x02) {
+                    gus->ad1848.cd_vol_l = 0;
+                    gus->ad1848.cd_vol_r = 0;
+                } else
+                    ad1848_update_cd_vol(&gus->ad1848);
+            }
             break;
 
         case 0x20b:
@@ -2337,7 +2341,15 @@ gus_poll_wave(void *priv)
 
     gus_update(gus);
 
-    timer_advance_u64(&gus->samp_timer, gus->samp_latch);
+    /* The guest changes the period by changing the voice count. Re-phase the
+       timer then: on a period equal to the output rate, at a phase where both
+       timers are due on the same integer timestamp, they swap order on every
+       tick, which makes gus_update() write two samples, then none. */
+    if (gus->samp_latch != gus->samp_latch_cur) {
+        gus->samp_latch_cur = gus->samp_latch;
+        timer_advance_u64(&gus->samp_timer, sound_poll_offset_delay(&gus->samp_timer, gus->samp_latch));
+    } else
+        timer_advance_u64(&gus->samp_timer, gus->samp_latch);
 
     gus->out_l = gus->out_r = 0;
 
@@ -3063,25 +3075,28 @@ static void
 gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     gus_t *gus = (gus_t *) priv;
+    uint8_t gf1_mute = (gus->latch_enable & 0x02) ? 1 : 0;
 
-    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE)
+    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
         ad1848_update(&gus->ad1848);
 
     gus_update(gus);
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double temp_l = 0.0;
         double temp_r = 0.0;
-        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX)) {
+        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX) || gus->daughter) {
             temp_l = (double) gus->buffer[0][c >> 1];
             temp_r = (double) gus->buffer[1][c >> 1];
-            if (gus->type == GUS_MAX) {
-                if (gus->max_ctrl) {
+            if (gus->type == GUS_MAX || gus->daughter) {
+                if ((gus->max_ctrl || gus->daughter) && !gf1_mute) {
                     buffer[c]     += (int32_t) (gus->ad1848.buffer[c] / 2);
                     buffer[c + 1] += (int32_t) (gus->ad1848.buffer[c + 1] / 2);
                 }
                 ad1848_filter_channel(&gus->ad1848, AD1848_AUX1, &temp_l, &temp_r);
             } else
                 gus_ics2101_filter(&gus->ics2101, GUS_ICS2101_GF1_OUT, &temp_l, &temp_r);
+            if (gf1_mute)
+                temp_l = temp_r = 0;
             buffer[c]     += (int32_t) temp_l;
             buffer[c + 1] += (int32_t) temp_r;
         } else if (gus->type == GUS_INTERWAVE) {
@@ -3116,15 +3131,18 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
                 temp_l *= 2;
                 temp_r *= 2;
             }
+            /* Mixer Control bit 1 controls audio ouput for all sources on InterWave */
+            if (gf1_mute)
+                temp_l = temp_r = 0;
             buffer[c]     += (int32_t) temp_l;
             buffer[c + 1] += (int32_t) temp_r;
-        } else {
+        } else if (!gf1_mute) {
             buffer[c]     += (int32_t) gus->buffer[0][c >> 1];
             buffer[c + 1] += (int32_t) gus->buffer[1][c >> 1];
         }
     }
 
-    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE)
+    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
         gus->ad1848.pos = 0;
 
     gus->pos = 0;
@@ -3134,6 +3152,7 @@ static void
 gus_extreme_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     gus_t *gus = (gus_t *) priv;
+    uint8_t gf1_mute = (gus->latch_enable & 0x02) ? 1 : 0;
 
     gus_update(gus);
 
@@ -3144,6 +3163,8 @@ gus_extreme_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         temp_r = (double) gus->buffer[1][c >> 1] * gus->ess->mixer_ess.auxb_r;
         temp_l *= gus->ess->mixer_ess.master_l;
         temp_r *= gus->ess->mixer_ess.master_r;
+        if (gf1_mute)
+            temp_l = temp_r = 0;
         buffer[c]     += (int32_t) temp_l;
         buffer[c + 1] += (int32_t) temp_r;
     }
@@ -3155,10 +3176,14 @@ void
 gus_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     const gus_t *gus = (gus_t *) priv;
-    /* FIXME: No channel remapping possible with the current architecture */
-    if (gus->ics2101.channels[GUS_ICS2101_CD_IN].ctrl[channel] && gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[channel])
-        *buffer *= gus->ics2101.channels[GUS_ICS2101_CD_IN].level[channel] * gus->ics2101.channels[GUS_ICS2101_MASTER].level[channel];
-    else
+    if (gus->type == GUS_CLASSIC_37) {
+        /* FIXME: No channel remapping possible with the current architecture */
+        if (gus->ics2101.channels[GUS_ICS2101_CD_IN].ctrl[channel] && gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[channel])
+            *buffer *= gus->ics2101.channels[GUS_ICS2101_CD_IN].level[channel] * gus->ics2101.channels[GUS_ICS2101_MASTER].level[channel];
+        else
+            *buffer *= 0.0;
+    }
+    if (gus->latch_enable & 0x02)
         *buffer *= 0.0;
 }
 
@@ -3331,6 +3356,8 @@ gus_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *p
             gus->cur_irq2 = 0;
             gus->cur_dma1 = 0;
             gus->cur_dma2 = 0;
+            gus->irq      = -1;
+            gus->irq_midi = -1;
             ad1848_setirq(&gus->ad1848, 0);
             ad1848_setdma(&gus->ad1848, 0);
             ad1848_setdma2(&gus->ad1848, 0);
@@ -3354,6 +3381,7 @@ gus_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *p
                 if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
                     gus->cur_irq1 = config->irq[0].irq;
                     gus->irq      = gus->cur_irq1;
+                    gus->irq_midi = gus->irq;
                     gus_log(gus->log, "Updating InterWave IRQ to %i\n", gus->cur_irq1);
                     ad1848_setirq(&gus->ad1848, gus->irq);
                 }
@@ -3635,6 +3663,10 @@ gus_init(UNUSED(const device_t *info))
 
     gus->log = log_open("GUS");
 
+    /* No IRQ until the IRQ latch selects one. */
+    gus->irq      = -1;
+    gus->irq_midi = -1;
+
     if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_34) || (info->local == GUS_CLASSIC_37))
         gus->gus_end_ram = gus_ram * 262144;
     else
@@ -3696,14 +3728,32 @@ gus_init(UNUSED(const device_t *info))
             ics2101_att[i] = pow(10.0, gain / 20.0);
         }
 
-        sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
     }
+    if (gus->type <= GUS_CLASSIC_37 && !device_get_config_int("daughter"))
+        sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
 
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
         ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
         gus->cur_codec_addr = gus->base + 0x10C;
         io_sethandler(0x10C + gus->base, 4,
+                      ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
+    }
+
+    /* the 16-bit recording daughter card of the UltraSound (UltraSound SDK 2.22,
+       6.4): a CS4231 at 530h, 604h, E80h or F40h with its own jumpered IRQ (3/4/5/6/7/9)
+       and one 8-bit DMA channel (1-3), so no full duplex. */
+    if ((gus->type <= GUS_CLASSIC_37) && device_get_config_int("daughter")) {
+        const uint16_t codec_base = device_get_config_hex16("codec_base");
+
+        gus->daughter = 1;
+        ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
+        ad1848_setirq(&gus->ad1848, device_get_config_int("codec_irq"));
+        ad1848_setdma(&gus->ad1848, device_get_config_int("codec_dma"));
+        ad1848_setdma2(&gus->ad1848, 4);
+        /* The daughterboard has its own CD audio connector that routes through the CS4231 */
+        ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
+        io_sethandler(codec_base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
 
@@ -3718,6 +3768,8 @@ gus_init(UNUSED(const device_t *info))
         sound_in_start_input();
     } else if (gus->type <= GUS_CLASSIC_37) {
         sound_in_add_handler(gus_put_buffer, gus);
+        if (gus->daughter)
+            sound_in_add_handler(iw_put_buffer, gus);
         sound_in_start_input();
     }
 
@@ -3758,6 +3810,10 @@ gus_extreme_init(UNUSED(const device_t *info))
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
     gus->log = log_open("GUS");
+
+    /* No IRQ until the IRQ latch selects one. */
+    gus->irq      = -1;
+    gus->irq_midi = -1;
 
     /* Init ES1688 section */
     gus->ess = calloc(1, sizeof(sb_t));
@@ -3874,6 +3930,10 @@ gus_pnp_init(const device_t *info)
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
     gus->log = log_open("GUS");
+
+    /* No IRQ until the PnP configuration assigns one. */
+    gus->irq      = -1;
+    gus->irq_midi = -1;
 
     FILE *rom_fp;
 
@@ -4144,9 +4204,75 @@ gus_speed_changed(void *priv)
     else
         gus->samp_latch = (uint64_t) (TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
 
-    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE)
+    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
         ad1848_speed_changed(&gus->ad1848);
 }
+
+/* the 16-bit recording daughter card's jumpers (UltraSound SDK 2.22, 6.4). */
+#define GUS_DAUGHTER_CONFIG                                                  \
+    {                                                                        \
+        .name           = "daughter",                                        \
+        .description    = "16-bit recording daughter card",                  \
+        .type           = CONFIG_BINARY,                                     \
+        .default_string = NULL,                                              \
+        .default_int    = 0,                                                 \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = { { 0 } },                                         \
+        .bios           = { { 0 } }                                          \
+    },                                                                       \
+    {                                                                        \
+        .name           = "codec_base",                                      \
+        .description    = "Daughter card address",                           \
+        .type           = CONFIG_HEX16,                                      \
+        .default_string = NULL,                                              \
+        .default_int    = 0x530,                                             \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = {                                                  \
+            { .description = "530H", .value = 0x530 },                       \
+            { .description = "604H", .value = 0x604 },                       \
+            { .description = "E80H", .value = 0xe80 },                       \
+            { .description = "F40H", .value = 0xf40 },                       \
+            { NULL                                  }                        \
+        },                                                                   \
+        .bios           = { { 0 } }                                          \
+    },                                                                       \
+    {                                                                        \
+        .name           = "codec_irq",                                       \
+        .description    = "Daughter card IRQ",                               \
+        .type           = CONFIG_SELECTION,                                  \
+        .default_string = NULL,                                              \
+        .default_int    = 5,                                                 \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = {                                                  \
+            { .description = "IRQ 3", .value = 3 },                          \
+            { .description = "IRQ 4", .value = 4 },                          \
+            { .description = "IRQ 5", .value = 5 },                          \
+            { .description = "IRQ 6", .value = 6 },                          \
+            { .description = "IRQ 7", .value = 7 },                          \
+            { .description = "IRQ 9", .value = 9 },                          \
+            { .description = ""                  }                           \
+        },                                                                   \
+        .bios           = { { 0 } }                                          \
+    },                                                                       \
+    {                                                                        \
+        .name           = "codec_dma",                                       \
+        .description    = "Daughter card DMA",                               \
+        .type           = CONFIG_SELECTION,                                  \
+        .default_string = NULL,                                              \
+        .default_int    = 3,                                                 \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = {                                                  \
+            { .description = "DMA 1", .value = 1 },                          \
+            { .description = "DMA 2", .value = 2 },                          \
+            { .description = "DMA 3", .value = 3 },                          \
+            { .description = ""                  }                           \
+        },                                                                   \
+        .bios           = { { 0 } }                                          \
+    }
 
 static const device_config_t gus_config[] = {
     // clang-format off
@@ -4197,6 +4323,7 @@ static const device_config_t gus_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
+    GUS_DAUGHTER_CONFIG,
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
@@ -4250,6 +4377,7 @@ static const device_config_t gus_v37_config[] = {
         },
         .bios           = { { 0 } }
     },
+    GUS_DAUGHTER_CONFIG,
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",

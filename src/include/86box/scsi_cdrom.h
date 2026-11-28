@@ -70,6 +70,12 @@ typedef struct scsi_cdrom_t {
     int                media_access;
     int                sectors_num;
 
+    int                philips_in_seq;
+    int                philips_audio;
+    int                philips_inc;
+    int                philips_internal;
+    uint32_t           philips_packet;
+
     uint8_t            vendor_type;
     uint8_t            ven_cmd_is_data[256];
 

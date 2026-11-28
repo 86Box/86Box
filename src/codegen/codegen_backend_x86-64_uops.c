@@ -314,22 +314,47 @@ lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
     return 1;
 }
 
+/*Equal stubs (lazy_stubs_match) hash alike*/
+#    define LAZY_STUB_HASH_BITS 6
+static uint32_t
+lazy_stub_hash(const lazy_stub_t *stub)
+{
+    uint64_t h = ((uintptr_t) stub->route ^ ((uint64_t) (uint32_t) stub->add << 32) ^ (uint64_t) stub->list->nr) * 0x9e3779b97f4a7c15ull;
+
+    for (int i = 0; i < stub->list->nr; i++) {
+        const codegen_lazy_store_t *store = &stub->list->stores[i];
+
+        h = (h ^ store->imm ^ ((uint64_t) store->ireg << 32) ^ ((uint64_t) store->host_reg << 40)) * 0x9e3779b97f4a7c15ull;
+    }
+    return (uint32_t) (h >> (64 - LAZY_STUB_HASH_BITS));
+}
+
 void
 codegen_lazy_stubs_emit(codeblock_t *block)
 {
-    for (int i = 0; i < nr_lazy_stubs; i++) {
-        lazy_stub_t *stub = &lazy_stubs[i];
-        int          j;
+    /*The first stub of each set of equal ones, chained by hash: a later
+      stub equal to it takes its code*/
+    int16_t first[1 << LAZY_STUB_HASH_BITS];
+    int16_t next[CODEGEN_LAZY_SITES_MAX];
 
-        for (j = 0; j < i; j++) {
+    for (int h = 0; h < (1 << LAZY_STUB_HASH_BITS); h++)
+        first[h] = -1;
+    for (int i = 0; i < nr_lazy_stubs; i++) {
+        lazy_stub_t   *stub = &lazy_stubs[i];
+        const uint32_t h    = lazy_stub_hash(stub);
+        int            j;
+
+        for (j = first[h]; j >= 0; j = next[j]) {
             if (lazy_stubs_match(stub, &lazy_stubs[j]))
                 break;
         }
-        if (j < i)
+        if (j >= 0)
             stub->addr = lazy_stubs[j].addr;
         else {
             void *dest = codegen_exit_dest(stub->route, stub->add);
 
+            next[i]  = first[h];
+            first[h] = i;
             codegen_alloc(block, 16);
             stub->addr = &block_write_data[block_pos];
             codegen_reg_lazy_stores(block, stub->list);
@@ -572,6 +597,25 @@ codegen_CMP_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
     else
         fatal("CMP_IMM_JZ_DEST %02x\n", uop->src_reg_a_real);
 #    endif
+    uop->p = host_x86_JZ_long(block);
+
+    return 0;
+}
+static int
+codegen_TEST_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    /*A word register's upper half is not part of its value: the immediate
+      tests the low 16 bits only*/
+    if (REG_IS_L(src_size))
+        host_x86_TEST32_REG_IMM(block, src_reg, uop->imm_data);
+    else if (REG_IS_W(src_size))
+        host_x86_TEST32_REG_IMM(block, src_reg, uop->imm_data & 0xffff);
+    else
+        fatal("TEST_IMM_JZ_DEST %02x\n", uop->src_reg_a_real);
+
     uop->p = host_x86_JZ_long(block);
 
     return 0;
@@ -1626,14 +1670,35 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
     if (!REG_IS_W(src_size))
         fatal("LOAD_SEG %02x %p\n", uop->src_reg_a_real, uop->p);
 #    endif
+    /*seg_load_cache is filled only on the processors far_load_order marks
+      as following the Intel Architecture manuals, and only in protected
+      mode outside V86, which the routine checks again*/
+    if ((far_load_order == FAR_LOAD_ORDER_IA) && ((block->status & (CPU_STATUS_PMODE | CPU_STATUS_V86)) == CPU_STATUS_PMODE) &&
+        ((uop->p == &cpu_state.seg_ds) || (uop->p == &cpu_state.seg_es) || (uop->p == &cpu_state.seg_fs) || (uop->p == &cpu_state.seg_gs) ||
+         (uop->p == &cpu_state.seg_ss))) {
+        int nr = (uop->p == &cpu_state.seg_ds) ? 0 : (uop->p == &cpu_state.seg_es) ? 1 : (uop->p == &cpu_state.seg_fs) ? 2 : (uop->p == &cpu_state.seg_gs) ? 3 : 4;
+
 #    if _WIN64
-    host_x86_MOV16_REG_REG(block, REG_CX, src_reg);
+        host_x86_MOVZX_REG_32_16(block, REG_ECX, src_reg);
+#    else
+        host_x86_MOVZX_REG_32_16(block, REG_EDI, src_reg);
+#    endif
+        host_x86_CALL(block, codegen_load_seg_rout[nr]);
+        host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
+        codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
+        return 0;
+    }
+#    if _WIN64
+    host_x86_MOVZX_REG_32_16(block, REG_ECX, src_reg);
     host_x86_MOV64_REG_IMM(block, REG_EDX, (uint64_t) uop->p);
 #    else
-    host_x86_MOV16_REG_REG(block, REG_DI, src_reg);
+    host_x86_MOVZX_REG_32_16(block, REG_EDI, src_reg);
     host_x86_MOV64_REG_IMM(block, REG_ESI, (uint64_t) uop->p);
 #    endif
-    host_x86_CALL(block, (void *) loadseg);
+    if ((uop->p == &cpu_state.seg_ds) || (uop->p == &cpu_state.seg_es) || (uop->p == &cpu_state.seg_fs) || (uop->p == &cpu_state.seg_gs))
+        host_x86_CALL(block, (void *) loadseg_pm_fast);
+    else
+        host_x86_CALL(block, (void *) loadseg);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
     codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
 
@@ -1778,8 +1843,18 @@ codegen_mem_slow(codeblock_t *block, const mem_slow_t *slow)
     if (slow->misaligned_p)
         jump_here(slow->misaligned_p);
     jump_here(slow->miss_p);
-    host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
-    host_x86_CALL(block, slow->rout);
+    /*A byte, word or long store goes straight to its routine's entry behind
+      the writelookup2 test, which the block has just done*/
+    if (slow->store && (slow->rout == codegen_mem_store_byte) && codegen_mem_store_byte_tracked)
+        host_x86_CALL(block, codegen_mem_store_byte_tracked);
+    else if (slow->store && (slow->rout == codegen_mem_store_word) && codegen_mem_store_word_tracked)
+        host_x86_CALL(block, codegen_mem_store_word_tracked);
+    else if (slow->store && (slow->rout == codegen_mem_store_long) && codegen_mem_store_long_tracked)
+        host_x86_CALL(block, codegen_mem_store_long_tracked);
+    else {
+        host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
+        host_x86_CALL(block, slow->rout);
+    }
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     codegen_exit_Jcc_add(block, slow->add, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
     if (!slow->store) {
@@ -3668,23 +3743,17 @@ codegen_SHR_IMM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The emitters address cpu_state, wherever it is, relative to RBP, and fail
+  on a pointer they cannot reach*/
 static int
 codegen_STORE_PTR_IMM(codeblock_t *block, uop_t *uop)
 {
-#    ifdef RECOMPILER_DEBUG
-    if (((uintptr_t) uop->p) >> 32)
-        fatal("STORE_PTR_IMM 64-bit addr\n");
-#    endif
     host_x86_MOV32_ABS_IMM(block, uop->p, uop->imm_data);
     return 0;
 }
 static int
 codegen_STORE_PTR_IMM_8(codeblock_t *block, uop_t *uop)
 {
-#    ifdef RECOMPILER_DEBUG
-    if (((uintptr_t) uop->p) >> 32)
-        fatal("STORE_PTR_IMM_8 64-bit addr\n");
-#    endif
     host_x86_MOV8_ABS_IMM(block, uop->p, uop->imm_data);
     return 0;
 }
@@ -4270,6 +4339,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCMP_JWITHIN_DEST &
         UOP_MASK]
     = codegen_FCMP_JWITHIN_DEST,
+    [UOP_FCMP_JWITHIN_DEST_COLD &
+        UOP_MASK]
+    = codegen_FCMP_JWITHIN_DEST,
     [UOP_CMP_JNWITHIN &
         UOP_MASK]
     = codegen_CMP_JNWITHIN,
@@ -4323,6 +4395,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_IMM_JZ_DEST &
         UOP_MASK]
     = codegen_CMP_IMM_JZ_DEST,
+    [UOP_CMP_IMM_JZ_DEST_COLD &
+        UOP_MASK]
+    = codegen_CMP_IMM_JZ_DEST,
+    [UOP_TEST_IMM_JZ_DEST_COLD &
+        UOP_MASK]
+    = codegen_TEST_IMM_JZ_DEST,
 
     [UOP_TEST_JNS_DEST &
         UOP_MASK]

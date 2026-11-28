@@ -48,6 +48,7 @@
 #include <86box/chipset.h>
 #include <86box/eisa.h>
 #include <86box/esc.h>
+#include <86box/scsi.h>
 #include <86box/scsi_aic7xxx.h>
 #include <86box/machine.h>
 #include <86box/rom.h>
@@ -151,7 +152,8 @@ machine_at_54tdp_init(const machine_t *model)
 
     /* The Adaptec is not optional on this board: it is soldered to it,
        and the system BIOS carries its option ROM. */
-    device_add(machine_get_scsi_device(machine));
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
 
     /* This board takes two processors and its firmware says so, but the
        APIC in the ESC has nowhere to deliver a message: there is no local
@@ -387,7 +389,8 @@ machine_at_td3_init(const machine_t *model)
     else /* for 66 MHz and all other bus speeds (100 MHz CPU) */
         esc_set_board_id("ING", 0x2920, 0);   
 
-    device_add(machine_get_scsi_device(machine));
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
 
     if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
         device_add(machine_get_net_device(machine));

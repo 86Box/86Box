@@ -214,6 +214,10 @@ add_library(ui STATIC
     qt_settingsotherperipherals.cpp
     qt_settingsotherperipherals.hpp
     qt_settingsotherperipherals.ui
+    qt_settingspcmcia.cpp
+    qt_settingspcmcia.hpp
+    qt_pccard_menu.cpp
+    qt_pccard_menu.hpp
     qt_settings_bus_tracking.cpp
     qt_settings_bus_tracking.hpp
     qt_settings_completer.cpp
@@ -255,6 +259,9 @@ add_library(ui STATIC
     qt_soundgain.hpp
     qt_soundgain.cpp
     qt_soundgain.ui
+
+    qt_midilcd.hpp
+    qt_midilcd.cpp
 
     qt_styleoverride.cpp
     qt_styleoverride.hpp
@@ -312,7 +319,6 @@ add_library(ui STATIC
     qt_vmmanager_mainwindow.ui
 
     ../qt_resources.qrc
-    ./qdarkstyle/dark/darkstyle.qrc
 
     qt_openglshadermanagerdialog.hpp
     qt_openglshadermanagerdialog.cpp
@@ -387,10 +393,6 @@ endif()
 
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
-endif()
-
-if(WACOM)
-    target_compile_definitions(ui PRIVATE USE_WACOM)
 endif()
 
 if(WIN32)
@@ -499,8 +501,6 @@ if (WIN32)
     target_sources(ui PRIVATE
         qt_winrawinputfilter.hpp
         qt_winrawinputfilter.cpp
-        qt_vmmanager_windarkmodefilter.hpp
-        qt_vmmanager_windarkmodefilter.cpp
         qt_winmanagerfilter.hpp
         qt_winmanagerfilter.cpp
     )
@@ -527,7 +527,7 @@ if (LIBRASHADER)
     if (LIBRASHADER_STATIC)
         if (LIBRASHADER_STATIC_FIND_LIB)
             find_library(LIBRASHADER_STATIC_LIB liblibrashader_capi.a REQUIRED)
-            target_link_libraries(ui PRIVATE "${LIBRASHADER_STATIC_LIB}" ntdll userenv)
+            target_link_libraries(ui PRIVATE "${LIBRASHADER_STATIC_LIB}" ntdll userenv synchronization)
         else()
             target_link_libraries(ui PRIVATE librashader_capi)
         endif()
@@ -736,6 +736,12 @@ if (EMBED_QTBASE_TRANSLATIONS)
     # Get the Qt translations directory
     get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_MAJOR}::qmake IMPORTED_LOCATION)
     execute_process(COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_TRANSLATIONS OUTPUT_VARIABLE QT_TRANSLATIONS_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(QT_STATIC AND MINGW AND USE_QT6)
+        # Workaround for incorrect translations path of MSYS2's static Qt 6
+        string(REGEX REPLACE "-static/translations$" "-static/share/qt${QT_MAJOR}/translations" QT_TRANSLATIONS_DIR_REAL ${QT_TRANSLATIONS_DIR})
+        set(QT_TRANSLATIONS_DIR "${QT_TRANSLATIONS_DIR_REAL}")
+        unset(QT_TRANSLATIONS_DIR_REAL)
+    endif()
 endif()
 
 set(QM_FILES)

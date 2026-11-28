@@ -311,6 +311,9 @@ ireg_seg_limit_high(x86seg *seg)
 }
 
 extern uint8_t reg_last_version[IREG_COUNT];
+/*The registers a read or a write has used since codegen_reg_reset(), one
+  bit each: only theirs have version state for it to clear*/
+extern uint64_t reg_touched[(IREG_COUNT + 63) / 64];
 extern uint64_t dirty_ir_regs[2];
 extern uint64_t ireg_permanent_mask[2];
 
@@ -331,6 +334,9 @@ typedef struct {
     uint8_t refcount;
     /*Flags*/
     uint8_t flags;
+    /*Reads in refcount made by uops standing in for a C call that reads
+      nothing: left out where the count decides the block's end or unrolling*/
+    uint8_t uncounted;
     /*uOP that generated this register version*/
     uint16_t parent_uop;
     /*Pointer to next register version in dead register list*/
@@ -374,6 +380,7 @@ codegen_reg_read(int reg)
     if (IREG_GET_REG(reg) == IREG_INVALID)
         fatal("codegen_reg_read - IREG_INVALID\n");
 #endif
+    reg_touched[IREG_GET_REG(reg) >> 6] |= 1ull << (IREG_GET_REG(reg) & 0x3f);
     ireg.reg       = reg;
     ireg.version   = reg_last_version[IREG_GET_REG(reg)];
     version        = &reg_version[IREG_GET_REG(ireg.reg)][ireg.version];
@@ -384,14 +391,32 @@ codegen_reg_read(int reg)
         fatal("codegen_reg_read - refcount overflow\n");
     else
 #endif
-        if (version->refcount > REG_REFCOUNT_MAX)
+        if ((version->refcount - version->uncounted) > REG_REFCOUNT_MAX)
         CPU_BLOCK_END();
-    if (version->refcount > max_version_refcount)
-        max_version_refcount = version->refcount;
+    if ((version->refcount - version->uncounted) > max_version_refcount)
+        max_version_refcount = version->refcount - version->uncounted;
 #if 0
     pclog("codegen_reg_read: %i %i %i\n", reg & IREG_REG_MASK, ireg.version, reg_version_refcount[IREG_GET_REG(ireg.reg)][ireg.version]);
 #endif
     return ireg;
+}
+
+/*Whether the version of reg the next read gets can take another read
+  without its 8-bit refcount wrapping*/
+static inline int
+codegen_reg_read_has_room(int reg)
+{
+    return reg_version[IREG_GET_REG(reg)][reg_last_version[IREG_GET_REG(reg)]].refcount < 254;
+}
+
+/*The next read of reg stands in for a C call that reads no register: it is
+  left out of the counts that end the block and limit unrolling, which stay
+  as they were with the call*/
+static inline void
+codegen_reg_read_uncounted(int reg)
+{
+    reg_touched[IREG_GET_REG(reg) >> 6] |= 1ull << (IREG_GET_REG(reg) & 0x3f);
+    reg_version[IREG_GET_REG(reg)][reg_last_version[IREG_GET_REG(reg)]].uncounted++;
 }
 
 int reg_is_native_size(ir_reg_t ir_reg);
@@ -411,6 +436,7 @@ codegen_reg_write(int reg, int uop_nr)
     int            last_version = reg_last_version[IREG_GET_REG(reg)];
     reg_version_t *version;
 
+    reg_touched[IREG_GET_REG(reg) >> 6] |= 1ull << (IREG_GET_REG(reg) & 0x3f);
     if ((unsigned) (IREG_GET_REG(reg) - IREG_tag0) < 8) {
         codegen_fpu_tag_valid &= ~(1 << (IREG_GET_REG(reg) - IREG_tag0));
         codegen_fpu_tag_empty &= ~(1 << (IREG_GET_REG(reg) - IREG_tag0));
@@ -440,6 +466,7 @@ codegen_reg_write(int reg, int uop_nr)
     version             = &reg_version[IREG_GET_REG(reg)][ireg.version];
     version->refcount   = 0;
     version->flags      = 0;
+    version->uncounted  = 0;
     version->parent_uop = uop_nr;
 #if 0
     pclog("codegen_reg_write: %i\n", reg & IREG_REG_MASK);
@@ -506,6 +533,20 @@ void codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_dat
 void codegen_reg_flush_lazy(struct ir_data_t *ir, codeblock_t *block);
 /*Emit the stores of list*/
 void codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list);
+#endif
+
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+/*Keep the allocator's state at a branch over a cold region*/
+void codegen_reg_cold_snapshot(void);
+/*Take it back at the region's destination*/
+void codegen_reg_cold_restore(void);
+/*Before the branch over a region that goes on: ireg, which it writes, out of
+  the host registers and the held immediates*/
+void codegen_reg_cold_drop(codeblock_t *block, int ireg);
+/*Whether what the allocator holds can be loaded again after a call*/
+int codegen_reg_cold_can_rejoin(void);
+/*At the end of a region that goes on: load what the copy holds, take it back*/
+void codegen_reg_cold_rejoin(codeblock_t *block);
 #endif
 
 ir_host_reg_t codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_idx);

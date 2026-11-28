@@ -62,6 +62,22 @@ t128_log(const char *fmt, ...)
 #    define t128_log(fmt, ...)
 #endif
 
+static int
+t128_irq_enable(void *priv, void *ext_priv, int state)
+{
+    t128_t *t128 = (t128_t *) ext_priv;
+    ncr_t *ncr = (ncr_t *) priv;
+
+    if (ncr->irq_state != state) {
+        ncr->irq_state = state;
+        t128_log("Control bit 4=%02x.\n", t128->ctrl);
+
+        if (t128->ctrl & 0x10)
+            ncr5380_irq(ncr, state);
+    }
+    return 1;
+}
+
 /* Memory-mapped I/O WRITE handler. */
 void
 t128_write(uint32_t addr, uint8_t val, void *priv)
@@ -77,6 +93,10 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
     else if ((addr >= 0x1c00) && (addr < 0x1c20)) {
         t128_log("%04X:%08X: T128 ctrl write=%02x, mode=%02x, ID=%d.\n", CS, cpu_state.pc, val & 0x10, ncr->mode & MODE_DMA, scsi_bus->target_id);
         t128->ctrl = val;
+        if (ncr->mode & MODE_DMA)
+            t128_irq_enable(ncr, t128, 1);
+        else
+            t128_irq_enable(ncr, t128, 0);
     } else if ((addr >= 0x1d00) && (addr < 0x1e00))
         ncr5380_write((addr - 0x1d00) >> 5, val, ncr);
     else if ((addr >= 0x1e00) && (addr < 0x2000)) {
@@ -140,7 +160,7 @@ t128_read(uint32_t addr, void *priv)
                     ncr->isr |= STATUS_END_OF_DMA;
                     if (ncr->mode & MODE_ENA_EOP_INT) {
                         t128_log("T128 read irq\n");
-                        ncr5380_irq(ncr, 1);
+                        t128_irq_enable(ncr, t128, 1);
                         ncr->isr |= STATUS_INT;
                     }
                     scsi_bus->bus_out |= BUS_CD;
@@ -167,6 +187,11 @@ t128_dma_mode_ext(void *priv, void *ext_priv, uint8_t val)
     t128_t      *t128   = (t128_t *) ext_priv;
     ncr_t       *ncr    = (ncr_t *) priv;
     scsi_bus_t  *scsi_bus = &ncr->scsibus;
+
+    if ((val & MODE_DMA) && !(ncr->old_mode & MODE_DMA))
+        ncr->irq_ena(ncr, ncr->priv, 1);
+    else if (!(val & MODE_DMA) && (ncr->old_mode & MODE_DMA))
+        ncr->irq_ena(ncr, ncr->priv, 0);
 
     /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
     if (!t128->block_loaded) {
@@ -284,21 +309,21 @@ t128_callback(void *priv)
                 scsi_bus_update(scsi_bus, bus & ~BUS_ACK);
 
                 t128->pos++;
-                //t128_log("T128 Buffer pos for writing = %d\n", t128->pos);
+                t128_log("T128 Buffer pos for writing = %d\n", t128->pos);
 
                 if (t128->pos == MIN(512, dev->buffer_length)) {
                     t128->status |= 0x04;
                     t128->status &= ~0x02;
                     t128->pos = 0;
                     t128->host_pos = 0;
-                    //t128_log("T128 Remaining blocks to be written=%d\n", t128->block_count);
+                    t128_log("T128 Remaining blocks to be written=%d\n", t128->block_count);
                     if (scsi_bus->data_pos >= dev->buffer_length) {
                         t128->block_loaded = 0;
                         ncr->tcr |= TCR_LAST_BYTE_SENT;
                         ncr->isr |= STATUS_END_OF_DMA;
                         if (ncr->mode & MODE_ENA_EOP_INT) {
                             t128_log("T128 write irq\n");
-                            ncr5380_irq(ncr, 1);
+                            t128_irq_enable(ncr, t128, 1);
                             ncr->isr |= STATUS_INT;
                         }
                         scsi_bus->tx_mode = PIO_TX_BUS;
@@ -333,7 +358,7 @@ t128_callback(void *priv)
                 scsi_bus_update(scsi_bus, bus & ~BUS_ACK);
 
                 t128->buffer[t128->pos++] = temp;
-                //t128_log("T128 Buffer pos for reading = %d\n", t128->pos);
+                t128_log("T128 Buffer pos for reading = %d\n", t128->pos);
 
                 if (t128->pos == MIN(512, dev->buffer_length)) {
                     t128->status |= 0x04;
@@ -479,7 +504,7 @@ t128_init(const device_t *info)
         t128->pos_regs[0]   = 0x8c;
         t128->pos_regs[1]   = 0x50;
         mca_add(t228_read, t228_write, t228_feedb, NULL, t128);
-    } else if (info->local == 0) {
+    } else {
         ncr->irq            = device_get_config_int("irq");
         t128->rom_addr      = device_get_config_hex20("bios_addr");
         t128->bios_enabled  = device_get_config_int("boot");
@@ -498,7 +523,7 @@ t128_init(const device_t *info)
     ncr->dma_send_ext               = t128_dma_send_ext;
     ncr->dma_initiator_receive_ext  = t128_dma_initiator_receive_ext;
     ncr->timer                      = t128_timer_on_auto;
-    ncr->irq_ena                    = NULL;
+    ncr->irq_ena                    = t128_irq_enable;
     scsi_bus->bus_device            = ncr->bus;
     scsi_bus->timer                 = ncr->timer;
     scsi_bus->priv                  = ncr->priv;
@@ -510,8 +535,7 @@ t128_init(const device_t *info)
     if (info->flags & DEVICE_MCA)
         t128->status                |= 0x08;
 
-    if (info->local == 0)
-        timer_add(&t128->timer, t128_callback, t128, 0);
+    timer_add(&t128->timer, t128_callback, t128, 0);
 
     scsi_bus_set_speed(ncr->bus, 5000000.0);
     scsi_bus->speed = 0.2;
@@ -628,18 +652,4 @@ const device_t scsi_t228_device = {
     .force_redraw  = NULL,
     .config        = NULL,
     .short_name    = "T228"
-};
-
-const device_t scsi_pas_device = {
-    .name          = "Pro Audio Spectrum Plus/16 SCSI",
-    .internal_name = "scsi_pas",
-    .flags         = DEVICE_ISA,
-    .local         = 1,
-    .init          = t128_init,
-    .close         = t128_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
 };

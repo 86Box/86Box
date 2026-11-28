@@ -10,9 +10,11 @@
  *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
+ *          Marcos Alves
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2026 Marcos Alves
  */
 #include <cstdint>
 #include <cstdio>
@@ -38,6 +40,7 @@ extern "C" {
 #include <86box/hdc.h>
 #include <86box/sound.h>
 #include <86box/scsi.h>
+#include <86box/pcmcia.h>
 #include <86box/scsi_device.h>
 #include <86box/hdc_ide.h>
 #include <86box/lpt.h>
@@ -106,6 +109,7 @@ Settings::Settings(QWidget *parent)
     : PagedDialog(tr("Settings"), QSize(720, 472), settingsPages, parent)
 {
     Settings::settings = this;
+    setFitCurrentPage(true);
 
     Harddrives::busTrackClass = new SettingsBusTracking;
 
@@ -305,6 +309,26 @@ Settings::ensurePage(int index)
                         &SettingsOtherRemovable::reloadBusChannels_Tape);
                 connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
                         &SettingsOtherRemovable::reloadBusChannels_Tape);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, harddisks,
+                        &SettingsHarddisks::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MO);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_RDisk);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_Tape);
+                connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
 
                 if (machineId != ::machine)
                     floppyCdrom->onCurrentMachineChanged(machineId);
@@ -383,6 +407,15 @@ int
 Settings::currentUsbMsd() const
 {
     return (ports != nullptr) ? ports->usbMsd() : usb_msd_type;
+}
+
+/* The PC Card in socket s, 0 with no PCMCIA controller. */
+int
+Settings::currentPcmciaCard(int s) const
+{
+    if (otherPeripherals != nullptr)
+        return otherPeripherals->pcmciaCard(s);
+    return pcmcia_enabled ? pcmcia_card_type[s] : 0;
 }
 
 void

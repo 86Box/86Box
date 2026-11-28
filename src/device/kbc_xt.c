@@ -43,6 +43,7 @@
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
 #include <86box/keyboard.h>
+#include <86box/plat_unused.h>
 
 #define STAT_PARITY   0x80
 #define STAT_RTIMEOUT 0x40
@@ -90,6 +91,8 @@ typedef struct xtkbd_t {
     uint8_t ignore;
 
     pc_timer_t send_delay_timer;
+
+    i8255_t *ppi; /* NULL where 60h-62h is not a real 8255 */
 } xtkbd_t;
 
 static uint8_t key_queue[16];
@@ -396,58 +399,72 @@ kbd_fe2010_set_speed(const xtkbd_t *kbd)
     cpu_dynamic_switch(new_cpu);
 }
 
+/* Port B: keyboard clock/clear, switch select, cassette motor, speaker. */
+static void
+kbd_pb_w(xtkbd_t *kbd, uint8_t val)
+{
+    uint8_t new_clock;
+
+    if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+        (kbd->type == KBD_TYPE_JUKOST)) {
+        new_clock = !!(val & 0x40);
+        if (!kbd->clock && new_clock) {
+            key_queue_start = key_queue_end = 0;
+            kbd->want_irq                   = 0;
+            kbd->blocked                    = 0;
+            kbd_adddata(0xaa);
+        }
+    }
+
+    kbd->pb = val;
+    if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+        (kbd->type == KBD_TYPE_JUKOST))
+        kbd->clock = !!(kbd->pb & 0x40);
+    ppi.pb = val;
+
+    timer_process();
+
+    if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+        (kbd->type == KBD_TYPE_PRAVETZ)) && (cassette != NULL))
+        pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
+
+    speaker_update();
+
+    speaker_gated  = val & 1;
+    speaker_enable = val & 2;
+
+    if (speaker_enable)
+        was_speaker_enable = 1;
+    pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
+
+    if (val & 0x80) {
+        kbd->pa      = 0;
+        kbd->blocked = 0;
+        picintc(2);
+    }
+
+#ifdef ENABLE_KEYBOARD_XT_LOG
+    if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
+        kbd_log("XTkbd: Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
+#endif
+}
+
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
     uint8_t  bit;
     uint8_t  set;
-    uint8_t  new_clock = 0;
+
+    /* On boards with a real 8255, ports 60h-63h are the chip. */
+    if (kbd->ppi && (port <= 0x63)) {
+        i8255_write(kbd->ppi, port & 3, val);
+        return;
+    }
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
-                (kbd->type == KBD_TYPE_JUKOST)) {
-                new_clock = !!(val & 0x40);
-                if (!kbd->clock && new_clock) {
-                    key_queue_start = key_queue_end = 0;
-                    kbd->want_irq                   = 0;
-                    kbd->blocked                    = 0;
-                    kbd_adddata(0xaa);
-                }
-            }
-
-            kbd->pb = val;
-            if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
-                (kbd->type == KBD_TYPE_JUKOST))
-                kbd->clock = !!(kbd->pb & 0x40);
-            ppi.pb = val;
-
-            timer_process();
-
-            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
-                (kbd->type == KBD_TYPE_PRAVETZ)) && (cassette != NULL))
-                pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
-
-            speaker_update();
-
-            speaker_gated  = val & 1;
-            speaker_enable = val & 2;
-
-            if (speaker_enable)
-                was_speaker_enable = 1;
-            pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
-
-            if (val & 0x80) {
-                kbd->pa      = 0;
-                kbd->blocked = 0;
-                picintc(2);
-            }
-
-#ifdef ENABLE_KEYBOARD_XT_LOG
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
-                kbd_log("XTkbd: Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
-#endif
+            kbd_pb_w(kbd, val);
             break;
 
         case 0x62: /* Switch Register (aka Port C) */
@@ -497,7 +514,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-kbd_read(uint16_t port, void *priv)
+kbd_legacy_read(uint16_t port, void *priv)
 {
     const xtkbd_t *kbd = (xtkbd_t *) priv;
     uint8_t        ret = 0xff;
@@ -624,6 +641,70 @@ kbd_read(uint16_t port, void *priv)
     return ret;
 }
 
+static uint8_t
+kbd_read(uint16_t port, void *priv)
+{
+    const xtkbd_t *kbd = (xtkbd_t *) priv;
+
+    /* On boards with a real 8255, ports 60h-62h are the chip. Port 63h
+       keeps the per-board read-back: reading an 8255A's control word is
+       not defined, and some boards return the switches there. */
+    if (kbd->ppi && (port <= 0x62))
+        return i8255_read(kbd->ppi, port & 3);
+
+    return kbd_legacy_read(port, priv);
+}
+
+/* 8255 pins: port A is the scan code or SW1 (by PB7), port C the switch
+   nibble (by PB2 or PB3), cassette in, timer 2 out; port B is all output. */
+static uint8_t
+kbd_ppi_in_pa(void *priv)
+{
+    return kbd_legacy_read(0x60, priv);
+}
+
+static uint8_t
+kbd_ppi_in_pc(void *priv)
+{
+    return kbd_legacy_read(0x62, priv);
+}
+
+static void
+kbd_ppi_out_pb(uint8_t val, void *priv)
+{
+    kbd_pb_w((xtkbd_t *) priv, val);
+}
+
+/* Undriven port B pins read low, as the board left them before. */
+static uint8_t
+kbd_ppi_tri_pb(UNUSED(void *priv))
+{
+    return 0x00;
+}
+
+static int
+kbd_has_ppi(int type)
+{
+    switch (type) {
+        case KBD_TYPE_PC81:
+        case KBD_TYPE_PC82:
+        case KBD_TYPE_PRAVETZ:
+        case KBD_TYPE_XT82:
+        case KBD_TYPE_XT86:
+        case KBD_TYPE_COMPAQ:
+        case KBD_TYPE_XTCLONE:
+        case KBD_TYPE_ZENITH:
+        case KBD_TYPE_HYUNDAI:
+        case KBD_TYPE_JUKOST:
+            return 1;
+
+        default:
+            /* Tandy 1000, Toshiba T1x00, VTech, Olivetti M19 and FE2010
+               decode 60h-63h in their own logic. */
+            return 0;
+    }
+}
+
 static void
 kbd_reset(void *priv)
 {
@@ -639,6 +720,9 @@ kbd_reset(void *priv)
 
     key_queue_start = 0;
     key_queue_end   = 0;
+
+    if (kbd->ppi)
+        i8255_reset(kbd->ppi);
 }
 
 void
@@ -661,6 +745,16 @@ kbd_init(const device_t *info)
     if (kbd->type == KBD_TYPE_VTECH)
         kbd->cpu_speed = (!!cpu) << 2;
     kbd_reset(kbd);
+    /* Some boards add the keyboard before the PIT, so the 8255 is not reset
+       (and port B not driven) here: the machine's hard reset does that. */
+    if (kbd_has_ppi(kbd->type)) {
+        kbd->ppi = device_add(&i8255_device);
+        i8255_set_priv(kbd->ppi, kbd);
+        i8255_set_in(kbd->ppi, I8255_PORT_A, kbd_ppi_in_pa);
+        i8255_set_in(kbd->ppi, I8255_PORT_C, kbd_ppi_in_pc);
+        i8255_set_out(kbd->ppi, I8255_PORT_B, kbd_ppi_out_pb);
+        i8255_set_tri(kbd->ppi, I8255_PORT_B, kbd_ppi_tri_pb);
+    }
     if (kbd->type == KBD_TYPE_PRAVETZ)
         io_sethandler(0x00c0, 16,
                       kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);

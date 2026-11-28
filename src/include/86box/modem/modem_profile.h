@@ -1,7 +1,7 @@
 /*
  * 86Box    A hypervisor and IBM PC system emulator.
  *
- *          Persistent guest-programmed modem settings.
+ *          Modem settings stored by AT&W, restored by ATZ and at startup.
  *
  * Authors: Jasmine Iwanek, <jriwanek@gmail.com>
  *

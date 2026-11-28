@@ -80,6 +80,7 @@ typedef struct pcjr_s {
     int        serial_pos;
     uint8_t    pa;
     uint8_t    pb;
+    struct i8255_t *ppi;
 
     uint8_t    option_modem;
     uint8_t    option_fdc;

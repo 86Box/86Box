@@ -39,7 +39,8 @@ emit_flags_rebuild_zpna(ir_data_t *ir)
                 break;
         }
     }
-    call_flags_rebuild(ir, jit_flags_rebuild_zpna);
+    /*For the op this pass runs after, known or not*/
+    call_flags_rebuild(ir, jit_flags_rebuild_zpna_op[cpu_state.flags_op]);
 }
 
 /*

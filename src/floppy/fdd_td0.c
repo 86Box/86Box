@@ -39,7 +39,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/fdd_td0.h>
-#include <86box/fdc.h>
 #include "lzw/lzw.h"
 
 #define BUFSZ         512 /* new input buffer */
@@ -1272,7 +1271,11 @@ td0_load(void *priv, char *fn)
     drv->d86f_handler.check_crc         = 1;
     d86f_set_version(drv, 0x0063);
 
-    drv->seek = td0_seek;
+    const fdd_format_t ops = {
+        .seek = td0_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
     d86f_common_handlers(drv);
 }

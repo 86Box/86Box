@@ -389,11 +389,12 @@ rebuild_c(ir_data_t *ir)
     if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1)) {
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
         /*flags_rebuild_c() writes only flags, so the cached registers are
-          written back but left loaded, and flags is reloaded after it.*/
-        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c);
+          written back but left loaded, and flags is reloaded after it. The
+          wrapper is the one for the op this pass runs after*/
+        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
         uop_MOVZX_REG_PTR_16(ir, IREG_flags, &cpu_state.flags);
 #else
-        uop_CALL_FUNC(ir, jit_flags_rebuild_c);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
 #endif
     }
 }
@@ -487,9 +488,11 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         case 0x18: /*CALL far*/
             uop_MOVZX(ir, IREG_pc, src_reg);
             uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);
+            if (call_far_rm(block, ir, 0, IREG_temp1_W, 0, op_pc + 1))
+                return -1;
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
-            uop_CALL_FUNC(ir, dynarec_call_far_w);
+            uop_CALL_FUNC(ir, call_far_func(block, 0));
             return -1;
 
         case 0x20: /*JMP*/
@@ -501,7 +504,7 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
-            uop_CALL_FUNC(ir, loadcsjmp);
+            uop_CALL_FUNC(ir, loadcsjmp_pm_fast);
             /*A task switch can keep the RF it loads*/
             if (cpu_debug_regs_486)
                 uop_CALL_FUNC(ir, dynarec_rf_after_op);
@@ -611,9 +614,11 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         case 0x18: /*CALL far*/
             uop_MOV(ir, IREG_pc, src_reg);
             uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);
+            if (call_far_rm(block, ir, 1, IREG_temp1_W, 0, op_pc + 1))
+                return -1;
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
-            uop_CALL_FUNC(ir, dynarec_call_far_l);
+            uop_CALL_FUNC(ir, call_far_func(block, 1));
             return -1;
 
         case 0x20: /*JMP*/
@@ -625,7 +630,7 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
-            uop_CALL_FUNC(ir, loadcsjmp);
+            uop_CALL_FUNC(ir, loadcsjmp_pm_fast);
             if (cpu_debug_regs_486)
                 uop_CALL_FUNC(ir, dynarec_rf_after_op);
             return -1;
@@ -884,12 +889,13 @@ uint32_t
 ropSAHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (!codegen_flags_rebuild_known(ir, 0))
-        uop_CALL_FUNC(ir, jit_flags_rebuild);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_v);
     uop_MOVZX(ir, IREG_temp0, IREG_AH);
     uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xd5);
     uop_OR_IMM(ir, IREG_temp0, IREG_temp0, 0x02);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, 0xff00);
     uop_OR(ir, IREG_flags, IREG_flags, IREG_temp0_W);
+    codegen_flags_unknown_from(ir);
     return op_pc;
 }
 
@@ -1387,8 +1393,9 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
     if (reg >= 0x10) {
         /*LGDT, LIDT, LMSW and INVLPG are #GP(0) in V86 mode, where no such
           block is kept (the compile pass faults too), and outside CPL 0 in
-          protected mode, read as the block runs*/
-        if (cpu_state.eflags & VM_FLAG) {
+          protected mode, read as the block runs. In real mode none is, VM
+          set or not*/
+        if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG)) {
             uop_JMP(ir, codegen_gpf_rout);
             codegen_exit_stamp(ir, EXIT_FAULT_HELD);
             return -1;
@@ -1470,10 +1477,8 @@ rop0F01_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
   use, which takes its bytes into the length. All four are #GP(0) in
   protected mode outside CPL 0, read as the block runs, before anything
   else, and the control register forms with VM set too. VM is read as the
-  block runs as well, not taken from the block's key: a real-mode IRETD
-  can set VM without the key's V86 status, which a MOV CR0 setting PE then
-  keeps, so a protected-mode block can run with VM set and CPL 0. In real
-  mode none is #GP, VM set or not. The debug register forms
+  block runs as well, with CPL, so the test does not lean on the block's
+  key. In real mode none is #GP, VM set or not. The debug register forms
   (dr) then raise general detect's #DB with DR6.BD under the 486 debug
   registers option, before the EA.*/
 static void

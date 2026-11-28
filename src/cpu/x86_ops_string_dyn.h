@@ -21,6 +21,8 @@ opMOVSB_a16(UNUSED(uint32_t fetchdat))
 
     temp = readmemb_n(cpu_state.ea_seg->base, SI, addr64);
     writememb_n(es, DI, addr64_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         DI--;
@@ -56,6 +58,8 @@ opMOVSB_a32(UNUSED(uint32_t fetchdat))
 
     temp = readmemb_n(cpu_state.ea_seg->base, ESI, addr64);
     writememb_n(es, EDI, addr64_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         EDI--;
@@ -93,6 +97,8 @@ opMOVSW_a16(UNUSED(uint32_t fetchdat))
 
     temp = readmemw_n(cpu_state.ea_seg->base, SI, addr64a);
     writememw_n(es, DI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         DI -= 2;
@@ -129,6 +135,8 @@ opMOVSW_a32(UNUSED(uint32_t fetchdat))
 
     temp = readmemw_n(cpu_state.ea_seg->base, ESI, addr64a);
     writememw_n(es, EDI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         EDI -= 2;
@@ -166,6 +174,8 @@ opMOVSL_a16(UNUSED(uint32_t fetchdat))
 
     temp = readmeml_n(cpu_state.ea_seg->base, SI, addr64a);
     writememl_n(es, DI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         DI -= 4;
@@ -202,6 +212,8 @@ opMOVSL_a32(UNUSED(uint32_t fetchdat))
 
     temp = readmeml_n(cpu_state.ea_seg->base, ESI, addr64a);
     writememl_n(es, EDI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         EDI -= 4;
@@ -241,6 +253,8 @@ opCMPSB_a16(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemb_n2(cpu_state.ea_seg->base, SI, addr64_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub8(dst, src);
 
@@ -281,6 +295,8 @@ opCMPSB_a32(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemb_n2(cpu_state.ea_seg->base, ESI, addr64_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub8(dst, src);
 
@@ -323,6 +339,8 @@ opCMPSW_a16(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemw_n2(cpu_state.ea_seg->base, SI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub16(dst, src);
 
@@ -364,6 +382,8 @@ opCMPSW_a32(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemw_n2(cpu_state.ea_seg->base, ESI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub16(dst, src);
 
@@ -406,6 +426,8 @@ opCMPSL_a16(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmeml_n2(cpu_state.ea_seg->base, SI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub32(dst, src);
 
@@ -447,6 +469,8 @@ opCMPSL_a32(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmeml_n2(cpu_state.ea_seg->base, ESI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub32(dst, src);
 
@@ -824,6 +848,8 @@ opSCASL_a32(UNUSED(uint32_t fetchdat))
     return 0;
 }
 
+/* Like IN and OUT, these end the recompiled block on an I/O breakpoint
+   match, so that #DB is taken right after the instruction (io_op_trap). */
 static int
 opINSB_a16(UNUSED(uint32_t fetchdat))
 {
@@ -840,8 +866,17 @@ opINSB_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inb(DX);
     writememb_n(es, DI, addr64, temp);
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
+        return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         DI--;
@@ -849,7 +884,7 @@ opINSB_a16(UNUSED(uint32_t fetchdat))
         DI++;
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 1, 0, 1, 0, 0);
-    return 0;
+    return io_op_trap();
 }
 static int
 opINSB_a32(UNUSED(uint32_t fetchdat))
@@ -867,8 +902,17 @@ opINSB_a32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inb(DX);
     writememb_n(es, EDI, addr64, temp);
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
+        return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         EDI--;
@@ -876,7 +920,7 @@ opINSB_a32(UNUSED(uint32_t fetchdat))
         EDI++;
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 1, 0, 1, 0, 1);
-    return 0;
+    return io_op_trap();
 }
 
 static int
@@ -895,8 +939,17 @@ opINSW_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inw(DX);
     writememw_n(es, DI, addr64a, temp);
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
+        return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         DI -= 2;
@@ -904,7 +957,7 @@ opINSW_a16(UNUSED(uint32_t fetchdat))
         DI += 2;
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 1, 0, 1, 0, 0);
-    return 0;
+    return io_op_trap();
 }
 static int
 opINSW_a32(UNUSED(uint32_t fetchdat))
@@ -922,8 +975,17 @@ opINSW_a32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inw(DX);
     writememw_n(es, EDI, addr64a, temp);
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
+        return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         EDI -= 2;
@@ -931,7 +993,7 @@ opINSW_a32(UNUSED(uint32_t fetchdat))
         EDI += 2;
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 1, 0, 1, 0, 1);
-    return 0;
+    return io_op_trap();
 }
 
 static int
@@ -950,8 +1012,17 @@ opINSL_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inl(DX);
     writememl_n(es, DI, addr64a, temp);
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
+        return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         DI -= 4;
@@ -959,7 +1030,7 @@ opINSL_a16(UNUSED(uint32_t fetchdat))
         DI += 4;
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 0, 1, 0, 1, 0);
-    return 0;
+    return io_op_trap();
 }
 static int
 opINSL_a32(UNUSED(uint32_t fetchdat))
@@ -977,8 +1048,17 @@ opINSL_a32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inl(DX);
     writememl_n(es, EDI, addr64a, temp);
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
+        return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         EDI -= 4;
@@ -986,7 +1066,7 @@ opINSL_a32(UNUSED(uint32_t fetchdat))
         EDI += 4;
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 0, 1, 0, 1, 1);
-    return 0;
+    return io_op_trap();
 }
 
 static int
@@ -1004,6 +1084,8 @@ opOUTSB_a16(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 1);
 
     temp = readmemb_n(cpu_state.ea_seg->base, SI, addr64);
+    if (cpu_state.abrt)
+        return 1;
     outb(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1012,7 +1094,7 @@ opOUTSB_a16(UNUSED(uint32_t fetchdat))
         SI++;
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 1, 0, 1, 0, 0);
-    return 0;
+    return io_op_trap();
 }
 static int
 opOUTSB_a32(UNUSED(uint32_t fetchdat))
@@ -1029,6 +1111,8 @@ opOUTSB_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 1);
 
     temp = readmemb_n(cpu_state.ea_seg->base, ESI, addr64);
+    if (cpu_state.abrt)
+        return 1;
     outb(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1037,7 +1121,7 @@ opOUTSB_a32(UNUSED(uint32_t fetchdat))
         ESI++;
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 1, 0, 1, 0, 1);
-    return 0;
+    return io_op_trap();
 }
 
 static int
@@ -1055,6 +1139,8 @@ opOUTSW_a16(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 2);
 
     temp = readmemw_n(cpu_state.ea_seg->base, SI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outw(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1063,7 +1149,7 @@ opOUTSW_a16(UNUSED(uint32_t fetchdat))
         SI += 2;
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 1, 0, 1, 0, 0);
-    return 0;
+    return io_op_trap();
 }
 static int
 opOUTSW_a32(UNUSED(uint32_t fetchdat))
@@ -1080,6 +1166,8 @@ opOUTSW_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 2);
 
     temp = readmemw_n(cpu_state.ea_seg->base, ESI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outw(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1088,7 +1176,7 @@ opOUTSW_a32(UNUSED(uint32_t fetchdat))
         ESI += 2;
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 1, 0, 1, 0, 1);
-    return 0;
+    return io_op_trap();
 }
 
 static int
@@ -1106,6 +1194,8 @@ opOUTSL_a16(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 4);
 
     temp = readmeml_n(cpu_state.ea_seg->base, SI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outl(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1114,7 +1204,7 @@ opOUTSL_a16(UNUSED(uint32_t fetchdat))
         SI += 4;
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 0, 1, 0, 1, 0);
-    return 0;
+    return io_op_trap();
 }
 static int
 opOUTSL_a32(UNUSED(uint32_t fetchdat))
@@ -1131,6 +1221,8 @@ opOUTSL_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 4);
 
     temp = readmeml_n(cpu_state.ea_seg->base, ESI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outl(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1139,5 +1231,5 @@ opOUTSL_a32(UNUSED(uint32_t fetchdat))
         ESI += 4;
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 0, 1, 0, 1, 1);
-    return 0;
+    return io_op_trap();
 }

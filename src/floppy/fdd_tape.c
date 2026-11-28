@@ -47,7 +47,6 @@
 #include <86box/dma.h>
 #include <86box/fdd.h>
 #include <86box/fdd_tape.h>
-#include <86box/fdc.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
 #include <86box/tape_qic117.h>
@@ -1339,7 +1338,7 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
 /* Interval between STEP pulses, from the controller's SPECIFY and data
    rate. QIC-117 hosts program this to TSTEP, nominally 2 ms. The SPECIFY
    step rate is in milliseconds that scale inversely with the data rate, so
-   the interval must divide by the real rate in kbps - fdc_get_bit_rate()
+   the interval must divide by the real rate in kbps - the bit rate hook
    hands back a rate *code* (0 for 500 kbps, 2 for 250 kbps), not the rate
    itself, which would blow the 250 kbps interval up to a quarter second per
    step and make a seek take seconds. A slow seek trips the host's own
@@ -1349,16 +1348,15 @@ static int
 tape_step_interval_us(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdc_t       *fdc = (fdc_t *) drv->fdc;
 
     int srt;
     int bit_rate;
 
-    if (fdc == NULL)
+    if (drv->ctrl == NULL)
         return 2000;
 
-    srt      = fdc->specify[0] >> 4;
-    bit_rate = fdc->bit_rate;
+    srt      = drv->xfer.step_rate;
+    bit_rate = drv->ctrl->get_bit_rate(drv->ctrl_priv);
     if (bit_rate <= 0)
         bit_rate = 500;
 
@@ -1446,9 +1444,8 @@ static uint64_t
 tape_byte_period(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdc_t       *fdc = (fdc_t *) drv->fdc;
 
-    int kbps = (fdc != NULL) ? fdc->bit_rate : 500;
+    int kbps = (drv->ctrl != NULL) ? drv->ctrl->get_bit_rate(drv->ctrl_priv) : 500;
 
     if (kbps <= 0)
         kbps = 500;
@@ -1590,14 +1587,13 @@ static void
 tape_setup_transfer(void *priv, int state, int sector, int track, int side, int sector_size)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdc_t       *fdc = (fdc_t *) drv->fdc;
 
     uint32_t offset = 0;
 
     tape.xfer_state = TAPE_XFER_IDLE;
     tape_stop_clock();
 
-    if (fdc == NULL)
+    if (drv->ctrl == NULL)
         return;
 
     fdd_tape_log("Tape: %s c=%i h=%i r=%i n=%i (running=%i)\n",
@@ -1607,26 +1603,26 @@ tape_setup_transfer(void *priv, int state, int sector, int track, int side, int 
 
     if (!tape_has_cartridge()) {
         fdd_tape_log("Tape: ... no cartridge\n");
-        fdc_nosector(fdc);
+        drv->ctrl->nosector(drv->ctrl_priv);
         return;
     }
 
     /* The tape format only ever uses 1024-byte sectors. */
     if (sector_size != 3) {
         fdd_tape_log("Tape: ... bad sector size %i\n", sector_size);
-        fdc_nosector(fdc);
+        drv->ctrl->nosector(drv->ctrl_priv);
         return;
     }
 
     if (!tape_sector_offset(track, side, sector, &offset)) {
         fdd_tape_log("Tape: ... address is not on tape\n");
-        fdc_nosector(fdc);
+        drv->ctrl->nosector(drv->ctrl_priv);
         return;
     }
 
     if ((state == TAPE_XFER_WRITE) && tape.readonly) {
         fdd_tape_log("Tape: ... cartridge is write protected\n");
-        fdc_writeprotect(fdc);
+        drv->ctrl->writeprotect(drv->ctrl_priv);
         return;
     }
 
@@ -1667,7 +1663,7 @@ tape_readsector(void *priv, int sector, int track, int side, UNUSED(int density)
 
     /* Read A Track isn't meaningful on tape. */
     if (sector < 0) {
-        fdc_nosector(drv->fdc);
+        drv->ctrl->nosector(drv->ctrl_priv);
         return;
     }
 
@@ -1701,7 +1697,6 @@ static void
 tape_finish_readaddress(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdc_t       *fdc = (fdc_t *) drv->fdc;
 
     int segment;
     int cylinder;
@@ -1724,7 +1719,7 @@ tape_finish_readaddress(void *priv)
     fdd_tape_log("Tape: read ID -> segment %i (c=%i h=%i r=%i)%s\n", segment, cylinder,
                  segment / tape.segs_per_head, sector, tape.running ? "" : " [stopped]");
 
-    fdc_sectorid(fdc, (uint8_t) cylinder, (uint8_t) (segment / tape.segs_per_head),
+    drv->ctrl->sectorid(drv->ctrl_priv, (uint8_t) cylinder, (uint8_t) (segment / tape.segs_per_head),
                  (uint8_t) sector, 3, 0, 0);
 
     /* A search is host-clocked: reading this ID carries the head on to the
@@ -1749,11 +1744,11 @@ tape_readaddress(void *priv, UNUSED(int side), UNUSED(int density))
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     if ((drv == NULL) || (drv->id != tape.drive) ||
-        (drv->fdc == NULL))
+        (drv->ctrl == NULL))
         return;
 
     if (!tape_has_cartridge()) {
-        fdc_nosector(drv->fdc);
+        drv->ctrl->nosector(drv->ctrl_priv);
         return;
     }
 
@@ -1772,13 +1767,13 @@ tape_format(void *priv, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fi
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     if ((drv == NULL) || (drv->id != tape.drive) ||
-        (drv->fdc == NULL))
+        (drv->ctrl == NULL))
         return;
 
-    fdd_tape_log("Tape: format track, %i sectors\n", fdc_get_format_sectors(drv->fdc));
+    fdd_tape_log("Tape: format track, %i sectors\n", drv->xfer.format_sectors);
 
     if (!tape_has_cartridge() || tape.readonly) {
-        fdc_writeprotect(drv->fdc);
+        drv->ctrl->writeprotect(drv->ctrl_priv);
         return;
     }
 
@@ -1822,13 +1817,12 @@ static void
 tape_clock(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdc_t       *fdc = (fdc_t *) drv->fdc;
 
     int data;
 
     timer_advance_u64(&tape_timer, tape_byte_period(priv));
 
-    if (drv->fdc == NULL) {
+    if (drv->ctrl == NULL) {
         tape_stop_clock();
         return;
     }
@@ -1849,7 +1843,7 @@ tape_clock(void *priv)
             break;
 
         case TAPE_XFER_READ:
-            if (!fdc_is_verify(drv->fdc)) {
+            if (!drv->xfer.verify) {
                 /*
                    A -1 here means the host's DMA transfer has hit its
                    terminal count, which is how a multi-sector read
@@ -1857,7 +1851,7 @@ tape_clock(void *priv)
                    the command itself. Treating it as an overrun would
                    turn every successful transfer into an error.
                  */
-                (void) fdc_data(drv->fdc, tape.buffer[tape.xfer_pos],
+                (void) drv->ctrl->data(drv->ctrl_priv, tape.buffer[tape.xfer_pos],
                                 tape.xfer_pos == (tape.xfer_len - 1));
             }
 
@@ -1868,13 +1862,13 @@ tape_clock(void *priv)
                              tape.buffer[0], tape.buffer[1], tape.buffer[2], tape.buffer[3]);
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
-                fdc_sector_finishread(drv->fdc);
+                drv->ctrl->sector_finishread(drv->ctrl_priv);
             }
             break;
 
         case TAPE_XFER_WRITE:
             /* Terminal count can be indicated via DMA_OVER; when it happens, treat missing bytes as 0. */
-            data = fdc_getdata(drv->fdc, tape.xfer_pos == (tape.xfer_len - 1));
+            data = drv->ctrl->getdata(drv->ctrl_priv, tape.xfer_pos == (tape.xfer_len - 1));
             if ((data & DMA_OVER) || (data == -1))
                  data = 0;
 
@@ -1902,7 +1896,7 @@ tape_clock(void *priv)
                 if (tape.xfer_offset == 0)
                     tape_read_geometry();
 
-                fdc_sector_finishread(drv->fdc);
+                drv->ctrl->sector_finishread(drv->ctrl_priv);
             }
             break;
 
@@ -1911,14 +1905,14 @@ tape_clock(void *priv)
             if (tape.xfer_pos == 0)
                 satisfying_bytes = 0;
 
-            data = fdc_getdata(drv->fdc, tape.xfer_pos == (tape.xfer_len - 1));
+            data = drv->ctrl->getdata(drv->ctrl_priv, tape.xfer_pos == (tape.xfer_len - 1));
             if ((data & DMA_OVER) || (data == -1))
                 data = 0;
 
             const uint8_t received_byte = (uint8_t) (data & 0xff);
             const uint8_t tape_byte     = tape.buffer[tape.xfer_pos];
 
-            switch (fdc_get_compare_condition(drv->fdc)) {
+            switch (drv->xfer.compare) {
                 case 0: /* SCAN EQUAL */
                     if ((received_byte == tape_byte) || (received_byte == 0xFF))
                         satisfying_bytes++;
@@ -1939,7 +1933,7 @@ tape_clock(void *priv)
             if (tape.xfer_pos >= tape.xfer_len) {
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
-                fdc_sector_finishcompare(drv->fdc, satisfying_bytes >= tape.xfer_len);
+                drv->ctrl->sector_finishcompare(drv->ctrl_priv, satisfying_bytes >= tape.xfer_len);
             }
             break;
         }
@@ -1948,16 +1942,18 @@ tape_clock(void *priv)
             /* The host feeds four ID bytes per sector through DMA; the
                sector itself is laid down blank. */
             if (tape.format_datac <= 3) {
-                data = fdc_getdata(drv->fdc, 0);
+                fdd_sector_id_t *fid = drv->xfer.format_id;
+
+                data = drv->ctrl->getdata(drv->ctrl_priv, 0);
                 if (data == -1)
                     data = 0;
-                fdc->format_sector_id.byte_array[tape.format_datac] = data & 0xff;
+                fid->byte_array[tape.format_datac] = data & 0xff;
 
                 if (tape.format_datac == 3) {
-                    fdc_stop_id_request(drv->fdc);
-                    if (!tape_sector_offset(fdc->format_sector_id.id.c,
-                                            fdc->format_sector_id.id.h,
-                                            fdc->format_sector_id.id.r,
+                    drv->ctrl->stop_id_request(drv->ctrl_priv);
+                    if (!tape_sector_offset(fid->id.c,
+                                            fid->id.h,
+                                            fid->id.r,
                                             &tape.format_offset))
                         tape.format_offset = UINT32_MAX;
                 }
@@ -1990,12 +1986,12 @@ tape_clock(void *priv)
             if (tape.format_datac == 6) {
                 tape.format_datac = 0;
 
-                if (tape.format_count < fdc_get_format_sectors(drv->fdc))
-                    fdc_request_next_sector_id(drv->fdc);
+                if (tape.format_count < drv->xfer.format_sectors)
+                    drv->ctrl->request_next_sector_id(drv->ctrl_priv);
                 else {
                     tape.xfer_state = TAPE_XFER_IDLE;
                     tape_stop_clock();
-                    fdc_sector_finishread(drv->fdc);
+                    drv->ctrl->sector_finishread(drv->ctrl_priv);
                 }
             }
             break;
@@ -2317,16 +2313,21 @@ fdd_tape_init(void)
     /* The tape drive takes over this drive select line from whatever
        floppy drive may have been configured on it. Note that it has no
        poll handler - the transfer clock is the drive's own. */
-    drv->seek          = tape_seek;
-    drv->readsector    = tape_readsector;
-    drv->writesector   = tape_writesector;
-    drv->comparesector = tape_comparesector;
-    drv->readaddress   = tape_readaddress;
-    drv->format        = tape_format;
-    drv->hole          = tape_hole;
-    drv->byteperiod    = tape_byteperiod;
-    drv->stop          = tape_stop;
-    drv->poll          = NULL;
+    fdd_format_clear(drv);
+
+    const fdd_format_t ops = {
+        .seek          = tape_seek,
+        .readsector    = tape_readsector,
+        .writesector   = tape_writesector,
+        .comparesector = tape_comparesector,
+        .readaddress   = tape_readaddress,
+        .format        = tape_format,
+        .hole          = tape_hole,
+        .byteperiod    = tape_byteperiod,
+        .stop          = tape_stop
+    };
+
+    fdd_format_set(drv, &ops);
 
     drv->empty = 0;
     drv->changed = 0;
@@ -2374,16 +2375,7 @@ fdd_tape_close(void)
        the idle branch of tape_clock() takes it back out of the list.
      */
     if (was_attached) {
-        drv->seek          = NULL;
-        drv->readsector    = NULL;
-        drv->writesector   = NULL;
-        drv->comparesector = NULL;
-        drv->readaddress   = NULL;
-        drv->format        = NULL;
-        drv->hole          = NULL;
-        drv->byteperiod    = NULL;
-        drv->stop          = NULL;
-        drv->poll          = NULL;
+        fdd_format_clear(drv);
 
         drv->empty = 1;
     }

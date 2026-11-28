@@ -77,6 +77,9 @@ fpu_PUSH(codeblock_t *block, ir_data_t *ir)
 
 int codegen_addr_bound(ir_data_t *ir, int addr_reg, uint32_t *bound, int *is_const);
 
+int call_far_rm(codeblock_t *block, ir_data_t *ir, int is32, int sel_reg, uint16_t sel, uint32_t ret_pc);
+void *call_far_func(codeblock_t *block, int is32);
+
 static inline void
 CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int addr_reg, int end_offset)
 {
@@ -210,6 +213,11 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
 
 int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
 void codegen_flags_known_use(ir_data_t *ir, int cf_kept);
+int  codegen_flags_cf_known(ir_data_t *ir, int dest_reg);
+int  codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func);
+/*After SAHF's last uop: flags_op is FLAGS_UNKNOWN from here at run time*/
+void codegen_flags_unknown_from(ir_data_t *ir);
+int  codegen_flags_jcc_read(ir_data_t *ir, int flag);
 
 /*The instruction is #UD; returns the handler's -1*/
 uint32_t codegen_ud(ir_data_t *ir);

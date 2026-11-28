@@ -312,7 +312,8 @@ uint32_t
 scsi_disk_mode_sense(const scsi_disk_t *dev, uint8_t *buf, uint32_t pos,
                      uint8_t page, const uint8_t block_descriptor_len)
 {
-    int     size = hdd_image_get_last_sector(dev->id);
+    int           size  = hdd_image_get_last_sector(dev->id);
+    const uint8_t pgctl = (page >> 6) & 3;
 
     page &= 0x3f;
 
@@ -327,11 +328,13 @@ scsi_disk_mode_sense(const scsi_disk_t *dev, uint8_t *buf, uint32_t pos,
         buf[pos++] = 0;
     }
 
-    for (uint8_t i = 0; i < 0x40; i++) {
+    for (uint8_t pg = 1; pg < 0x41; pg++) {
+        /* Make sure page 0 is always transferred last. */
+        const uint8_t i = (pg == 0x40) ? 0 : pg;
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
-            if (scsi_disk_mode_sense_page_flags & (1LL << (uint64_t) page)) {
-                const uint8_t pgctl  = (page >> 6) & 3;
-                const uint8_t msplen = scsi_disk_mode_sense_read(dev, pgctl, i, 1);
+            const uint8_t msplen = scsi_disk_mode_sense_read(dev, pgctl, i, 1);
+
+            if ((scsi_disk_mode_sense_page_flags & (1LL << ((uint64_t) i))) && msplen) {
                 buf[pos++]           = scsi_disk_mode_sense_read(dev, pgctl, i, 0);
                 buf[pos++]           = msplen;
                 scsi_disk_log(dev->log, "MODE SENSE: Page [%02X] length %i\n",
@@ -1306,40 +1309,46 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                 scsi_disk_buf_alloc(dev, 65536);
             }
 
-            memset(dev->temp_buffer, 0, len);
-            alloc_length = len;
-
-            if (cdb[0] == GPCMD_MODE_SENSE_6) {
-                len = scsi_disk_mode_sense(dev, dev->temp_buffer, 4,
-                                           cdb[2], block_desc);
-                if (len > alloc_length)
-                    len = alloc_length;
-                dev->temp_buffer[0] = len - 1;
-                dev->temp_buffer[1] = 0;
-                if (block_desc)
-                    dev->temp_buffer[3] = 8;
-            } else {
-                len = scsi_disk_mode_sense(dev, dev->temp_buffer, 8, cdb[2], block_desc);
-                if (len > alloc_length)
-                    len = alloc_length;
-                dev->temp_buffer[0] = (len - 2) >> 8;
-                dev->temp_buffer[1] = (len - 2) & 255;
-                dev->temp_buffer[2] = 0;
-                if (block_desc) {
-                    dev->temp_buffer[6] = 0;
-                    dev->temp_buffer[7] = 8;
-                }
-            }
-
-            if (len > alloc_length)
-                len = alloc_length;
-            else if (len < alloc_length)
+            /*
+               If PC == 0 and page code == 0, return only the header and,
+               if applicable, the block descriptor.
+             */
+            if (!cdb[2] || (scsi_disk_mode_sense_page_flags &
+                            (1LL << (uint64_t) (cdb[2] & 0x3f)))) {
+                memset(dev->temp_buffer, 0, len);
                 alloc_length = len;
 
-            scsi_disk_set_buf_len(dev, BufLen, &alloc_length);
-            scsi_disk_log(dev->log, "Reading mode page: %02X...\n", cdb[2]);
+                if (cdb[0] == GPCMD_MODE_SENSE_6) {
+                    len = scsi_disk_mode_sense(dev, dev->temp_buffer, 4,
+                                               cdb[2], block_desc);
+                    dev->temp_buffer[0] = len - 1;
+                    len                 = MIN(len, alloc_length);
+                    dev->temp_buffer[1] = 0;
+                    if (block_desc)
+                        dev->temp_buffer[3] = 8;
+                } else {
+                    len = scsi_disk_mode_sense(dev, dev->temp_buffer, 8, cdb[2], block_desc);
+                    dev->temp_buffer[0] = (len - 2) >> 8;
+                    dev->temp_buffer[1] = (len - 2) & 255;
+                    len                 = MIN(len, alloc_length);
+                    dev->temp_buffer[2] = 0;
+                    if (block_desc) {
+                        dev->temp_buffer[6] = 0;
+                        dev->temp_buffer[7] = 8;
+                    }
+                }
 
-            scsi_disk_data_command_finish(dev, len, len, alloc_length, 0);
+                if (len > alloc_length)
+                    len = alloc_length;
+                else if (len < alloc_length)
+                    alloc_length = len;
+
+                scsi_disk_set_buf_len(dev, BufLen, &alloc_length);
+                scsi_disk_log(dev->log, "Reading mode page: %02X...\n", cdb[2]);
+
+                scsi_disk_data_command_finish(dev, len, len, len, 0);
+            } else
+                scsi_disk_invalid_field(dev, cdb[2]);
             break;
 
         case GPCMD_MODE_SELECT_6:

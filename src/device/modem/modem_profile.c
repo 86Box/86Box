@@ -1,7 +1,7 @@
 /*
  * 86Box    A hypervisor and IBM PC system emulator.
  *
- *          Persistent guest-programmed modem settings and AT responses.
+ *          Modem settings stored by AT&W, restored by ATZ and at startup.
  *
  * Authors: Jasmine Iwanek, <jriwanek@gmail.com>
  *
@@ -67,6 +67,8 @@ modem_profile_apply(modem_profile_state_t s, const uint8_t *data)
     *s.connect_report = data[10 + MODEM_REGS];
 }
 
+static bool modem_profile_write_impl(modem_profile_t *profile, modem_profile_state_t state, bool force);
+
 void
 modem_profile_init(modem_profile_t *profile, modem_profile_state_t state,
                    const char *machine, const char *frontend, int instance)
@@ -74,12 +76,14 @@ modem_profile_init(modem_profile_t *profile, modem_profile_state_t state,
     static const uint8_t magic[] = { '8', '6', 'M', 'D' };
     uint8_t header[sizeof(magic)];
     uint8_t data[sizeof(profile->saved)];
+    char legacy_filename[sizeof(profile->filename)] = { 0 };
+    bool legacy = false;
     FILE *fp;
 
     modem_profile_capture(state, profile->saved);
     memcpy(profile->factory, profile->saved, sizeof(profile->factory));
-    if (snprintf(profile->filename, sizeof(profile->filename), "%s_%s_modem_%d.nvr",
-                 machine, frontend, instance) >= (int) sizeof(profile->filename)) {
+    if (snprintf(profile->filename, sizeof(profile->filename), "%s_modem_%d.nvr",
+                 machine, instance) >= (int) sizeof(profile->filename)) {
         profile->filename[0] = '\0';
         pclog("Modem: profile filename is too long\n");
         return;
@@ -87,9 +91,30 @@ modem_profile_init(modem_profile_t *profile, modem_profile_state_t state,
 
     errno = 0;
     fp = nvr_fopen(profile->filename, "rb");
+    if (!fp && errno == ENOENT) {
+        if (snprintf(legacy_filename, sizeof(legacy_filename), "%s_%s_modem_%d.nvr",
+                     machine, frontend, instance) >= (int) sizeof(legacy_filename)) {
+            pclog("Modem: legacy profile filename is too long\n");
+            return;
+        }
+        errno = 0;
+        fp = nvr_fopen(legacy_filename, "rb");
+        if (!fp && errno == ENOENT && (!strcmp(frontend, "net") || !strcmp(frontend, "char"))) {
+            const char *other = !strcmp(frontend, "net") ? "char" : "net";
+            if (snprintf(legacy_filename, sizeof(legacy_filename), "%s_%s_modem_%d.nvr",
+                         machine, other, instance) >= (int) sizeof(legacy_filename)) {
+                pclog("Modem: legacy profile filename is too long\n");
+                return;
+            }
+            errno = 0;
+            fp = nvr_fopen(legacy_filename, "rb");
+        }
+        legacy = fp != NULL;
+    }
     if (!fp) {
         if (errno != ENOENT)
-            pclog("Modem: cannot open profile %s: %s\n", profile->filename, strerror(errno));
+            pclog("Modem: cannot open profile %s: %s\n",
+                  legacy_filename[0] ? legacy_filename : profile->filename, strerror(errno));
         return;
     }
     uint8_t version = 0;
@@ -113,11 +138,13 @@ modem_profile_init(modem_profile_t *profile, modem_profile_state_t state,
     if (fclose(fp) != 0)
         valid = false;
     if (!valid) {
-        pclog("Modem: invalid or unreadable profile %s\n", profile->filename);
+        pclog("Modem: invalid or unreadable profile %s\n", legacy ? legacy_filename : profile->filename);
         return;
     }
     modem_profile_apply(state, data);
     memcpy(profile->saved, data, sizeof(data));
+    if (legacy)
+        modem_profile_write_impl(profile, state, true);
 }
 
 static bool

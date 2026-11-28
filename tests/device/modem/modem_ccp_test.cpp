@@ -56,6 +56,72 @@ TEST(ModemCcp, OffersSupportedKeyLengthsInStatelessModeAfterKeysExist)
     EXPECT_TRUE(ctx.ccp_req_sent);
 }
 
+TEST(ModemCcp, FollowsCompressionOnlyPeerAndIgnoresStaleEncryptionNak)
+{
+    ppp_ctx_t ctx = make_ccp_context();
+    ctx.mppe_keys_ready = true;
+    ppp_ccp_start(&ctx);
+    const uint8_t old_id = ctx.ccp_request_id;
+    const uint8_t request[] = { PPP_CODE_CONFIGURE_REQUEST, 1, 0, 15,
+                                18, 6, 0, 0, 0, 1, 17, 5, 0, 1, 4 };
+    ctx.ppp_compression = PPP_COMPRESSION_PREFER_MPPC;
+    ppp_ccp_process(&ctx, request, sizeof(request));
+    ASSERT_EQ(sent_packet[0], PPP_CODE_CONFIGURE_REJECT);
+    ASSERT_NE(ctx.ccp_request_id, old_id);
+    EXPECT_EQ(ctx.ccp_request_bits, CCP_MPPC);
+    const uint8_t stale_nak[] = { PPP_CODE_CONFIGURE_NAK, old_id, 0, 10,
+                                  18, 6, 1, 0, 0, 0x41 };
+    ppp_ccp_process(&ctx, stale_nak, sizeof(stale_nak));
+    EXPECT_EQ(ctx.ccp_request_bits, CCP_MPPC);
+    const uint8_t retry[] = { PPP_CODE_CONFIGURE_REQUEST, 2, 0, 10,
+                              18, 6, 0, 0, 0, 1 };
+    ppp_ccp_process(&ctx, retry, sizeof(retry));
+    EXPECT_EQ(sent_packet[0], PPP_CODE_CONFIGURE_ACK);
+    std::vector<uint8_t> ack(ctx.ccp_request, ctx.ccp_request + ctx.ccp_request_len);
+    ack[0] = PPP_CODE_CONFIGURE_ACK;
+    ppp_ccp_process(&ctx, ack.data(), static_cast<int>(ack.size()));
+    EXPECT_TRUE(ctx.ccp_open);
+    EXPECT_EQ(ctx.ccp_tx_method, PPP_CCP_METHOD_MPPC);
+    EXPECT_EQ(ctx.ccp_rx_method, PPP_CCP_METHOD_MPPC);
+    EXPECT_FALSE(ctx.mppe_tx_enabled);
+    EXPECT_FALSE(ctx.mppe_rx_enabled);
+    ppp_ccp_codec_close(&ctx);
+}
+
+TEST(ModemCcp, RenegotiatesEvenIfEncryptionWasAlreadyAcknowledged)
+{
+    ppp_ctx_t ctx = make_ccp_context();
+    ctx.mppe_keys_ready = true;
+    ppp_ccp_start(&ctx);
+    std::vector<uint8_t> ack(ctx.ccp_request, ctx.ccp_request + ctx.ccp_request_len);
+    ack[0] = PPP_CODE_CONFIGURE_ACK;
+    ppp_ccp_process(&ctx, ack.data(), static_cast<int>(ack.size()));
+    ASSERT_TRUE(ctx.ccp_ack_received);
+    const uint8_t request[] = { PPP_CODE_CONFIGURE_REQUEST, 1, 0, 10,
+                                18, 6, 0, 0, 0, 1 };
+    ppp_ccp_process(&ctx, request, sizeof(request));
+    EXPECT_FALSE(ctx.ccp_ack_received);
+    EXPECT_TRUE(ctx.ccp_req_sent);
+    EXPECT_EQ(ctx.ccp_request_bits, CCP_MPPC);
+    EXPECT_FALSE(ctx.mppe_rx_enabled);
+    ppp_ccp_codec_close(&ctx);
+}
+
+TEST(ModemCcp, RequiredEncryptionDoesNotFollowCompressionOnlyPeer)
+{
+    ppp_ctx_t ctx = make_ccp_context();
+    ctx.mppe_keys_ready = true;
+    ctx.mppe_min_bits = 128;
+    ppp_ccp_start(&ctx);
+    const uint32_t bits = ctx.ccp_request_bits;
+    const uint8_t request[] = { PPP_CODE_CONFIGURE_REQUEST, 1, 0, 10,
+                                18, 6, 0, 0, 0, 1 };
+    ppp_ccp_process(&ctx, request, sizeof(request));
+    EXPECT_EQ(sent_packet[0], PPP_CODE_CONFIGURE_REJECT);
+    EXPECT_EQ(ctx.ccp_request_bits, bits);
+    EXPECT_FALSE(ctx.ccp_open);
+}
+
 TEST(ModemCcp, OffersPreferredLzsWithoutMschapKeys)
 {
     ppp_ctx_t ctx = make_ccp_context();
@@ -361,7 +427,7 @@ TEST(ModemCcp, AcceptsPeerSelectedStateful56BitNak)
     EXPECT_EQ(ctx.ccp_request_bits, 0x80u);
 }
 
-TEST(ModemCcp, KeepsMppeOfferWhenPeerRequestsMppcOnly)
+TEST(ModemCcp, ReplacesMppeOfferWhenPeerRequestsMppcOnly)
 {
     for (bool ack_first : { false, true }) {
         ppp_ctx_t ctx = make_ccp_context();
@@ -384,8 +450,9 @@ TEST(ModemCcp, KeepsMppeOfferWhenPeerRequestsMppcOnly)
         ASSERT_EQ(sent_packet.size(), 10u);
         EXPECT_EQ(sent_packet[0], PPP_CODE_CONFIGURE_ACK);
         EXPECT_EQ(sent_packet[9], CCP_MPPC);
-        EXPECT_EQ(ctx.ccp_request_id, original[1]);
-        EXPECT_EQ(ctx.ccp_open, ack_first);
+        EXPECT_NE(ctx.ccp_request_id, original[1]);
+        EXPECT_EQ(ctx.ccp_request_bits, CCP_MPPC);
+        EXPECT_FALSE(ctx.ccp_open);
         ppp_ccp_codec_close(&ctx);
     }
 }

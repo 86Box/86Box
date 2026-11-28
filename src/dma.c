@@ -2530,8 +2530,16 @@ dma_pc98_adjust_page(int channel, uint32_t old_ac)
     }
 }
 
+/*
+   The DMA core, which every machine has: the channel owners, the
+   controller's kind and the channels' state, which dma.h's channel
+   functions work through. dma_init() and dma16_init() put the 8237As in
+   the I/O space on top of it; a machine whose chipset has its own DMA unit
+   in their place has the core alone, and the chipset registers itself with
+   dma_set_controller().
+ */
 void
-dma_init(void)
+dma_core_init(void)
 {
     /* Only a new machine drops the channel owners; a reset must keep them,
        because the controller registered them for the life of the device. */
@@ -2544,7 +2552,12 @@ dma_init(void)
     dma_eisa          = 0;
     dma_sg_count_mask = 0x0000fffe;
     dma_reset();
+}
 
+/* The first 8237A: its registers and page registers in the I/O space, on top of the DMA core. */
+void
+dma_init(void)
+{
     io_sethandler(0x0000, 16,
                   dma_read, NULL, NULL, dma_write, NULL, NULL, NULL);
     io_sethandler(0x0080, 8,

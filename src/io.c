@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
@@ -45,6 +46,10 @@ typedef struct _io_ {
     void (*outl)(uint16_t port, uint32_t val, void *priv);
 
     void *priv;
+
+    /* Set when the handler is added and never changed: the handler reads
+       bytes and its port is not one of 0200-0207. */
+    uint8_t fast_in;
 
     struct _io_ *prev, *next;
 } io_t;
@@ -76,6 +81,11 @@ typedef struct io_claim_t {
 
 static io_claim_t io_claims[IO_CLAIMS];
 static uint8_t    io_claimed[NPORTS / 8];
+
+/* The value of machine for which inb_slow() last found a board that takes
+   no I/O delay on a served port, or -2. machines[].init never changes for
+   an index, so an equal machine needs no second look. */
+static int io_fast_machine = -2;
 
 #ifdef ENABLE_IO_LOG
 uint8_t io_do_log = ENABLE_IO_LOG;
@@ -128,6 +138,8 @@ io_init(void)
 
     memset(io_claims, 0x00, sizeof(io_claims));
     memset(io_claimed, 0x00, sizeof(io_claimed));
+
+    io_fast_machine = -2;
 }
 
 void
@@ -191,13 +203,6 @@ io_sethandler_common(uint16_t base, uint16_t size,
     for (uint32_t c = 0; c < size; c += step) {
         p = io_last[base + c];
         q = (io_t *) calloc(1, sizeof(io_t));
-        if (p) {
-            p->next = q;
-            q->prev = p;
-        } else {
-            io[base + c] = q;
-            q->prev      = NULL;
-        }
 
         q->inb = inb;
         q->inw = inw;
@@ -209,6 +214,20 @@ io_sethandler_common(uint16_t base, uint16_t size,
 
         q->priv = priv;
         q->next = NULL;
+
+        q->fast_in = (inb != NULL) && (((base + c) & 0xfff8) != 0x0200);
+
+        /* Handlers can be added from a device thread while the CPU thread
+           reads the port, so the node is filled in before it is linked. */
+        atomic_thread_fence(memory_order_release);
+
+        if (p) {
+            q->prev = p;
+            p->next = q;
+        } else {
+            q->prev      = NULL;
+            io[base + c] = q;
+        }
 
         io_last[base + c] = q;
 
@@ -401,8 +420,9 @@ io_debug_check_addr(uint16_t port)
         trap |= 4;
 }
 
-uint8_t
-inb(uint16_t port)
+/* Not inlined, so that inb() saves no register on its short path. */
+static __attribute__((noinline)) uint8_t
+inb_slow(uint16_t port)
 {
     uint8_t ret = 0xff;
     io_t   *p;
@@ -411,7 +431,10 @@ inb(uint16_t port)
 #ifdef ENABLE_IO_LOG
     uint8_t qfound = 0;
 #endif
+    int     m;
+    int     delay;
 
+<<<<<<< HEAD
     cpu_pc98_io_wait(port, 1);
     io_port = port;
     io_cycle = 1;
@@ -420,6 +443,9 @@ inb(uint16_t port)
     io_write = 0;
 
     if (cpu_dr_armed)
+=======
+    if (cpu_dr_io_armed)
+>>>>>>> upstream/master
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -460,9 +486,17 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
+<<<<<<< HEAD
     if (!cpu_pc98_vx_bus_active() && (!found ||
         (machines[machine].init == machine_xt_ibm5550_init) ||
         (machines[machine].init == machine_xt_ibm5535_init)))
+=======
+    m     = machine;
+    delay = (machines[m].init == machine_xt_ibm5550_init) ||
+            (machines[m].init == machine_xt_ibm5535_init);
+    io_fast_machine = delay ? -2 : m;
+    if (!found || delay)
+>>>>>>> upstream/master
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
@@ -478,6 +512,41 @@ inb(uint16_t port)
         fdc37mx0x_watchdog_reset_ext(0);
 
     return ret;
+}
+
+uint8_t
+inb(uint16_t port)
+{
+#ifndef ENABLE_IO_LOG
+    uint8_t ret;
+    io_t   *p;
+#endif
+
+    io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 1;
+    io_write = 0;
+
+#ifndef ENABLE_IO_LOG
+    /* One handler and nothing else to do for this read: no I/O breakpoint
+       armed, no PCI configuration window open, no Amstrad latch, a board
+       without the I/O delay on served ports, no chipset claim on the port,
+       and fast_in (reads bytes, not 0200-0207). Every other read takes
+       inb_slow(). The three tests that inb_slow() makes after the handler
+       are made before it here, so no byte read handler may write
+       amstrad_latch or machine. */
+    if (!(cpu_dr_io_armed | (pci_flags & (FLAG_CONFIG_IO_ON | FLAG_CONFIG_DEV0_IO_ON)) | (amstrad_latch & 0x80000000) | (machine ^ io_fast_machine) | (io_claimed[port >> 3] & (1 << (port & 7))))) {
+        p = io[port];
+        if (p && p->fast_in && !p->next) {
+            ret      = p->inb(port, p->priv);
+            io_cycle = 0;
+            return ret;
+        }
+    }
+#endif
+
+    return inb_slow(port);
 }
 
 void
@@ -498,7 +567,7 @@ outb(uint16_t port, uint8_t val)
     io_write = 1;
     io_val  = val;
 
-    if (cpu_dr_armed)
+    if (cpu_dr_io_armed)
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -564,7 +633,7 @@ inw(uint16_t port)
     io_size = 2;
     io_write = 0;
 
-    if (cpu_dr_armed)
+    if (cpu_dr_io_armed)
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -662,7 +731,7 @@ outw(uint16_t port, uint16_t val)
     io_write = 1;
     io_val  = val;
 
-    if (cpu_dr_armed)
+    if (cpu_dr_io_armed)
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -746,7 +815,7 @@ inl(uint16_t port)
     io_size = 4;
     io_write = 0;
 
-    if (cpu_dr_armed)
+    if (cpu_dr_io_armed)
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -870,7 +939,7 @@ outl(uint16_t port, uint32_t val)
     io_write = 1;
     io_val  = val;
 
-    if (cpu_dr_armed)
+    if (cpu_dr_io_armed)
         io_debug_check_addr(port);
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {

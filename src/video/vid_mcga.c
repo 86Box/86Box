@@ -118,6 +118,7 @@ typedef struct mcga_t {
     uint8_t linepos;
     uint8_t font_pending;
     uint8_t irq_latch;
+    uint8_t mono;
     uint8_t lcd;
     uint8_t lcd_set;
     uint8_t lcd_index;
@@ -423,7 +424,15 @@ mcga_rebuild_color(mcga_t *dev, uint8_t index)
                                    video_6to8[dev->dac[index][2] & 0x3f]);
 
     if (!dev->lcd) {
-        dev->palette[index] = col;
+        /* The monochrome display is driven from pin 4 (green) alone
+           (Technical Reference, 1-38), so it shows the green level as
+           one of 64 shades of gray. */
+        if (dev->mono) {
+            const uint8_t gray = video_6to8[dev->dac[index][1] & 0x3f];
+
+            dev->palette[index] = makecol32(gray, gray, gray);
+        } else
+            dev->palette[index] = col;
         return;
     }
 
@@ -581,7 +590,10 @@ mcga_io_read(uint16_t addr, void *priv)
             else if (dev->crtcreg == 0x11)
                 ret = (dev->crtc[0x11] & 0xbf) | (dev->irq_latch ? 0x40 : 0x00);
             else if ((dev->crtcreg == 0x12) && (dev->crtc[0x11] & 0x80))
-                ret = 0x02; /* Analog color display. */
+                /* Display Sense: monitor sense 1 and 0 read 01 for the
+                   analog monochrome display and 10 for the analog color
+                   display (Technical Reference, 1-52). */
+                ret = dev->mono ? 0x01 : 0x02;
             else if (dev->crtcreg < MCGA_CRTC_REGS)
                 ret = dev->crtc[dev->crtcreg];
             else
@@ -1181,9 +1193,12 @@ mcga_reset(void *priv)
     dev->crtc[0x01] = 0x27;
     dev->crtc[0x02] = 0x2a;
     dev->crtc[0x03] = 0x26;
-    dev->crtc[0x04] = 0x80;
+    /* The 400-line values of the BIOS initialization table (Technical
+       Reference, 1-62): 449 lines in all, vertical sync on line 412. */
+    dev->crtc[0x04] = 0xb0;
+    dev->crtc[0x05] = 0x0d;
     dev->crtc[0x06] = 0x8f;
-    dev->crtc[0x07] = 0x98;
+    dev->crtc[0x07] = 0x9b;
     dev->crtc[0x09] = 0x07;
     dev->crtc[0x0a] = 0x06;
     dev->crtc[0x0b] = 0x07;
@@ -1280,18 +1295,57 @@ mcga_close(void *priv)
     free(dev);
 }
 
+/*
+ * The display on the 14-pin connector: a color one, as built into the
+ * 8525-004 or an 8512 or 8513, or a monochrome one, as built into the
+ * 8525-001 or an 8503. The BIOS reads which through the Display Sense
+ * register and sets up the palette to match.
+ */
+static const device_config_t mcga_config[] = {
+    // clang-format off
+    {
+        .name           = "monitor",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM 8512/13 (640x480, Color)",      .value = 0 },
+            { .description = "IBM 8503 (640x480, Monochrome)",   .value = 1 },
+            { .description = "" }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static void *
+mcga_crt_init(const device_t *info)
+{
+    mcga_t *dev = (mcga_t *) mcga_init(info);
+
+    dev->mono = !!device_get_config_int("monitor");
+    for (unsigned index = 0; index < 256; index++)
+        mcga_rebuild_color(dev, (uint8_t) index);
+
+    return dev;
+}
+
 const device_t mcga_device = {
     .name          = "IBM PS/2 Model 25 MCGA",
     .internal_name = "ibm_ps2_m25_mcga",
     .flags         = DEVICE_ISA | DEVICE_ONBOARD,
     .local         = 0,
-    .init          = mcga_init,
+    .init          = mcga_crt_init,
     .close         = mcga_close,
     .reset         = mcga_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = mcga_config
 };
 
 /*

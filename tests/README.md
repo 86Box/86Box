@@ -334,3 +334,14 @@ analog monitor voltages or replace end-to-end display testing.
 `Mach64.Palette` also checks Rage Pro `SCALE_OFF_ACC` bitmap expansion
 after a palette-cache upload has left a different source and accumulator
 state. It checks CI8 output pixels and byte, word and dword register writes.
+
+# cdrdao TOC images
+
+Build `cdrom_mcn_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^TocTest\.' --output-on-failure`.
+The tests load generated `.toc` images whose sectors carry their own position
+in the file and check track starts, the lead-out and the sector each LBA reads.
+They cover `DATAFILE` lengths given as MSF or bytes, `#byte-offset` arguments
+that split one file into tracks, `FILE` starts given in 4-byte samples, CR/LF
+line ends, and rejection of offsets that are not whole sectors. They do not
+cover WAVE audio files, CD-TEXT or multi-session TOC files.

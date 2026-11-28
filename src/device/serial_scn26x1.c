@@ -137,6 +137,7 @@ typedef struct scn26x1_t {
     int      tx_emt;   /* shift register empty */
     int      dschg;    /* DSR or DCD changed state */
     int      rx_full;  /* a character waits in the holding register */
+    double   rx_hold;  /* microseconds before the next one can be assembled */
     int      dsr;      /* modem inputs, idle high */
     int      dcd;
     int      port;     /* COM port this chip is wired to */
@@ -443,16 +444,20 @@ scn26x1_receive(scn26x1_t *dev, uint8_t val)
     scn26x1_update_irq(dev);
 }
 
-/* Take one byte from the backend if the receiver is running and the holding
-   register is free. Called from the poll and again as soon as the CPU takes
-   a character, so a device with a queue behind the UART is not delayed by a
-   poll tick (the VAXmate POST self test polls its mouse with a short loop). */
+/* Take one byte from the backend if the receiver is running, the holding
+   register is free, and a character time has passed since the CPU took the
+   last one.  The VAXmate POST self test reads the holding register back to
+   back and depends on that gap: with the next byte handed over in the same
+   instant it reads them out of step and fails the mouse check. */
 static int
 scn26x1_rx_try_read(scn26x1_t *dev)
 {
     int byte;
 
-    if (dev->rx_full || !scn26x1_receiver_on(dev))
+    /* The receiver is still assembling the character that follows
+       the one the CPU last took: the holding register keeps its old
+       contents until that character is complete, as on the real chip. */
+    if (dev->rx_full || (dev->rx_hold > 0.0) || !scn26x1_receiver_on(dev))
         return 0;
 
     if ((dev->ep.be == NULL) || (dev->ep.be->read_byte == NULL))
@@ -490,6 +495,14 @@ static void
 scn26x1_rx_poll(void *priv)
 {
     scn26x1_t *dev = (scn26x1_t *) priv;
+
+    /* One poll tick of the character the receiver is assembling. */
+    if (dev->rx_hold > 0.0) {
+        dev->rx_hold -= 1000.0;
+
+        if (dev->rx_hold < 0.0)
+            dev->rx_hold = 0.0;
+    }
 
     /* With nothing driving the modem inputs from the device side, they follow the
        backend; a closed input floats high, which leaves the status bits clear. */
@@ -565,13 +578,16 @@ scn26x1_read(uint16_t port, void *priv)
 
     switch (port & 0x0003) {
         case SCN_RDR:
-            ret          = dev->rdr;
-            dev->rx_full = 0;
-            scn26x1_update_irq(dev);
+            ret = dev->rdr;
 
-            /* Hand over the next queued character straight away instead of
-               waiting for the next poll tick. */
-            scn26x1_rx_try_read(dev);
+            /* Only the character the receiver actually handed over starts
+               next one; a read of the stale register does not. The register
+               keeps its old contents until the new character is complete. */
+            if (dev->rx_full) {
+                dev->rx_full = 0;
+                dev->rx_hold = scn26x1_frame_bits(dev) * scn26x1_bit_time(dev);
+                scn26x1_update_irq(dev);
+            }
             break;
 
         case SCN_SR:
@@ -773,6 +789,7 @@ scn26x1_reset_state(scn26x1_t *dev)
     dev->mr_ptr   = 0;
     dev->syn_ptr  = 0;
     dev->thr_full = 0;
+    dev->rx_hold  = 0.0;
     dev->rx_full  = 0;
     dev->tx_busy  = 0;
     dev->tx_emt   = 0; /* TxEMT only becomes active once a character has gone out */

@@ -9,6 +9,7 @@
  */
 #include "../../../src/network/net_modem.c"
 #include "modem_reset_test_stubs.h"
+#include "modem_command_test_stubs.h"
 #include "modem_config_test.h"
 #include "modem_at_test.h"
 
@@ -125,6 +126,45 @@ test_pnp_profiles_output(void)
     return 0;
 }
 
+/* Profile writes go to a temporary file so that a successful save updates the
+   stored profile, as it would on a real machine. */
+FILE *
+nvr_fopen(char *str, char *mode)
+{
+    (void) str;
+    (void) mode;
+    return tmpfile();
+}
+
+/* Commands change volatile settings only; they must not be written to the profile,
+   and ATZ must return echo and result codes to their defaults. */
+static int
+test_volatile_settings_not_saved_by_commands(void)
+{
+    modem_t modem = { 0 };
+
+    modem.clientsocket = modem.serversocket = modem.waitingclientsocket = -1;
+    fifo8_create(&modem.data_pending, 256);
+    fifo8_create(&modem.rx_data, 256);
+    modem_reset(&modem);
+    modem_profile_init(&modem.profile, modem_profile_state(&modem), "test", "net", 0);
+
+    for (const char *p = "ATE0Q1\r"; *p; p++)
+        modem_write(NULL, &modem, (uint8_t) *p);
+    /* saved[7] is the stored echo setting. */
+    if (modem.echo || modem.doresponse != 1 || modem.profile.saved[7] != 1)
+        return 1;
+
+    for (const char *p = "ATZ\r"; *p; p++)
+        modem_write(NULL, &modem, (uint8_t) *p);
+    if (!modem.echo || modem.doresponse != 0)
+        return 1;
+
+    fifo8_destroy(&modem.data_pending);
+    fifo8_destroy(&modem.rx_data);
+    return 0;
+}
+
 int
 main(void)
 {
@@ -134,6 +174,8 @@ main(void)
     if (test_modem_config())
         return 1;
     if (test_pnp_profiles_output())
+        return 1;
+    if (test_volatile_settings_not_saved_by_commands())
         return 1;
     modem.serial = &port;
     serial_t serial = { 0 };

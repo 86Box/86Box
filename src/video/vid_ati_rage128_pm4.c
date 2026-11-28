@@ -27,12 +27,19 @@
  *          vid_ati_rage128.h.
  *
  *          Through the on-chip PCI GART, the table and the pages it maps
- *          in system RAM are read and written straight through the ram
- *          array, which touches no CPU-thread state. The AGP aperture,
- *          and table entries that point into it, go through dma_bm_read
- *          and dma_bm_write, from the CCE thread as well, the way the
+ *          in system RAM are read straight through the ram array. The AGP
+ *          aperture, and table entries that point into it, are read
+ *          through dma_bm_read, from the CCE thread as well, the way the
  *          Voodoo FIFO thread reads an AGP command FIFO with
- *          mem_readl_phys.
+ *          mem_readl_phys. A physical read made off the CPU thread leaves
+ *          the CPU thread's memory state alone: the page walk it last
+ *          recorded, the linear address of the access it is making, and
+ *          its read lookup table, which only the CPU thread fills. Every
+ *          write the device makes to guest memory goes through
+ *          dma_bm_write on the CPU thread, which marks the pages changed
+ *          and drops recompiled code built from them; a write-back the
+ *          CCE thread needs is handed to the CPU thread
+ *          (rage128_pm4_wb_handoff).
  *
  *          Relevant literature:
  *
@@ -87,6 +94,100 @@ static _Thread_local int rage128_ring_fetch    = 0;
    payload instead of one record per dword. */
 static _Thread_local int rage128_cap_in_block = 0;
 
+/* The walk hold. An indirect buffer submitted by a direct write to
+   PM4_IW_INDSIZE is walked by the CPU thread, which then queues the
+   buffer's primitives into the render workers' deferred batch itself.
+   The queue takes no lock, and the CCE thread empties the same batch
+   whenever a pass of its loop runs a flush, so for the length of such a
+   walk the CCE thread must start no pass at all. The drain that precedes
+   the submit does not give that: it returns once the CCE thread reads as
+   stopped, and a wake set earlier (the release after a reset pulse, a
+   drain's own nudge, a queued register write) starts a pass after it.
+
+   The CPU thread sets cce_walk_hold and then waits while cce_executing
+   reads 1. The CCE thread stores cce_executing = 1 at the top of a pass
+   and then loads cce_walk_hold; when it is set the thread leaves the
+   pass before it looks at any work and sleeps on cce_hold_event. Each
+   side stores its own flag before it loads the other's, and both use
+   sequentially consistent accesses, so at least one of them sees the
+   other: either the CCE thread backs off, or the CPU thread waits until
+   the pass has ended. Every flush the CCE thread makes lies inside a
+   pass, between those two stores of cce_executing, so none can run
+   while the CPU thread queues. The pass waited for is a short one. Only
+   the CPU thread fills the command FIFO, and the drain before the submit
+   either left it empty or gave up on a hung engine, whose executor
+   consumes nothing more: its hung test ends the pass before any pop. So
+   that pass pops nothing and waits for nothing the CPU thread owes.
+
+   Dropping the hold clears the flag first and sets the event second. A
+   CCE thread that backed off then starts its loop from the top: it
+   stores cce_executing again, tests for an abort and loads the flag
+   before it looks at any work. That pass first runs whatever the
+   command FIFO holds by then, a WAIT_UNTIL the buffer queued or ring
+   words a pump copied in, and when it is out of work its idle flush
+   draws what the walk queued. A release that finds nobody backed off
+   wakes nobody. Unless a pass is already on its way to the hold test,
+   in which case it finds the flag clear and runs, the batch then stays
+   queued, and the engine busy, until the next wake or drain. The CCE
+   thread resets the event after its wait, so a set that lands between
+   the wait and the reset is lost.
+   That costs nothing, because the thread loads the flag next and acts
+   on what it then reads: clear, and the pass goes on, or set again by a
+   new hold, and it backs off again until that hold's release sets the
+   event.
+
+   rage128_walk_hold_owner is the device whose hold the calling thread
+   has taken, so a submit nested in the walk does not take or drop the
+   hold a second time, and a drain knows whether it runs inside a walk
+   without loading the shared flag. */
+static _Thread_local rage128_t *rage128_walk_hold_owner = NULL;
+
+static void rage128_pm4_cpu_idle_wait(rage128_t *dev);
+
+#ifdef REG_HARNESS
+/* Register-harness probe points of the walk hold: site 0 on the CPU
+   thread before it sets the flag, site 1 on the CPU thread each time it
+   finds a pass still running, site 2 on the CCE thread when it backs
+   off. Null outside the vectors that use it. */
+_Atomic(void (*)(rage128_t *dev, int site)) rage128_harness_walk_hook;
+
+static void
+rage128_pm4_walk_site(rage128_t *dev, int site)
+{
+    void (*hook)(rage128_t *dev, int site) = atomic_load(&rage128_harness_walk_hook);
+
+    if (hook)
+        hook(dev, site);
+}
+#else
+#    define rage128_pm4_walk_site(dev, site) ((void) 0)
+#endif
+
+static void
+rage128_pm4_walk_hold(rage128_t *dev)
+{
+    rage128_pm4_walk_site(dev, 0);
+    atomic_store(&dev->cce_walk_hold, 1);
+    for (;;) {
+        /* Reset before the test: the CCE thread sets the event after it
+           drops cce_executing, so a pass that ends after the test still
+           ends the wait. The timeout covers a pass that ends without
+           the event. */
+        thread_reset_event(dev->cce_idle_event);
+        if (!dev->cce_thread_run || !atomic_load(&dev->cce_executing))
+            break;
+        rage128_pm4_walk_site(dev, 1);
+        rage128_pm4_cpu_idle_wait(dev);
+    }
+}
+
+static void
+rage128_pm4_walk_release(rage128_t *dev)
+{
+    atomic_store(&dev->cce_walk_hold, 0);
+    thread_set_event(dev->cce_hold_event);
+}
+
 void
 rage128_pm4_reset(rage128_t *dev)
 {
@@ -110,9 +211,9 @@ rage128_pm4_reset(rage128_t *dev)
     dev->cce_retire_pending = 0;
     atomic_store(&dev->cce_retire_done, 0);
     atomic_store(&dev->cce_retire_held, 0);
-    thread_wait_mutex(dev->raster_flush_mtx);
+    rage128_flush_lock(dev);
     dev->cce_scratch_pend_mask = 0;
-    thread_release_mutex(dev->raster_flush_mtx);
+    rage128_flush_unlock(dev);
     dev->cce_shadow_last       = 0xffffffffu;
     dev->pm4_iw_indoff      = 0;
     dev->pm4_iw_indsize     = 0;
@@ -124,13 +225,15 @@ rage128_pm4_reset(rage128_t *dev)
     dev->pm4_ind_busy    = 0;
     dev->pm4_ind_pending = 0;
     dev->pump_frame_rem  = 0;
+    dev->pump_t3_pos     = 0;
+    dev->pump_t3_fmt     = 0;
     dev->pump_ib_state   = 0;
 }
 
 /* One dword of guest system RAM, read straight from the ram array.
-   Usable from any thread: unlike mem_read_phys and dma_bm_read it
-   touches no CPU-thread state (mem_readl_phys stores mem_logical_addr).
-   Returns 0 for an address past the end of RAM. */
+   Usable from any thread: it takes no mapping lookup and calls no read
+   handler, so it reads only installed RAM. Returns 0 for an address past
+   the end of RAM. */
 static inline int
 rage128_guest_ram_readl(uint32_t phys, uint32_t *val)
 {
@@ -228,7 +331,7 @@ rage128_cap_bus_read(rage128_t *dev, uint32_t bus_addr, uint32_t val)
         rage128_cap_run_add(dev, bus_addr, val);
 }
 
-static void
+void
 rage128_cap_bus_block(rage128_t *dev, uint32_t bus_addr, const uint8_t *src, uint32_t len)
 {
     if (!dev->cap_file)
@@ -237,10 +340,12 @@ rage128_cap_bus_block(rage128_t *dev, uint32_t bus_addr, const uint8_t *src, uin
     rage128_cap_block_write(dev, bus_addr, src, len);
 }
 
-/* W <bus_addr> <len>: the resolved absolute bus address of every write
-   the device makes. Writes have no ring fetches to exclude, and both
-   write entry points run only on the thread executing packets, so the
-   only condition is an open capture. Without this record a capture
+/* W <bus_addr> <len>: the bus address of every write the device makes:
+   the aperture address, or the card address for a write through the
+   on-chip table, one record per page run. Writes have no ring fetches
+   to exclude, and they are made on the CPU thread only, while a
+   packet-thread write-back waits for them (rage128_pm4_wb_handoff), so
+   the only condition is an open capture. Without this record a capture
    shows what the device read but not where its own writes went. */
 static inline void
 rage128_cap_bus_write(rage128_t *dev, uint32_t bus_addr, uint32_t len)
@@ -497,69 +602,31 @@ rage128_pm4_bus_read_block(rage128_t *dev, uint32_t vm, uint8_t *dst, uint32_t l
     return 1;
 }
 
-/* Write counterpart of rage128_guest_ram_readl: one dword stored straight
-   into the ram array. The data written this way is surface data, such
-   as a depth buffer, which the guest never executes, so no recompiled
-   code page needs invalidating, and the store touches no CPU-thread
-   state. Aperture addresses go through dma_bm_write instead. Returns 0
-   for an address past the end of RAM. */
-static inline int
-rage128_guest_ram_writel(uint32_t phys, uint32_t val)
-{
-    if ((uint64_t) phys + 4 > ((uint64_t) mem_size << 10))
-        return 0;
-    memcpy(&ram[phys], &val, 4);
-    return 1;
-}
-
-/* Write counterpart of rage128_pm4_bus_read, one dword. The address is
-   resolved exactly as the read resolves it (the AGP aperture through
-   dma_bm_write, or a lookup in the on-chip table), so the write lands
-   in the guest page the matching read came from. Called only on the
-   thread executing packets, never from a render worker: dma_bm_write
-   invalidates recompiled code over the range it writes. Returns 0 when
-   bus mastering is blocked, AGP_BASE is 0, or the table entry cannot be
-   read. */
-static int
-rage128_pm4_bus_write(rage128_t *dev, uint32_t bus_addr, uint32_t val)
-{
-    uint32_t table = dev->pci_gart_page & 0xfffff000;
-    uint32_t pte;
-    uint32_t phys;
-
-    if (!rage128_pm4_bus_master_ok(dev))
-        return 0;
-
-    if (!rage128_gart_walk(dev)) {
-        /* Through the AGP aperture, with the same AGP_BASE check as the
-           read. */
-        if (!dev->agp_base)
-            return 0;
-        dma_bm_write(bus_addr, (const uint8_t *) &val, 4, 4);
-        rage128_cap_bus_write(dev, bus_addr, 4);
-        return 1;
-    }
-
-    if (!rage128_guest_ram_readl(table + ((bus_addr >> 12) & 0x1fff) * 4, &pte))
-        return 0;
-    phys = (pte & 0xfffff000) | (bus_addr & 0xfff);
-    if (!rage128_guest_ram_writel(phys, val)) /* entry is in the aperture, as in the read */
-        dma_bm_write(phys, (const uint8_t *) &val, 4, 4);
-    rage128_cap_bus_write(dev, bus_addr, 4);
-    return 1;
-}
-
 /* Write counterpart of rage128_pm4_bus_read_block: `len` bytes from `src`
    to card address `vm`, resolved the same way as the read; for example,
    a depth surface held in AGP memory is written back to the guest this
-   way when a batch completes. With the on-chip table the copy goes dword by dword so each
-   page is looked up as the read looked it up. Depth rows are padded to
-   whole dwords, so a partial last dword is not expected, but the tail
-   copy handles one. Called only on the thread executing packets.
-   Returns 1 when the whole block was written, 0 on any failed write. */
+   way when a batch completes. Every byte goes to guest memory through
+   dma_bm_write, the host's bus-master write, as a PCI bus master's write
+   reaches DRAM on a real board: the chipset snoops it, so the processor
+   caches, recompiled code included, see the new bytes (Intel 82443BX
+   datasheet, WSC# signal description, p. 2-6). In the emulator that
+   write marks the pages it touches as changed and drops recompiled code
+   built from them, and it updates state the CPU thread owns, which is
+   why it runs on the CPU thread only: a write-back the packet thread
+   needs is handed over by r128_span_stage_writeback and made here by
+   rage128_pm4_wb_service. With the on-chip table each 4 KB page is
+   looked up once, as the read looks it up, and written as one run; an
+   entry past the end of guest RAM is a bus address in the chipset's AGP
+   aperture, and dma_bm_write reaches that too. The guide documents only
+   reads through the table (RRG: PCI_GART_PAGE, p. 3-208 / PDF 226);
+   writes through it are modeled the same way. Returns 1 when the whole
+   block was written, 0 when bus mastering is blocked, AGP_BASE is 0
+   without the table, or a table entry cannot be read. */
 int
 rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len)
 {
+    uint32_t table = dev->pci_gart_page & 0xfffff000;
+
     if (!rage128_pm4_bus_master_ok(dev))
         return 0;
     if (!rage128_gart_walk(dev)) { /* AGP: aperture is linear in bus space */
@@ -581,14 +648,257 @@ rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uin
         rage128_cap_bus_write(dev, bus, len);
         return 1;
     }
-    for (uint32_t o = 0; o < len; o += 4) { /* PCI GART: pages are scattered */
-        uint32_t v = 0;
+    for (uint32_t o = 0; o < len;) { /* PCI GART: pages are scattered */
+        uint32_t a = vm + o;
+        uint32_t n = 0x1000u - (a & 0xfffu);
+        uint32_t pte;
 
-        memcpy(&v, src + o, (len - o >= 4) ? 4u : (len - o));
-        if (!rage128_pm4_bus_write(dev, vm + o, v))
+        if (n > len - o)
+            n = len - o;
+        if (!rage128_guest_ram_readl(table + ((a >> 12) & 0x1fff) * 4, &pte))
             return 0;
+        dma_bm_write((pte & 0xfffff000) | (a & 0xfff), src + o, n, 4);
+        rage128_cap_bus_write(dev, a, n);
+        o += n;
     }
     return 1;
+}
+
+/* Write-back hand-off. A staged surface in system memory is written back
+   by whichever thread runs the operation that ends it: the packet thread
+   for ring work, the CPU thread for a direct operation or an indirect
+   buffer it walks itself. The guest-memory write has to be made on the
+   CPU thread (see rage128_pm4_bus_write_block), so the packet thread
+   posts the stage here and waits until the CPU thread has written it.
+
+   The wait keeps the order the chip has: the packet that ends the
+   staging does not retire, and nothing behind it runs, until its bytes
+   are in guest memory, so a driver that sees the read pointer or a
+   scratch fence pass the packet also finds the pixels there. The one
+   exception is a write-back that itself reaches a handler waiting for
+   the packet thread (rage128_pm4_wb_release_early). On the
+   CPU side every guest-memory store, change mark and dropped recompiled
+   block then happens between guest instructions, which is where a bus
+   master's write lands relative to the processor's own locked
+   read-modify-write cycles on a real board (82443BX datasheet, HLOCK#
+   signal description, p. 2-2; Intel Architecture Software Developer's
+   Manual Vol. 3, 1999, section 7.1.2.1, p. 7-4: the processor sets the
+   page-table accessed and dirty flags with locked cycles).
+
+   The CPU thread answers in rage128_pm4_wb_service, which runs at every
+   register read and every end of a ring pump (rage128_gen_int_sync), at
+   every vertical blank and sync, inside every loop in which it waits for
+   the packet thread, and while it waits to enter a 3D flush
+   (rage128_flush_lock). The post sets cce_idle_event so a CPU thread
+   asleep in one of those loops wakes at once. A reset pulse does not
+   end the wait: the pulse waits for the packet thread to park, and its
+   loop answers the post first, so the bytes land as they would have
+   before the pulse. Only the thread's close ends it unanswered; the
+   bytes are then dropped and r128_span_stage_writeback says so.
+
+   cce_wb_req holds the posted stage until the CPU thread takes it with
+   one exchange; cce_wb_done is set once the write is made. The close
+   sets cce_wb_closing, and the waiting packet thread then takes the
+   post back with the same exchange, so the two threads never both own
+   it; a post the CPU thread took first is still waited for. Returns 1 when the CPU thread made the
+   write, 0 when the close took the post back. Packet thread only. */
+#ifdef REG_HARNESS
+/* Register-harness probe point: the packet thread is about to post the
+   stage. Null outside the vectors that use it. */
+_Atomic(void (*)(rage128_t *dev, struct rage128_span_stage *st)) rage128_harness_wb_hook;
+#endif
+
+int
+rage128_pm4_wb_handoff(rage128_t *dev, struct rage128_span_stage *st)
+{
+#ifdef REG_HARNESS
+    void (*hook)(rage128_t *dev, struct rage128_span_stage *st) = atomic_load(&rage128_harness_wb_hook);
+
+    if (hook)
+        hook(dev, st);
+#endif
+    /* This thread's pending capture run goes out first, so the capture
+       keeps the reads before the write-back ahead of its write records,
+       which the CPU thread now makes. */
+    rage128_cap_run_flush(dev);
+    atomic_store(&dev->cce_wb_done, 0);
+    thread_reset_event(dev->cce_wb_event);
+    atomic_store(&dev->cce_wb_req, st);
+    thread_set_event(dev->cce_idle_event);
+    while (!atomic_load(&dev->cce_wb_done)) {
+        if (atomic_load(&dev->cce_wb_closing) && atomic_exchange(&dev->cce_wb_req, NULL) == st)
+            return 0;
+        thread_wait_event(dev->cce_wb_event, 1);
+    }
+    return 1;
+}
+
+/* The same hand-off for a CONFIG_CNTL write from a packet. The write
+   rebuilds the memory tables for the card's apertures and changes the
+   I/O handler table; the CPU thread reads both without a lock, and a
+   table slot is empty for a moment while it is rebuilt, so a guest access
+   made then would be lost. The packet thread posts the write here and
+   waits until the CPU thread has made it in rage128_pm4_wb_service,
+   which keeps the order of the stream: nothing behind the packet runs
+   before the new handlers are in place. The wait and its end at close
+   are those of the write-back above. Returns 1 when the CPU thread made
+   the write, 0 when the close took it back. Packet thread only. */
+int
+rage128_pm4_cfg_handoff(rage128_t *dev, uint32_t val, uint32_t mask)
+{
+    dev->cce_cfg_val  = val;
+    dev->cce_cfg_mask = mask;
+    atomic_store(&dev->cce_wb_done, 0);
+    thread_reset_event(dev->cce_wb_event);
+    atomic_store(&dev->cce_cfg_req, 1);
+    thread_set_event(dev->cce_idle_event);
+    while (!atomic_load(&dev->cce_wb_done)) {
+        if (atomic_load(&dev->cce_wb_closing) && atomic_exchange(&dev->cce_cfg_req, 0))
+            return 0;
+        thread_wait_event(dev->cce_wb_event, 1);
+    }
+    return 1;
+}
+
+/* The write-back the CPU thread is making for the packet thread, if any:
+   the device it belongs to, and whether that thread has been let go
+   already. */
+static _Thread_local rage128_t *rage128_wb_serving_dev;
+static _Thread_local int        rage128_wb_released;
+
+static void
+rage128_pm4_wb_release(rage128_t *dev)
+{
+    atomic_store(&dev->cce_wb_done, 1);
+    thread_set_event(dev->cce_wb_event);
+}
+
+/* Called before every CPU-thread wait for the packet thread. A write-back
+   the CPU thread makes for the packet thread can itself reach a device
+   handler that waits for the packet thread: a table entry or an aperture
+   page can send the write to this card's own registers, and the
+   register's handler drains the engine. The packet thread is still
+   waiting for the write-back, so that wait would never end. The
+   write-back works from a copy of the changed bytes
+   (r128_span_stage_take), so the packet thread is let go here, before
+   the rest of the write-back lands; the bytes still land, in order, as
+   the CPU thread goes on with them. A real engine does not wait on such
+   a write at all; the order here is modeled. */
+static void
+rage128_pm4_wb_release_early(rage128_t *dev)
+{
+    if (rage128_wb_serving_dev == dev && !rage128_wb_released) {
+        rage128_wb_released = 1;
+        rage128_pm4_wb_release(dev);
+    }
+}
+
+/* CPU-thread side of the hand-off: make the CONFIG_CNTL write or the
+   write-back the packet thread posted, if any, and let it go on. The
+   changed bytes are copied out of the staging first and the staging
+   released, so the packet thread may reuse it as soon as it is let go,
+   which rage128_pm4_wb_release_early can do partway through. Without memory for the copy the write-back is
+   dropped (r128_span_stage_take says why) and the packet thread let go.
+   Does nothing on the packet thread, so a caller shared by both threads
+   can call it unconditionally. A write-back served from inside another one, through
+   a wait in a handler, keeps the outer one's state on the stack. */
+void
+rage128_pm4_wb_service(rage128_t *dev)
+{
+    struct rage128_span_stage *st;
+    r128_stage_job_t           job;
+    rage128_t                 *outer_dev;
+    int                        outer_released;
+
+    if (rage128_on_cce_thread)
+        return;
+    /* A posted CONFIG_CNTL write (rage128_pm4_cfg_handoff). */
+    if (atomic_load_explicit(&dev->cce_cfg_req, memory_order_relaxed) && atomic_exchange(&dev->cce_cfg_req, 0)) {
+        rage128_config_cntl_write(dev, dev->cce_cfg_val, dev->cce_cfg_mask);
+        rage128_pm4_wb_release(dev);
+    }
+    if (!atomic_load_explicit(&dev->cce_wb_req, memory_order_relaxed))
+        return;
+    st = atomic_exchange(&dev->cce_wb_req, NULL);
+    if (!st)
+        return;
+    if (!r128_span_stage_take(st, &job)) {
+        rage128_pm4_wb_release(dev);
+        return;
+    }
+    outer_dev              = rage128_wb_serving_dev;
+    outer_released         = rage128_wb_released;
+    rage128_wb_serving_dev = dev;
+    rage128_wb_released    = 0;
+    r128_stage_job_write(dev, &job);
+    if (!rage128_wb_released)
+        rage128_pm4_wb_release(dev);
+    rage128_wb_serving_dev = outer_dev;
+    rage128_wb_released    = outer_released;
+}
+
+/* One step of a CPU-thread wait for the packet thread: answer a posted
+   write-back, which the packet thread may be waiting on, then sleep
+   until it signals or for 1 ms. */
+static void
+rage128_pm4_cpu_idle_wait(rage128_t *dev)
+{
+    rage128_pm4_wb_release_early(dev);
+    rage128_pm4_wb_service(dev);
+    thread_wait_event(dev->cce_idle_event, 1);
+}
+
+/* Enter and leave a 3D flush (raster_flush_mtx). A packet-thread flush
+   can sit in rage128_pm4_wb_handoff with the flush held, waiting for the
+   CPU thread, so the CPU thread must not sleep on the mutex while such a
+   post is pending. raster_flush_claim is taken first with one
+   compare-exchange. A claimant that finds it taken counts itself in
+   raster_flush_waiters, answers pending write-backs while it waits, and
+   sleeps on raster_flush_free for at most 1 ms at a time; the holder
+   sets the event on release only when someone waits, so an uncontended
+   flush costs two atomic operations more than the mutex alone. The
+   mutex is then always free when taken, and keeps its place as what
+   orders the flush's data between threads. Before the device has
+   created the event, as in a reset during setup, no packet thread
+   exists yet and the mutex alone is taken. */
+void
+rage128_flush_lock(rage128_t *dev)
+{
+    int expect = 0;
+
+    if (!dev->raster_flush_free) {
+        thread_wait_mutex(dev->raster_flush_mtx);
+        return;
+    }
+    if (!atomic_compare_exchange_strong(&dev->raster_flush_claim, &expect, 1)) {
+        /* Counted before the event is reset and the flag tried again:
+           a holder that releases after this store sees the count and
+           sets the event, and one that released before it left the
+           flag free for the next try. */
+        atomic_fetch_add(&dev->raster_flush_waiters, 1);
+        for (;;) {
+            thread_reset_event(dev->raster_flush_free);
+            expect = 0;
+            if (atomic_compare_exchange_strong(&dev->raster_flush_claim, &expect, 1))
+                break;
+            rage128_pm4_wb_release_early(dev);
+            rage128_pm4_wb_service(dev);
+            thread_wait_event(dev->raster_flush_free, 1);
+        }
+        atomic_fetch_sub(&dev->raster_flush_waiters, 1);
+    }
+    thread_wait_mutex(dev->raster_flush_mtx);
+}
+
+void
+rage128_flush_unlock(rage128_t *dev)
+{
+    thread_release_mutex(dev->raster_flush_mtx);
+    if (!dev->raster_flush_free)
+        return;
+    atomic_store(&dev->raster_flush_claim, 0);
+    if (atomic_load(&dev->raster_flush_waiters))
+        thread_set_event(dev->raster_flush_free);
 }
 
 /* ------------------------------------------------------------------ */
@@ -661,11 +971,17 @@ rage128_cce_fifo_reserve(rage128_t *dev, uint32_t wr, uint32_t need)
             stalled = 1;
             break;
         }
+        /* A pump made from inside a CPU-thread walk (a queued WAIT_UNTIL,
+           or a BUS_CNTL write that re-enables bus mastering): the walk
+           hold keeps the executor from popping anything, so no room will
+           appear. Leave at once, as when the wait runs out. */
+        if (atomic_load(&dev->cce_walk_hold))
+            break;
         thread_reset_event(dev->cce_idle_event);
         if (rage128_cce_fifo_space(dev, wr) >= need)
             break;
         thread_set_event(dev->cce_wake_event);
-        thread_wait_event(dev->cce_idle_event, 1);
+        rage128_pm4_cpu_idle_wait(dev);
         waited++;
     }
     if (rage128_cce_fifo_space(dev, wr) < need && waited >= 250)
@@ -833,7 +1149,23 @@ rage128_pm4_pump(rage128_t *dev)
 
         if (dev->pump_frame_rem) {
             dev->pump_frame_rem--;
-            if (dev->pump_ib_state == 1) {
+            if (dev->pump_t3_pos) {
+                /* Inside a 3D_RNDR_GEN_PRIM: keep VC_FORMAT, and at
+                   VC_CNTL end the frame where the executor ends the
+                   packet, so the next header the framer reads is the one
+                   the executor reads. The two dwords already counted are
+                   added back to give the header's body length. */
+                if (++dev->pump_t3_pos == 2) {
+                    dev->pump_t3_fmt = v;
+                } else {
+                    dev->pump_frame_rem = rage128_3d_gen_prim_dwords(dev->pump_t3_fmt, v,
+                                                                     dev->pump_frame_rem + 2)
+                        - 2;
+                    dev->pump_t3_pos = 0;
+                }
+                if (!dev->pump_frame_rem) /* a body of one dword */
+                    dev->pump_t3_pos = 0;
+            } else if (dev->pump_ib_state == 1) {
                 /* Rounded as the PM4_IW_INDOFF write will round it, 24:0
                    with bits 2:0 zero, so the splice reads the body from
                    where the walk's register value points. */
@@ -861,6 +1193,8 @@ rage128_pm4_pump(rage128_t *dev)
                     break;
                 case 3:
                     dev->pump_frame_rem = RAGE128_PM4_COUNT(v);
+                    if (RAGE128_PM4_T3_OPCODE(v) == RAGE128_PM4_OP_3D_RNDR_GEN_PRIM)
+                        dev->pump_t3_pos = 1;
                     break;
                 default: /* type 2 filler: no payload */
                     break;
@@ -887,10 +1221,14 @@ rage128_pm4_pump(rage128_t *dev)
        once this pointer has passed it, so a fetch pointer here lets it
        overwrite buffers not yet drawn. The executor advances
        cce_retire_rptr; the write itself stays on the CPU thread. The
-       supplement calls the address a
-       32 MB AGP/PCI pointer, but the Windows drivers have been observed
-       programming a host physical address beyond the 32 MB GART range,
-       so it is written there directly. */
+       address is a host physical address and is written to directly, on
+       the AGP board and the PCI board alike: the SDK's ring setup takes
+       the physical address of a variable in the program's own memory
+       before it separates the AGP and PCI GART cases, and writes that
+       to the register after them (SDK: Load the CCE Registers,
+       pp. 5-7-5-8 / PDF 103-104). The supplement calls the register a
+       32 MB AGP/PCI pointer; the Windows drivers have been observed
+       programming a host physical address beyond the 32 MB GART range. */
     {
         uint32_t retire = atomic_load(&dev->cce_retire_rptr);
 
@@ -987,19 +1325,38 @@ rage128_pm4_gui_reset(rage128_t *dev)
         atomic_store(&dev->cce_parked, 0);
         atomic_store(&dev->cce_abort, 1);
         thread_set_event(dev->cce_wake_event);
+        /* A pulse written by an indirect buffer that this thread is
+           walking finds the executor backed off behind the walk hold,
+           asleep on cce_hold_event. It tests cce_abort before the hold,
+           so once awake it parks like any other. */
+        thread_set_event(dev->cce_hold_event);
         /* A WAIT_UNTIL flip stall waits for this thread to latch the
            flip. The cce_abort test in its loop is what ends it; the event
            only saves it waiting out its 1 ms timeout. */
         thread_set_event(dev->cce_flip_event);
         thread_reset_event(dev->cce_idle_event);
         while (dev->cce_thread_run && !atomic_load(&dev->cce_parked))
-            thread_wait_event(dev->cce_idle_event, 1);
+            rage128_pm4_cpu_idle_wait(dev);
     }
     atomic_store(&dev->cce_fifo_rd, atomic_load(&dev->cce_fifo_wr));
     atomic_store(&dev->cce_hung, 0);
+    /* The abandoned batch's kept texture levels go with it: the next
+       draw stages its levels again. */
+    r128_tex_keep_note_all(dev);
+    /* The work the executor had taken is abandoned with the rest. It
+       stores cce_work only in a pass that has seen cce_abort clear, so
+       this store cannot race it while it is parked. The pulse leaves
+       the FIFO empty, so the pass the executor makes after the release
+       sets the flag again only if a write queued new work in the
+       meantime, and then the engine is busy with that work. With
+       nothing queued the status registers read idle as soon as the
+       pulse returns, whenever that pass runs. */
+    atomic_store(&dev->cce_work, 0);
     dev->pm4_ind_busy    = 0;
     dev->pm4_ind_pending = 0;
     dev->pump_frame_rem  = 0;
+    dev->pump_t3_pos     = 0;
+    dev->pump_t3_fmt     = 0;
     dev->pump_ib_state   = 0;
     /* The executor is parked, so its own cce_retire_pending is reset
        too; otherwise the next packet would publish the abandoned
@@ -1021,6 +1378,7 @@ rage128_pm4_gui_reset(rage128_t *dev)
     dev->hostdata_active     = 0;
     dev->hostdata_ndw        = 0;
     dev->pm4_vc_debug_config = 0;
+    rage128_2d_eng_reset(dev); /* the register path's queued work goes too */
     /* Released only now: every store above has to be done before the
        executor may look at the FIFO again. */
     if (dev->cce_thread) {
@@ -1067,11 +1425,9 @@ rage128_pm4_reg_in_fetch_block(uint32_t reg, uint32_t nregs)
 int (*rage128_harness_drain_hook)(rage128_t *dev);
 _Atomic(void (*)(rage128_t *dev)) rage128_harness_idle_hook;
 
-void
-rage128_pm4_drain_wait(rage128_t *dev)
+static void
+rage128_pm4_drain_run(rage128_t *dev)
 {
-    if (!dev->cce_thread || rage128_on_cce_thread)
-        return;
     if (!rage128_pm4_active(dev)) {
         /* Executor idle: draw any deferred 3D batch so the caller's
            direct access sees the finished pixels. The flush is safe here
@@ -1097,7 +1453,7 @@ rage128_pm4_drain_wait(rage128_t *dev)
                 atomic_store(&dev->cce_abort, 1);
                 thread_set_event(dev->cce_wake_event);
                 while (atomic_load(&dev->cce_executing))
-                    thread_wait_event(dev->cce_idle_event, 1);
+                    rage128_pm4_cpu_idle_wait(dev);
                 atomic_store(&dev->cce_abort, 0);
                 break;
             }
@@ -1125,13 +1481,13 @@ rage128_pm4_drain_wait(rage128_t *dev)
             if (atomic_load(&dev->cce_executing)) {
                 if (!atomic_load(&dev->cce_starved)) {
                     thread_set_event(dev->cce_wake_event);
-                    thread_wait_event(dev->cce_idle_event, 1);
+                    rage128_pm4_cpu_idle_wait(dev);
                     continue;
                 }
                 atomic_store(&dev->cce_abort, 1);
                 thread_set_event(dev->cce_wake_event);
                 while (atomic_load(&dev->cce_executing))
-                    thread_wait_event(dev->cce_idle_event, 1);
+                    rage128_pm4_cpu_idle_wait(dev);
                 atomic_store(&dev->cce_abort, 0);
             }
             break;
@@ -1160,16 +1516,43 @@ rage128_pm4_drain_wait(rage128_t *dev)
             atomic_store(&dev->cce_abort, 1);
             thread_set_event(dev->cce_wake_event);
             while (atomic_load(&dev->cce_executing))
-                thread_wait_event(dev->cce_idle_event, 1);
+                rage128_pm4_cpu_idle_wait(dev);
             atomic_store(&dev->cce_abort, 0);
             break;
         }
         thread_set_event(dev->cce_wake_event);
-        thread_wait_event(dev->cce_idle_event, 1);
+        rage128_pm4_cpu_idle_wait(dev);
     }
     /* Engine idle: draw any deferred 3D batch. */
     rage128_raster_flush(dev);
     atomic_store(&dev->cce_drain_req, 0);
+}
+
+/* A drain made from inside a CPU-thread walk, by a register write in the
+   buffer, a page flip or the GPU backend's barrier, needs the executor:
+   with primitives queued the engine reads busy until the executor's idle
+   flush has drawn them, and a WAIT_UNTIL the buffer queued has to run.
+   The walk hold is dropped for the length of the drain, during which
+   this thread queues nothing, and taken again before the walk goes on.
+   The owner mark is cleared meanwhile so that a drain entered from
+   inside this one leaves the hold alone. */
+void
+rage128_pm4_drain_wait(rage128_t *dev)
+{
+    int in_walk;
+
+    if (!dev->cce_thread || rage128_on_cce_thread)
+        return;
+    in_walk = rage128_walk_hold_owner == dev;
+    if (in_walk) {
+        rage128_walk_hold_owner = NULL;
+        rage128_pm4_walk_release(dev);
+    }
+    rage128_pm4_drain_run(dev);
+    if (in_walk) {
+        rage128_pm4_walk_hold(dev);
+        rage128_walk_hold_owner = dev;
+    }
 }
 
 /* The display moved something a WAIT_UNTIL stall waits on: vsync latched
@@ -1416,7 +1799,7 @@ rage128_pm4_scratch_hold(rage128_t *dev, uint32_t n, uint32_t val, uint32_t mask
 
     if (!rage128_on_cce_thread && !rage128_in_indirect)
         return 0;
-    thread_wait_mutex(dev->raster_flush_mtx);
+    rage128_flush_lock(dev);
     if (atomic_load(&dev->cce_batch_pending)) {
         uint32_t base = (dev->cce_scratch_pend_mask & (1u << n))
             ? dev->cce_scratch_pend[n]
@@ -1426,7 +1809,7 @@ rage128_pm4_scratch_hold(rage128_t *dev, uint32_t n, uint32_t val, uint32_t mask
         dev->cce_scratch_pend_mask |= 1u << n;
         held = 1;
     }
-    thread_release_mutex(dev->raster_flush_mtx);
+    rage128_flush_unlock(dev);
     return held;
 }
 
@@ -1543,6 +1926,14 @@ rage128_cce_packet(rage128_t *dev, uint32_t hdr)
                         return;
                     if (i < n)
                         pl[i] = v;
+                    /* A 3D_RNDR_GEN_PRIM is as long as its vertices once
+                       VC_CNTL is in, which may be shorter than its COUNT
+                       (modeled; see rage128_3d_gen_prim_dwords). */
+                    if (i == 1 && RAGE128_PM4_T3_OPCODE(hdr) == RAGE128_PM4_OP_3D_RNDR_GEN_PRIM) {
+                        count = rage128_3d_gen_prim_dwords(pl[0], pl[1], count);
+                        if (n > count)
+                            n = count;
+                    }
                 }
                 /* The MPEG opcode first, then the 3D opcodes, then the 2D
                    dispatcher, which draws any deferred 3D batch first unless
@@ -1581,9 +1972,11 @@ rage128_cce_thread(void *priv)
     while (dev->cce_thread_run) {
         uint32_t hdr;
 
-        /* Marked busy before the FIFO is checked, so a status read never
-           sees idle between popping a packet's last dword and finishing
-           the packet. */
+        /* Marked inside a pass before the FIFO is checked, so a thread
+           that waits for this one to stop (the drain wait, a reset)
+           never takes it for stopped while it is about to pop a packet.
+           The status registers do not read this flag; they read
+           cce_work, set below once the pass has found work. */
         atomic_store(&dev->cce_executing, 1);
         /* Abort pending: start no further packet and set cce_parked.
            cce_executing drops between packets on its own, so a resetting
@@ -1599,9 +1992,31 @@ rage128_cce_thread(void *priv)
             continue;
         }
         atomic_store(&dev->cce_parked, 0);
+        /* The CPU thread is walking an indirect buffer of its own and
+           queues primitives itself: start no pass (see
+           rage128_pm4_walk_hold). The test comes after the store of
+           cce_executing above, which is what lets the CPU thread see a
+           pass that got past it, and after the abort test, because a
+           reset pulse written by that buffer waits for cce_parked. The
+           wait has no timeout: every store that clears the flag is
+           followed by a set of the event, and so are the reset pulse and
+           the close. */
+        if (atomic_load(&dev->cce_walk_hold)) {
+            atomic_store(&dev->cce_executing, 0);
+            rage128_pm4_walk_site(dev, 2);
+            thread_set_event(dev->cce_idle_event);
+            thread_wait_event(dev->cce_hold_event, -1);
+            thread_reset_event(dev->cce_hold_event);
+            continue;
+        }
         /* Hung engine: start nothing more. Only the reset pulse, through
-           the abort above, clears it. */
+           the abort above, clears it. The engine reads busy through
+           cce_hung from here on, so cce_work is dropped: the wait below
+           has no timeout, and a device reset clears cce_hung without
+           waking this thread, which would leave the flag set with nobody
+           to clear it. */
         if (atomic_load(&dev->cce_hung)) {
+            atomic_store(&dev->cce_work, 0);
             atomic_store(&dev->cce_executing, 0);
             thread_set_event(dev->cce_idle_event);
             thread_wait_event(dev->cce_wake_event, -1);
@@ -1620,7 +2035,9 @@ rage128_cce_thread(void *priv)
             /* Out of submitted work: draw any deferred 3D batch now, so
                the finished frame is in VRAM before scanout shows it. This
                covers clients that flip without a WAIT_UNTIL. It runs on
-               the CCE thread, so it cannot race a submit. The retire
+               the CCE thread, and a pass gets here only while the CPU
+               thread holds no walk hold, so it cannot race a submit from
+               either thread. The retire
                pointer held behind the batch catches up once the pixels
                are in memory; the pump timer, armed while the published
                pointer lags the fetch pointer, carries it to the host. */
@@ -1632,13 +2049,18 @@ rage128_cce_thread(void *priv)
                GEN_INT_STATUS, p. 3-196 / PDF 214): set only when
                the engine goes from busy to idle, so a spurious wake does
                not set again a bit the driver has acknowledged. It is set
-               before cce_executing drops, so a status read that sees idle
+               before cce_work drops, so a status read that sees idle
                also sees the event. The CPU thread folds it into
                GEN_INT_STATUS. */
             if (did_work) {
                 did_work = 0;
                 atomic_store(&dev->gui_idle_event, 1);
             }
+            /* The work taken since the last time through here is drawn
+               and reported: the status registers read idle from this
+               store on. cce_executing drops after it, so the drain wait,
+               which needs both clear, returns only with idle published. */
+            atomic_store(&dev->cce_work, 0);
             atomic_store(&dev->cce_executing, 0);
             thread_set_event(dev->cce_idle_event);
             if (dev->ftl_en) {
@@ -1668,6 +2090,13 @@ rage128_cce_thread(void *priv)
             }
             continue;
         }
+        /* The FIFO holds work. It is marked taken before the first dword
+           is popped, so a status read never sees idle between the pop of
+           a packet's last dword and the end of the packet: a reader that
+           finds the FIFO empty loads the flag after this store. The flag
+           stays set across the packets that follow, and across the gaps
+           between them, until the out-of-work branch above clears it. */
+        atomic_store(&dev->cce_work, 1);
         if (rage128_cce_get(dev, &hdr)) {
             rage128_cce_packet(dev, hdr);
             did_work = 1;
@@ -1727,22 +2156,27 @@ rage128_pm4_thread_init(rage128_t *dev)
     atomic_store(&dev->cce_retire_rptr, 0);
     dev->cce_retire_pending = 0;
     atomic_store(&dev->cce_batch_pending, 0);
+    atomic_store(&dev->cce_batch_flushing, 0);
     dev->cce_shadow_last   = 0xffffffffu;
     dev->cce_pl            = calloc(RAGE128_PM4_MAX_PAYLOAD, sizeof(uint32_t));
     dev->ind_pl            = calloc(RAGE128_PM4_MAX_PAYLOAD, sizeof(uint32_t));
     dev->vc_bundle.idx     = calloc(4 + 32768, sizeof(uint32_t));
     dev->vc_bundle.pending = 0;
     dev->pump_frame_rem    = 0;
+    dev->pump_t3_pos       = 0;
+    dev->pump_t3_fmt       = 0;
     dev->pump_ib_state     = 0;
     dev->pump_stall_live   = 0;
     dev->cce_pop_tag       = 0;
     atomic_store(&dev->cce_fifo_rd, 0);
     atomic_store(&dev->cce_fifo_wr, 0);
     atomic_store(&dev->cce_executing, 0);
+    atomic_store(&dev->cce_work, 0);
     atomic_store(&dev->cce_drain_req, 0);
     atomic_store(&dev->cce_flip_stalled, 0);
     atomic_store(&dev->cce_abort, 0);
     atomic_store(&dev->cce_parked, 0);
+    atomic_store(&dev->cce_walk_hold, 0);
     atomic_store(&dev->cce_starved, 0);
     atomic_store(&dev->cce_hung, 0);
     atomic_store(&dev->gui_idle_event, 0);
@@ -1809,6 +2243,10 @@ rage128_pm4_thread_init(rage128_t *dev)
     dev->cce_wake_event = thread_create_event();
     dev->cce_idle_event = thread_create_event();
     dev->cce_flip_event = thread_create_event();
+    dev->cce_hold_event = thread_create_event();
+    dev->cce_wb_event   = thread_create_event();
+    atomic_store(&dev->cce_wb_closing, 0);
+    atomic_store(&dev->cce_cfg_req, 0);
     dev->cce_thread_run = 1;
     dev->cce_thread     = thread_create_named(rage128_cce_thread, dev, "rage128_cce");
 }
@@ -1821,15 +2259,21 @@ rage128_pm4_thread_close(rage128_t *dev)
     if (dev->pump_stall_live)
         rage128_log("[r128 pm4] close: %u IB bodies left to a live read behind a flip stall (expected)\n",
                     dev->pump_stall_live);
+    atomic_store(&dev->cce_wb_closing, 1); /* ends a write-back hand-off wait */
     dev->cce_thread_run = 0;
     thread_set_event(dev->cce_wake_event);
     thread_set_event(dev->cce_flip_event);
+    thread_set_event(dev->cce_hold_event);
+    thread_set_event(dev->cce_wb_event);
     thread_wait(dev->cce_thread);
     dev->cce_thread = NULL;
     thread_destroy_event(dev->cce_wake_event);
     thread_destroy_event(dev->cce_idle_event);
     thread_destroy_event(dev->cce_flip_event);
+    thread_destroy_event(dev->cce_hold_event);
+    thread_destroy_event(dev->cce_wb_event);
     dev->cce_wake_event = dev->cce_idle_event = dev->cce_flip_event = NULL;
+    dev->cce_hold_event = dev->cce_wb_event = NULL;
     free(dev->cce_fifo);
     dev->cce_fifo = NULL;
     free(dev->cce_fifo_rptr);
@@ -2010,6 +2454,12 @@ chain:;
                         if (i < m)
                             pl[i] = v;
                         filled = i + 1;
+                        /* The same length rule as the ring executor. */
+                        if (i == 1 && RAGE128_PM4_T3_OPCODE(hdr) == RAGE128_PM4_OP_3D_RNDR_GEN_PRIM) {
+                            count = rage128_3d_gen_prim_dwords(pl[0], pl[1], count);
+                            if (m > count)
+                                m = count;
+                        }
                     }
                     /* A packet stops at the end of the buffer: the SDK and
                        the Linux DRM pad a buffer to an even length with a
@@ -2148,8 +2598,10 @@ rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
             return 1;
         case RAGE128_PM4_STAT:
             /* CCE status (CCE 3D supplement, PM4_STAT). PM4_BUSY and
-               GUI_ACTIVE are set while rage128_pm4_active reports work,
-               whose ring term counts only while the CCE is in a
+               GUI_ACTIVE are set while rage128_pm4_busy reports work
+               queued or taken and not yet finished; the CCE thread
+               running a pass that found none does not count. Its ring
+               term counts only while the CCE is in a
                bus-master mode. The Windows 2000 driver has been observed
                stopping the CCE during a mode set with a packet still
                unfetched and then waiting, with no timeout, for idle; a
@@ -2169,8 +2621,14 @@ rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
                     - atomic_load(&dev->cce_fifo_rd);
 
                 *val = (used < room) ? room - used : 0;
-                if (rage128_pm4_active(dev))
+                if (rage128_pm4_busy(dev))
                     *val |= RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE;
+                /* GUI_ACTIVE is the OR of the engine busy bits, so it
+                   is also set while an op started by a CPU register
+                   write has engine time left (vid_ati_rage128_2d.c,
+                   engine time); PM4_BUSY is not. */
+                else if (!rage128_on_cce_thread && rage128_2d_eng_busy(dev))
+                    *val |= RAGE128_PM4_STAT_GUI_ACTIVE;
             }
             return 1;
         case RAGE128_PM4_MICROCODE_ADDR:
@@ -2285,6 +2743,8 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
             atomic_store(&dev->cce_retire_done, dev->pm4_rptr);
             atomic_store(&dev->cce_retire_held, 0);
             dev->pump_frame_rem     = 0;
+            dev->pump_t3_pos        = 0;
+            dev->pump_t3_fmt        = 0;
             dev->pump_ib_state      = 0;
             return 1;
         case RAGE128_PM4_BUFFER_DL_WPTR:
@@ -2322,6 +2782,8 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                     if (((owptr - nwptr) & wmask) < ((nwptr - owptr) & wmask)) {
                         dev->pm4_rptr       = nwptr;
                         dev->pump_frame_rem = 0;
+                        dev->pump_t3_pos    = 0;
+                        dev->pump_t3_fmt    = 0;
                         dev->pump_ib_state  = 0;
                     }
                 }
@@ -2386,7 +2848,25 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                PM4_IW_INDOFF first and PM4_IW_INDSIZE second. */
             MERGE(dev->pm4_iw_indsize);
             dev->pm4_iw_indsize &= RAGE128_PM4_IW_INDSIZE_MASK;
-            rage128_pm4_run_indirect(dev);
+            {
+                /* A direct submit: this thread walks the buffer, so it
+                   takes the walk hold for the length of the walk. Not on
+                   the CCE thread, whose own passes run its walks, and
+                   not for a submit written by the buffer being walked,
+                   which runs under the hold already taken. */
+                rage128_t *prev = rage128_walk_hold_owner;
+                int        hold = !rage128_on_cce_thread && dev->cce_thread && prev != dev;
+
+                if (hold) {
+                    rage128_pm4_walk_hold(dev);
+                    rage128_walk_hold_owner = dev;
+                }
+                rage128_pm4_run_indirect(dev);
+                if (hold) {
+                    rage128_walk_hold_owner = prev;
+                    rage128_pm4_walk_release(dev);
+                }
+            }
             return 1;
         case RAGE128_WAIT_UNTIL:
             /* EVENT_CRTC_OFFSET [0]: "stall cmdfifo" until the display

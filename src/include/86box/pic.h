@@ -108,6 +108,9 @@ extern void    pic_resample_mark(int irq);
 #endif
 extern void    picint_common(uint16_t num, int level, int set, uint8_t *irq_state);
 extern void    picint_steered(uint16_t num, int level, int set, uint8_t *irq_state);
+#ifdef USE_VFIO
+extern void    picint_ioapic_level(uint16_t num, int set, uint8_t *irq_state);
+#endif
 extern int     picinterrupt(void);
 
 #define PIC_IRQ_EDGE                    0

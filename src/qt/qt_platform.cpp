@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include <atomic>
 #include <mutex>
 #include <chrono>
 #include <thread>
@@ -32,6 +33,7 @@
 #include <algorithm>
 #include <map>
 
+#include <QLocale>
 #include <QDebug>
 
 #include <QApplication>
@@ -159,8 +161,11 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/runctl.h>
 
-#include "../cpu/cpu.h"
 #include <86box/plat.h>
+
+extern "C" {
+extern void x86_sub_cycles(int cycs);
+}
 
 volatile int cpu_thread_run  = 1;
 int          mouse_capture   = 0;
@@ -168,6 +173,7 @@ int          fixed_size_x    = 640;
 int          fixed_size_y    = 480;
 int          rctrl_is_lalt   = 0;
 int          update_icons    = 1;
+int          usb_activity    = 1;
 int          kbd_req_capture = 0;
 int          hide_status_bar = 0;
 int          hide_tool_bar   = 0;
@@ -814,10 +820,17 @@ gamemode_session_bus_available(void)
 }
 #endif
 
+/* Set while a run state update is queued for the GUI thread, so a burst of
+   changes (automation steps) collapses into one update with the latest state. */
+static std::atomic_flag run_state_queued = ATOMIC_FLAG_INIT;
+
 /* Host-side reactions to a run state change (runctl.h), on the GUI thread. */
 static void
 run_state_changed(void)
 {
+    /* Clear first: a change after this point queues another update. */
+    run_state_queued.clear();
+
     static bool was_paused = false;
     const bool  paused     = (runctl_state() == RUN_PAUSED);
 
@@ -868,6 +881,8 @@ ui_notify(int what)
 
     switch (what) {
         case UI_NOTIFY_RUN_STATE:
+            if (run_state_queued.test_and_set())
+                break;
             QMetaObject::invokeMethod(main_window, [] { run_state_changed(); }, Qt::QueuedConnection);
             break;
         case UI_NOTIFY_SPEED:
@@ -890,7 +905,7 @@ plat_power_off(void)
 
     /* Deduct a sufficiently large number of cycles that no instructions will
        run before the main thread is terminated */
-    cycles -= 99999999;
+    x86_sub_cycles(99999999);
 
     runctl_request_stop();
     QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
@@ -909,6 +924,15 @@ plat_language_code_r(int id, char *outbuf, int len)
 {
     qstrncpy(outbuf, Preferences::languageIdToCode(id).toUtf8().constData(), len);
     return;
+}
+
+void
+plat_ui_language(char *outbuf, int len)
+{
+    QString code = Preferences::languageIdToCode(lang_id);
+    if (code == "system")
+        code = QLocale::system().uiLanguages().value(0, QLocale::system().name());
+    qstrncpy(outbuf, code.toUtf8().constData(), len);
 }
 
 #ifndef Q_OS_WINDOWS

@@ -15,27 +15,64 @@
 #include "codegen_ops_helpers.h"
 #include "codegen_ops_rep.h"
 
+/*do_mmut_r*() and do_mmut_w*() of an element inside a run (rep_run_room()):
+  the segment bases are known not to be 0xffffffff, and pg is CR0.PG, which
+  no element can change. Like them, they leave the entry used in hit and
+  its virtual page in hit_page, and MMUT_UNWALKED in a64[0] when they used
+  an entry.*/
+#define REP_MMUT(pg, lookup, hit, hit_page, lin, a64, num, write)           \
+    do {                                                                    \
+        const uint32_t lin_ = (lin);                                        \
+        uintptr_t      e_;                                                  \
+                                                                            \
+        (hit) = (uintptr_t) LOOKUP_INV;                                     \
+        if ((pg) || cpu_dr_armed) {                                         \
+            e_ = *(volatile uintptr_t *) &(lookup)[lin_ >> 12];             \
+            if ((e_ == (uintptr_t) LOOKUP_INV) || (lin_ & ((num) - 1)))     \
+                do_mmutranslate(lin_, a64, num, write);                     \
+            else {                                                          \
+                (hit)      = e_;                                            \
+                (hit_page) = lin_ >> 12;                                    \
+                (a64)[0]   = MMUT_UNWALKED;                                 \
+            }                                                               \
+        }                                                                   \
+    } while (0)
+
 /*One element of each REP MOVS/STOS form, written as the loop body of the
   interpreter's REP handlers in x86_ops_rep_dyn.h, for the loops below.
-  Returns non-zero if the element faulted.*/
+  Inside a run (run non-zero) the segment checks are known to pass and are
+  left out. Returns non-zero if the element faulted.*/
 #define REP_ELEM_OPS(size, SRC_REG, DEST_REG)                                                  \
-    static int rep_movsb_##size(x86seg *seg)                                                    \
+    static __attribute__((always_inline)) __inline int                                          \
+    rep_movsb_##size(x86seg *seg, int run, int pg)                                              \
     {                                                                                           \
         addr64 = addr64_2 = 0x00000000;                                                         \
         do {                                                                                    \
             uint8_t temp;                                                                       \
                                                                                                 \
-            SEG_CHECK_READ_REP(seg);                                                            \
-            CHECK_READ_REP(seg, SRC_REG, SRC_REG);                                              \
+            if (!run) {                                                                         \
+                SEG_CHECK_READ_REP(seg);                                                        \
+                CHECK_READ_REP(seg, SRC_REG, SRC_REG);                                          \
+            }                                                                                   \
             high_page = 0;                                                                      \
-            do_mmut_rb(seg->base, SRC_REG, &addr64);                                            \
+            if (run) {                                                                          \
+                REP_MMUT(pg, readlookup2, mmut_hit_r, mmut_hit_r_page, seg->base + SRC_REG, &addr64, 1, 0);                  \
+            } else {                                                                            \
+                do_mmut_rb(seg->base, SRC_REG, &addr64);                                        \
+            }                                                                                   \
             if (cpu_state.abrt)                                                                 \
                 break;                                                                          \
                                                                                                 \
-            SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                             \
-            CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG);                             \
+            if (!run) {                                                                         \
+                SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                         \
+                CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG);                         \
+            }                                                                                   \
             high_page = 0;                                                                      \
-            do_mmut_wb(es, DEST_REG, &addr64_2);                                                \
+            if (run) {                                                                          \
+                REP_MMUT(pg, writelookup2, mmut_hit_w, mmut_hit_w_page, es + DEST_REG, &addr64_2, 1, 1);                     \
+            } else {                                                                            \
+                do_mmut_wb(es, DEST_REG, &addr64_2);                                            \
+            }                                                                                   \
             if (cpu_state.abrt)                                                                 \
                 break;                                                                          \
                                                                                                 \
@@ -44,24 +81,37 @@
         } while (0);                                                                            \
         return cpu_state.abrt;                                                                  \
     }                                                                                           \
-    static int rep_movsw_##size(x86seg *seg)                                                    \
+    static __attribute__((always_inline)) __inline int                                          \
+    rep_movsw_##size(x86seg *seg, int run, int pg)                                              \
     {                                                                                           \
         addr64a[0] = addr64a[1] = 0x00000000;                                                   \
         addr64a_2[0] = addr64a_2[1] = 0x00000000;                                               \
         do {                                                                                    \
             uint16_t temp;                                                                      \
                                                                                                 \
-            SEG_CHECK_READ_REP(seg);                                                            \
-            CHECK_READ_REP(seg, SRC_REG, SRC_REG + 1UL);                                        \
+            if (!run) {                                                                         \
+                SEG_CHECK_READ_REP(seg);                                                        \
+                CHECK_READ_REP(seg, SRC_REG, SRC_REG + 1UL);                                    \
+            }                                                                                   \
             high_page = 0;                                                                      \
-            do_mmut_rw(seg->base, SRC_REG, addr64a);                                            \
+            if (run) {                                                                          \
+                REP_MMUT(pg, readlookup2, mmut_hit_r, mmut_hit_r_page, seg->base + SRC_REG, addr64a, 2, 0);                  \
+            } else {                                                                            \
+                do_mmut_rw(seg->base, SRC_REG, addr64a);                                        \
+            }                                                                                   \
             if (cpu_state.abrt)                                                                 \
                 break;                                                                          \
                                                                                                 \
-            SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                             \
-            CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 1UL);                       \
+            if (!run) {                                                                         \
+                SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                         \
+                CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 1UL);                   \
+            }                                                                                   \
             high_page = 0;                                                                      \
-            do_mmut_ww(es, DEST_REG, addr64a_2);                                                \
+            if (run) {                                                                          \
+                REP_MMUT(pg, writelookup2, mmut_hit_w, mmut_hit_w_page, es + DEST_REG, addr64a_2, 2, 1);                     \
+            } else {                                                                            \
+                do_mmut_ww(es, DEST_REG, addr64a_2);                                            \
+            }                                                                                   \
             if (cpu_state.abrt)                                                                 \
                 break;                                                                          \
                                                                                                 \
@@ -70,24 +120,37 @@
         } while (0);                                                                            \
         return cpu_state.abrt;                                                                  \
     }                                                                                           \
-    static int rep_movsl_##size(x86seg *seg)                                                    \
+    static __attribute__((always_inline)) __inline int                                          \
+    rep_movsl_##size(x86seg *seg, int run, int pg)                                              \
     {                                                                                           \
         addr64a[0] = addr64a[1] = addr64a[2] = addr64a[3] = 0x00000000;                        \
         addr64a_2[0] = addr64a_2[1] = addr64a_2[2] = addr64a_2[3] = 0x00000000;                \
         do {                                                                                    \
             uint32_t temp;                                                                      \
                                                                                                 \
-            SEG_CHECK_READ_REP(seg);                                                            \
-            CHECK_READ_REP(seg, SRC_REG, SRC_REG + 3UL);                                        \
+            if (!run) {                                                                         \
+                SEG_CHECK_READ_REP(seg);                                                        \
+                CHECK_READ_REP(seg, SRC_REG, SRC_REG + 3UL);                                    \
+            }                                                                                   \
             high_page = 0;                                                                      \
-            do_mmut_rl(seg->base, SRC_REG, addr64a);                                            \
+            if (run) {                                                                          \
+                REP_MMUT(pg, readlookup2, mmut_hit_r, mmut_hit_r_page, seg->base + SRC_REG, addr64a, 4, 0);                  \
+            } else {                                                                            \
+                do_mmut_rl(seg->base, SRC_REG, addr64a);                                        \
+            }                                                                                   \
             if (cpu_state.abrt)                                                                 \
                 break;                                                                          \
                                                                                                 \
-            SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                             \
-            CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 3UL);                       \
+            if (!run) {                                                                         \
+                SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                         \
+                CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 3UL);                   \
+            }                                                                                   \
             high_page = 0;                                                                      \
-            do_mmut_wl(es, DEST_REG, addr64a_2);                                                \
+            if (run) {                                                                          \
+                REP_MMUT(pg, writelookup2, mmut_hit_w, mmut_hit_w_page, es + DEST_REG, addr64a_2, 4, 1);                     \
+            } else {                                                                            \
+                do_mmut_wl(es, DEST_REG, addr64a_2);                                            \
+            }                                                                                   \
             if (cpu_state.abrt)                                                                 \
                 break;                                                                          \
                                                                                                 \
@@ -97,29 +160,38 @@
         return cpu_state.abrt;                                                                  \
     }                                                                                           \
                                                                                                 \
-    static int rep_stosb_##size(UNUSED(x86seg *seg))                                            \
+    static __attribute__((always_inline)) __inline int                                          \
+    rep_stosb_##size(UNUSED(x86seg *seg), int run, UNUSED(int pg))                              \
     {                                                                                           \
         do {                                                                                    \
-            SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                             \
-            CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG);                             \
+            if (!run) {                                                                         \
+                SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                         \
+                CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG);                         \
+            }                                                                                   \
             writememb(es, DEST_REG, AL);                                                        \
         } while (0);                                                                            \
         return cpu_state.abrt;                                                                  \
     }                                                                                           \
-    static int rep_stosw_##size(UNUSED(x86seg *seg))                                            \
+    static __attribute__((always_inline)) __inline int                                          \
+    rep_stosw_##size(UNUSED(x86seg *seg), int run, UNUSED(int pg))                              \
     {                                                                                           \
         do {                                                                                    \
-            SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                             \
-            CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 1UL);                       \
+            if (!run) {                                                                         \
+                SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                         \
+                CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 1UL);                   \
+            }                                                                                   \
             writememw(es, DEST_REG, AX);                                                        \
         } while (0);                                                                            \
         return cpu_state.abrt;                                                                  \
     }                                                                                           \
-    static int rep_stosl_##size(UNUSED(x86seg *seg))                                            \
+    static __attribute__((always_inline)) __inline int                                          \
+    rep_stosl_##size(UNUSED(x86seg *seg), int run, UNUSED(int pg))                              \
     {                                                                                           \
         do {                                                                                    \
-            SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                             \
-            CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 3UL);                       \
+            if (!run) {                                                                         \
+                SEG_CHECK_WRITE_REP(&cpu_state.seg_es);                                         \
+                CHECK_WRITE_REP(&cpu_state.seg_es, DEST_REG, DEST_REG + 3UL);                   \
+            }                                                                                   \
             writememl(es, DEST_REG, EAX);                                                       \
         } while (0);                                                                            \
         return cpu_state.abrt;                                                                  \
@@ -146,43 +218,164 @@ rep_direct(x86seg *seg, int is_stos, int shift, uint32_t src, uint32_t dst)
     return 1;
 }
 
+/*How many elements, from the one at offset off of segment s and stepping
+  down if down is set, pass the limit checks of CHECK_READ_REP and
+  CHECK_WRITE_REP and neither cross a page nor wrap the offset past mask; 0
+  if the first one does not. The sums are 64-bit, so the last byte of an
+  element at the top of the offset space keeps its carry.*/
+static __inline uint32_t
+rep_room(const x86seg *s, uint32_t off, uint32_t mask, int shift, int down)
+{
+    const uint32_t size = 1 << shift;
+    const uint64_t last = (uint64_t) off + size - 1;
+    const uint32_t pos  = (s->base + off) & 0xfff;
+    uint64_t       lim;
+    uint64_t       page;
+
+    if ((last > mask) || (off < s->limit_low) || (last > s->limit_high) || ((pos + size - 1) > 0xfff))
+        return 0;
+    if (down) {
+        lim  = ((uint64_t) off - s->limit_low) >> shift;
+        page = pos >> shift;
+    } else {
+        lim  = (((s->limit_high < mask) ? (uint64_t) s->limit_high : (uint64_t) mask) - last) >> shift;
+        page = (0xfff - (pos + size - 1)) >> shift;
+    }
+    return (uint32_t) (((lim < page) ? lim : page) + 1);
+}
+
+/*The number of elements from the current ones that run with the checks of
+  the element left out: those that stay inside both segment limits and one
+  page of each side, without wrapping an offset, up to the count; 0 when a
+  check that does not depend on the offset fails, a debug register is armed
+  or the count is 0, for the element to run its checks itself. No element
+  changes a segment, CR0 or EFLAGS.VM, so the checks hold for the run.*/
+static __inline uint32_t
+rep_run_room(x86seg *seg, int is_stos, int shift, uint32_t mask, uint32_t cnt, uint32_t src, uint32_t dst)
+{
+    const int    down = !!(cpu_state.flags & D_FLAG);
+    const x86seg *s_es = &cpu_state.seg_es;
+    const int    np    = (msw & 1) && !(cpu_state.eflags & VM_FLAG);
+    uint32_t     n     = cnt;
+    uint32_t     room;
+
+    if (!n || cpu_dr_armed)
+        return 0;
+    if ((s_es->base == 0xffffffff) || SEG_NOT_WRITABLE(s_es) || (np && !(s_es->access & 0x80)))
+        return 0;
+    room = rep_room(s_es, dst, mask, shift, down);
+    if (room < n)
+        n = room;
+    if (!is_stos) {
+        if ((seg->base == 0xffffffff) || (np && !(seg->access & 0x80)))
+            return 0;
+        room = rep_room(seg, src, mask, shift, down);
+        if (room < n)
+            n = room;
+    }
+    return n;
+}
+
+/*REP MOVSD elements of a page-run, from the one at offsets src and dst, that
+  go to a device whose mapping takes runs of dword writes (write_l_run): the
+  device takes up to n of them in one call, and the number it took is
+  returned (0 when the destination is not such a device). The element before
+  translated the destination page, and nothing the device does writes guest
+  memory, so the translation, and the Accessed and Dirty bits it set, hold
+  for the rest of the page.*/
+static __inline uint32_t
+rep_movsl_block(x86seg *seg, uint32_t src, uint32_t dst, uint32_t n)
+{
+    const uint32_t dst_lin = es + dst;
+    const uint32_t src_lin = seg->base + src;
+    mem_mapping_t *map;
+    uintptr_t      e;
+    uint32_t       phys;
+
+    if ((mmut_hit_w != (uintptr_t) LOOKUP_INV) || cpu_state.abrt || high_page || mem_held_num
+        || ((dst_lin | src_lin) & 3) || mem_page_lookup(dst_lin >> 12))
+        return 0;
+    if (cr0 >> 31)
+        phys = ((addr64a_2[0] & ~0xfff) | (dst_lin & 0xfff)) & rammask;
+    else
+        phys = dst_lin & rammask;
+    map = write_mapping[phys >> MEM_GRANULARITY_BITS];
+    if (!map || !map->write_l || !map->write_l_run)
+        return 0;
+    e = *(volatile uintptr_t *) &readlookup2[src_lin >> 12];
+    if (e == (uintptr_t) LOOKUP_INV)
+        return 0;
+
+    return map->write_l_run(phys, (const uint32_t *) (e + (uintptr_t) src_lin), n, map->priv);
+}
+
 /*Elements the compiled routine does not copy itself, each one as a pass of
   the interpreter's loop in x86_ops_rep_dyn.h: the element, then the steps of
   the registers, the count and the cycles. Carries on while the count is not
   zero, the cycle count is not below cycles_end, no SMI is pending and the
   next element is also one the routine would not copy, so that a string to a
   page without a direct lookup (video memory, MMIO) does not go back to the
-  routine for each element. Returns non-zero if an element faulted, with the
-  registers left at that element.*/
-#define REP_RUN_OP(name, size, CNT_REG, SRC_REG, DEST_REG, is_stos, shift)                         \
+  routine for each element. The elements go in runs (rep_run_room()) whose
+  checks are made once; an element no run takes makes its own. Inside a run
+  going up, REP MOVSD hands the elements that would follow with no stop
+  between them to a device that takes them in one call (rep_movsl_block()),
+  all but the last of them, which runs as the others did: the elements on
+  each side make the translate steps, so the state after the last one is the
+  same. Returns non-zero if an element faulted, with the registers left at
+  that element.*/
+#define REP_RUN_OP(name, size, CNT_REG, SRC_REG, DEST_REG, is_stos, shift, mask)                   \
     static int rep_run_##name##_##size(x86seg *seg, int32_t cycles_end)                            \
     {                                                                                              \
         const int     elem_cycles = (is_stos) ? (is486 ? 4 : 5) : (is486 ? 3 : 4);                 \
         const int32_t step        = (cpu_state.flags & D_FLAG) ? -(1 << (shift)) : (1 << (shift)); \
+        const int     pg          = cr0 >> 31;                                                     \
                                                                                                    \
-        do {                                                                                       \
-            if (rep_##name##_##size(seg))                                                          \
-                return 1;                                                                          \
-            if (!(is_stos))                                                                        \
-                SRC_REG += step;                                                                   \
-            DEST_REG += step;                                                                      \
-            CNT_REG--;                                                                             \
-            cycles -= elem_cycles;                                                                 \
-        } while (CNT_REG && (cycles >= cycles_end) && !smi_line                                    \
-                 && !rep_direct(seg, is_stos, shift, SRC_REG, DEST_REG));                          \
-        return 0;                                                                                  \
+        for (;;) {                                                                                 \
+            const uint32_t run  = rep_run_room(seg, is_stos, shift, mask, CNT_REG, SRC_REG, DEST_REG); \
+            uint32_t       left = run ? run : 1;                                                   \
+                                                                                                   \
+            do {                                                                                   \
+                if (rep_##name##_##size(seg, run != 0, pg))                                        \
+                    return 1;                                                                      \
+                if (!(is_stos))                                                                    \
+                    SRC_REG += step;                                                               \
+                DEST_REG += step;                                                                  \
+                CNT_REG--;                                                                         \
+                cycles -= elem_cycles;                                                             \
+                if (!CNT_REG || (cycles < cycles_end) || smi_line                                  \
+                    || rep_direct(seg, is_stos, shift, SRC_REG, DEST_REG))                         \
+                    return 0;                                                                      \
+                if (!(is_stos) && ((shift) == 2) && run && (step > 0) && (left > 3)) {             \
+                    uint32_t more = (uint32_t) (cycles - cycles_end) / elem_cycles + 1;            \
+                                                                                                   \
+                    if (more > (left - 1))                                                         \
+                        more = left - 1;                                                           \
+                    if (more > CNT_REG)                                                            \
+                        more = CNT_REG;                                                            \
+                    if (more > 2) {                                                                \
+                        const uint32_t k = rep_movsl_block(seg, SRC_REG, DEST_REG, more - 1);      \
+                                                                                                   \
+                        SRC_REG += k << 2;                                                         \
+                        DEST_REG += k << 2;                                                        \
+                        CNT_REG -= k;                                                              \
+                        cycles -= (int) k * elem_cycles;                                           \
+                        left -= k;                                                                 \
+                    }                                                                              \
+                }                                                                                  \
+            } while (--left);                                                                      \
+        }                                                                                          \
     }
 
-#define REP_RUN_OPS(size, CNT_REG, SRC_REG, DEST_REG)         \
-    REP_RUN_OP(movsb, size, CNT_REG, SRC_REG, DEST_REG, 0, 0) \
-    REP_RUN_OP(movsw, size, CNT_REG, SRC_REG, DEST_REG, 0, 1) \
-    REP_RUN_OP(movsl, size, CNT_REG, SRC_REG, DEST_REG, 0, 2) \
-    REP_RUN_OP(stosb, size, CNT_REG, SRC_REG, DEST_REG, 1, 0) \
-    REP_RUN_OP(stosw, size, CNT_REG, SRC_REG, DEST_REG, 1, 1) \
-    REP_RUN_OP(stosl, size, CNT_REG, SRC_REG, DEST_REG, 1, 2)
+#define REP_RUN_OPS(size, CNT_REG, SRC_REG, DEST_REG, mask)         \
+    REP_RUN_OP(movsb, size, CNT_REG, SRC_REG, DEST_REG, 0, 0, mask) \
+    REP_RUN_OP(movsw, size, CNT_REG, SRC_REG, DEST_REG, 0, 1, mask) \
+    REP_RUN_OP(movsl, size, CNT_REG, SRC_REG, DEST_REG, 0, 2, mask) \
+    REP_RUN_OP(stosb, size, CNT_REG, SRC_REG, DEST_REG, 1, 0, mask) \
+    REP_RUN_OP(stosw, size, CNT_REG, SRC_REG, DEST_REG, 1, 1, mask) \
+    REP_RUN_OP(stosl, size, CNT_REG, SRC_REG, DEST_REG, 1, 2, mask)
 
-REP_RUN_OPS(a16, CX, SI, DI)
-REP_RUN_OPS(a32, ECX, ESI, EDI)
+REP_RUN_OPS(a16, CX, SI, DI, 0xffff)
+REP_RUN_OPS(a32, ECX, ESI, EDI, 0xffffffff)
 
 int (*const codegen_rep_run[2][3][2])(x86seg *seg, int32_t cycles_end) = {
     {

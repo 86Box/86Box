@@ -16,6 +16,7 @@
  */
 
 #include <inttypes.h>
+#include <math.h>
 #ifdef ENABLE_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -66,6 +67,8 @@
 #define MIN_SEEK                       2000
 #define MAX_SEEK                       333333
 
+#define DPM_LONG_SEEK       200
+#define DPM_LONG_SEEK_TURNS 4.0
 
 #define SUBCH_RAW_P_TO_W_PRESENT       0x03
 
@@ -383,7 +386,8 @@ cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data, int m2f1)
 static void
 cdrom_check_for_formed_mode2(cdrom_t *dev, const uint8_t *b)
 {
-    if (dev->cd_status != CD_STATUS_DVD) {
+    if ((dev->cd_status != CD_STATUS_DVD) && (dev->cd_status != CD_STATUS_HDDVD) &&
+        (dev->cd_status != CD_STATUS_BLURAY)) {
         /* XA Mode 2 Form 1 */
         uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
@@ -433,7 +437,9 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
 {
     int            ret = 1;
 
-    if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD) && (!mode2 || (form >= 1))) {
+    if (!dev->no_check && ((dev->cd_status != CD_STATUS_DVD) &&
+        (dev->cd_status != CD_STATUS_HDDVD) && (dev->cd_status != CD_STATUS_BLURAY)) &&
+        (!mode2 || (form >= 1))) {
         if (mode2 && (form == 1)) {
             const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
@@ -1183,10 +1189,14 @@ cdrom_drive_reset(cdrom_t *dev)
     dev->cached_sector = -1;
     dev->subc_sector = -1;
 
+    dev->dpm_angle = -1.0;
+
     if (cdrom_drive_types[dev->type].speed == -1)
         dev->real_speed  = dev->speed;
     else
         dev->real_speed  = cdrom_drive_types[dev->type].speed;
+
+    dev->write_speed = cdrom_drive_types[dev->type].write_speed;
 }
 
 static void
@@ -1200,6 +1210,8 @@ cdrom_unload(cdrom_t *dev)
 
     dev->cached_sector = -1;
     dev->subc_sector = -1;
+
+    dev->dpm_angle = -1.0;
 
     if (dev->local != NULL) {
         dev->ops->close(dev->local);
@@ -1450,6 +1462,19 @@ cdrom_get_hd_speed(const int type)
 {
     return cdrom_drive_types[type].hd_speed;
 }
+
+int
+cdrom_media_is_cd(const cdrom_t *dev)
+{
+    int ret = 1;
+
+    if ((dev->cd_status != CD_STATUS_DVD) && (dev->cd_status != CD_STATUS_HDDVD) &&
+        (dev->cd_status != CD_STATUS_BLURAY))
+        ret = 0;
+
+    return ret;
+}
+
 /* Returns the speed that should be used for transfer-rate calculations
    given the currently inserted media. */
 int
@@ -1467,11 +1492,9 @@ cdrom_get_active_speed(const cdrom_t *dev)
             return (dev->hd_speed > 0) ? dev->hd_speed : 1;
         return cdrom_drive_types[dev->type].hd_speed;
     }
-    if (cdrom_drive_types[dev->type].speed == -1)
-        return dev->speed;
-    return cdrom_drive_types[dev->type].speed;
+    /* Use the currently selected CD speed.*/
+    return dev->cur_speed;
 }
-
 
 int
 cdrom_get_inquiry_len(const int type)
@@ -1682,6 +1705,82 @@ cdrom_interleave_subch(uint8_t *d, const uint8_t *s)
 
         s++;
     }
+}
+
+static int
+cdrom_dpm_get(const cdrom_t *dev, const uint32_t sector, double *angle, double *density)
+{
+    int ret = -1;
+
+    if ((dev->ops != NULL) && (dev->ops->get_dpm != NULL) && (dev->local != NULL))
+        ret = dev->ops->get_dpm(dev->local, sector, angle, density);
+
+    return ret;
+}
+
+/* Emulated time in us. */
+static double
+cdrom_dpm_now_us(void)
+{
+    return ((double) tsc * 4294967296.0) / (double) TIMER_USEC;
+}
+
+int
+cdrom_has_dpm(const cdrom_t *dev)
+{
+    return cdrom_dpm_get(dev, 0, NULL, NULL) >= 0;
+}
+
+double
+cdrom_dpm_period(cdrom_t *dev, const int num)
+{
+    double to, density;
+
+    int seek_lba = dev->seek_pos - num;
+
+    if (seek_lba < 0)
+        return -1.0;
+    if (cdrom_dpm_get(dev, (uint32_t) seek_lba, &to, &density) <= 0)
+        return -1.0;
+
+    const double now  = cdrom_dpm_now_us();
+    double       turn_us_1x;
+
+    if ((dev->cd_status == CD_STATUS_HDDVD) || (dev->cd_status == CD_STATUS_BLURAY))
+        turn_us_1x = 74700.0;
+    else if (dev->cd_status == CD_STATUS_DVD)
+        turn_us_1x = 104000.0;
+    else
+        turn_us_1x = 260000.0;
+
+    const double turn_us = turn_us_1x / (double) dev->cur_speed;
+
+    /* Rotational latency (in us) to reach seek_lba from current head angle, plus extra turns for long seeks. */
+    double seek = 0.0;
+    if (dev->seek_diff != 0 && dev->dpm_angle >= 0.0) {
+        const double turned = (now > dev->dpm_time)
+                            ? ((now - dev->dpm_time) / turn_us) : 0.0;
+        const double wait   = to - dev->dpm_angle - turned;
+
+        seek = (wait - floor(wait)) * turn_us;
+        if ((seek == 0.0) && (to == dev->dpm_angle))
+            seek = turn_us;
+        if (dev->seek_diff > DPM_LONG_SEEK)
+            seek += DPM_LONG_SEEK_TURNS * turn_us;
+    }
+
+    /* Transfer time (in us) for num sectors from seek_lba, scaled by DPM density and drive speed. */
+    double transfer = density * turn_us;
+    for (int i = 1; i < num; i++) {
+        if (cdrom_dpm_get(dev, (uint32_t) (seek_lba + i), NULL, &density) <= 0)
+            return -1.0;
+        transfer += density * turn_us;
+    }
+
+    dev->dpm_angle = fmod(to + transfer / turn_us, 1.0);
+    dev->dpm_time  = now + seek + transfer;
+
+    return seek + transfer;
 }
 
 double
@@ -3320,7 +3419,7 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
         memset(buffer, 0x00, 34);
 
         buffer[ 0] = 0x00; /* Disc Information Length (MSB) */
-        buffer[ 1] = 0x20; /* Disc Information Lenght (LSB) */
+        buffer[ 1] = 0x20; /* Disc Information Length (LSB) */
         buffer[ 2] = 0x00; /* Reserved, Erasable, State of Last Session, Disc Status */
         buffer[ 3] = 0x01; /* Number of First Track on Disc */
         buffer[ 4] = 0x01; /* Number of Sessions (LSB) */
@@ -3403,6 +3502,8 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
     buffer[ 2] = 0x0e;        /* Last session complete, disc finalized */
     if (dev->blank_media == CD_BLANK_CDRW)
         buffer[ 2] |= 0x10;   /* Erasable */
+    if (wi.fixed_packet != 0)
+        buffer[ 2] = (buffer[ 2] & 0x10) | 0x05;
     buffer[ 3] = first;       /* Number of First Track on Disc */
     buffer[ 4] = sessions;    /* Number of Sessions (LSB) */
     buffer[ 5] = ls_first;    /* First Track Number in Last Session (LSB) */
@@ -3419,9 +3520,9 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
         /* Last Session Lead-in Start Time MSF is 00:00:00 */
 
         /* Last Possible Start Time for Start of Lead-out */
-        buffer[20] = t[2].pm;
-        buffer[21] = t[2].ps;
-        buffer[22] = t[2].pf;
+        buffer[21] = t[2].pm;
+        buffer[22] = t[2].ps;
+        buffer[23] = t[2].pf;
     } else {
         /* Multi-session disc.  */
 
@@ -3431,9 +3532,9 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
         buffer[19] = t[t_b0].f;
 
         /* Last Possible Start Time for Start of Lead-out */
-        buffer[20] = t[t_b0].pm;
-        buffer[21] = t[t_b0].ps;
-        buffer[22] = t[t_b0].pf;
+        buffer[21] = t[t_b0].pm;
+        buffer[22] = t[t_b0].ps;
+        buffer[23] = t[t_b0].pf;
     }
 }
 
@@ -3477,36 +3578,44 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
             }
             break;
         case 0x01:
+            cdrom_log(dev->log, "cdrom_read_track_information(): Blank media = %i\n",
+                      dev->blank_media);
             if (dev->blank_media && (dev->ops->get_write_info != NULL)) {
                 cdrom_write_info_t wi;
 
                 dev->ops->get_write_info(dev->local, &wi);
 
-                if ((wi.state != CD_WSTATE_CLOSED) && ((pos == 0xff) || (pos == wi.next_track))) {
+                const int after = wi.after_reserved &&
+                                  ((pos == 0xff) || (pos == (uint32_t) (wi.next_track + 1)));
+
+                if ((wi.state != CD_WSTATE_CLOSED) && (after || (pos == 0xff) || (pos == wi.next_track))) {
+                    const uint32_t start = after ? wi.after_reserved : wi.track_start;
+                    const uint32_t nwa   = after ? wi.after_reserved : wi.nwa;
+                    const uint32_t free  = after ? wi.after_free : wi.free_blocks;
                     memset(buffer, 0, 36);
                     buffer[ 0] = 0x00;                         /* Data Length (MSB) */
                     buffer[ 1] = 0x22;                         /* Data Length (LSB) */
-                    buffer[ 2] = wi.next_track;                /* Logical Track Number (LSB) */
+                    buffer[ 2] = wi.next_track + after;        /* Logical Track Number (LSB) */
                     buffer[ 3] = wi.sessions;                  /* Session Number (LSB) */
                     buffer[ 5] = 0x04;                         /* LJRS, Damage, Copy, Track Mode */
-                    buffer[ 6] = wi.track_packet ? 0x2f : 0x4f; /* RT, Blank, Packet, FP, Data Mode */
+                    buffer[ 6] = wi.after_reserved ? 0x8f : (wi.track_packet ? 0x2f : 0x4f); /* RT, Blank, Packet, FP, Data Mode */
                     buffer[ 7] = 0x01;                         /* LRA_V, NWA_V */
-                    buffer[ 8] = (wi.track_start >> 24) & 0xff;
-                    buffer[ 9] = (wi.track_start >> 16) & 0xff;
-                    buffer[10] = (wi.track_start >> 8) & 0xff;
-                    buffer[11] = wi.track_start & 0xff;
-                    buffer[12] = (wi.nwa >> 24) & 0xff;
-                    buffer[13] = (wi.nwa >> 16) & 0xff;
-                    buffer[14] = (wi.nwa >> 8) & 0xff;
-                    buffer[15] = wi.nwa & 0xff;
-                    buffer[16] = (wi.free_blocks >> 24) & 0xff;
-                    buffer[17] = (wi.free_blocks >> 16) & 0xff;
-                    buffer[18] = (wi.free_blocks >> 8) & 0xff;
-                    buffer[19] = wi.free_blocks & 0xff;
-                    buffer[24] = (wi.free_blocks >> 24) & 0xff;
-                    buffer[25] = (wi.free_blocks >> 16) & 0xff;
-                    buffer[26] = (wi.free_blocks >> 8) & 0xff;
-                    buffer[27] = wi.free_blocks & 0xff;
+                    buffer[ 8] = (start >> 24) & 0xff;
+                    buffer[ 9] = (start >> 16) & 0xff;
+                    buffer[10] = (start >> 8) & 0xff;
+                    buffer[11] = start & 0xff;
+                    buffer[12] = (nwa >> 24) & 0xff;
+                    buffer[13] = (nwa >> 16) & 0xff;
+                    buffer[14] = (nwa >> 8) & 0xff;
+                    buffer[15] = nwa & 0xff;
+                    buffer[16] = (free >> 24) & 0xff;
+                    buffer[17] = (free >> 16) & 0xff;
+                    buffer[18] = (free >> 8) & 0xff;
+                    buffer[19] = free & 0xff;
+                    buffer[24] = (free >> 24) & 0xff;
+                    buffer[25] = (free >> 16) & 0xff;
+                    buffer[26] = (free >> 8) & 0xff;
+                    buffer[27] = free & 0xff;
 
                     ret = 28;
                     break;
@@ -3577,7 +3686,7 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
          buffer[2] = track->point;             /* Track number (LSB). */
          buffer[3] = track->session;           /* Session number (LSB). */
          /* Not damaged, primary copy. */
-         buffer[5] = track->adr_ctl & 0x04;
+         buffer[5] = track->adr_ctl & 0x0f;
 
          if ((track->point >= 1) && (track->point <= 99)) {
              for (int i = 0; i < num; i++) {
@@ -3608,7 +3717,8 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
              dev->ops->get_write_info(dev->local, &wi);
 
              if (wi.fixed_packet != 0) {
-                 buffer[ 6] |= 0x30;
+                 /* RT, Packet and FP, as a real drive reports it. */
+                 buffer[ 6] |= 0xb0;
                  buffer[20]  = (wi.fixed_packet >> 24) & 0xff;
                  buffer[21]  = (wi.fixed_packet >> 16) & 0xff;
                  buffer[22]  = (wi.fixed_packet >> 8) & 0xff;
@@ -3618,6 +3728,15 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
 
          /* Last recorded address not valid, next recordable address not valid. */
          buffer[ 7] = 0x00;
+
+         /* A formatted disc is rewritable in place, so it reports its whole track as free. */
+         if ((buffer[ 6] & 0x30) == 0x30) {
+             buffer[ 7] = 0x01;
+             buffer[16] = (len >> 24) & 0xff;
+             buffer[17] = (len >> 16) & 0xff;
+             buffer[18] = (len >> 8) & 0xff;
+             buffer[19] = len & 0xff;
+         }
 
          buffer[ 8] = (start >> 24) & 0xff;
          buffer[ 9] = (start >> 16) & 0xff;
@@ -3742,6 +3861,8 @@ cdrom_update_status(cdrom_t *dev)
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
 
+    dev->dpm_angle = -1.0;
+
     if ((dev->cd_status != CD_STATUS_EMPTY) &&
         (dev->cd_status != CD_STATUS_DVD_REJECTED) &&
         (dev->cd_status != CD_STATUS_HDDVD_REJECTED) &&
@@ -3857,8 +3978,14 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 #endif
     }
 
+    if ((dev->local != NULL) && (strlen(dev->image_path) != 0))
+        cdrom_log(dev->log, "Image \"%s\" %s\n", dev->image_path,
+                  cdrom_has_dpm(dev) ? "has DPM" : "has no DPM");
+
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
+
+    dev->dpm_angle = -1.0;
 
     if (dev->local == NULL) {
         dev->ops           = NULL;
@@ -3971,7 +4098,7 @@ cdrom_hard_reset(void)
                     break;
                 }
             }
-            if (!mitsumi_bus_enabled) {                
+            if (!mitsumi_bus_enabled) {
                 cdrom[0].priv        = NULL;
                 cdrom[0].ops         = NULL;
                 cdrom[0].local       = NULL;
@@ -3995,13 +4122,18 @@ cdrom_hard_reset(void)
             dev->id       = i;
 
             const char *vendor = cdrom_drive_types[dev->type].vendor;
+            const char *model = cdrom_drive_types[dev->type].model;
 
             dev->is_early   = cdrom_is_early(dev->type);
             dev->is_bcd     = (dev->bus_type == CDROM_BUS_ATAPI) &&
-                              !strcmp(vendor, "NEC");
+                              !strcmp(vendor, "NEC") && !strcmp(model, "CD-ROM DRIVE:260");
             dev->is_nec     = (dev->bus_type == CDROM_BUS_SCSI) &&
                               !strcmp(vendor, "NEC");
             dev->is_chinon  = !strcmp(vendor, "CHINON");
+            dev->is_philips = (dev->bus_type == CDROM_BUS_SCSI) &&
+                              cdrom_is_writable(dev->type) &&
+                              (!strcmp(vendor, "GRUNDIG") ||
+                               !strcmp(vendor, "PHILIPS"));
             dev->is_pioneer = !strcmp(vendor, "PIONEER");
             dev->is_plextor = !strcmp(vendor, "PLEXTOR");
             dev->is_sony    = (dev->bus_type == CDROM_BUS_SCSI) &&
@@ -4305,7 +4437,7 @@ cdrom_write_to_toc(cdrom_t *dev, const uint8_t track)
 
 /* Completes a sector from its user data: sync, header, sub-header, EDC, and ECC. */
 void
-cdrom_build_raw_sector(cdrom_t *dev, uint8_t *b, const int lba, const int mode, const int form,
+cdrom_build_raw_sector(cdrom_t *dev, uint8_t *b, int lba, const int mode, const int form,
                        const int sub_header)
 {
     uint32_t edc;
@@ -4459,6 +4591,32 @@ cdrom_get_data_block_start(int data_block_type)
     return block_start;
 }
 
+static int
+cdrom_get_data_block_start_sao(int data_block_type)
+{
+    int block_start     = 0;
+
+    if (data_block_type & 0x20)
+        block_start = 0;
+    else  switch (data_block_type) {
+        case 0 ... 3:
+            block_start = 0;
+            break;
+        case 8 ... 9:
+        case 11: case 13:
+        case 0x18 ... 0x19:
+        case 0x1b: case 0x1d:
+            block_start = 16;
+            break;
+        case 10: case 12:
+        case 0x1a: case 0x1c:
+            block_start = 24;
+            break;
+    }
+
+    return block_start;
+}
+
 int
 cdrom_get_write_block_size(const cdrom_t *dev, int sector, int write_type, int data_block_type)
 {
@@ -4483,12 +4641,18 @@ cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector, int write_typ
     int     mode                = 0;
     int     form                = 0;
 
-    if ((dev->ops == NULL) || (dev->ops->write_sector == NULL))
+    cdrom_log(dev->log, "CD-ROM write sector:\n");
+
+    if ((dev->ops == NULL) || (dev->ops->write_sector == NULL)) {
+        cdrom_log(dev->log, "    Error: Image not writable\n");
         return -1;
+    }
 
     if (write_type == 3) {    /* RAW */
-        if (dev->ops->write_raw == NULL)
+        if (dev->ops->write_raw == NULL) {
+            cdrom_log(dev->log, "    Error: Image does not support raw writing\n");
             return -1;
+        }
 
         if (data_block_type == 1)
             /* The first twelve of the sixteen bytes are already just the Q sub-channel. */
@@ -4496,26 +4660,50 @@ cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector, int write_typ
         else if ((data_block_type == 2) || (data_block_type == 3)) {
             for (int i = 0; i < 96; i++)
                 q[i >> 3] |= ((buffer[2352 + i] >> 6) & 0x01) << (7 - (i & 7));
-        } else
+        } else {
+            cdrom_log(dev->log, "    Error: Invalid data block type %i\n", data_block_type);
             return -1;
+        }
 
-        return dev->ops->write_raw(dev->local, buffer, q, sector) ? -1 : 1;
+        int ret = dev->ops->write_raw(dev->local, buffer, q, sector) ? -1 : 1;
+        if (ret == -1) {
+            cdrom_log(dev->log, "    Error: Raw write failed\n");
+        } else {
+            cdrom_log(dev->log, "    Success: In raw mode\n");
+        }
     }
 
     if (write_type == 2) {    /* SAO */
         if ((dev->ops->get_sao_block_type == NULL) ||
-            dev->ops->get_sao_block_type(dev->local, sector, &data_block_type))
+            dev->ops->get_sao_block_type(dev->local, sector, &data_block_type)) {
+            if (dev->ops->get_sao_block_type == NULL) {
+                cdrom_log(dev->log, "    Error: Image does not support SAO get block type\n");
+            } else {
+                cdrom_log(dev->log, "    Error: SAO get block type failed\n");
+            }
             return -1;
-    } else if (write_type > 1)    /* Packet and TAO go by the data block type. */
+        }
+    } else if (write_type > 1) {
+        /* Packet and TAO go by the data block type. */
+        cdrom_log(dev->log, "    Error: Invalid write type %i\n", write_type);
         return -1;
+    }
 
     block_size = cdrom_get_data_block_size(data_block_type);
-    if (block_size == 0)
+    if (block_size == 0) {
+        cdrom_log(dev->log, "    Error: Block size is zero\n");
         return -1;
+    }
+
+    cdrom_log(dev->log, "Write type: %i, data block type: %02X\n", write_type, data_block_type);
 
     /* Any sub-channel after the main data is regenerated when the sector is read. */
-    memcpy(&(sector_buffer[cdrom_get_data_block_start(data_block_type)]), buffer,
-           MIN(block_size, 2352));
+    if (write_type == 2)
+        memcpy(&(sector_buffer[cdrom_get_data_block_start_sao(data_block_type)]), buffer,
+               MIN(block_size, 2352));
+    else
+        memcpy(&(sector_buffer[cdrom_get_data_block_start(data_block_type)]), buffer,
+               MIN(block_size, 2352));
 
     switch (data_block_type) {
         default:
@@ -4569,9 +4757,12 @@ cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector, int write_typ
             break;
     }
 
-    if (dev->ops->write_sector(dev->local, sector_buffer, sector, write_type, mode, ctl))
+    if (dev->ops->write_sector(dev->local, sector_buffer, sector, write_type, mode, ctl)) {
+        cdrom_log(dev->log, "    Error: Sector write failed\n");
         return -1;
+    }
 
+    cdrom_log(dev->log, "    Success\n");
     return 1;
 }
 

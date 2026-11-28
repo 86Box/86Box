@@ -40,6 +40,8 @@
 #include <86box/plat_unused.h>
 #include <86box/video.h>
 #include <86box/sio.h>
+#include <86box/mem.h>
+#include <86box/flash.h>
 #include "cpu.h"
 
 typedef struct fdc37c93x_t {
@@ -407,6 +409,13 @@ fdc37c93x_do_write_gp(fdc37c93x_t *dev, int reg, int bit, int set)
 {
     dev->gpio_regs[reg] = (dev->gpio_regs[reg] & ~(1 << bit)) |
                           (set << bit);
+
+    /* The Acer V62X flips GP14 to swap its two flash halves. Without
+       this, the flash half which contains the CPU microcodes cannot
+       be accessed, resulting in a microcode error during POST. */
+    if ((reg == 1) && (bit == 4) &&
+        (machines[machine].init == machine_at_acerv62x_init))
+        sst_set_xor(!set);
 }
 
 static __inline void

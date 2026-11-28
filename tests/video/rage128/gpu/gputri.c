@@ -51,12 +51,14 @@
  *
  *          Usage: gputri [iters-per-state] [seed]. The default is 150
  *          iterations; an omitted or zero seed runs the three standard
- *          seeds in sequence.
+ *          seeds as three processes at once, or in sequence in one
+ *          process when GPUTRI_SEQUENTIAL is set.
  *
  * Authors: skiretic.
  *
  *          Copyright 2026 skiretic.
  */
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <math.h>
@@ -93,6 +95,10 @@ sysconf(int name)
     GetSystemInfo(&si);
     return (long) si.dwNumberOfProcessors;
 }
+#else
+#    include <spawn.h>
+#    include <sys/wait.h>
+extern char **environ;
 #endif
 
 static FILE *
@@ -1879,13 +1885,43 @@ prime_worker(void *arg)
     }
 }
 
+static void plcache_save(void);
+
+/* While the precompile runs, a saver thread writes the pipeline cache
+   every 30 seconds, so a cold run stopped during the precompile, the long
+   phase on a slow-compiling driver, keeps the pipelines finished so far.
+   The cache object is internally synchronized, so reading its data while
+   workers add pipelines is allowed, and each write replaces the file
+   whole (see plcache_save). */
+static _Atomic int prime_done;
+
+static void *
+prime_saver(void *arg)
+{
+    int ticks = 0;
+
+    (void) arg;
+    while (!atomic_load(&prime_done)) {
+#ifdef _WIN32
+        Sleep(250);
+#else
+        struct timespec q = { 0, 250000000L };
+
+        nanosleep(&q, NULL);
+#endif
+        if (++ticks % 120 == 0 && !atomic_load(&prime_done))
+            plcache_save();
+    }
+    return NULL;
+}
+
 static void
 tpool_prime(void)
 {
-    pthread_t       thr[PRIME_THR_MAX];
+    pthread_t       thr[PRIME_THR_MAX], saver;
     struct timespec ts0, ts1;
     long            nthr = gputri_prime_threads();
-    int             live = 0;
+    int             live = 0, saving;
 
     /* Fill selectors deterministically: comb/comba are stratified by seed
        and slot; remaining selectors use the separate per-slot LCG. */
@@ -1961,12 +1997,17 @@ tpool_prime(void)
         nthr = PRIME_THR_MAX;
     atomic_store(&prime_next, 0);
     clock_gettime(CLOCK_MONOTONIC, &ts0);
+    atomic_store(&prime_done, 0);
+    saving = pthread_create(&saver, NULL, prime_saver, NULL) == 0;
     for (long i = 1; i < nthr; i++)
         if (pthread_create(&thr[live], NULL, prime_worker, NULL) == 0)
             live++;
     prime_worker(NULL);
     for (int i = 0; i < live; i++)
         pthread_join(thr[i], NULL);
+    atomic_store(&prime_done, 1);
+    if (saving)
+        pthread_join(saver, NULL);
     clock_gettime(CLOCK_MONOTONIC, &ts1);
     printf("tpool prime: %d fold pipes in %.1f s (%d threads)\n",
            prime_njobs,
@@ -2010,6 +2051,69 @@ base_worker(void *arg)
 
         r_pipes_serial[v] = mk_seg_pipe(sme_s, sd_s, 5, base_sm);
     }
+}
+
+/* The pipeline cache file is gputri.plcache when one process runs all
+   three standard seeds and gputri-<seed>.plcache when a process runs one
+   seed, so the processes of a parallel run never share a file. It lives
+   in GPUTRI_CACHE_DIR when that is set, else in the working directory; a
+   directory outside the build tree keeps the cache across fresh build
+   directories and worktrees. */
+static unsigned g_cache_seed;
+
+static void
+plcache_path(char *buf, size_t n)
+{
+    const char *dir = getenv("GPUTRI_CACHE_DIR");
+    char        name[32];
+
+    if (g_cache_seed)
+        snprintf(name, sizeof(name), "gputri-%08x.plcache", g_cache_seed);
+    else
+        snprintf(name, sizeof(name), "gputri.plcache");
+    if (dir && dir[0])
+        snprintf(buf, n, "%s/%s", dir, name);
+    else
+        snprintf(buf, n, "%s", name);
+}
+
+/* Write the pipeline cache to a temporary file and rename it over the
+   cache file, so a run killed during the write, or a second run reading
+   the file at the same moment, never sees a partial cache. Called every
+   30 seconds during each seed's precompile, after it and at exit, so a
+   run stopped by a timeout keeps the pipelines it compiled up to the last
+   save. A run killed during a write can leave the temporary file behind;
+   it is never read. */
+static void
+plcache_save(void)
+{
+    char   path[1024], tmp[1100];
+    size_t sz = 0;
+    void  *data;
+    FILE  *pf;
+    int    ok;
+
+    if (vkGetPipelineCacheData(dev, plcache, &sz, NULL) != VK_SUCCESS || sz == 0)
+        return;
+    if (!(data = malloc(sz)))
+        return;
+    if (vkGetPipelineCacheData(dev, plcache, &sz, data) == VK_SUCCESS) {
+        plcache_path(path, sizeof(path));
+        snprintf(tmp, sizeof(tmp), "%s.%ld.tmp", path, (long) getpid());
+        if ((pf = gputri_open_output(tmp)) != NULL) {
+            ok = fwrite(data, 1, sz, pf) == sz;
+            ok = (fclose(pf) == 0) && ok;
+#ifdef _WIN32
+            /* rename does not replace an existing file on Windows */
+            ok = ok && MoveFileExA(tmp, path, MOVEFILE_REPLACE_EXISTING);
+#else
+            ok = ok && rename(tmp, path) == 0;
+#endif
+            if (!ok)
+                remove(tmp);
+        }
+    }
+    free(data);
 }
 
 static void
@@ -2173,14 +2277,23 @@ init_vulkan(void)
     VK_CHECK(vkCreatePipelineLayout(dev, &plci, NULL, &r_plyt));
 
     /* file-persisted pipeline cache: with the fixed fuzz seeds the
-       folded-tuple set is deterministic, so repeat runs compile warm */
+       folded-tuple set is deterministic, so repeat runs compile warm.
+       The file opens with the Vulkan cache header: header size, header
+       version, vendor id, device id and the driver's cache UUID. A file
+       whose header names another device or driver build holds nothing
+       this driver can use, so the run starts with an empty cache and says
+       so; a driver update therefore costs one cold run, never a wrong
+       pipeline. */
     {
         VkPipelineCacheCreateInfo pcci = {
             VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
         };
-        FILE *pf   = fopen("gputri.plcache", "rb");
+        char  path[1024];
+        FILE *pf;
         void *blob = NULL;
 
+        plcache_path(path, sizeof(path));
+        pf = fopen(path, "rb");
         if (pf) {
             long bsz;
 
@@ -2189,11 +2302,25 @@ init_vulkan(void)
             fseek(pf, 0, SEEK_SET);
             if (bsz > 0 && (blob = malloc((size_t) bsz))
                 && fread(blob, 1, (size_t) bsz, pf) == (size_t) bsz) {
-                pcci.initialDataSize = (size_t) bsz;
-                pcci.pInitialData    = blob;
+                uint32_t hdr[4] = { 0, 0, 0, 0 };
+
+                if (bsz >= 16 + VK_UUID_SIZE)
+                    memcpy(hdr, blob, sizeof(hdr));
+                if (bsz >= 16 + VK_UUID_SIZE && hdr[0] >= 16 + VK_UUID_SIZE
+                    && hdr[1] == VK_PIPELINE_CACHE_HEADER_VERSION_ONE
+                    && hdr[2] == props.vendorID && hdr[3] == props.deviceID
+                    && !memcmp((const uint8_t *) blob + 16,
+                               props.pipelineCacheUUID, VK_UUID_SIZE)) {
+                    pcci.initialDataSize = (size_t) bsz;
+                    pcci.pInitialData    = blob;
+                    printf("pipeline cache: %ld bytes from %s\n", bsz, path);
+                } else
+                    printf("pipeline cache: %s is from another device or "
+                           "driver build, starting empty\n", path);
             }
             fclose(pf);
-        }
+        } else
+            printf("pipeline cache: no %s, starting empty\n", path);
         if (vkCreatePipelineCache(dev, &pcci, NULL, &plcache) != VK_SUCCESS) {
             pcci.initialDataSize = 0;
             pcci.pInitialData    = NULL;
@@ -3715,6 +3842,21 @@ probe_seed_color(const fz_draw_t *dr, int nd)
    runs onto the parallel path; fault 4 also forces reverse row order. */
 static uint64_t cases_run, px_rows_run;
 
+/* The color/depth arena generator starts from the case's position within
+   its seed and the seed's standard index, never from the run-wide case
+   count, so a seed's cases see the same arena contents whether the seed
+   runs alone or after the others in one process. */
+static uint64_t seed_case_base;
+
+static uint32_t
+cz_arena_seed(void)
+{
+    uint32_t n = (uint32_t) (cases_run - seed_case_base)
+        + (uint32_t) g_seedidx * 0x100000u;
+
+    return n * 2654435761u + 0x169u;
+}
+
 /* last case's dst formats, so a mismatch dump can name the format that
    produced it instead of guessing from the address alone */
 static uint32_t g_dbg_dt[8], g_dbg_bpp[8];
@@ -3734,7 +3876,7 @@ run_case(const fz_draw_t *dr, int nd, int fault)
     /* Seed color/depth arenas with a separate generator so their contents
        do not shift the main random stream or later case inputs. */
     {
-        uint32_t cz = (uint32_t) cases_run * 2654435761u + 0x169u;
+        uint32_t cz = cz_arena_seed();
 
         for (uint32_t k = 0; k < CZSTG_SZ + 4; k += 4) {
             cz = cz * 1664525u + 1013904223u;
@@ -4794,7 +4936,7 @@ run_case_headroom(const fz_draw_t *dr, int nd, int gated,
     /* Seed color/depth arenas with a separate generator so their contents
        do not shift the main random stream or later case inputs. */
     {
-        uint32_t cz = (uint32_t) cases_run * 2654435761u + 0x169u;
+        uint32_t cz = cz_arena_seed();
 
         for (uint32_t k = 0; k < CZSTG_SZ + 4; k += 4) {
             cz = cz * 1664525u + 1013904223u;
@@ -5930,6 +6072,218 @@ plbench_run(void)
     free(plb_out);
 }
 
+/* The default gate runs the three standard seeds as three processes of
+   this program at once, one seed each, and reports their combined result.
+   Seeds share no state but the counters the final checks sum, and each
+   seed passes those checks on its own, so the split tests the same cases
+   as one process running the seeds in turn. The point is wall time. The
+   Windows AMD driver keeps about three cores busy compiling pipelines in
+   one process however many threads ask, but three processes compile at
+   that rate each, so three seeds' pipelines build side by side; and the
+   C reference, which runs on one thread, gets three cores.
+
+   Unless GPUTRI_THREADS is set, each child primes with a third of the
+   processor count minus two, and each child then applies the priming
+   code's own upper limit. The total can therefore exceed one process's
+   limited count: on a 28-thread Windows AMD host one process primes with
+   16 threads and the three children with 8 each, which measured faster
+   per child than 16 in one process. A GPUTRI_THREADS value applies to
+   each child, so three times that many compile threads run at once.
+
+   Each child's output goes to a log named after the seed and this
+   process's id, so two runs in one directory never share a log, and is
+   copied to this process's output in seed order once that child exits.
+   A child passes only if it exited 0 and its log holds exactly one
+   "PASS: N cases, 0 fails" line. The case count of a seed depends only
+   on the iteration count, never on the seed, so the three children must
+   also report the same N; a child that stopped early cannot match. The
+   last line sums the children's cases and fails in the one-process
+   format. On Windows the children start with no console window of their
+   own. */
+static int
+run_seed_procs(const char *self, int iters, const unsigned *seeds)
+{
+    char               its[16], sds[3][16], logs[3][48], line[512];
+    unsigned long long cases = 0, fails = 0, c, f, n[3];
+    int                rc[3], started[3], npass[3], skipped[3], nskip = 0, bad = 0;
+#ifdef _WIN32
+    PROCESS_INFORMATION pi[3];
+    char                exe[MAX_PATH];
+
+    if (!GetModuleFileNameA(NULL, exe, sizeof(exe)))
+        return 1;
+#else
+    pid_t pid[3];
+#endif
+
+    if (!getenv("GPUTRI_THREADS")) {
+        long t = gputri_prime_threads() / 3;
+        char tv[24];
+
+        snprintf(tv, sizeof(tv), "%ld", t < 1 ? 1 : t);
+#ifdef _WIN32
+        _putenv_s("GPUTRI_THREADS", tv);
+#else
+        setenv("GPUTRI_THREADS", tv, 1);
+#endif
+    }
+    snprintf(its, sizeof(its), "%d", iters);
+    printf("gputri: seeds %08x %08x %08x as three processes\n", seeds[0],
+           seeds[1], seeds[2]);
+    fflush(stdout);
+    for (int s = 0; s < 3; s++) {
+        snprintf(sds[s], sizeof(sds[s]), "0x%08x", seeds[s]);
+        snprintf(logs[s], sizeof(logs[s]), "gputri-%08x.%ld.log", seeds[s],
+                 (long) getpid());
+        started[s] = 0;
+        rc[s]      = -1;
+#ifdef _WIN32
+        {
+            SECURITY_ATTRIBUTES sa = { sizeof(sa), NULL, TRUE };
+            STARTUPINFOA        si = { sizeof(si) };
+            char                cmd[MAX_PATH + 96];
+            HANDLE              h  = CreateFileA(logs[s], GENERIC_WRITE,
+                                                 FILE_SHARE_READ | FILE_SHARE_WRITE
+                                                     | FILE_SHARE_DELETE,
+                                                 &sa, CREATE_ALWAYS,
+                                                 FILE_ATTRIBUTE_NORMAL, NULL);
+
+            if (h == INVALID_HANDLE_VALUE)
+                continue;
+            si.dwFlags    = STARTF_USESTDHANDLES;
+            si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+            si.hStdOutput = h;
+            si.hStdError  = h;
+            snprintf(cmd, sizeof(cmd), "\"%s\" %s %s", exe, its, sds[s]);
+            if (CreateProcessA(exe, cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW,
+                               NULL, NULL, &si, &pi[s])) {
+                CloseHandle(pi[s].hThread);
+                started[s] = 1;
+            }
+            CloseHandle(h);
+        }
+#else
+        {
+            posix_spawn_file_actions_t fa;
+            char                      *av[] = { (char *) self, its, sds[s], NULL };
+
+            posix_spawn_file_actions_init(&fa);
+            posix_spawn_file_actions_addopen(&fa, 1, logs[s],
+                                             O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            posix_spawn_file_actions_adddup2(&fa, 1, 2);
+            if (posix_spawnp(&pid[s], self, &fa, NULL, av, environ) == 0)
+                started[s] = 1;
+            posix_spawn_file_actions_destroy(&fa);
+        }
+#endif
+    }
+    for (int s = 0; s < 3; s++) {
+        FILE *lf;
+        char  why[96] = "";
+
+        npass[s]   = 0;
+        n[s]       = 0;
+        skipped[s] = 0;
+        if (!started[s])
+            snprintf(why, sizeof(why), "did not start");
+#ifdef _WIN32
+        else {
+            DWORD code = 0;
+
+            /* an exit code at 0x80000000 and above is the status of a
+               crash, such as 0xc0000005 for an access violation */
+            if (WaitForSingleObject(pi[s].hProcess, INFINITE) != WAIT_OBJECT_0
+                || !GetExitCodeProcess(pi[s].hProcess, &code))
+                snprintf(why, sizeof(why), "could not be waited for");
+            else if (code >= 0x80000000u)
+                snprintf(why, sizeof(why), "crashed with status 0x%08lx",
+                         (unsigned long) code);
+            else
+                rc[s] = (int) code;
+            CloseHandle(pi[s].hProcess);
+        }
+#else
+        else {
+            int   st = 0;
+            pid_t w;
+
+            /* waitpid fails with ECHILD when the child was reaped on its
+               own, as under an inherited ignored SIGCHLD; its status is
+               then unknown and the seed cannot pass */
+            while ((w = waitpid(pid[s], &st, 0)) < 0 && errno == EINTR)
+                ;
+            if (w != pid[s])
+                snprintf(why, sizeof(why), "could not be waited for (%s)",
+                         strerror(errno));
+            else if (WIFEXITED(st))
+                rc[s] = WEXITSTATUS(st);
+            else if (WIFSIGNALED(st))
+                snprintf(why, sizeof(why), "was killed by signal %d",
+                         WTERMSIG(st));
+            else
+                snprintf(why, sizeof(why), "stopped with status 0x%x", st);
+        }
+#endif
+        if ((lf = fopen(logs[s], "r")) != NULL) {
+            /* a child that crashed can leave its log mid-line; end that
+               line so the verdict below starts a line of its own */
+            int midline = 0;
+
+            while (fgets(line, sizeof(line), lf)) {
+                char   tail[4];
+                size_t len = strlen(line);
+
+                fputs(line, stdout);
+                if (len)
+                    midline = line[len - 1] != '\n';
+                if (sscanf(line, "PASS: %llu cases, %llu fails%3s", &c, &f, tail) == 2
+                    && f == 0) {
+                    npass[s]++;
+                    n[s] = c;
+                }
+                if ((sscanf(line, "PASS: %llu cases, %llu fails", &c, &f) == 2
+                     || sscanf(line, "FAIL: %llu cases, %llu fails", &c, &f) == 2)) {
+                    cases += c;
+                    fails += f;
+                }
+            }
+            if (midline)
+                putchar('\n');
+            fclose(lf);
+            remove(logs[s]);
+        }
+        if (!why[0] && rc[s] == GPUTRI_EXIT_SKIP) {
+            skipped[s] = 1;
+            nskip++;
+        } else if (!why[0] && rc[s] != 0)
+            snprintf(why, sizeof(why), "exited %d", rc[s]);
+        else if (!why[0] && (npass[s] != 1 || n[s] == 0))
+            snprintf(why, sizeof(why), "exited 0 but gave %d PASS results",
+                     npass[s]);
+        if (why[0]) {
+            printf("FAIL: seed %08x process %s\n", seeds[s], why);
+            bad = 1;
+        }
+        fflush(stdout);
+    }
+    /* all three skipping is a host without Vulkan; one or two is a fault */
+    if (nskip == 3)
+        return GPUTRI_EXIT_SKIP;
+    for (int s = 0; s < 3; s++)
+        if (skipped[s]) {
+            printf("FAIL: seed %08x process found no Vulkan device\n", seeds[s]);
+            bad = 1;
+        }
+    if (!bad && (n[0] != n[1] || n[1] != n[2])) {
+        printf("FAIL: the seed processes ran %llu, %llu and %llu cases; every "
+               "seed runs the same number\n", n[0], n[1], n[2]);
+        bad = 1;
+    }
+    printf("%s: %llu cases, %llu fails\n", (bad || fails) ? "FAIL" : "PASS",
+           cases, fails);
+    return (bad || fails) ? 1 : 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -5937,6 +6291,12 @@ main(int argc, char **argv)
     unsigned seed  = (argc > 2) ? (unsigned) strtoul(argv[2], NULL, 0) : 0;
     static const unsigned seeds[3] = { 0x12345678u, 0xcafe0001u, 0xdeadbeefu };
     int      nseeds = seed ? 1 : 3;
+
+    /* GPUTRI_SEQUENTIAL keeps the three seeds in this one process */
+    if (!seed && (argc < 2 || (argv[1][0] >= '0' && argv[1][0] <= '9'))
+        && !getenv("GPUTRI_SEQUENTIAL"))
+        return run_seed_procs(argv[0], iters, seeds);
+    g_cache_seed = seed;
 
     {
         const char *e = getenv("GPUTRI_PIXDUMP");
@@ -6002,8 +6362,16 @@ main(int argc, char **argv)
         rngs      = sv;
         xrngs     = ~sv;
         g_seedidx = s;
+        /* A standard seed run alone keeps its standard index, which picks
+           its folded tuples, so the three one-seed processes of a
+           parallel run test exactly what one three-seed process does. */
+        for (int q = 0; seed && q < 3; q++)
+            if (seed == seeds[q])
+                g_seedidx = q;
+        seed_case_base = cases_run;
         tpool_reset(); /* new seed, new stratified pool */
         tpool_prime(); /* parallel precompile of the seed's fold matrix */
+        plcache_save();
         for (int k = 0; k < N_KERNELS; k++)
             fuzz_state(k, iters);
         fuzz_segments(iters * 2);
@@ -6030,26 +6398,8 @@ main(int argc, char **argv)
                (unsigned long long) fold_cases, fold_pipes_built);
         fold_pipes_built = 0;
     }
-    /* persist the pipeline cache so repeat runs compile warm */
-    {
-        size_t sz = 0;
-
-        if (vkGetPipelineCacheData(dev, plcache, &sz, NULL) == VK_SUCCESS
-            && sz > 0) {
-            void *data = malloc(sz);
-
-            if (data
-                && vkGetPipelineCacheData(dev, plcache, &sz, data) == VK_SUCCESS) {
-                FILE *pf = gputri_open_output("gputri.plcache");
-
-                if (pf) {
-                    fwrite(data, 1, sz, pf);
-                    fclose(pf);
-                }
-            }
-            free(data);
-        }
-    }
+    /* persist pipelines the fuzz built on demand after the precompile */
+    plcache_save();
     if (ser_self == 0 || ser_rtt == 0 || rej_cross == 0
         || ser_faults != 2u * (uint64_t) nseeds) {
         printf("FAIL: alias-serialization paths never exercised "

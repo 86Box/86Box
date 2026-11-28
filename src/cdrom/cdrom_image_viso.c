@@ -42,6 +42,10 @@
 #include <86box/version.h>
 #include <86box/nvr.h>
 
+#include <86box/media_archive.h>
+#include <86box/fs_name.h>
+#include <86box/civil_time.h>
+
 #define VISO_SKIP(p, n)         \
     {                           \
         memset((p), 0x00, (n)); \
@@ -99,6 +103,9 @@ typedef struct _viso_entry_ {
         uint64_t data_offset;
     };
     uint16_t pt_idx;
+    uint8_t  joliet_len;
+    uint16_t *name_joliet;
+    const media_archive_entry_t *archive_entry;
 
     struct {
         uint8_t is_dir : 1;
@@ -128,6 +135,8 @@ typedef struct {
     viso_entry_t  *root_dir;
     viso_entry_t **entry_map;
     viso_entry_t  *file_fifo[VISO_OPEN_FILES];
+
+    media_archive_t *archive; /* when mounting an archive */
 } viso_t;
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
@@ -175,55 +184,6 @@ viso_pwrite(const void *ptr, const uint64_t offset, const size_t size,
         ret = fwrite(ptr, size, count, fp);
     fseeko64(fp, cur_pos, SEEK_SET);
     return ret;
-}
-
-static size_t
-viso_convert_utf8(uint16_t *dest, const char *src, ssize_t buf_size)
-{
-    uint64_t  c;
-    uint16_t *p = dest;
-    size_t    next;
-
-    while (buf_size-- > 0) {
-        /* Interpret source codepoint. */
-        c = *src;
-        if (!c) {
-            /* Terminator. */
-            *p = 0;
-            break;
-        } else if (c & 0x80) {
-            /* Convert UTF-8 sequence into a codepoint. */
-            next = 0;
-            while (c & 0x40) {
-                next++;
-                c <<= 1;
-            }
-            c = *src++ & (0x3f >> next);
-            while ((next-- > 0) && ((*src & 0xc0) == 0x80))
-                c = (c << 6) | (*src++ & 0x3f);
-
-            /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs. */
-            if (c >= 0x10000) {
-                if ((c <= 0x10ffff) && (buf_size-- > 0)) {
-                    /* Encode surrogate pair. */
-                    c -= 0x10000;
-                    *p++ = 0xd800 | (c >> 10);
-                    c    = 0xdc00 | (c & 0x3ff);
-                } else {
-                    /* Codepoint overflow or no room for a pair. */
-                    c = '?';
-                }
-            }
-        } else {
-            /* Pass through sub-UTF-8 codepoints. */
-            src++;
-        }
-
-        /* Write destination codepoint. */
-        *p++ = c;
-    }
-
-    return p - dest;
 }
 
 #define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter)                    \
@@ -323,6 +283,17 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     while (basename[0] == '.')
         basename++;
 
+    /* Collapse each UTF-8 sequence to one byte, which becomes one replacement character. */
+    char   collapsed[strlen(basename) + 1];
+    size_t collapsed_len = 0;
+    for (const char *p = basename; *p;) {
+        uint32_t c                   = fs_utf8_next(&p);
+        collapsed[collapsed_len++] = (c < 0x80) ? c : 0x80;
+    }
+    collapsed[collapsed_len] = '\0';
+    int dots_trimmed         = basename != entry->basename;
+    basename                 = collapsed;
+
     /* Get name and extension length. */
     const char *ext_pos = strrchr(basename, '.');
     size_t      name_len;
@@ -342,7 +313,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
 
     /* Copy extension to temporary buffer. */
     char ext[5]     = { 0 };
-    int  force_tail = (name_len > 8) || (ext_len == 1) || (basename != entry->basename);
+    int  force_tail = (name_len > 8) || (ext_len == 1) || dots_trimmed;
     if (ext_len > 1) {
         ext[0] = '.';
         if (ext_len > 4) {
@@ -387,91 +358,84 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 {
     /* Trim filename to max_len if required. */
     size_t len = strlen(entry->basename);
-    if (len > max_len) {
-        viso_write_string(data, entry->basename, max_len, VISO_CHARSET_FN);
-
-        /* Relocate extension if the original name exceeds the maximum length. */
-        if (!entry->stats.is_dir) { /* do this on files only */
-            const char *ext = strrchr(entry->basename, '.');
-            if (ext > entry->basename) {
-                len = strlen(ext);
-                if (len >= max_len)
-                    len = max_len - 1; /* don't create a dotfile where there isn't one */
-                viso_write_string(data + (max_len - len), ext, len, VISO_CHARSET_FN);
-            }
-        }
-
-        return max_len;
-    } else {
+    if (len <= max_len) {
         viso_write_string(data, entry->basename, len, VISO_CHARSET_FN);
         return len;
     }
+
+    /* Relocate extension if the original name exceeds the maximum length. */
+    const char *ext     = entry->stats.is_dir ? NULL : strrchr(entry->basename, '.'); /* do this on files only */
+    size_t      ext_len = 0;
+    if (ext > entry->basename) {
+        ext_len = strlen(ext);
+        if (ext_len >= max_len)
+            ext_len = max_len - 1; /* don't create a dotfile where there isn't one */
+        ext_len = fs_utf8_fit(ext, ext_len);
+    }
+    size_t stem = fs_utf8_fit(entry->basename, max_len - ext_len);
+    if (!stem) {
+        ext_len = 0;
+        stem    = fs_utf8_fit(entry->basename, max_len);
+    }
+
+    viso_write_string(data, entry->basename, stem, VISO_CHARSET_FN);
+    if (ext_len)
+        viso_write_string(data + stem, ext, ext_len, VISO_CHARSET_FN);
+    return stem + ext_len;
+}
+
+/* Joliet names fill the directory record, which can't be longer than 255 bytes. */
+#define VISO_JOLIET_MAX_LEN ((254 - 33) / 2)
+
+static const fs_long_name_rules_t viso_joliet_rules[2] = {
+    { .forbidden = "*/:;?\\", .max = VISO_JOLIET_MAX_LEN, .keep_ext = 1 }, /* files */
+    { .forbidden = "*/:;?\\", .max = VISO_JOLIET_MAX_LEN, .keep_ext = 0 }  /* directories */
+};
+
+/* Gives every entry of a directory a Joliet name, numbering names that only differ by case,
+   as Windows can't tell them apart. */
+static int
+viso_name_joliet(viso_entry_t **entries, size_t count)
+{
+    fs_name_set_t set;
+    int           ret = 0;
+
+    if (!fs_name_set_init(&set, count))
+        return 0;
+    for (size_t i = 0; i < count; i++) {
+        const fs_long_name_rules_t *rules = &viso_joliet_rules[entries[i]->stats.is_dir];
+        int                         len   = 0;
+        entries[i]->name_joliet           = fs_long_name(entries[i]->basename, rules, &len);
+        if (!entries[i]->name_joliet || !fs_name_set_add_unique(&set, &entries[i]->name_joliet, &len, rules))
+            goto end;
+        entries[i]->joliet_len = len;
+    }
+    ret = 1;
+end:
+    fs_name_set_free(&set);
+    return ret;
 }
 
 static size_t
-viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /* note: receives and returns byte sizes */
+viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry) /* note: returns a byte size */
 {
-    /* Decode filename as UTF-8. */
-    size_t   len = strlen(entry->basename);
-    uint16_t utf8dec[len + 1];
-    len = viso_convert_utf8(utf8dec, entry->basename, len + 1);
-
-    /* Trim decoded filename to max_len if required. */
-    max_len /= 2;
-    if (len > max_len) {
-        viso_write_wstring(data, utf8dec, max_len, VISO_CHARSET_FN);
-
-        /* Relocate extension if the original name exceeds the maximum length. */
-        if (!entry->stats.is_dir) { /* do this on files only */
-            uint16_t *ext = &utf8dec[len];
-            while (ext-- > utf8dec) {
-                if (*ext == '.')
-                    break;
-            }
-            if (ext > utf8dec) {
-                len = utf8dec + len - ext;
-                if (len > max_len)
-                    len = max_len;
-                else if ((len < max_len) && ((data[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00)))
-                    max_len--; /* don't break an UTF-16 pair */
-                viso_write_wstring(&data[max_len - len], ext, len, VISO_CHARSET_FN);
-            }
-        }
-
-        return max_len * 2;
-    } else {
-        viso_write_wstring(data, utf8dec, len, VISO_CHARSET_FN);
-        return len * 2;
-    }
+    for (int i = 0; i < entry->joliet_len; i++)
+        data[i] = cpu_to_be16(entry->name_joliet[i]);
+    return entry->joliet_len * 2;
 }
 
 static int
 viso_fill_time(uint8_t *data, int64_t time, int format, int longform)
 {
-    /* Get time. */
-    time += tz_offset_sec;
-    int64_t secs = time % 86400;
-    int64_t days = time / 86400;
-    if (UNLIKELY(secs < 0)) {
-        secs += 86400;
-        days -= 1;
-    }
-    int hour = secs / 3600;
-    int min  = (secs % 3600) / 60;
-    int sec  = secs % 60;
-    int csec = 0;
-
-    /* Get date.
-       Based on: https://howardhinnant.github.io/date_algorithms.html#civil_from_days */
-    days += 719468;
-    int64_t era  = (LIKELY(days >= 0) ? days : (days - 146096)) / 146097;
-    int64_t doe  = days - (era * 146097);
-    int64_t yoe  = (doe - (doe / 1460) + (doe / 36524) - (doe / 146096)) / 365;
-    int64_t doy  = doe - ((365 * yoe) + (yoe / 4) - (yoe / 100));
-    int64_t mp   = ((5 * doy) + 2) / 153;
-    int     day  = doy - (((153 * mp) + 2) / 5) + 1;
-    int     mon  = mp + ((mp < 10) ? 3 : -9);
-    int     year = yoe + (era * 400) + (mon <= 2);
+    civil_time_t civil;
+    civil_time_from_seconds(time + tz_offset_sec, &civil);
+    int64_t year = civil.year;
+    int     mon  = civil.month;
+    int     day  = civil.day;
+    int     hour = civil.hour;
+    int     min  = civil.minute;
+    int     sec  = civil.second;
+    int     csec = 0;
 
     /* Clamp to supported ranges. */
     if (UNLIKELY(year < (UNLIKELY(longform) ? 0 : 1900))) {
@@ -492,7 +456,7 @@ viso_fill_time(uint8_t *data, int64_t time, int format, int longform)
     if (UNLIKELY(longform)) {
         p += 16;
         snprintf((char *) data, p - data + 1, "%04u%02u%02u%02u%02u%02u%02u",
-                 year, mon, day, hour, min, sec, csec);
+                 (unsigned) year, mon, day, hour, min, sec, csec);
     } else {
         *p++ = (uint8_t) (year - 1900); /* year since 1900 */
         *p++ = (uint8_t) mon;           /* month */
@@ -626,7 +590,7 @@ pad_susp:
         case VISO_DIR_JOLIET:
             q = p++; /* save file ID length location for later */
 
-            *q = viso_fill_fn_joliet((uint16_t *) p, entry, 254 - (p - data));
+            *q = viso_fill_fn_joliet((uint16_t *) p, entry);
             p += *q;
 
             if (!(*q & 1)) /* padding for even file ID lengths */
@@ -674,11 +638,22 @@ viso_compare_entries(const void *a, const void *b)
     return strcmp((*((viso_entry_t **) a))->name_short, (*((viso_entry_t **) b))->name_short);
 }
 
+/* Archives are extracted to a temporary file, as most formats can't seek inside their files. */
+static int
+viso_archive_open(viso_t *viso, const char *filename)
+{
+    viso->archive = media_archive_open(filename);
+    return viso->archive && media_archive_extract_all(viso->archive);
+}
+
 int
 viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 {
     track_file_t *tf   = (track_file_t *) priv;
     viso_t       *viso = (viso_t *) tf->priv;
+    const uint64_t length = viso_get_length(priv);
+    if (seek > length || count > length - seek)
+        return -1;
 
     /* Handle reads in a sector by sector basis. */
     while (count > 0) {
@@ -696,7 +671,13 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 
             /* Get the file entry corresponding to this sector. */
             viso_entry_t *entry = viso->entry_map[sector - viso->metadata_sectors];
-            if (entry) {
+            if (entry && entry->archive_entry) {
+                const uint64_t offset = seek - entry->data_offset;
+                if (offset < entry->stats.size)
+                    read = MIN(sector_remain, entry->stats.size - offset);
+                if (!media_archive_read(viso->archive, entry->archive_entry, offset, buffer, read))
+                    return -1;
+            } else if (entry) {
                 /* Open file if it's not already open. */
                 if (!entry->file) {
                     /* Close any existing FIFO entry's file. */
@@ -767,22 +748,24 @@ viso_close(void *priv)
     image_viso_log(viso->tf.log, "close()\n");
 
     /* De-allocate everything. */
-    if (tf->fp)
+    if (tf->fp) {
         fclose(tf->fp);
 #ifdef IMAGE_VISO_LOG
-    if (stricmp(path_get_extension(viso->tf.fn), "iso")) {
-        remove(nvr_path(viso->tf.fn));
-    }
-#else
-    remove(nvr_path(viso->tf.fn));
+        if (stricmp(path_get_extension(viso->tf.fn), "iso"))
 #endif
+            remove(nvr_path(viso->tf.fn));
+    }
+
+    for (size_t i = 0; i < VISO_OPEN_FILES; i++) {
+        if (viso->file_fifo[i] && viso->file_fifo[i]->file)
+            fclose(viso->file_fifo[i]->file);
+    }
 
     viso_entry_t *entry = viso->root_dir;
     viso_entry_t *next_entry;
     while (entry) {
-        if (entry->file)
-            fclose(entry->file);
         next_entry = entry->next;
+        free(entry->name_joliet);
         free(entry);
         entry = next_entry;
     }
@@ -791,6 +774,8 @@ viso_close(void *priv)
         free(viso->metadata);
     if (viso->entry_map)
         free(viso->entry_map);
+
+    media_archive_close(viso->archive);
 
     if (tf->log != NULL)
         log_close(tf->log);
@@ -805,9 +790,16 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     viso_t  *viso = (viso_t *) calloc(1, sizeof(viso_t));
     uint8_t *data = NULL;
     uint8_t *p;
+    plat_dir_t context = PLAT_DIR_INIT;
+    viso_entry_t **dir_entries = NULL;
+    size_t pending_entries = 0;
     *error        = 1;
 
     if (viso == NULL)
+        goto end;
+
+    if (!plat_dir_check((char *) dirname) && media_archive_is_archive(dirname) &&
+        !viso_archive_open(viso, dirname))
         goto end;
 
     char n[1024]        = { 0 };
@@ -860,26 +852,28 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         goto end;
     memcpy(dir->path, dirname, dir_path_buf_size);
     dir->parent = dir; /* for the root's path table and .. entries */
+    dir->archive_entry = viso->archive ? media_archive_root(viso->archive) : NULL;
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
-    plat_dir_t     context         = PLAT_DIR_INIT;
-    viso_entry_t **dir_entries     = NULL;
     size_t         dir_entries_len = 0;
     while (LIKELY(dir)) {
         /* Open directory for listing. */
-        int    have_dir       = plat_dir_open(&context, dir->path);
+        int    have_dir       = dir->archive_entry || plat_dir_open(&context, dir->path);
+        const media_archive_entry_t *archive_child = dir->archive_entry ? dir->archive_entry->children : NULL;
         size_t children_count = 2; /* include . and .. (terminator is the +1 when allocating) */
         if (UNLIKELY(dir == viso->root_dir)) {
             /* Handle root directory. */
-            if (have_dir && plat_dir_is_dir(&context)) {
+            if (dir->archive_entry) {
+                dir->stats.is_dir = 1;
+                dir->stats.mtime  = time(NULL);
+            } else if (have_dir && plat_dir_is_dir(&context)) {
                 viso_fill_stats(dir, &context, viso->format); /* populate stats */
             } else {
-                plat_dir_close(&context);
                 goto end; /* not a directory */
             }
         }
-        if (LIKELY(have_dir)) {
+        if (have_dir && !dir->archive_entry) {
             /* Determine the entry array size. */
             children_count += plat_dir_count_children(&context);
         }
@@ -893,7 +887,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 dir_entries     = new_dir_entries;
                 dir_entries_len = children_count;
             } else {
-                goto next_dir;
+                goto end;
             }
         }
 
@@ -901,7 +895,8 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         for (children_count = 0; children_count < 2; children_count++) {
             entry = dir_entries[children_count] = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + 1);
             if (!entry)
-                goto next_dir;
+                goto end;
+            pending_entries++;
             entry->parent = dir;
             if (!children_count)
                 dir->first_child = entry;
@@ -920,32 +915,56 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Iterate through this directory's children again, making the entries. */
         if (LIKELY(have_dir)) {
-            while (plat_dir_read(&context)) {
+            while (dir->archive_entry ? archive_child != NULL : plat_dir_read(&context)) {
                 /* Grow array if the original size is inaccurate. */
                 if (UNLIKELY(children_count >= dir_entries_len)) {
-                    size_t         new_entries_len = children_count + 1;
+                    size_t         new_entries_len = dir_entries_len * 2;
                     viso_entry_t **new_dir_entries = (viso_entry_t **) realloc(dir_entries, (new_entries_len + 1) * sizeof(viso_entry_t *));
                     if (LIKELY(new_dir_entries)) {
                         dir_entries     = new_dir_entries;
                         dir_entries_len = new_entries_len;
                     } else {
-                        break;
+                        goto end;
                     }
                 }
 
                 /* Add and fill entry. */
-                const char *path = plat_dir_get_path(&context);
+                const char *path = archive_child ? archive_child->name : plat_dir_get_path(&context);
                 size_t path_buf_size = strlen(path) + 1;
+                /* Names stored decomposed (on macOS) are composed for the disc; the path keeps the host's form. */
+                char  *composed      = archive_child ? NULL : fs_utf8_compose(&path[context.path_dir_len + 1]);
+                size_t composed_size = composed ? (strlen(composed) + 1) : 0;
                 entry = dir_entries[children_count] =
-                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size);
-                if (entry == NULL)
-                    continue;
+                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size + composed_size);
+                if (entry == NULL) {
+                    free(composed);
+                    goto end;
+                }
                 entry->parent = dir;
                 memcpy(entry->path, path, path_buf_size);
-                entry->basename = &entry->path[context.path_dir_len + 1];
+                if (archive_child) {
+                    entry->archive_entry = archive_child;
+                    entry->basename      = entry->path;
+                    entry->stats.is_dir  = archive_child->is_dir;
+                    entry->stats.size    = MIN(archive_child->size, UINT32_MAX);
+                    entry->stats.mtime   = archive_child->has_header ? archive_child->mtime : time(NULL);
+                    archive_child        = archive_child->next;
+                } else {
+                    if (composed) {
+                        memcpy(&entry->path[path_buf_size], composed, composed_size);
+                        entry->basename = &entry->path[path_buf_size];
+                    } else {
+                        entry->basename = &entry->path[context.path_dir_len + 1];
+                    }
+                    viso_fill_stats(entry, &context, viso->format);
+                }
+                free(composed);
 
-                /* Populate stats. */
-                viso_fill_stats(entry, &context, viso->format);
+                /* Set short filename and skip this file if it couldn't be disambiguated. */
+                if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
+                    free(entry);
+                    continue;
+                }
 
                 /* Handle file size and El Torito boot code. */
                 if (!entry->stats.is_dir) {
@@ -992,13 +1011,8 @@ have_eltorito_entry:
                     eltorito_others_present = 0;
                 }
 
-                /* Set short filename and skip this file if it couldn't be disambiguated. */
-                if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
-                    free(entry);
-                    continue;
-                }
-
                 children_count++;
+                pending_entries++;
                 image_viso_log(viso->tf.log, "[%08X] %s => [%-12s] %s\n", entry,
                                dir->path, entry->name_short, entry->basename);
             }
@@ -1024,13 +1038,19 @@ have_eltorito_entry:
             }
         }
 
-next_dir:
+        pending_entries = 0;
+
+        /* Joliet names, once the entries are linked and freed with the rest on failure. */
+        if (!viso_name_joliet(&dir_entries[2], children_count - 2))
+            goto end;
+
         /* Move on to the next directory. */
         dir = dir->next_dir;
     }
     plat_dir_close(&context);
-    if (dir_entries)
-        free(dir_entries);
+    context = (plat_dir_t) PLAT_DIR_INIT;
+    free(dir_entries);
+    dir_entries = NULL;
 
     /* Write 16 blank sectors. */
     for (int i = 0; i < 16; i++)
@@ -1040,14 +1060,8 @@ next_dir:
        the timezone offset for descriptors and file times to use. */
     tzset();
     time_t now = time(NULL);
-    struct tm now_tm;
     if (viso->format & VISO_FORMAT_ISO) { /* timezones are ISO only */
-#ifdef _WIN32
-        gmtime_s(&now_tm, &now);  /* Windows: output first param, input second */
-#else
-        gmtime_r(&now, &now_tm);  /* POSIX: input first param, output second */
-#endif
-        tz_offset_sec = now - mktime(&now_tm);
+        tz_offset_sec = civil_time_local_offset(now, 0);
         tz_offset_iso = tz_offset_sec / 900; /* 15-minute interval */
     }
 
@@ -1059,6 +1073,13 @@ next_dir:
     char saved_trailer    = volume_path[path_len];
     volume_path[path_len] = '\0';
     const char *basename  = path_get_filename(volume_path);
+    /* Drop the extension of an archive, including the .tar of a .tar.gz. */
+    char *archive_extension = (viso->archive && basename && basename[0]) ? strrchr(basename + 1, '.') : NULL;
+    if (archive_extension) {
+        if (((archive_extension - basename) > 4) && !strncasecmp(archive_extension - 4, ".tar", 4))
+            archive_extension -= 4;
+        *archive_extension = '\0';
+    }
     if (!basename || !basename[0])
         basename = EMU_NAME;
 
@@ -1080,10 +1101,10 @@ next_dir:
 
         if (i) {
             uint16_t wtemp[16];
-            viso_convert_utf8(wtemp, EMU_NAME, 16);
+            fs_utf8_to_utf16(wtemp, 16, EMU_NAME);
             viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_A); /* system ID */
             p += 32;
-            viso_convert_utf8(wtemp, basename, 16);
+            fs_utf8_to_utf16(wtemp, 16, basename);
             viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_D); /* volume ID */
             p += 32;
         } else {
@@ -1128,7 +1149,7 @@ next_dir:
             p += 128;
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* data preparer ID */
             p += 128;
-            viso_convert_utf8(wtemp, EMU_NAME " " EMU_VERSION " VIRTUAL ISO", 64);
+            fs_utf8_to_utf16(wtemp, 64, EMU_NAME " " EMU_VERSION " VIRTUAL ISO");
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* application ID */
             p += 128;
             wtemp[0] = '\0';
@@ -1204,6 +1225,8 @@ next_dir:
             fwrite(data, viso->sector_size, 1, viso->tf.fp);
         }
     }
+    if (archive_extension)
+        *archive_extension = '.';
     volume_path[path_len] = saved_trailer;
 
     /* Fill terminator. */
@@ -1340,7 +1363,7 @@ next_dir:
                 data[pt_temp] = 1;
                 *p            = 0x00;
             } else if (i & 2) { /* ...or Joliet... */
-                data[pt_temp] = viso_fill_fn_joliet((uint16_t *) p, dir, 255);
+                data[pt_temp] = viso_fill_fn_joliet((uint16_t *) p, dir);
             } else { /* ...or short name */
                 data[pt_temp] = strlen(dir->name_short);
                 memcpy(p, dir->name_short, data[pt_temp]);
@@ -1494,7 +1517,7 @@ next_entry:
     while (1) {
         image_viso_log(viso->tf.log, "Allocating entry map for %zu %zu-byte sectors\n",
                        viso->entry_map_size, viso->sector_size);
-        viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
+        viso->entry_map = calloc(MAX(1, viso->entry_map_size), sizeof(viso_entry_t *));
         if (viso->entry_map) {
             /* Successfully allocated. */
             break;
@@ -1544,6 +1567,7 @@ next_entry:
         if (entry->stats.is_dir) {
             /* Deallocate directory entries to save some memory. */
             prev_entry->next = entry->next;
+            free(entry->name_joliet);
             free(entry);
             entry = prev_entry->next;
             continue;
@@ -1604,11 +1628,10 @@ next_entry:
     viso->metadata = (uint8_t *) calloc(viso->metadata_sectors, viso->sector_size);
     if (viso->metadata == NULL)
         goto end;
-    fseeko64(viso->tf.fp, 0, SEEK_SET);
     size_t metadata_size = viso->metadata_sectors * viso->sector_size;
-    size_t metadata_remain = metadata_size;
-    while (metadata_remain > 0)
-        metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, viso->sector_size), viso->tf.fp);
+    if (fseeko64(viso->tf.fp, 0, SEEK_SET) ||
+        fread(viso->metadata, 1, metadata_size, viso->tf.fp) != metadata_size)
+        goto end;
 
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.fp);
@@ -1622,6 +1645,14 @@ next_entry:
     *error = 0;
 
 end:
+    plat_dir_close(&context);
+    for (size_t i = 0; i < pending_entries; i++)
+        free(dir_entries[i]);
+    free(dir_entries);
+    free(data);
+    if (!viso)
+        return NULL;
+
     /* Set the function pointers. */
     viso->tf.priv = viso;
     if (!*error) {
@@ -1632,13 +1663,8 @@ end:
         viso->tf.close      = viso_close;
 
         return &viso->tf;
-    } else {
-        if (viso != NULL) {
-            image_viso_log(viso->tf.log, "Initialization failed\n");
-            if (data)
-                free(data);
-            viso_close(&viso->tf);
-        }
-        return NULL;
     }
+    image_viso_log(viso->tf.log, "Initialization failed\n");
+    viso_close(&viso->tf);
+    return NULL;
 }

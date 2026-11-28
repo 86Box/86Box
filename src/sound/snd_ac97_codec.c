@@ -11,6 +11,7 @@
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2021-2025 RichardG.
+ *          Copyright 2026 Xeon3D.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -95,7 +96,10 @@ static const struct {
         .extid_flags = AC97_SDAC,
         .pcsr_mask   = 0xff,
         .eascr_mask  = 0x02,
-        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x74, 0x0000, 0x0003}, {0}}
+        /* 0x72 reads 0x8000 on a real SQ2500's STAC9708. The Aureal driver checks it: with
+           bit 15 clear it applies its "LA4 rear inversion" workaround (writes 0x0007 here and
+           negates the Vortex EQ, so front and rear leave the chip in opposite polarity). */
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x6e, 0x0000, 0x000f}, {0, 0x72, 0x8000, 0x0007}, {0, 0x74, 0x0000, 0x0003}, {0}}
     },
     {
         .device      = &stac9721_device,
@@ -889,7 +893,7 @@ const device_t ak4540_device = {
 const device_t alc100_device = {
     .name          = "Avance Logic ALC100",
     .internal_name = "alc100",
-    .flags         = DEVICE_AC97,
+    .flags         = DEVICE_AC97 | DEVICE_AUDIO_IN, /* see ice1232_device */
     .local         = AC97_CODEC_ALC100,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
@@ -931,7 +935,11 @@ const device_t cs4297a_device = {
 const device_t ice1232_device = {
     .name          = "ICEnsemble ICE1232 / VIA VT1611A",
     .internal_name = "ice1232",
-    .flags         = DEVICE_AC97,
+    /* audio input -- this, the ALC100 and the WM9701A are the
+       on-board sound (snd_device) of the VIA 686 boards, whose AC'97
+       controller records through them; Settings enables audio input for
+       the machine's internal sound by this flag. */
+    .flags         = DEVICE_AC97 | DEVICE_AUDIO_IN,
     .local         = AC97_CODEC_ICE1232,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
@@ -1001,7 +1009,7 @@ const device_t w83971d_device = {
 const device_t wm9701a_device = {
     .name          = "Wolfson WM9701A",
     .internal_name = "wm9701a",
-    .flags         = DEVICE_AC97,
+    .flags         = DEVICE_AC97 | DEVICE_AUDIO_IN, /* see ice1232_device */
     .local         = AC97_CODEC_WM9701A,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,

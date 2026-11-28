@@ -49,10 +49,36 @@ that status as skipped. A gate mismatch exits 1; a passing gate exits 0.
 `fdivtest` needs a Vulkan device too, but exits 1 when none is available.
 
 `gputri` defaults to 150 iterations per state. An omitted or zero seed runs
-three standard seeds: `0x12345678`, `0xcafe0001`, and `0xdeadbeef`. A nonzero
-seed runs one seed; decimal and hexadecimal input are accepted. Run from
-this directory so the selftest kernel is available. The pipeline cache
-`gputri.plcache` keeps repeated runs warm.
+three standard seeds: `0x12345678`, `0xcafe0001`, and `0xdeadbeef`, as three
+child processes at once, one seed each. Each child's output is printed in
+seed order when it exits, and the last line sums the three children's cases
+and fails. A child passes only if it exits 0 and prints exactly one
+`PASS: N cases, 0 fails` line, and the three children must report the same
+case count (a seed's case count depends only on the iteration count); a
+crash, a kill, a missing result or a lone skip fails the run. A standard seed keeps its standard folded-tuple set when it runs
+alone, so `gputri 150 0xcafe0001` tests exactly the second third of the
+default run, and each seed passes the coverage checks on its own. Unless
+`GPUTRI_THREADS` is set, each child primes pipelines with a third of the
+processor count minus two, then applies the priming code's upper limit on its
+own, so the children together can run more compile threads than one process
+would. A nonzero seed runs
+one seed in this process; decimal and hexadecimal input are accepted. Run
+from this directory so the selftest kernel is available.
+
+The pipeline cache keeps repeated runs warm: `gputri.plcache` for a
+one-process three-seed run, `gputri-<seed>.plcache` for a one-seed run (and
+so for each child of the default run). It is written every 30 seconds
+during each seed's pipeline precompile, after it, and again at exit, each
+time through a temporary file renamed over the old one, so a run stopped by
+a timeout keeps the pipelines compiled up to the last write. A run killed
+during a write can leave a `.tmp` file behind, which is never read. A
+cache file whose header names another device or driver build is ignored
+(the run says so and starts cold), so a driver update costs one cold run.
+
+On a host whose driver compiles pipelines slowly (a cold run on a Windows
+AMD host takes about 20 minutes, over an hour with `GPUTRI_SEQUENTIAL`),
+point `GPUTRI_CACHE_DIR` at a directory outside the build tree, so fresh
+build directories and worktrees start warm.
 
 On macOS, `gputri` sets `MVK_CONFIG_FAST_MATH_ENABLED=0` itself unless the
 environment already supplies a value. Keep fast math off: contraction or
@@ -68,7 +94,9 @@ value or `0`; value switches use the parsing described below.
 
 | Variable | Effect |
 | --- | --- |
-| `GPUTRI_THREADS` | A positive decimal integer sets the pipeline-priming worker limit. Otherwise the limit is the processor count minus two, clamped to the range from one to `PRIME_THR_MAX` by the priming code. |
+| `GPUTRI_SEQUENTIAL` | Presence runs the three standard seeds one after another in this process instead of as three child processes. |
+| `GPUTRI_CACHE_DIR` | A directory for the pipeline cache files. Unset or empty uses the working directory. |
+| `GPUTRI_THREADS` | A positive decimal integer sets the pipeline-priming worker limit. Otherwise the limit is the processor count minus two, clamped to the range from one to `PRIME_THR_MAX` by the priming code. In the default three-process run the value applies to each child, so three times that many workers run at once; unset, each child gets a third of the processor count minus two. |
 | `GPUTRI_PIXDUMP` | A comma-separated list of up to eight VRAM byte addresses, parsed as decimal or hexadecimal. Prints reference sampler and pre-quantization diagnostics for destination cells containing those addresses. |
 | `GPUTRI_IMPORT` | Exactly `1` imports host allocations for the VRAM, texture-stage, and color/depth-stage arenas through Vulkan's external host-memory extension. Other values use the default allocator. Unsupported import requests exit 1. |
 | `GPUTRI_STG_RESIDENT` | Presence makes the staged color/depth fuzz block use resident surfaces with the same generated case content, isolating staged addressing. |

@@ -550,6 +550,20 @@ clap_host_process(clap_host_instance_t *inst,
 }
 
 /* ------------------------------------------------------------------ */
+/*  Public API — extensions                                           */
+/* ------------------------------------------------------------------ */
+const void *
+clap_host_get_extension(clap_host_instance_t *inst, const char *id,
+                        const clap_plugin_t **plugin)
+{
+    if (!inst || !inst->plugin || !inst->plugin->get_extension)
+        return NULL;
+
+    *plugin = inst->plugin;
+    return inst->plugin->get_extension(inst->plugin, id);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Public API — destroy                                              */
 /* ------------------------------------------------------------------ */
 void

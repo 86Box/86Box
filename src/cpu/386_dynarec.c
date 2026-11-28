@@ -300,10 +300,11 @@ cpu_throttle_stall(int32_t ran)
     cycles -= stall;
 }
 
-/* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
-   fire on any access, so they still disable the recompiler outright; an
-   execution breakpoint only blocks the block covering it, and a block spans at
-   most two pages. Out of line, as it only runs with a breakpoint armed. */
+#ifdef USE_DYNAREC
+/* Compiled blocks hold no debug-register checks. Data breakpoints can fire on
+   any access, so they still disable the recompiler outright; an execution
+   breakpoint only blocks the block covering it, and a block spans at most two
+   pages. Out of line, as it only runs with a breakpoint armed. */
 static __attribute__((noinline)) int
 dr_blocks_cache(void)
 {
@@ -314,9 +315,17 @@ dr_blocks_cache(void)
         if (!((dr[7] >> (i << 1)) & 0x03))
             continue;
 
-        /* RW 00 is execution; DR0-3 and cs + pc are both linear. */
-        if ((dr[7] >> (16 + (i << 2))) & 0x03)
-            return 1;
+        /* RW 00 is execution; DR0-3 and cs + pc are both linear. An I/O
+           breakpoint (RW 10) needs nothing of the recompiled code: the port
+           access checks it, and the instruction ends the block (io_op_end). */
+        switch ((dr[7] >> (16 + (i << 2))) & 0x03) {
+            case 0x00:
+                break;
+            case 0x02:
+                continue;
+            default:
+                return 1;
+        }
 
         if (((dr[i] >> 12) == page) || ((dr[i] >> 12) == (page + 1)))
             return 1;
@@ -330,7 +339,6 @@ dr_blocks_cache(void)
 #define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
 #define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
-#ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 /* The block link routine does the loop-top stores itself. */
@@ -569,6 +577,16 @@ update_tsc(void)
     }
 }
 
+/* The TSC is about to be set to new_tsc (WRMSR), after update_tsc(). The
+   block-start value moves by the same step, so that tsc - tsc_old stays the
+   cycles already counted and the rest of the block's cycles are added to the
+   new count, whichever way it moved. */
+void
+update_tsc_write(uint64_t new_tsc)
+{
+    tsc_old += new_tsc - tsc;
+}
+
 /* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
    gets a copy of the loop, and with the option off the debug register
    handling is not compiled in at all. */
@@ -787,25 +805,43 @@ exec386_dynarec_dyn(const int dbg)
            also catch any page faults at this stage */
         valid_block = (codeblock_pc_cs(block) == key) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
         if (!valid_block) {
-            page_t  *page = &pages[phys_addr >> 12];
-            uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-            int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
-            uint64_t byte_mask   = 1ULL << (phys_addr & PAGE_BYTE_MASK_MASK);
-
-            if ((page->code_present_mask & mask) ||
-                ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
-            {
-                /* Walk page tree to see if we find the correct block */
-                codeblock_t *new_block = codeblock_tree_find(phys_addr, cs, cs + cpu_state.pc);
-                if (new_block) {
-                    valid_block = (codeblock_pc_cs(new_block) == key) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
-                    if (valid_block) {
-                        block = new_block;
-                        codeblock_hash[hash] = get_block_nr(block);
-                    }
+            /* Walk page tree to see if we find the correct block. Whatever
+               the page's code-present bits say: a flush clears them over the
+               blocks it puts on the dirty list, which stay in the tree, and
+               the hash finds such a block whenever no other one took its
+               slot. */
+            codeblock_t *new_block = codeblock_tree_find(phys_addr, cs, cs + cpu_state.pc);
+            if (new_block) {
+                valid_block = (codeblock_pc_cs(new_block) == key) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+                if (valid_block) {
+                    block = new_block;
+                    codeblock_hash[hash] = get_block_nr(block);
                 }
             }
         }
+
+#    ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+        /* Writes do not mark a checked block whose current code has the
+           entry check: its code bytes are compared with memory, here and
+           by its code on a linked entry. Written, it is interpreted in its
+           SMC cooldown as the tests below interpret a dirty block; else it
+           holds the kept version compiled from the bytes there now, or it
+           is to be compiled again, for the tests below. */
+        int put_back = 0;
+
+        if (valid_block && ((block->flags & (CODEBLOCK_CHECKED | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == (CODEBLOCK_CHECKED | CODEBLOCK_WAS_RECOMPILED))) {
+            const int check = codegen_block_check(block);
+
+            if (check < 0) {
+                exec386_dynarec_int();
+                return;
+            }
+            /* Put back runs as a block put back below does, untested */
+            put_back = check;
+        }
+#    else
+        const int put_back = 0;
+#    endif
 
         /* A compiled block off the dirty list, on one page or byte-mask
            chunk (HAS_PAGE2 is set whenever page_mask2 is not 0 on such a
@@ -813,7 +849,7 @@ exec386_dynarec_dyn(const int dbg)
            compiled for this one, passes every test below without a side
            effect, the SMC cooldown's included: it can only interpret a
            block that fails one of these. */
-        if (valid_block &&
+        if (valid_block && !put_back &&
             ((((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_HAS_PAGE2)) ^ CODEBLOCK_WAS_RECOMPILED) |
               ((block->TOP ^ cpu_state.TOP) & ((block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0))) |
              (block->page_mask & *block->dirty_mask))) {
@@ -845,6 +881,13 @@ exec386_dynarec_dyn(const int dbg)
                 else
                 if (!block->valid)
                     valid_block = 0;
+#        ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+                /* Made checked when the flush evicted it from the dirty
+                   list: put back or compiled below, as it would have been
+                   still on the list */
+                else if (!block->head_mem_block)
+                    block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+#        endif
             }
             if (valid_block && block->page_mask2) {
                 /* We don't want the second page to cause a page
@@ -870,6 +913,10 @@ exec386_dynarec_dyn(const int dbg)
                     else
                     if (!block->valid)
                         valid_block = 0;
+#        ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+                    else if (!block->head_mem_block)
+                        block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+#        endif
                 }
             }
             if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
@@ -896,6 +943,14 @@ exec386_dynarec_dyn(const int dbg)
                them again. */
             if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
                 codegen_block_restore_version(block);
+#        ifdef CODEGEN_BACKEND_HAS_ENTRY_CHECK
+            /* A checked block written is not put on the dirty list: the same
+               for it, once it is left without code. One with code here was
+               only taken off for its TOP, and compiles as any block does. */
+            else if (valid_block && ((block->flags & (CODEBLOCK_CHECKED | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == CODEBLOCK_CHECKED) &&
+                     !block->head_mem_block)
+                codegen_block_put_back(block);
+#        endif
         }
     }
 
@@ -1020,6 +1075,9 @@ exec386_dynarec_dyn(const int dbg)
             if (new_ne)
                 CPU_BLOCK_END();
             if ((cpu_state.flags & T_FLAG) || (trap == 2))
+                CPU_BLOCK_END();
+            /* An I/O breakpoint matched: #DB right after this instruction. */
+            if (trap & 4)
                 CPU_BLOCK_END();
             if (smi_line)
                 CPU_BLOCK_END();
@@ -1217,7 +1275,9 @@ exec386_dynarec_dyn(const int dbg)
 _Static_assert(offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
                    && offsetof(cpu_events_t, irq) == offsetof(cpu_events_t, nmi_req) + 4
                    && offsetof(cpu_events_t, irq_pad) == offsetof(cpu_events_t, irq) + 1
-                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1,
+                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1
+                   && !(offsetof(cpu_events_t, stpclk) & 7)
+                   && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
                "the event words are pairs of adjacent fields");
 
 static __inline int
@@ -1232,6 +1292,24 @@ cpu_events_due(void)
     memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
 
     return (init_ne | nmi_irq | abrt_smi) != 0;
+}
+
+/*As cpu_events_due(), and the clock control: nonzero when anything the loop
+  does after a block may have work*/
+static __inline int
+cpu_after_block_due(void)
+{
+    uint64_t init_ne;
+    uint64_t nmi_irq;
+    uint64_t clock;
+    uint16_t abrt_smi;
+
+    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
+    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
+    memcpy(&clock, &cpu_events.stpclk, sizeof(clock));
+    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
+
+    return (init_ne | nmi_irq | clock | abrt_smi) != 0;
 }
 
 /*Any source x86_external_interrupt_pending() can answer yes from*/
@@ -1264,7 +1342,6 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
     int      tempi;
     int32_t  cycdiff;
     int32_t  oldcyc;
-    int32_t  oldcyc2;
     uint64_t oldtsc;
     uint64_t delta;
 
@@ -1290,7 +1367,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
             cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
-            oldcyc = oldcyc2 = cycles;
+            oldcyc = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
@@ -1306,103 +1383,121 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 /* Linked blocks moved the loop-top state on; time is counted
                    from the last link. */
                 oldcyc = cycles_old;
-                oldtsc = tsc_old;
 #    endif
                 /* A CR0 paging toggle ends the block it is in, so it was the
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
                     cpu_flush_pending++;
-            }
-
-            /* Every test below fails while none of its inputs is set. */
-            if (cpu_events_due()) {
-                if (cpu_init) {
-                    cpu_init = 0;
-                    resetx86();
-                }
-
-                if (cpu_state.abrt) {
+                /* A port matched an I/O breakpoint: the instruction ended the
+                   block (io_op_trap), and #DB comes right after it, as the
+                   interpreted block does it (block_ended). Data and execution
+                   breakpoints keep the code interpreted (dr_blocks_cache()). */
+                if (dbg && (trap & 4) && !cpu_state.abrt && !new_ne) {
                     flags_rebuild();
-                    tempi          = cpu_state.abrt & ABRT_MASK;
-                    cpu_state.abrt = 0;
-                    x86_doabrt(tempi);
+                    trap            = 0;
+                    oldcs           = CS;
+                    cpu_state.oldpc = cpu_state.pc;
+                    x86_int(1);
+                }
+            }
+            /* Moved on by linked blocks, and by a TSC write (update_tsc_write()). */
+            oldtsc = tsc_old;
+
+            /* Every test below fails while none of its inputs is set, the
+               clock control's included. */
+            if (cpu_after_block_due()) {
+                if (cpu_events_due()) {
+                    if (cpu_init) {
+                        cpu_init = 0;
+                        resetx86();
+                    }
+
                     if (cpu_state.abrt) {
-                        int second_abrt = cpu_state.abrt & ABRT_MASK;
+                        flags_rebuild();
+                        tempi          = cpu_state.abrt & ABRT_MASK;
                         cpu_state.abrt = 0;
-                        cpu_state.pc   = cpu_state.oldpc;
-                        x86_fault_in_delivery(tempi, second_abrt);
+                        x86_doabrt(tempi);
                         if (cpu_state.abrt) {
+                            int second_abrt = cpu_state.abrt & ABRT_MASK;
                             cpu_state.abrt = 0;
-                            softresetx86_from(SOFT_RESET_SHUTDOWN);
-                            cpu_set_edx();
+                            cpu_state.pc   = cpu_state.oldpc;
+                            x86_fault_in_delivery(tempi, second_abrt);
+                            if (cpu_state.abrt) {
+                                cpu_state.abrt = 0;
+                                softresetx86_from(SOFT_RESET_SHUTDOWN);
+                                cpu_set_edx();
 #    ifdef ENABLE_386_DYNAREC_LOG
-                            x386_dynarec_log("Triple fault - reset\n");
+                                x386_dynarec_log("Triple fault - reset\n");
 #    endif
+                            }
                         }
                     }
-                }
 
-                if (new_ne) {
-                    oldcs = CS;
-                    cpu_state.oldpc = cpu_state.pc;
-                    new_ne = 0;
-                    x86_int(16);
-                }
-            }
-
-            /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
-               stall is for everything since the loop top (oldcyc2): linked
-               blocks run on without coming back here, and moved oldcyc. */
-            if (cpu_stpclk || cpu_throttle_run) {
-                cpu_clock_control_check();
-                cpu_throttle_stall(oldcyc2 - cycles);
-            }
-
-            /* Read again: the tests above can raise an event. */
-            if (cpu_events_due()) {
-                if (smi_line) {
-                    const int before = in_smm;
-
-                    enter_smm_check(0);
-                    if (in_smm != before)
-                        cpu_halted = 0;
-                } else if (NMI_TAKEABLE()) {
-                    /* Out of a HLT that left pc on itself: "the saved CS:IP (or
-                       CS:EIP) value points to the instruction following the HLT
-                       instruction" (Pentium Vol. 3, HLT), NMI included. */
-                    if (cpu_halted)
-                        cpu_state.pc++;
-                    cpu_halted = 0;
-                    oldcs = CS;
-                    cpu_state.oldpc = cpu_state.pc;
-                    x86_int(2);
-                    nmi_enable = 0;
-#    ifdef OLD_NMI_BEHAVIOR
-                    if (nmi_auto_clear) {
-                        nmi_auto_clear = 0;
-                        nmi            = 0;
-                    }
-#    else
-                    nmi = 0;
-#    endif
-                } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
-                    cpu_pc98_interrupt_wait();
-                    vector = x86_external_interrupt_vector();
-                    if (vector != -1) {
-                        /* An interrupt that came after the HLT looked: past the
-                           HLT, as above. */
-                        if (cpu_halted)
-                            cpu_state.pc++;
+                    if (new_ne) {
                         oldcs = CS;
                         cpu_state.oldpc = cpu_state.pc;
-                        x86_int_external = 1;
-                        x86_int(vector);
-                        x86_int_external = 0;
-                        cpu_halted = 0; /* out of HLT, into the handler */
+                        new_ne = 0;
+                        x86_int(16);
                     }
                 }
 
-                cpu_irq_drain();
+                /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
+                   stall is for the block that just ran, from its start
+                   (cycles_old): no block links to another while either is
+                   on, so that is every block run since the loop top, but a
+                   block that turned throttling on may have been entered
+                   through a link. */
+                if (cpu_stpclk || cpu_throttle_run) {
+                    cpu_clock_control_check();
+                    cpu_throttle_stall(cycles_old - cycles);
+                }
+
+                /* Read again: the tests above can raise an event. */
+                if (cpu_events_due()) {
+                    if (smi_line) {
+                        const int before = in_smm;
+
+                        enter_smm_check(0);
+                        if (in_smm != before)
+                            cpu_halted = 0;
+                    } else if (NMI_TAKEABLE()) {
+                        /* Out of a HLT that left pc on itself: "the saved CS:IP (or
+                           CS:EIP) value points to the instruction following the HLT
+                           instruction" (Pentium Vol. 3, HLT), NMI included. */
+                        if (cpu_halted)
+                            cpu_state.pc++;
+                        cpu_halted = 0;
+                        oldcs = CS;
+                        cpu_state.oldpc = cpu_state.pc;
+                        x86_int(2);
+                        nmi_enable = 0;
+#    ifdef OLD_NMI_BEHAVIOR
+                        if (nmi_auto_clear) {
+                            nmi_auto_clear = 0;
+                            nmi            = 0;
+                        }
+#    else
+                        nmi = 0;
+#    endif
+                    } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                        cpu_pc98_interrupt_wait();
+                        vector = x86_external_interrupt_vector();
+                        if (vector != -1) {
+                            /* An interrupt that came after the HLT looked: past the
+                               HLT, as above. */
+                            if (cpu_halted)
+                                cpu_state.pc++;
+                            oldcs = CS;
+                            cpu_state.oldpc = cpu_state.pc;
+                            x86_int_external = 1;
+                            x86_int(vector);
+                            x86_int_external = 0;
+                            cpu_halted = 0; /* out of HLT, into the handler */
+                        }
+                    }
+
+                    cpu_irq_drain();
+                }
             }
 
             cycdiff = oldcyc - cycles;

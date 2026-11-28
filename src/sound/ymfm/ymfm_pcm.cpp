@@ -72,7 +72,8 @@ void pcm_registers::cache_channel_data(uint32_t choffs, pcm_cache &cache)
 	// a .18 fraction but .16 should be perfectly fine
 	int32_t octave = int8_t(ch_octave(choffs) << 4) >> 4;
 	uint32_t fnum = ch_fnumber(choffs);
-	cache.step = ((0x400 | fnum) << (octave + 7)) >> 2;
+	// Octave -8 is reserved. Keep the shift defined even for that register value.
+	cache.step = ((0x400 | fnum) << std::max(0, octave + 7)) >> 2;
 
 	// total level is computed as a .10 value for interpolation
 	cache.total_level = ch_total_level(choffs) << 10;

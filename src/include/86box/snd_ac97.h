@@ -105,7 +105,7 @@
 
 /* Codec IDs. */
 #define AC97_CODEC_AD1881   AC97_VENDOR_ID('A', 'D', 'S', 0x40)
-#define AC97_CODEC_AK4540   AC97_VENDOR_ID('A', 'D', 'S', 0x40)
+#define AC97_CODEC_AK4540   AC97_VENDOR_ID('A', 'K', 'M', 0x00)
 #define AC97_CODEC_ALC100   AC97_VENDOR_ID('A', 'L', 'C', 0x20)
 #define AC97_CODEC_CS4297   AC97_VENDOR_ID('C', 'R', 'Y', 0x03)
 #define AC97_CODEC_CS4297A  AC97_VENDOR_ID('C', 'R', 'Y', 0x11)

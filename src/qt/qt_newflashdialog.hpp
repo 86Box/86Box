@@ -8,13 +8,13 @@ class QDialogButtonBox;
 class QLineEdit;
 class QSpinBox;
 
-/* Creates the raw image of a new USB flash drive, sized in MB or GB and
+/* Creates the raw image of a new flash device, sized in MB or GB and
    formatted FAT16 or FAT32, or left blank. */
 class NewFlashDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit NewFlashDialog(QWidget *parent = nullptr);
+    explicit NewFlashDialog(QWidget *parent = nullptr, const QString &title = {});
 
     QString fileName() const { return fn; }
 

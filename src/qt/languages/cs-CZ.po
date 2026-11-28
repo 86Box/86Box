@@ -48,10 +48,13 @@ msgstr "&Zobrazení"
 msgid "&Hide status bar"
 msgstr "&Skrýt stavový řádek"
 
+msgid "Show US&B activity"
+msgstr ""
+
 msgid "Hide &toolbar"
 msgstr "Skrýt panel &nástrojů"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Měnitelná velikost okna"
 
 msgid "R&emember size && position"
@@ -80,6 +83,9 @@ msgstr "&Zadat rozměry…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Vynutit poměr stran &4:3"
+
+msgid "Force &machine display ratio"
+msgstr ""
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Vynutit poměr stran &%1:%2"
@@ -246,6 +252,42 @@ msgstr "&Předvolby…"
 msgid "Sound &gain…"
 msgstr "Ze&sílení zvuku…"
 
+msgid "M&IDI output device"
+msgstr ""
+
+msgid "Restart &device"
+msgstr ""
+
+msgid "Send MIDI &command"
+msgstr ""
+
+msgid "&GM System On"
+msgstr ""
+
+msgid "G&S Reset"
+msgstr ""
+
+msgid "&XG System On"
+msgstr ""
+
+msgid "&MT-32 Reset"
+msgstr ""
+
+msgid "All &notes off"
+msgstr ""
+
+msgid "Show MIDI &LCD"
+msgstr ""
+
+msgid "MIDI LCD"
+msgstr ""
+
+msgid "Always on &top"
+msgstr ""
+
+msgid "&Close"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Zahájit trasování"
 
@@ -300,8 +342,8 @@ msgstr "&Vysunout"
 msgid "Reload previous image"
 msgstr "Znovu načíst předchozí obraz"
 
-msgid "&Folder…"
-msgstr "&Složka…"
+msgid "Mount &folder…"
+msgstr "Připojit &složku…"
 
 msgid "Preferences"
 msgstr "Předvolby"
@@ -311,6 +353,12 @@ msgstr "Zesílení zvuku"
 
 msgid "New Image"
 msgstr "Nový obraz"
+
+msgid "Removable disk type:"
+msgstr ""
+
+msgid "MO type:"
+msgstr ""
 
 msgid "Settings"
 msgstr "Nastavení"
@@ -405,6 +453,18 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "Koprocesor:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr ""
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr ""
+
 msgid "Internal"
 msgstr "Integrované"
 
@@ -413,6 +473,15 @@ msgstr "Čekací stavy:"
 
 msgid "MB"
 msgstr "MB"
+
+msgid "GB"
+msgstr ""
+
+msgid "%1 MB"
+msgstr ""
+
+msgid "%1 GB"
+msgstr ""
 
 msgid "Memory:"
 msgstr "Paměť:"
@@ -452,6 +521,12 @@ msgstr "Použít interpreter 486 pro procesory 286 a 386"
 
 msgid "Dynamic recompiler"
 msgstr "Dynamický překladač"
+
+msgid "Dynamic recompiler is active"
+msgstr ""
+
+msgid "Dynamic recompiler is inactive"
+msgstr ""
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Přesné prostředí FPU při dynamickém překladu"
@@ -689,6 +764,30 @@ msgstr "Sběrnice:"
 msgid "Channel:"
 msgstr "Kanál:"
 
+msgid "%1 (Onboard)"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Onboard"
+msgstr ""
+
+msgid "%1: no free channels"
+msgstr ""
+
+msgid "%1: channels %2 in use"
+msgstr ""
+
+msgid "IDE Conflict"
+msgstr ""
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+
+msgid "Do you want to save the configuration anyway?"
+msgstr ""
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -767,6 +866,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "Magnetooptické jednotky"
 
+msgid "MD DATA drives"
+msgstr ""
+
 msgid "MO:"
 msgstr "Magnetooptické jednotky:"
 
@@ -785,8 +887,8 @@ msgstr "Páskové jednotky:"
 msgid "ISA RTC:"
 msgstr "Hodiny reálného času (RTC) ISA:"
 
-msgid "ISA Memory Expansion"
-msgstr "Rozšíření paměti ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Rozšíření paměti ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Karty ISA s pamětí ROM"
@@ -805,6 +907,27 @@ msgstr "Karta 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "Obecná karta ISA s pamětí ROM"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "Custom ROM:"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "ROM images"
+msgstr ""
+
+msgid "Unknown device"
+msgstr ""
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Obecná karta ISA se dvěma pamětmi ROM"
@@ -861,6 +984,9 @@ msgstr ""
 msgid "(empty)"
 msgstr "(prázdné)"
 
+msgid "(not available)"
+msgstr ""
+
 msgid "All files"
 msgstr "Všechny soubory"
 
@@ -913,8 +1039,17 @@ msgstr "Vstupní &zařízení"
 msgid "Sound"
 msgstr "Zvuk"
 
+msgid "%1 (not detected)"
+msgstr ""
+
+msgid "%1 Hz (host will resample)"
+msgstr ""
+
 msgid "Network"
 msgstr "Síť"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr ""
 
 msgid "Ports (COM & LPT)"
 msgstr "Porty COM a LPT"
@@ -984,6 +1119,54 @@ msgstr "Další vyměnitelná zařízení"
 
 msgid "Other peripherals"
 msgstr "Další příslušenství"
+
+msgid "empty"
+msgstr ""
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr ""
+
+msgid "CompactFlash: %1"
+msgstr ""
+
+msgid "Empty (take the card out)"
+msgstr ""
+
+msgid "CompactFlash"
+msgstr ""
+
+msgid "&New CompactFlash card…"
+msgstr ""
+
+msgid "New CompactFlash card"
+msgstr ""
+
+msgid "Insert CompactFlash card"
+msgstr ""
+
+msgid "&Remove CompactFlash card"
+msgstr ""
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr ""
+
+msgid "PCMCIA"
+msgstr ""
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr ""
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+
+msgid "Network:"
+msgstr ""
+
+msgid "Socket %1"
+msgstr ""
+
+msgid "Socket %1: %2"
+msgstr ""
 
 msgid "Other devices"
 msgstr "Jiná zařízení"
@@ -1167,11 +1350,23 @@ msgstr "&MO %1 (%2): %3"
 msgid "MO images"
 msgstr "Obrazy MO"
 
+msgid "MD DATA images"
+msgstr ""
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr ""
+
+msgid "MD DATA %1 (%2): %3"
+msgstr ""
+
 msgid "Welcome to 86Box!"
 msgstr "Vítejte v programu 86Box!"
 
 msgid "Internal device"
 msgstr "Integrované zařízení"
+
+msgid "External"
+msgstr ""
 
 msgid "&File"
 msgstr "&Soubor"
@@ -1193,6 +1388,96 @@ msgstr "Ukončit"
 
 msgid "No ROMs found"
 msgstr "Nebyly nalezeny žádné obrazy pamětí ROM"
+
+msgid "Unsupported Hardware"
+msgstr ""
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+
+msgid "(and %i others)"
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Do you want to continue?"
+msgstr ""
+
+msgid "Machine type \"%s\""
+msgstr ""
+
+msgid "Video card \"%s\""
+msgstr ""
+
+msgid "Keyboard \"%s\""
+msgstr ""
+
+msgid "Mouse \"%s\""
+msgstr ""
+
+msgid "Tablet \"%s\""
+msgstr ""
+
+msgid "Joystick \"%s\""
+msgstr ""
+
+msgid "Sound card \"%s\""
+msgstr ""
+
+msgid "MIDI output device \"%s\""
+msgstr ""
+
+msgid "MIDI input device \"%s\""
+msgstr ""
+
+msgid "Network card \"%s\""
+msgstr ""
+
+msgid "Serial port device \"%s\""
+msgstr ""
+
+msgid "Parallel port device \"%s\""
+msgstr ""
+
+msgid "Game port \"%s\""
+msgstr ""
+
+msgid "SCSI card \"%s\""
+msgstr ""
+
+msgid "Floppy controller \"%s\""
+msgstr ""
+
+msgid "Disk controller \"%s\""
+msgstr ""
+
+msgid "CD-ROM interface \"%s\""
+msgstr ""
+
+msgid "Memory expansion card \"%s\""
+msgstr ""
+
+msgid "ROM expansion card \"%s\""
+msgstr ""
+
+msgid "RTC card \"%s\""
+msgstr ""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr ""
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
 
 msgid "Do you want to save the settings?"
 msgstr "Chcete uložit nastavení?"
@@ -1229,6 +1514,24 @@ msgstr "Tuto zprávu již nezobrazovat"
 
 msgid "CD-ROM images"
 msgstr "Obrazy disků CD-ROM"
+
+msgid "&New CD-R image…"
+msgstr ""
+
+msgid "New CD-R&W image…"
+msgstr ""
+
+msgid "CD-RW image"
+msgstr ""
+
+msgid "CD-R image"
+msgstr ""
+
+msgid "Aaru images"
+msgstr ""
+
+msgid "Unable to create image"
+msgstr ""
 
 msgid "%1 Device Configuration"
 msgstr "Nastavení zařízení %1"
@@ -1630,17 +1933,20 @@ msgstr "Zvuk:"
 msgid "ACPI shutdown"
 msgstr "Vypnout pomocí rozhraní ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Vypnout pomocí rozhraní ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Vypnout pomocí rozhraní &ACPI"
 
 msgid "Power off"
 msgstr "Vypnout"
 
-msgid "Power &off…"
-msgstr "&Vypnout…"
-
 msgid "Power &off"
 msgstr "&Vypnout"
+
+msgid "Suspen&d"
+msgstr ""
+
+msgid "Suspend"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -2155,6 +2461,9 @@ msgstr "Klávesnice PS/2"
 msgid "PS/55 Keyboard"
 msgstr "Klávesnice PS/55"
 
+msgid "USB Keyboard"
+msgstr ""
+
 msgid "Keys"
 msgstr "Klávesy"
 
@@ -2185,8 +2494,14 @@ msgstr "Myš PS/2"
 msgid "PS/2 QuickPort Mouse"
 msgstr "Myš PS/2 QuickPort"
 
+msgid "USB Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (sériová)"
+
+msgid "USB Tablet"
+msgstr ""
 
 msgid "Default Baud rate"
 msgstr "Výchozí přenosová rychlost"
@@ -2211,6 +2526,9 @@ msgstr "Dceřiná deska OPL4-ML"
 
 msgid "System MIDI"
 msgstr "Systémové MIDI"
+
+msgid "USB Speaker"
+msgstr ""
 
 msgid "MIDI Input Device"
 msgstr "Vstupní zařízení MIDI"
@@ -2646,6 +2964,9 @@ msgstr "SLI"
 
 msgid "Start Address"
 msgstr "Počáteční adresa"
+
+msgid "Allow RAM up to the system ROM"
+msgstr ""
 
 msgid "Contiguous Size"
 msgstr "Velikost souvislého bloku"
@@ -3522,6 +3843,18 @@ msgstr "Světlé"
 msgid "Dark"
 msgstr "Tmavé"
 
+msgid "Style:"
+msgstr ""
+
+msgid "Windows 11"
+msgstr ""
+
+msgid "Windows Native"
+msgstr ""
+
+msgid "Windows Classic"
+msgstr ""
+
 msgid "Force interpretation"
 msgstr "Vynutit interpretaci"
 
@@ -3897,7 +4230,7 @@ msgstr ""
 msgid "The search is limited to %1 bytes."
 msgstr ""
 
-msgid "Searching memory..."
+msgid "Searching memory…"
 msgstr ""
 
 msgid "The search was cancelled. The selection did not move."
@@ -3933,7 +4266,7 @@ msgstr ""
 msgid "Copy selection (ASCII)"
 msgstr ""
 
-msgid "Fill selection..."
+msgid "Fill selection…"
 msgstr ""
 
 msgid "Copy address"
@@ -3942,7 +4275,7 @@ msgstr ""
 msgid "Disassemble here"
 msgstr ""
 
-msgid "Dump memory from here..."
+msgid "Dump memory from here…"
 msgstr ""
 
 msgid "Memory viewer"
@@ -3972,7 +4305,7 @@ msgstr ""
 msgid "Live update"
 msgstr ""
 
-msgid "Dump..."
+msgid "Dump…"
 msgstr ""
 
 msgid "Commands"
@@ -4017,7 +4350,7 @@ msgstr ""
 msgid "Search downwards from the selection (F3)"
 msgstr ""
 
-msgid "Range..."
+msgid "Range…"
 msgstr ""
 
 msgid "Search within an address range instead of all memory"
@@ -4125,7 +4458,7 @@ msgstr ""
 msgid "Stopped."
 msgstr ""
 
-msgid "Stepping..."
+msgid "Stepping…"
 msgstr ""
 
 msgid "Running."
@@ -4197,8 +4530,11 @@ msgstr ""
 msgid "cleared"
 msgstr ""
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr ""
@@ -4207,9 +4543,6 @@ msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
 
 msgid "Dump memory"
-msgstr ""
-
-msgid "Browse..."
 msgstr ""
 
 msgid "Start (hex, register or seg:off):"
@@ -4230,7 +4563,7 @@ msgstr ""
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
 
-msgid "Binary files (*.bin);;All files (*)"
+msgid "Binary files"
 msgstr ""
 
 msgid "The length must be a hex number above 0."
@@ -4242,7 +4575,7 @@ msgstr ""
 msgid "Could not open %1 for writing."
 msgstr ""
 
-msgid "Dumping memory..."
+msgid "Dumping memory…"
 msgstr ""
 
 msgid "Could not write to %1."
@@ -4380,7 +4713,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"
@@ -4429,4 +4762,112 @@ msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
+msgstr ""
+
+msgid "Mount folder as a temporary floppy"
+msgstr ""
+
+msgid "The selected drive does not support folder mounting."
+msgstr ""
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr ""
+
+msgid "Mount folder as a temporary removable disk"
+msgstr ""
+
+msgid "Unable to mount folder or archive"
+msgstr ""
+
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
+
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr ""
+
+msgid "The temporary image could not be written."
+msgstr ""
+
+msgid "There is not enough memory to build the image."
+msgstr ""
+
+msgid "The folder or archive could not be read."
+msgstr ""
+
+msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr ""
+
+msgid "&New USB flash drive…"
+msgstr ""
+
+msgid "unplugged"
+msgstr ""
+
+msgid "&Unplug"
+msgstr ""
+
+msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+msgid "Custom size:"
+msgstr ""
+
+msgid "None (blank)"
+msgstr ""
+
+msgid "FAT16"
+msgstr ""
+
+msgid "FAT32"
+msgstr ""
+
+msgid "Format:"
+msgstr ""
+
+msgid "Could not create %1."
+msgstr ""
+
+msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "%1 (write-protected)"
+msgstr ""
+
+msgid "USB flash drive"
+msgstr ""
+
+msgid "%1 is not a disk image."
+msgstr ""
+
+msgid "Flash drive images"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""

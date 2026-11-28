@@ -93,6 +93,7 @@ typedef struct gxm_dimm_t {
 } gxm_dimm_t;
 
 typedef struct cyrix_gxm_t {
+    int      keep_memory_on_cpu_reset;
     uint8_t  pci_conf[256];
     uint8_t  pci_slot;
 
@@ -1143,10 +1144,8 @@ gxm_pci_read(int func, int addr, UNUSED(int len), void *priv)
 }
 
 static void
-cyrix_gxm_reset(void *priv)
+gxm_reset(cyrix_gxm_t *dev, int reset_memory)
 {
-    cyrix_gxm_t *dev = (cyrix_gxm_t *) priv;
-
     memset(dev->pci_conf, 0x00, sizeof(dev->pci_conf));
     dev->pci_conf[0x00] = 0x78; /* Cyrix */
     dev->pci_conf[0x01] = 0x10;
@@ -1161,7 +1160,8 @@ cyrix_gxm_reset(void *priv)
 
     dev->mc_mem_cntrl1 = 0x248c0040;
     dev->mc_mem_cntrl2 = 0x00000801;
-    dev->mc_bank_cfg   = 0x41104110;
+    if (reset_memory)
+        dev->mc_bank_cfg = 0x41104110;
     dev->mc_sync_tim1  = 0x2a733225;
     dev->mc_gbase_add  = 0x00000000;
     dev->mc_dr_add     = 0x00000000;
@@ -1172,9 +1172,11 @@ cyrix_gxm_reset(void *priv)
     dev->pm_ser_pack   = 0x00;
     timer_disable(&dev->ser_timer);
 
-    dev->bc_dram_top = 0x3fffffff;
-    dev->bc_xmap[1]  = 0x00000000;
-    dev->bc_xmap[2]  = 0x00000000;
+    if (reset_memory) {
+        dev->bc_dram_top = 0x3fffffff;
+        dev->bc_xmap[1]  = 0x00000000;
+        dev->bc_xmap[2]  = 0x00000000;
+    }
     gxm_bc_write(dev, 1, 0x00000000);
     gxm_dram_recalc(dev);
     gxm_gmem_recalc(dev);
@@ -1182,12 +1184,20 @@ cyrix_gxm_reset(void *priv)
     gxm_remap(dev);
 }
 
-/* A CPU-only reset (the keyboard controller's, or Setup's exit) resets the
-   integrated functions with the core, the display controller included. */
+static void
+cyrix_gxm_reset(void *priv)
+{
+    gxm_reset(priv, 1);
+}
+
 static void
 gxm_cpu_reset(void *priv)
 {
-    cyrix_gxm_reset(priv);
+    cyrix_gxm_t *dev = (cyrix_gxm_t *) priv;
+
+    /* The T3032 warm POST uses the stack and calls into shadow RAM before
+       it reprograms the memory controller. */
+    gxm_reset(dev, !dev->keep_memory_on_cpu_reset);
 
     if (gxm_video != NULL)
         cyrix_gxm_video_device.reset(gxm_video);
@@ -1209,10 +1219,11 @@ cyrix_gxm_close(void *priv)
 }
 
 static void *
-cyrix_gxm_init(UNUSED(const device_t *info))
+cyrix_gxm_init(const device_t *info)
 {
     cyrix_gxm_t *dev = (cyrix_gxm_t *) calloc(1, sizeof(cyrix_gxm_t));
 
+    dev->keep_memory_on_cpu_reset = !!(info->local & GXM_KEEP_MEMORY_ON_CPU_RESET);
     gxm_dev = dev;
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, gxm_pci_read, gxm_pci_write, dev, &dev->pci_slot);

@@ -129,6 +129,28 @@ serial_do_irq(serial_t *dev, int set)
     }
 }
 
+/* Tells lsr_callback of a change of the LSR. */
+static void
+serial_lsr_changed(serial_t *dev)
+{
+    if ((dev->lsr_callback != NULL) && (dev->lsr != dev->lsr_told)) {
+        dev->lsr_told = dev->lsr;
+        dev->lsr_callback(dev, dev->lsr, dev->lsr_priv);
+    }
+}
+
+void
+serial_set_lsr_callback(serial_t *dev, void (*callback)(serial_t *serial, uint8_t lsr, void *priv), void *priv)
+{
+    dev->lsr_callback = callback;
+    dev->lsr_priv     = priv;
+
+    if (callback != NULL) {
+        dev->lsr_told = dev->lsr;
+        callback(dev, dev->lsr, priv);
+    }
+}
+
 void
 serial_update_ints(serial_t *dev)
 {
@@ -147,6 +169,9 @@ serial_update_ints(serial_t *dev)
     }
 
     serial_do_irq(dev, !(dev->iir & 0x01) && ((dev->mctrl & 8) || dev->irq_direct));
+
+    /* Every change of the LSR but the FIFOs' comes through here. */
+    serial_lsr_changed(dev);
 }
 
 /*
@@ -193,6 +218,26 @@ serial_receive_period(const serial_t *dev)
     return dev->rx_period ? dev->rx_period : dev->transmit_period;
 }
 
+/* Take the modem status lines from what is plugged into the port, and latch
+   the delta bits of the ones that changed. */
+static void
+serial_poll_status(serial_t *dev)
+{
+    uint8_t  prev_msr = dev->msr;
+    uint32_t flags    = dev->ep.be->status(dev->ep.be->priv);
+    uint8_t  mask     = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
+
+    dev->msr = (dev->msr & ~mask) | (flags & mask);
+    mask &= ~CHAR_COM_RI;
+    dev->msr |= ((prev_msr & mask) ^ (dev->msr & mask)) >> 4;
+    if ((prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
+        dev->msr |= CHAR_COM_RI >> 4;
+    if (dev->msr & 0x0f) {
+        dev->int_status |= SERIAL_INT_MSR;
+        serial_update_ints(dev);
+    }
+}
+
 static void
 serial_receive_timer(void *priv)
 {
@@ -214,20 +259,8 @@ serial_receive_timer(void *priv)
     /* The modem status lines do not change thousands of times a second, and
        querying them is not free on every host. */
     dev->status_divider++;
-    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL) && !(dev->status_divider & 0x3f)) {
-        uint8_t prev_msr = dev->msr;
-        uint32_t flags = dev->ep.be->status(dev->ep.be->priv);
-        uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
-        dev->msr = (dev->msr & ~mask) | (flags & mask);
-        mask &= ~CHAR_COM_RI;
-        dev->msr |= ((prev_msr & mask) ^ (dev->msr & mask)) >> 4;
-        if ((prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
-            dev->msr |= CHAR_COM_RI >> 4;
-        if (dev->msr & 0x0f) {
-            dev->int_status |= SERIAL_INT_MSR;
-            serial_update_ints(dev);
-        }
-    }
+    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL) && !(dev->status_divider & 0x3f))
+        serial_poll_status(dev);
 
     if (dev->fifo_enabled) {
         /* FIFO mode. */
@@ -770,6 +803,12 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                     serial_update_ints(dev);
                 }
             }
+            /* What is plugged in answers a change of DTR or RTS at once: a
+               wrap plug ties them straight to the modem status inputs, and
+               IBM's diagnostics read the MSR right after writing the MCR. */
+            if (!(val & 0x10) && ((old ^ val) & 0x03) && (dev->ep.be != NULL) &&
+                (dev->ep.be->control != NULL) && (dev->ep.be->status != NULL))
+                serial_poll_status(dev);
             break;
         case 5:
             dev->lsr = (dev->lsr & 0xe0) | (val & 0x1f);
@@ -968,6 +1007,7 @@ serial_rcvr_d_empty_evt(void *priv)
     serial_t *dev = (serial_t *) priv;
 
     dev->lsr = (dev->lsr & 0xfe) | (fifo_get_empty(dev->rcvr_fifo) ? 0 : 1);
+    serial_lsr_changed(dev);
 }
 
 static void
@@ -976,6 +1016,7 @@ serial_rcvr_d_overrun_evt(void *priv)
     serial_t *dev = (serial_t *) priv;
 
     dev->lsr = (dev->lsr & 0xfd) | (fifo_get_overrun(dev->rcvr_fifo) << 1);
+    serial_lsr_changed(dev);
 }
 
 static void
@@ -996,6 +1037,7 @@ serial_xmit_d_empty_evt(void *priv)
 
     dev->lsr = (dev->lsr & 0x9f) | (is_empty << 5) | ((dev->txsr_empty && is_empty) << 6);
     dev->int_status = (dev->int_status & ~SERIAL_INT_TRANSMIT) | (is_empty ? SERIAL_INT_TRANSMIT : 0);
+    serial_lsr_changed(dev);
 }
 
 static void
@@ -1237,8 +1279,13 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void)
 {
+    /* IBM 5150 and 5160 machines used the 8250(-B) based Asynchronous Communications Adapter,
+       while IBM 5170 machines used the 16450 based Serial/Parallel Adapter. The 8250(-B) has no
+       scratch register, and IBM OS/2's COM01.SYS would reject a 286 machine fitted with an 8250. */
+    const device_t *uart = (machine_get_type(machine) >= MACHINE_TYPE_286) ? &ns16450_device : &ns8250_device;
+
     while (next_inst < (SERIAL_MAX - 1))
-        device_add_inst(&ns8250_device, next_inst + 1);
+        device_add_inst(uart, next_inst + 1);
 }
 
 const device_t ns8250_device = {

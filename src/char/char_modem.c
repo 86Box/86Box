@@ -606,7 +606,6 @@ static void
 modem_run_command(modem_t *modem, int repeat)
 {
     modem_do_command(modem, repeat);
-    modem_profile_save(&modem->profile, modem_profile_state(modem));
 }
 static void modem_accept_incoming_call(modem_t *modem);
 static void modem_idle_impl(modem_t *modem);
@@ -4900,7 +4899,6 @@ modem_close(void *priv)
     timer_disable(&modem->host_to_serial_timer);
     timer_disable(&modem->cmdpause_timer);
 
-    modem_profile_save(&modem->profile, modem_profile_state(modem));
     modem->listen_port = 0;
     modem_reset(modem);
     sound_in_remove_handler(modem_voice_capture, modem);
@@ -5645,7 +5643,7 @@ static const device_config_t modem_config[] = {
 // clang-format on
 
 const device_t modem_device = {
-    .name          = "Standard Hayes-compliant Modem (char API)",
+    .name          = "Standard Hayes-compliant Modem",
     .internal_name = "char_modem",
     .flags         = DEVICE_COM | DEVICE_HOTPLUG,
     .local         = 0,

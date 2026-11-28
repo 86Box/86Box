@@ -18,6 +18,7 @@
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2024-2026 Jasmine Iwanek.
  *          Copyright      2026 win2kgamer
+ *          Copyright 2026 Xeon3D.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -5652,6 +5653,9 @@ sb_pro_compat_init(UNUSED(const device_t *info))
 
     sb->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_sbpro, sb);
+    /* the DSP records the host's input, as on the SB Pro cards. */
+    sound_in_add_handler(sb_put_buffer_sbpro, sb);
+    sound_in_start_input();
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sbpro, sb);
 
@@ -7537,6 +7541,18 @@ ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val)
         return;
 
     mpu401_write(addr, val, ess->mpu);
+}
+
+/* The native game port (PCI BAR4) is the same port as the legacy one. */
+void
+ess_solo1_legacy_native_gameport(void *priv, uint16_t addr)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if ((ess == NULL) || (ess->gameport == NULL))
+        return;
+
+    gameport_remap_alt(ess->gameport, addr, 0x04);
 }
 
 void
@@ -10400,4 +10416,64 @@ const device_t ess_1869_onboard_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = ess_1688_pnp_config
+};
+
+static void *
+sb_emu8008_legacy_init(UNUSED(const device_t *info))
+{
+    sb_t *sb = calloc(1, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    fm_driver_get_cs(FM_CQM, &sb->opl);
+
+    sb_dsp_set_real_opl(&sb->dsp, 1);
+    sb_dsp_init(&sb->dsp, SBAWE64_DSP_416, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled            = 1;
+    sb->mixer_sb16.output_filter = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
+    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+
+    sb_dsp_setaddr(&sb->dsp, 0x0220);
+    sb_dsp_setirq(&sb->dsp, 5);
+    sb_dsp_setdma8(&sb->dsp, 1);
+    sb_dsp_setdma16(&sb->dsp, 5);
+
+    io_sethandler(0x0220, 0x0004, sb->opl.read, NULL, NULL, sb->opl.write, NULL, NULL, sb->opl.priv);
+    io_sethandler(0x0228, 0x0002, sb->opl.read, NULL, NULL, sb->opl.write, NULL, NULL, sb->opl.priv);
+    io_sethandler(0x0388, 0x0004, sb->opl.read, NULL, NULL, sb->opl.write, NULL, NULL, sb->opl.priv);
+    io_sethandler(0x0224, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
+
+    return sb;
+}
+
+static void
+sb_emu8008_legacy_reset(void *priv)
+{
+    sb_t *sb = (sb_t *) priv;
+
+    if (sb == NULL)
+        return;
+
+    sb_doreset(&sb->dsp);
+    sb_ct1745_mixer_reset(sb);
+}
+
+const device_t sb_emu8008_legacy_device = {
+    .name          = "Creative Sound Blaster AWE64D Legacy SB16",
+    .internal_name = "sb_emu8008_legacy",
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
+    .local         = 0,
+    .init          = sb_emu8008_legacy_init,
+    .close         = sb_close,
+    .reset         = sb_emu8008_legacy_reset,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

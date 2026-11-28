@@ -251,6 +251,10 @@ typedef struct svga_t {
     /* Called on each new CRTC line, after vc advances. */
     void (*line_callback)(struct svga_t *svga);
 
+    /* Called for proprietary memory enables. */
+    int (*ven_mem_enabled)(void *priv);
+    void *ven_mem_enabled_priv;
+
     uint32_t (*translate_address)(uint32_t addr, void *priv);
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
@@ -481,6 +485,7 @@ extern void    bt481_recalctimings(void *priv, svga_t *svga);
 
 extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern void    bt48x_set_port_select(void *priv, int selected, svga_t *svga);
 extern void    bt48x_recalctimings(void *priv, svga_t *svga);
 extern void    bt48x_hwcursor_draw(svga_t *svga, int displine);
 

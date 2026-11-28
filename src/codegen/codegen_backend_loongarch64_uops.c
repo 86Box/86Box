@@ -923,6 +923,24 @@ codegen_MEM_STORE_IMM_32(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*Stores of an immediate through a pointer into cpu_state (handover_walk and
+  the seg_cs fast-path fields). The pointer's offset from cpu_state is a
+  link-time constant; emit_st_gpr() picks si12/stptr or the extended form.*/
+static int
+codegen_STORE_PTR_IMM(codeblock_t *block, uop_t *uop)
+{
+    host_loong64_mov_imm_w(block, REG_TEMP, (uint32_t) uop->imm_data);
+    host_loong64_STR_W_IMM(block, REG_TEMP, REG_CPUSTATE, (int) ((uintptr_t) uop->p - (uintptr_t) &cpu_state));
+    return 0;
+}
+static int
+codegen_STORE_PTR_IMM_8(codeblock_t *block, uop_t *uop)
+{
+    host_loong64_mov_imm(block, REG_TEMP, uop->imm_data);
+    host_loong64_STRB_IMM(block, REG_TEMP, REG_CPUSTATE, (int) ((uintptr_t) uop->p - (uintptr_t) &cpu_state));
+    return 0;
+}
+
 static int
 codegen_MOV(codeblock_t *block, uop_t *uop)
 {
@@ -2267,6 +2285,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_LOAD_FUNC_ARG_1_IMM & UOP_MASK] = codegen_LOAD_FUNC_ARG1_IMM,
     [UOP_LOAD_FUNC_ARG_2_IMM & UOP_MASK] = codegen_LOAD_FUNC_ARG2_IMM,
     [UOP_LOAD_FUNC_ARG_3_IMM & UOP_MASK] = codegen_LOAD_FUNC_ARG3_IMM,
+
+    [UOP_STORE_P_IMM & UOP_MASK]   = codegen_STORE_PTR_IMM,
+    [UOP_STORE_P_IMM_8 & UOP_MASK] = codegen_STORE_PTR_IMM_8,
 
     [UOP_MEM_LOAD_ABS & UOP_MASK] = codegen_MEM_LOAD_ABS,
     [UOP_MEM_LOAD_REG & UOP_MASK] = codegen_MEM_LOAD_REG,

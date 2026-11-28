@@ -62,6 +62,8 @@ void codegen_allocator_owner(int code_block, int owns);
 uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block);
 /*Cache clean memory block list*/
 void codegen_allocator_clean_blocks(struct mem_block_t *block);
+/*Record that the memory block at ptr is written up to ptr + len, for the clean*/
+void codegen_allocator_written(const uint8_t *ptr, uint32_t len);
 
 /* Branch classification helpers:
    - codegen_allocator_contains_host_ptr(): tells whether a host pointer targets

@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Jasmine Iwanek <jriwanek@gmail.com>
 Build-Depends: cmake (>= 3.21),
                debhelper-compat (= 13),
+               libarchive-dev,
                libevdev-dev,
                libfluidsynth-dev,
                libfreetype-dev,

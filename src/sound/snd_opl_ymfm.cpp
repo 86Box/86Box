@@ -113,7 +113,7 @@ public:
     {
         memset(m_samples, 0, sizeof(m_samples));
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
-        m_rateratio      = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
+        set_resample_rate();
         m_clock_us       = 1000000.0 / (double) m_clock;
         m_subtract[0]    = 80.0;
         m_subtract[1]    = 320.0;
@@ -171,7 +171,7 @@ public:
     {
         m_clock     = clock;
         m_clock_us  = 1000000.0 / (double) m_clock;
-        m_rateratio = (m_samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
+        set_resample_rate();
 
         ymfm_set_timer(0, m_duration_in_clocks[0]);
         ymfm_set_timer(1, m_duration_in_clocks[1]);
@@ -231,13 +231,14 @@ public:
                                    + m_samples[1] * m_samplecnt)
                                   / m_rateratio));
 
-            m_samplecnt += 1 << RSM_FRAC;
+            m_samplecnt += m_sample_step;
         }
     }
 
     virtual int32_t *update() override
     {
-        if (m_buf_pos >= *m_buf_pos_global)
+        /* The 48 kHz OPL4 daughterboard clocks the chip through generate(). */
+        if ((m_type == FM_YMF278B && is_48k()) || m_buf_pos >= *m_buf_pos_global)
             return m_buffer;
 
         if (m_48k)
@@ -255,11 +256,17 @@ public:
 
     virtual void write(uint16_t addr, uint8_t data) override
     {
+        // Render elapsed samples before a guest PCM data write changes the voice.
+        if (m_type == FM_YMF278B && (addr & 7) == 5)
+            update();
         m_chip.write(addr, data);
     }
 
     virtual uint8_t read(uint16_t addr) override
     {
+        // Advance the wavetable header load before reporting the LD flag.
+        if (m_type == FM_YMF278B && (addr & 7) == 0)
+            update();
         return m_chip.read(addr);
     }
 
@@ -293,6 +300,19 @@ public:
     }
 
 private:
+    void set_resample_rate()
+    {
+        const uint32_t native_rate = m_chip.sample_rate(m_clock);
+        if (m_type == FM_YMF278B) {
+            // Use the exact ratio so the chip stays in step with the MIDI timer.
+            m_rateratio = m_samplerate;
+            m_sample_step = native_rate;
+        } else {
+            m_rateratio = (m_samplerate << RSM_FRAC) / native_rate;
+            m_sample_step = 1 << RSM_FRAC;
+        }
+    }
+
     ChipType                       m_chip;
     uint32_t                       m_clock;
     double                         m_clock_us;
@@ -308,6 +328,7 @@ private:
     // Resampling
     int32_t m_rateratio;
     int32_t m_samplecnt;
+    int32_t m_sample_step;
     int32_t m_oldsamples[2];
     int32_t m_samples[2];
 
@@ -386,7 +407,7 @@ ymfm_drv_init(const device_t *info)
             break;
 
         case FM_YMF278B: /* OPL4 */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, FREQ_44100, is_48k, is_cs);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, is_48k ? FREQ_48000 : FREQ_44100, is_48k, is_cs);
             break;
 
         case FM_YM2413: /* OPLL */

@@ -51,6 +51,7 @@
 
 #ifdef USE_DYNAREC
 #    include "codegen.h"
+#    include "x86seg.h"
 #endif /* USE_DYNAREC */
 #include "x87_timings.h"
 
@@ -193,6 +194,7 @@ int cpu_prefetch_cycles;
 int cpu_prefetch_width;
 int cpu_mem_prefetch_cycles;
 int cpu_rom_prefetch_cycles;
+int cpu_mca_bus;
 int cpu_waitstates;
 int io_waitstates; /* Extra cycles added to IN/OUT instruction timing (x86_ops_io.h) -
                        cpu_waitstates only ever throttles memory bus cycles; this covers
@@ -250,6 +252,14 @@ int is286;
 int is386;
 int is6117;
 int is386ex;
+int retf_checks_eip_limit;
+int retf_stack_test;
+int call_far_stack_test;
+int call_far_checks_eip_limit;
+int int_frame_fault_restores;
+int call_gate_fault_restores;
+int far_load_order;
+int task_busy_undo;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -758,6 +768,364 @@ cpu_set(void)
     is6117  = !strcmp(cpu_f->manufacturer, "ALi");
     is386ex = (cpu_f->package == CPU_PKG_386EX);
 
+    /* Far RET tests the return EIP against the new CS limit (#GP(0)) only on
+       the processors whose own manuals state that test. The 1997 Intel
+       Architecture manual vol. 2 p. 3-409, the Pentium Pro manual vol. 2
+       p. 11-337 and the 1999 one p. 3-610 also test the 16-bit form's IP
+       against the CS limit in real and virtual 8086 mode, before CS is
+       popped. */
+    switch (cpu_s->cpu_type) {
+        case CPU_286:
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+            retf_checks_eip_limit = RETF_EIP_TEST_PMODE;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            retf_checks_eip_limit = RETF_EIP_TEST_ALL_MODES;
+            break;
+        case CPU_386SX:
+            retf_checks_eip_limit = is6117 ? RETF_EIP_TEST_NONE : RETF_EIP_TEST_PMODE;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            retf_checks_eip_limit = (cpu_s->cyrix_id <= 0x0001) ? RETF_EIP_TEST_PMODE : RETF_EIP_TEST_NONE;
+            break;
+        default:
+            retf_checks_eip_limit = RETF_EIP_TEST_NONE;
+            break;
+    }
+
+    /* Protected mode far RET tests the stack items it pops against the SS
+       limits (#SS(0)) only on the processors whose own manuals give the
+       place of that test among the other checks. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386SX:
+        case CPU_386DX:
+            /* Not the Am386 or the M6117. */
+            retf_stack_test = !strcmp(cpu_f->manufacturer, "Intel") ? RETF_STACK_TEST_FRAME_FIRST : RETF_STACK_TEST_NONE;
+            break;
+        case CPU_286:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            retf_stack_test = RETF_STACK_TEST_FRAME_FIRST;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            retf_stack_test = RETF_STACK_TEST_CS_FIRST;
+            break;
+        default:
+            retf_stack_test = RETF_STACK_TEST_NONE;
+            break;
+    }
+
+    /* Far CALL to a code segment tests the room for the whole return
+       address (#SS(0)) before anything is written, only on the processors
+       whose own manuals list that test: 80286 PRM p. B-24, 386DX PRM
+       p. 17-42, i486 PRM p. 26-46, Am486 Software User's Manual p. 2-21 and
+       Pentium manual (1995) p. 25-52 in protected mode; the 1997 Intel
+       Architecture manual vol. 2 p. 3-42 and the 1999 one p. 3-57 in real
+       and virtual 8086 mode as well. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386SX:
+        case CPU_386DX:
+            /* Not the Am386 or the M6117. */
+            call_far_stack_test = !strcmp(cpu_f->manufacturer, "Intel") ? CALL_FAR_TEST_PMODE : CALL_FAR_TEST_NONE;
+            break;
+        case CPU_286:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            call_far_stack_test = CALL_FAR_TEST_PMODE;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            call_far_stack_test = CALL_FAR_TEST_ALL_MODES;
+            break;
+        default:
+            call_far_stack_test = CALL_FAR_TEST_NONE;
+            break;
+    }
+
+    /* Far CALL to a code segment tests the target offset against the limit
+       of the new code segment (#GP(0)) before CS is loaded, only on the
+       processors whose own manuals state that fault: the pages above, and
+       note r of the instruction summary in the Am386 data book (1992), the
+       Cx486SLC and Cx486DLC data sheets, the 6x86 data book p. 6-28, the
+       6x86MX and M II data books and the MediaGX MMX data book. */
+    switch (cpu_s->cpu_type) {
+        case CPU_286:
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+            call_far_checks_eip_limit = CALL_FAR_TEST_PMODE;
+            break;
+        case CPU_386SX:
+            call_far_checks_eip_limit = is6117 ? CALL_FAR_TEST_NONE : CALL_FAR_TEST_PMODE;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            call_far_checks_eip_limit = (cpu_s->cyrix_id <= 0x0001) ? CALL_FAR_TEST_PMODE : CALL_FAR_TEST_NONE;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            call_far_checks_eip_limit = CALL_FAR_TEST_ALL_MODES;
+            break;
+        default:
+            call_far_checks_eip_limit = CALL_FAR_TEST_NONE;
+            break;
+    }
+
+    /* A faulting push of an inner-level interrupt frame puts the stack of
+       the interrupted program back, and a virtual 8086 mode program keeps
+       DS, ES, FS and GS, only on the processors whose own manuals state
+       that a fault leaves the state from before the faulting instruction:
+       386DX PRM p. 9-2, 386SX PRM chapter 9 (the 386EX manual refers to
+       it), i486 PRM p. 9-2, Pentium manual (1995) vol. 3 p. 14-2 (the
+       P24T manual refers to it), the 1997 Intel Architecture manual vol. 3
+       section 5.3 and the 1999 one p. 5-4, Am386 data book (1992) p. 33,
+       Am486 Software User's Manual p. A-4, AMD-K5 Technical Reference
+       Manual p. 5-12, Cx486SLC and Cx486DLC data sheets p. 2-39, and the
+       instruction restart text of the 6x86, 6x86MX, M II and MediaGX MMX
+       data books. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_PENTIUMMMX:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_K5:
+        case CPU_5K86:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            int_frame_fault_restores = 1;
+            break;
+        case CPU_386SX:
+            /* Not the M6117. */
+            int_frame_fault_restores = !is6117;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            int_frame_fault_restores = (cpu_s->cyrix_id <= 0x0001);
+            break;
+        default:
+            int_frame_fault_restores = 0;
+            break;
+    }
+
+    /* A fault in a CALL through a call gate to a more privileged level, after
+       the new CS, stack and CPL are loaded (the parameter copy or a push),
+       puts back the caller's CS, stack and CPL, only on the Intel processors
+       whose own manuals give both the order and that a fault leaves the
+       state from before the instruction: the 80286 PRM (pp. 9-9, 9-10, B-24,
+       7-20), the 386DX PRM (pp. 9-2, 17-43), the i486 PRM (pp. 9-2, 26-47),
+       the Pentium manual (1995) vol. 3 (pp. 14-2, 25-53), the Pentium Pro
+       manual vol. 3 p. 5-4 and the 1999 Intel Architecture manual vol. 2
+       (pp. 3-59, 3-60). Every other processor puts back the selectors
+       alone. */
+    switch (cpu_s->cpu_type) {
+        case CPU_286:
+        case CPU_386SX:
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_i486DX:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            /* Not the Am386, the M6117 or another maker's 286. */
+            call_gate_fault_restores = !strcmp(cpu_f->manufacturer, "Intel");
+            break;
+        default:
+            call_gate_fault_restores = 0;
+            break;
+    }
+
+    /* Where a far transfer loads the new CS and SS descriptors (and so sets
+       their Accessed bits) among its other steps, only on the processors
+       whose own manuals give the order. The 80286 PRM (pp. B-24, B-49, B-52,
+       B-95), the 386DX PRM (pp. 17-42, 17-74, 17-80, 17-148), the i486 PRM
+       (pp. 26-46, 26-167, 26-175, 26-248), the Am486 Software User's Manual
+       (CALL, INT, IRET, RET) and the Pentium manual (1995, pp. 25-52,
+       25-174, 25-187, 25-272): CS, then SS, both before the pushes of a
+       call gate or an interrupt to an inner level and on RET and IRET to an
+       outer level; a call gate to the same level pushes the return address
+       first. The 1997 Intel Architecture manual vol. 2 (pp. 3-43, 3-223,
+       3-409) and the 1999 one (pp. 3-57, 3-59, 3-60, 3-311, 3-611): SS,
+       then CS, both before the pushes to an inner level; CS, then SS on RET
+       to an outer level; a far CALL to a code segment pushes the return
+       address first. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386SX:
+        case CPU_386DX:
+            /* Not the Am386 or the M6117. */
+            far_load_order = !strcmp(cpu_f->manufacturer, "Intel") ? FAR_LOAD_ORDER_PRM : FAR_LOAD_ORDER_NONE;
+            break;
+        case CPU_286:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            far_load_order = FAR_LOAD_ORDER_PRM;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            far_load_order = FAR_LOAD_ORDER_IA;
+            break;
+        default:
+            far_load_order = FAR_LOAD_ORDER_NONE;
+            break;
+    }
+#ifdef USE_DYNAREC
+    /* Their entries hold loads made under the previous CPU class and bus */
+    seg_load_cache_flush();
+    cs_load_cache_flush();
+#endif
+
+    /* Whether a task switch that faults after marking the new TSS busy
+       (clearing the old task's Busy bit for a JMP, writing the new TSS's
+       link field for a CALL or an interrupt) marks the new TSS available
+       again. The Pentium Pro manual (1996, vol. 3, 6.3, p. 6-11), the 1997
+       Intel Architecture manual (vol. 3, 6.3, pp. 6-11 and 6-12) and the
+       1999 one (vol. 3, 6.3, pp. 6-11 and 6-12) set the new task's Busy flag
+       only after the point from which the switch completes, and an error
+       before it leaves the processor as it was before the instruction. */
+    switch (cpu_s->cpu_type) {
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            task_busy_undo = 1;
+            break;
+        default:
+            task_busy_undo = 0;
+            break;
+    }
+
+    /* Which kinds of cpl_override write skip the CR0.WP test. The i486 PRM
+       (6.8.3, p. 6-24), the Pentium manual (1995, vol. 3, 12.8.3, p. 12-26)
+       and the Am486 Software User's Manual (A.2.3.8.3, p. A-42) check the
+       descriptor tables, the TSS and the inner stack as accesses at
+       privilege level 0, which WP=1 keeps out of read-only pages; the P24T
+       and Am5x86 sheets defer to those books. The Pentium Pro manual (1996,
+       vol. 3, 4.11.5, p. 4-28) and the 1999 Intel Architecture manual (vol.
+       3, 4.11.5, p. 4-32) list the descriptor tables and the inner stack
+       but not the TSS; the Cx486SLC and Cx486DLC data sheets, the 6x86,
+       6x86MX and M II data books (p. 2-14) and the MediaGX MMX data book
+       (1998, p. 49) have WP=1 fault a write to a read-only page from any
+       privilege level, with nothing on a task switch. On those a task
+       switch's writes, its Busy bits included, keep the exemption. Every
+       other processor keeps every kind exempt. */
+    switch (cpu_s->cpu_type) {
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            cpl_override_wp_exempt = 0;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            cpl_override_wp_exempt = CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
+            if (cpu_s->cyrix_id > 0x0001)
+                cpl_override_wp_exempt |= CPL_OVERRIDE_ON;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            cpl_override_wp_exempt = CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
+            break;
+        default:
+            cpl_override_wp_exempt = CPL_OVERRIDE_ON | CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
+            break;
+    }
+
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");
 
@@ -826,6 +1194,11 @@ cpu_set(void)
         cpu_rom_prefetch_cycles = (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
     else
         cpu_rom_prefetch_cycles = (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+
+    /* MCA PS/2 boards copy the BIOS ROM to RAM after POST and disable the
+       ROM (PS/2 Model 70 Technical Reference, May 1988, p. 39 of the PDF),
+       so prefetch_run() does not stretch their ROM fetches. */
+    cpu_mca_bus = !!machine_has_bus(machine, MACHINE_BUS_MCA | MACHINE_BUS_MCA32);
 
     io_delay_multi = 0;
     if ((machines[machine].init == machine_xt_ibm5550_init) ||
@@ -2350,6 +2723,8 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_VME;
+                if (fpu_type == FPU_487SX)
+                    EDX |= CPUID_FPU;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;

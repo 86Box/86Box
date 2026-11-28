@@ -86,6 +86,7 @@ extern void     d86f_reset_index_hole_pos(void *priv, int side);
 extern uint16_t d86f_prepare_pretrack(void *priv, int side, int iso);
 extern void     d86f_set_track_pos(void *priv, uint32_t track_pos);
 extern uint32_t d86f_get_track_pos(void *priv);
+extern int      d86f_index(void *priv);
 extern uint32_t d86f_get_raw_size(void *priv, int side);
 extern void     d86f_set_cur_track(void *priv, int track);
 extern void     d86f_zero_track(void *priv);
@@ -98,8 +99,8 @@ extern void     null_writeback(void *priv);
 extern void     null_write_data(void *priv, int side, uint16_t pos, uint8_t data);
 extern int      null_format_conditions(void *priv);
 extern int32_t  null_extra_bit_cells(void *priv, int side);
+extern uint32_t null_index_hole_pos(void *priv, int side);
 extern void     null_set_sector(void *priv, int side,
                                 uint8_t c, uint8_t h, uint8_t r, uint8_t n);
-extern uint32_t null_index_hole_pos(void *priv, int side);
 
 #endif /*EMU_FLOPPY_86F_H*/

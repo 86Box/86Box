@@ -179,7 +179,10 @@ machine_at_cubx_init(const machine_t *model)
 
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    /* PANSWOUT# goes to the PIIX4 LID input (PANSWIN# is not connected), where
+       the DSDT has the keyboard and mouse wake on GPE 0Bh; the BIOS sets
+       LID_POL for the active low pulse. */
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR | W83977_PANSWOUT_LID));
     device_add(machine_get_ide_device(machine));
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
@@ -1176,12 +1179,16 @@ machine_at_ms6318_init(const machine_t *model)
 int
 machine_at_m790mr_init(const machine_t *model)
 {
-    /* The 686A's I/O APIC has the ISA IRQs on their own inputs. The BIOS's
-       MP table puts each PCI interrupt on the input of the IRQ it steered
-       that PIRQ to (00:0A INTA# on INTIN5 with PIRQC# at IRQ5), level and
-       active low, so the steered PIRQs reach the I/O APIC there. */
+    /* The 686A's I/O APIC has the ISA IRQs on their own inputs, and PIRQ
+       A-D on INTIN16-19. The BIOS's MP table puts each PCI interrupt on the
+       input of the IRQ it steered that PIRQ to (00:0A INTA# on INTIN5 with
+       PIRQC# at IRQ5), level and active low, while its ACPI _PRT puts it on
+       the PIRQ's own input (00:09 INTA# on GSI 17), so the steered PIRQs
+       reach the I/O APIC both ways. */
     static const ioapic_legacy_irq_routing_t m790mr_irq_routing = {
-        .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_ISA
+        .irq_to_intin     = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin    = IOAPIC_PIRQ_ROUTE_82093AA,
+        .pirq_steered_isa = 1
     };
     void *pipc;
     void *ioapic;

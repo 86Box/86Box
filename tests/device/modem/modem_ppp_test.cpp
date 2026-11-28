@@ -574,6 +574,58 @@ TEST(ModemPpp, AppliesMppcBeforeMppeAndReversesBothOnReceive)
     ppp_ccp_codec_close(&rx);
 }
 
+TEST(ModemPpp, CompressionOnlyNegotiationCarriesTrafficBothWays)
+{
+    ppp_ctx_t modem = make_context();
+    ppp_ctx_t client = make_context();
+    ras_capture_t modem_capture;
+    ras_capture_t client_capture;
+    modem.state = client.state = PPP_STATE_NETWORK;
+    modem.modem = &modem_capture;
+    modem.serial_push = capture_ras_serial;
+    modem.network_send_ip = capture_ras_network;
+    modem.mppe_keys_ready = true;
+    modem.mppe_allowed_bits = CCP_MPPE_KEY_BITS;
+    modem.ppp_compression = PPP_COMPRESSION_PREFER_MPPC;
+    ppp_ccp_start(&modem);
+    const uint8_t peer_request[] = {
+        PPP_CODE_CONFIGURE_REQUEST, 1, 0, 10, 18, 6, 0, 0, 0, 1
+    };
+    ppp_ccp_process(&modem, peer_request, sizeof(peer_request));
+    std::vector<uint8_t> ack(modem.ccp_request, modem.ccp_request + modem.ccp_request_len);
+    ack[0] = PPP_CODE_CONFIGURE_ACK;
+    ppp_ccp_process(&modem, ack.data(), static_cast<int>(ack.size()));
+    ASSERT_TRUE(modem.ccp_open);
+    ASSERT_FALSE(modem.mppe_tx_enabled);
+    ASSERT_FALSE(modem.mppe_rx_enabled);
+
+    client.modem = &client_capture;
+    client.serial_push = capture_ras_serial;
+    client.network_send_ip = capture_ras_network;
+    client.ccp_open = true;
+    ASSERT_TRUE(ppp_ccp_codec_set(&client, true, PPP_CCP_METHOD_MPPC));
+    ASSERT_TRUE(ppp_ccp_codec_set(&client, false, PPP_CCP_METHOD_MPPC));
+    const auto request = make_tcp_packet(1, 100);
+    ppp_send_frame(&client, PPP_PROTO_IP, request.data(), static_cast<int>(request.size()));
+    uint16_t protocol = 0;
+    auto payload = decode_captured_frame(client_capture.serial, protocol);
+    ASSERT_EQ(protocol, PPP_PROTO_MPPE);
+    send_frame(&modem, payload, false, protocol);
+    ASSERT_EQ(modem_capture.packets.size(), 1u);
+    EXPECT_EQ(modem_capture.packets[0], request);
+
+    modem_capture.serial.clear();
+    const auto reply = make_tcp_packet(2, 200);
+    ppp_send_frame(&modem, PPP_PROTO_IP, reply.data(), static_cast<int>(reply.size()));
+    payload = decode_captured_frame(modem_capture.serial, protocol);
+    ASSERT_EQ(protocol, PPP_PROTO_MPPE);
+    send_frame(&client, payload, false, protocol);
+    ASSERT_EQ(client_capture.packets.size(), 1u);
+    EXPECT_EQ(client_capture.packets[0], reply);
+    ppp_ccp_codec_close(&modem);
+    ppp_ccp_codec_close(&client);
+}
+
 TEST(ModemPpp, DecodesWindows2000MppcFrames)
 {
     ppp_ctx_t rx = make_context();
@@ -585,10 +637,9 @@ TEST(ModemPpp, DecodesWindows2000MppcFrames)
     rx.mppe_allowed_bits = CCP_MPPE_KEY_BITS;
     rx.ppp_compression = PPP_COMPRESSION_PREFER_MPPC;
     ppp_ccp_start(&rx);
-    const uint8_t peer_request[] = {
-        PPP_CODE_CONFIGURE_REQUEST, 4, 0, 10, 18, 6, 0, 0, 0, 1
-    };
-    ppp_ccp_process(&rx, peer_request, sizeof(peer_request));
+    /* Exercise the receive-side safeguard for an already asymmetric session. */
+    rx.ccp_ack_sent = true;
+    ASSERT_TRUE(ppp_ccp_codec_set(&rx, true, PPP_CCP_METHOD_MPPC));
     const uint8_t nak[] = {
         PPP_CODE_CONFIGURE_NAK, rx.ccp_request_id, 0, 10, 18, 6, 0, 0, 0, 0x41
     };

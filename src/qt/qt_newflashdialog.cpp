@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          New USB flash drive image dialog.
+ *          New flash image dialog.
  *
  * Authors: skiretic, <skiretic@proton.me>
  *
@@ -40,15 +40,16 @@ extern "C" {
 /* Size presets in MB; 0 is Custom. */
 static const int flash_presets[] = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 0 };
 
-NewFlashDialog::NewFlashDialog(QWidget *parent)
+NewFlashDialog::NewFlashDialog(QWidget *parent, const QString &title)
     : QDialog(parent)
 {
-    setWindowTitle(tr("New USB flash drive"));
+    setWindowTitle(title.isEmpty() ? tr("New USB flash drive") : title);
 
     auto *form = new QFormLayout(this);
+    util::setupFormLayout(form);
 
     lineEditFile    = new QLineEdit(this);
-    auto *browse    = new QPushButton(tr("&Specify…"), this);
+    auto *browse    = new QPushButton(tr("Browse…"), this);
     auto *fileRow   = new QHBoxLayout();
     fileRow->addWidget(lineEditFile);
     fileRow->addWidget(browse);
@@ -91,7 +92,7 @@ NewFlashDialog::NewFlashDialog(QWidget *parent)
     connect(browse, &QPushButton::clicked, this, [this] {
         /* Replacing a file is confirmed once, on OK. */
         QString name = QFileDialog::getSaveFileName(this, tr("Create…"), QString(),
-                                                    tr("Raw images") % util::DlgFilter({ "img" }, true), nullptr,
+                                                    tr("Raw image") % util::DlgFilter({ "img" }, true), nullptr,
                                                     QFileDialog::DontConfirmOverwrite);
         if (name.isEmpty())
             return;
@@ -165,7 +166,7 @@ NewFlashDialog::accept()
     const int       fs    = comboBoxFormat->currentData().toInt();
 
     if (QFileInfo::exists(name) &&
-        (QMessageBox::warning(this, tr("New USB flash drive"), tr("%1 already exists. Replace it?").arg(name),
+        (QMessageBox::warning(this, windowTitle(), tr("%1 already exists. Replace it?").arg(name),
                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes))
         return;
 
@@ -174,7 +175,7 @@ NewFlashDialog::accept()
     unsetCursor();
 
     if (!ok) {
-        QMessageBox::critical(this, tr("New USB flash drive"), tr("Could not create %1.").arg(name));
+        QMessageBox::critical(this, windowTitle(), tr("Could not create %1.").arg(name));
         return;
     }
 

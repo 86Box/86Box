@@ -29,6 +29,7 @@
 #    include <windows.h>
 #endif
 
+#include <86box/fs_name.h>
 #include <86box/86box.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -49,6 +50,7 @@ extern SDL_Window         *sdl_win;
 
 int             rctrl_is_lalt;
 int             update_icons;
+int             usb_activity = 1;
 int             kbd_req_capture;
 int             hide_status_bar;
 int             hide_tool_bar;
@@ -213,7 +215,7 @@ main_thread(UNUSED(void *param))
 #else
     SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 #endif
-    runctl_run_loop(main_thread_pass);
+    runctl_thread_run_loop(main_thread_pass);
 }
 
 thread_t *thMain = NULL;
@@ -326,6 +328,7 @@ main(int argc, char **argv)
     SDL_Event event;
     int       ret = 0;
 
+    fs_codepage_init();
     SDL_Init(0);
     ret = pc_init(argc, argv);
     if (ret == 0)

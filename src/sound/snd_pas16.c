@@ -114,9 +114,9 @@
 #include <86box/pit.h>
 #include <86box/pit_fast.h>
 #include <86box/rom.h>
+#include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
-#include <86box/scsi_t128.h>
 #include <86box/snd_mpu401.h>
 #include <86box/sound.h>
 #include <86box/snd_opl.h>
@@ -182,6 +182,19 @@ typedef struct mv508_mixer_t {
     uint8_t index;
     uint8_t regs[3][128];
 } mv508_mixer_t;
+
+typedef struct pas_scsi_t {
+    ncr_t ncr;
+
+    uint8_t status;
+    uint8_t buffer[512];
+
+    int block_loaded;
+    int pos;
+    int host_pos;
+
+    pc_timer_t drq_timer;
+} pas_scsi_t;
 
 typedef struct pas16_t {
     uint8_t  this_id;
@@ -275,7 +288,7 @@ typedef struct pas16_t {
 
     pitf_t * pit;
 
-    t128_t * scsi;
+    pas_scsi_t scsi;
 
     pc_timer_t scsi_timer;
 
@@ -307,6 +320,7 @@ static void    pas16_update(pas16_t *pas16);
 static int pas16_dmas[8]    = { 4, 1, 2, 3, 0, 5, 6, 7 };
 static int pas16_sb_irqs[8] = { 0, 2, 3, 5, 7, 10, 11, 12 };
 static int pas16_sb_dmas[8] = { 0, 1, 2, 3 };
+static int pas16_scsi_irqs[16] = { -1, 9, 3, 4, 5, 6, 7, 10, 11, 12, -1, -1, 15, -1, -1, -1};
 
 enum {
     PAS16_INT_SAMP = 0x04,
@@ -738,6 +752,108 @@ pas_in(uint16_t port, void *priv);
 static void
 pas_out(uint16_t port, uint8_t val, void *priv);
 
+static int
+pas_scsi_irq_enable(void *priv, UNUSED(void *ext_priv), int state)
+{
+    ncr_t *ncr = (ncr_t *) priv;
+
+    if (ncr->irq_state != state) {
+        ncr->irq_state = state;
+
+        pas16_log("NCR IRQ=%d, state=%02x.\n", ncr->irq, state);
+        ncr5380_irq(ncr, state);
+    }
+    return 1;
+}
+
+static int
+pas16_scsi_irq_enable(void *priv, void *ext_priv, int state)
+{
+    pas16_t *pas16 = (pas16_t *) ext_priv;
+    ncr_t *ncr = (ncr_t *) priv;
+
+    if (ncr->irq_state != state) {
+        ncr->irq_state = state;
+
+        if (pas16->sys_conf_4 & 0x20) {
+            pas16_log("NCR IRQ=%d, state=%02x.\n", ncr->irq, state);
+            ncr5380_irq(ncr, state);
+        }
+    }
+    return 1;
+}
+
+static void
+pas_scsi_dma_mode_ext(void *priv, void *ext_priv, uint8_t val)
+{
+    pas16_t     *pas16  = (pas16_t *) ext_priv;
+    ncr_t       *ncr    = (ncr_t *) priv;
+    scsi_bus_t  *scsi_bus = &ncr->scsibus;
+
+    if ((val & MODE_DMA) && !(ncr->old_mode & MODE_DMA))
+        ncr->irq_ena(ncr, ncr->priv, 1);
+    else if (!(val & MODE_DMA) && (ncr->old_mode & MODE_DMA))
+        ncr->irq_ena(ncr, ncr->priv, 0);
+
+    /*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
+    if (!pas16->scsi.block_loaded) {
+        if (!(val & MODE_DMA)) {
+            ncr->tcr &= ~TCR_LAST_BYTE_SENT;
+            ncr->isr &= ~STATUS_END_OF_DMA;
+            scsi_bus->tx_mode = PIO_TX_BUS;
+            pas16_log("%04X:%08X: End of DMA, ID=%d.\n", CS, cpu_state.pc, scsi_bus->target_id);
+        }
+    }
+}
+
+static int
+pas_scsi_dma_send_ext(void *priv, void *ext_priv)
+{
+    pas16_t         *pas16  = (pas16_t *) ext_priv;
+    ncr_t           *ncr    = (ncr_t *) priv;
+    scsi_bus_t      *scsi_bus = &ncr->scsibus;
+    scsi_device_t   *dev    = &scsi_devices[ncr->bus][scsi_bus->target_id];
+
+    if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
+        memset(pas16->scsi.buffer, 0, MIN(512, dev->buffer_length));
+        pas16->scsi.host_pos = 0;
+
+        pas16->scsi.block_loaded = 1;
+        pas16->scsi.status |= 0x04;
+    }
+    return 1;
+}
+
+static int
+pas_scsi_dma_initiator_receive_ext(void *priv, void *ext_priv)
+{
+    pas16_t         *pas16  = (pas16_t *) ext_priv;
+    ncr_t           *ncr    = (ncr_t *) priv;
+    scsi_bus_t      *scsi_bus = &ncr->scsibus;
+    scsi_device_t   *dev    = &scsi_devices[ncr->bus][scsi_bus->target_id];
+
+    if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
+        memset(pas16->scsi.buffer, 0, MIN(512, dev->buffer_length));
+        pas16->scsi.host_pos = MIN(512, dev->buffer_length);
+
+        pas16->scsi.block_loaded = 1;
+        pas16->scsi.status &= ~0x04;
+        timer_on_auto(&pas16->scsi.drq_timer, 10.0);
+    }
+    return 1;
+}
+
+static void
+pas_scsi_timer_on_auto(void *ext_priv, double period)
+{
+    pas16_t *pas16 = (pas16_t *) ext_priv;
+
+    if (period <= 0.0)
+        timer_stop(&pas16->scsi.drq_timer);
+    else if ((period > 0.0) && !timer_is_enabled(&pas16->scsi.drq_timer))
+        timer_on_auto(&pas16->scsi.drq_timer, period);
+}
+
 static void
 pas16_update_irq(pas16_t *pas16)
 {
@@ -785,8 +901,10 @@ static uint8_t
 pas_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
-    scsi_bus_t *scsi_bus = NULL;
-    uint8_t  ret   = 0xff;
+    ncr_t *ncr = &pas16->scsi.ncr;
+    scsi_bus_t *scsi_bus = &ncr->scsibus;
+    scsi_device_t *dev = NULL;
+    uint8_t ret = 0xff;
 
     port -= 0x388;
 
@@ -865,7 +983,7 @@ pas_in(uint16_t port, void *priv)
         case 0x1c00 ... 0x1c03:    /* NCR5380 ports 0 to 3. */
         case 0x3c00 ... 0x3c03:    /* NCR5380 ports 4 to 7. */
             if (pas16->has_scsi)
-                ret = ncr5380_read((port & 0x0003) | ((port & 0x2000) >> 11), &pas16->scsi->ncr);
+                ret = ncr5380_read((port & 0x0003) | ((port & 0x2000) >> 11), ncr);
             break;
 
         case 0x2401:    /* Board revision */
@@ -880,26 +998,45 @@ pas_in(uint16_t port, void *priv)
             break;
 
         case 0x5c00:
-            if (pas16->has_scsi)
-                ret = t128_read(0x1e00, pas16->scsi);
+            if (pas16->has_scsi) {
+                dev = &scsi_devices[ncr->bus][scsi_bus->target_id];
+                if ((scsi_bus->tx_mode == DMA_IN_TX_BUS) &&
+                    (pas16->scsi.host_pos < MIN(512, dev->buffer_length))) {
+                    ret = pas16->scsi.buffer[pas16->scsi.host_pos++];
+
+                    if (pas16->scsi.host_pos == MIN(512, dev->buffer_length)) {
+                        pas16->scsi.status &= ~0x04;
+                        if (!pas16->scsi.block_loaded) {
+                            ncr->isr |= STATUS_END_OF_DMA;
+                            if (ncr->mode & MODE_ENA_EOP_INT) {
+                                ncr->irq_ena(ncr, ncr->priv, 1);
+                                ncr->isr |= STATUS_INT;
+                            }
+                            scsi_bus->bus_out |= BUS_CD;
+                            scsi_bus->tx_mode = PIO_TX_BUS;
+                            timer_stop(&pas16->scsi.drq_timer);
+                        } else if (!timer_is_enabled(&pas16->scsi.drq_timer))
+                            timer_on_auto(&pas16->scsi.drq_timer, 1.0);
+                    }
+                }
+            }
             break;
         case 0x5c01:
             if (pas16->has_scsi) {
-                scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
-                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi.status & 0x04)) << 7) | 0x7f;
                 if ((scsi_bus->tx_mode == PIO_TX_BUS) && !(ret & 0x80))
                     ret |= 0x80;
 
-                if ((pas16->scsi->status & 0x06) == 0x00)
+                if ((pas16->scsi.status & 0x06) == 0x00)
                     ret = 0x00;
 
-                pas16_log("%04X:%08X: Port %04x read ret=%02x, status=%02x, txmode=%x, repeat=%d, total=%d.\n", CS, cpu_state.pc, port + 0x388, ret, pas16->scsi->status & 0x06, scsi_bus->tx_mode, scsi_bus->data_repeat, MIN(511, scsi_bus->total_len));
+                pas16_log("%04X:%08X: Port %04x read ret=%02x, status=%02x, txmode=%x.\n", CS, cpu_state.pc, port + 0x388, ret, pas16->scsi.status & 0x06, scsi_bus->tx_mode);
             }
             break;
         case 0x5c03:
             if (pas16->has_scsi)
-                ret = pas16->scsi->ncr.irq_state << 7;
+                ret = ncr->irq_state << 7;
             break;
 
         case 0x7c01:
@@ -938,7 +1075,9 @@ static uint8_t
 pas16_in(uint16_t port, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
-    scsi_bus_t *scsi_bus = NULL;
+    ncr_t *ncr = &pas16->scsi.ncr;
+    scsi_bus_t *scsi_bus = &ncr->scsibus;
+    scsi_device_t *dev = NULL;
     uint8_t  ret   = 0xff;
 
     port -= pas16->base;
@@ -1000,7 +1139,7 @@ pas16_in(uint16_t port, void *priv)
         case 0x1c00 ... 0x1c03:    /* NCR5380 ports 0 to 3. */
         case 0x3c00 ... 0x3c03:    /* NCR5380 ports 4 to 7. */
             if (pas16->has_scsi)
-                ret = ncr5380_read((port & 0x0003) | ((port & 0x2000) >> 11), &pas16->scsi->ncr);
+                ret = ncr5380_read((port & 0x0003) | ((port & 0x2000) >> 11), ncr);
             break;
 
         case 0x2401:    /* Board revision */
@@ -1015,26 +1154,45 @@ pas16_in(uint16_t port, void *priv)
             break;
 
         case 0x5c00:
-            if (pas16->has_scsi)
-                ret = t128_read(0x1e00, pas16->scsi);
+            if (pas16->has_scsi) {
+                dev = &scsi_devices[ncr->bus][scsi_bus->target_id];
+                if ((scsi_bus->tx_mode == DMA_IN_TX_BUS) &&
+                    (pas16->scsi.host_pos < MIN(512, dev->buffer_length))) {
+                    ret = pas16->scsi.buffer[pas16->scsi.host_pos++];
+
+                    if (pas16->scsi.host_pos == MIN(512, dev->buffer_length)) {
+                        pas16->scsi.status &= ~0x04;
+                        if (!pas16->scsi.block_loaded) {
+                            ncr->isr |= STATUS_END_OF_DMA;
+                            if (ncr->mode & MODE_ENA_EOP_INT) {
+                                ncr->irq_ena(ncr, ncr->priv, 1);
+                                ncr->isr |= STATUS_INT;
+                            }
+                            scsi_bus->bus_out |= BUS_CD;
+                            scsi_bus->tx_mode = PIO_TX_BUS;
+                            timer_stop(&pas16->scsi.drq_timer);
+                        } else if (!timer_is_enabled(&pas16->scsi.drq_timer))
+                            timer_on_auto(&pas16->scsi.drq_timer, 1.0);
+                    }
+                }
+            }
             break;
         case 0x5c01:
             if (pas16->has_scsi) {
-                scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
-                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi.status & 0x04)) << 7) | 0x7f;
                 if ((scsi_bus->tx_mode == PIO_TX_BUS) && !(ret & 0x80))
                     ret |= 0x80;
 
-                if ((pas16->scsi->status & 0x06) == 0x00)
+                if ((pas16->scsi.status & 0x06) == 0x00)
                     ret = 0x00;
 
-                pas16_log("%04X:%08X: Port %04x read ret=%02x, status=%02x, txmode=%x, repeat=%d, total=%d.\n", CS, cpu_state.pc, port + pas16->base, ret, pas16->scsi->status & 0x06, scsi_bus->tx_mode, scsi_bus->data_repeat, MIN(511, scsi_bus->total_len));
+                pas16_log("%04X:%08X: Port %04x read ret=%02x, status=%02x, txmode=%x.\n", CS, cpu_state.pc, port + 0x388, ret, pas16->scsi.status & 0x06, scsi_bus->tx_mode);
             }
             break;
         case 0x5c03:
             if (pas16->has_scsi)
-                ret = pas16->scsi->ncr.irq_state << 7;
+                ret = ncr->irq_state << 7;
             break;
 
         case 0x7c01:
@@ -1434,14 +1592,134 @@ lmc835_update_reg(nsc_mixer_t *mixer)
 static void
 pas16_scsi_callback(void *priv)
 {
-    pas16_t *      pas16 = (pas16_t *) priv;
-    t128_t  *      dev   = pas16->scsi;
-    scsi_bus_t *   scsi_bus = &dev->ncr.scsibus;
+    pas16_t *       pas16      = (pas16_t *) priv;
+    ncr_t          *ncr        = &pas16->scsi.ncr;
+    scsi_bus_t     *scsi_bus   = &ncr->scsibus;
+    scsi_device_t  *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
+    int             bus;
+    uint8_t         c;
+    uint8_t         temp;
+    uint8_t         status;
+    double          period     = scsi_bus->period / ((dev->buffer_length > 2048) ? 60.0 : 3.0);
 
-    t128_callback(pas16->scsi);
+    if (scsi_bus->tx_mode != PIO_TX_BUS) {
+        if (period >= 10.0)
+            timer_on_auto(&pas16->scsi.drq_timer, period);
+        else
+            timer_on_auto(&pas16->scsi.drq_timer, 10.0);
+    }
 
-    pas16_log("TimeOutStatus=%02x, t128stat=%02x.\n", pas16->timeout_status, dev->status);
-    if ((scsi_bus->tx_mode != PIO_TX_BUS) && (dev->status & 0x04)) {
+    if (scsi_bus->data_wait & 1) {
+        scsi_bus->clear_req = 3;
+        scsi_bus->data_wait &= ~1;
+    }
+
+    if (scsi_bus->tx_mode == PIO_TX_BUS) {
+        pas16_log("Timer CMD=%02x.\n", scsi_bus->command[0]);
+        return;
+    }
+
+
+    switch (scsi_bus->tx_mode) {
+        case DMA_OUT_TX_BUS:
+            if (pas16->scsi.host_pos < MIN(512, dev->buffer_length))
+                break;
+
+            if (!pas16->scsi.block_loaded)
+                break;
+
+            while (1) {
+                for (c = 0; c < 10; c++) {
+                    status = scsi_bus_read(scsi_bus);
+                    if (status & BUS_REQ)
+                        break;
+                }
+
+                /* Data ready. */
+                temp = pas16->scsi.buffer[pas16->scsi.pos];
+
+                bus = ncr5380_get_bus_host(ncr) & ~BUS_DATAMASK;
+                bus |= BUS_SETDATA(temp);
+
+                scsi_bus_update(scsi_bus, bus | BUS_ACK);
+                scsi_bus_update(scsi_bus, bus & ~BUS_ACK);
+
+                pas16->scsi.pos++;
+
+                if (pas16->scsi.pos == MIN(512, dev->buffer_length)) {
+                    pas16->scsi.status |= 0x04;
+                    pas16->scsi.status &= ~0x02;
+                    pas16->scsi.pos = 0;
+                    pas16->scsi.host_pos = 0;
+                    if (scsi_bus->data_pos >= dev->buffer_length) {
+                        pas16->scsi.block_loaded = 0;
+                        ncr->tcr |= TCR_LAST_BYTE_SENT;
+                        ncr->isr |= STATUS_END_OF_DMA;
+                        if (ncr->mode & MODE_ENA_EOP_INT) {
+                            ncr->irq_ena(ncr, ncr->priv, 1);
+                            ncr->isr |= STATUS_INT;
+                        }
+                        scsi_bus->tx_mode = PIO_TX_BUS;
+                        timer_stop(&pas16->scsi.drq_timer);
+                    }
+                    break;
+                }
+            }
+            break;
+
+        case DMA_IN_TX_BUS:
+            if (pas16->scsi.host_pos < MIN(512, dev->buffer_length))
+                break;
+
+            if (!pas16->scsi.block_loaded)
+                break;
+
+            while (1) {
+                for (c = 0; c < 10; c++) {
+                    status = scsi_bus_read(scsi_bus);
+                    if (status & BUS_REQ)
+                        break;
+                }
+                /* Data ready. */
+                bus = scsi_bus_read(scsi_bus);
+                temp = BUS_GETDATA(bus);
+
+                bus = ncr5380_get_bus_host(ncr);
+
+                scsi_bus_update(scsi_bus, bus | BUS_ACK);
+                scsi_bus_update(scsi_bus, bus & ~BUS_ACK);
+
+                pas16->scsi.buffer[pas16->scsi.pos++] = temp;
+
+                if (pas16->scsi.pos == MIN(512, dev->buffer_length)) {
+                    pas16->scsi.status |= 0x04;
+                    pas16->scsi.status &= ~0x02;
+                    pas16->scsi.pos      = 0;
+                    pas16->scsi.host_pos = 0;
+                    if (scsi_bus->data_pos >= dev->buffer_length) {
+                        scsi_bus->bus_out |= BUS_REQ;
+                        pas16->scsi.block_loaded = 0;
+                    }
+                    break;
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    status = scsi_bus_read(scsi_bus);
+
+    if (!(status & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
+        pas16_log("Updating DMA\n");
+        ncr->mode &= ~MODE_DMA;
+        scsi_bus->tx_mode = PIO_TX_BUS;
+        pas16->scsi.block_loaded = 0;
+    }
+
+    pas16_log("TimeOutStatus=%02x, status=%02x.\n", pas16->timeout_status, pas16->scsi.status);
+    if ((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi.status & 0x04)) {
         timer_stop(&pas16->scsi_timer);
         pas16->timeout_status &= 0x7f;
     }
@@ -1465,6 +1743,9 @@ pas_out(uint16_t port, uint8_t val, void *priv)
 {
     pas16_t *      pas16       = (pas16_t *) priv;
     nsc_mixer_t *  nsc_mixer   = &pas16->nsc_mixer;
+    ncr_t       *  ncr         = &pas16->scsi.ncr;
+    scsi_bus_t  *  scsi_bus    = &ncr->scsibus;
+    scsi_device_t *dev         = NULL;
     uint8_t old;
 
     pas16_log("[%04X:%08X] PAS: [W] %04X (%04X) = %02X\n",
@@ -1763,7 +2044,7 @@ pas_out(uint16_t port, uint8_t val, void *priv)
         case 0x1c00 ... 0x1c03:    /* NCR5380 ports 0 to 3. */
         case 0x3c00 ... 0x3c03:    /* NCR5380 ports 4 to 7. */
             if (pas16->has_scsi)
-                ncr5380_write((port & 0x0003) | ((port & 0x2000) >> 11), val, &pas16->scsi->ncr);
+                ncr5380_write((port & 0x0003) | ((port & 0x2000) >> 11), val, ncr);
             break;
 
         case 0x4000:
@@ -1779,21 +2060,34 @@ pas_out(uint16_t port, uint8_t val, void *priv)
         case 0x4001:
             if (pas16->has_scsi) {
                 pas16->timeout_status = val & 0x7f;
-                if (pas16->scsi_irq != -1)
-                    picintc(1 << pas16->scsi_irq);
+                if ((ncr->irq != -1) && (pas16->scsi_irq != -1)) {
+                    if (pas16->timeout_status & 0x01)
+                        ncr->irq_ena(ncr, ncr->priv, 0);
+                }
             }
             break;
 
         case 0x5c00:
-            if (pas16->has_scsi)
-                t128_write(0x1e00, val, pas16->scsi);
+            if (pas16->has_scsi) {
+                dev = &scsi_devices[ncr->bus][scsi_bus->target_id];
+                if ((pas16->scsi.host_pos < MIN(512, dev->buffer_length)) &&
+                    (scsi_bus->tx_mode == DMA_OUT_TX_BUS)) {
+                    pas16->scsi.buffer[pas16->scsi.host_pos] = val;
+                    pas16->scsi.host_pos++;
+
+                    if (pas16->scsi.host_pos == MIN(512, dev->buffer_length)) {
+                        pas16->scsi.status &= ~0x04;
+                        timer_on_auto(&pas16->scsi.drq_timer, 1.0);
+                    }
+                }
+            }
             break;
         case 0x5c03:
             if (pas16->has_scsi) {
                 if (val & 0x80) {
-                    pas16->scsi->ncr.irq_state = 0;
-                    if (pas16->scsi_irq != -1)
-                        picintc(1 << pas16->scsi_irq);
+                    ncr->irq_state = 0;
+                    if (ncr->irq != -1)
+                        ncr->irq_ena(ncr, ncr->priv, 0);
                 }
             }
             break;
@@ -1822,6 +2116,9 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
     pas16_t *      pas16       = (pas16_t *) priv;
     nsc_mixer_t *  nsc_mixer   = &pas16->nsc_mixer;
     mv508_mixer_t *mv508_mixer = &pas16->mv508_mixer;
+    ncr_t       *  ncr         = &pas16->scsi.ncr;
+    scsi_bus_t  *  scsi_bus    = &ncr->scsibus;
+    scsi_device_t *dev         = NULL;
 
     pas16_log("[%04X:%08X] PAS16: [W] %04X (%04X) = %02X\n",
               CS, cpu_state.pc, port, port - pas16->base, val);
@@ -2108,7 +2405,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
         case 0x1c00 ... 0x1c03:    /* NCR5380 ports 0 to 3. */
         case 0x3c00 ... 0x3c03:    /* NCR5380 ports 4 to 7. */
             if (pas16->has_scsi)
-                ncr5380_write((port & 0x0003) | ((port & 0x2000) >> 11), val, &pas16->scsi->ncr);
+                ncr5380_write((port & 0x0003) | ((port & 0x2000) >> 11), val, ncr);
             break;
 
         case 0x4000:
@@ -2124,21 +2421,34 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
         case 0x4001:
             if (pas16->has_scsi) {
                 pas16->timeout_status = val & 0x7f;
-                if (pas16->scsi_irq != -1)
-                    picintc(1 << pas16->scsi_irq);
+                if ((ncr->irq != -1) && (pas16->scsi_irq != -1)) {
+                    if (pas16->timeout_status & 0x01)
+                        ncr->irq_ena(ncr, ncr->priv, 0);
+                }
             }
             break;
 
         case 0x5c00:
-            if (pas16->has_scsi)
-                t128_write(0x1e00, val, pas16->scsi);
+            if (pas16->has_scsi) {
+                dev = &scsi_devices[ncr->bus][scsi_bus->target_id];
+                if ((pas16->scsi.host_pos < MIN(512, dev->buffer_length)) &&
+                    (scsi_bus->tx_mode == DMA_OUT_TX_BUS)) {
+                    pas16->scsi.buffer[pas16->scsi.host_pos] = val;
+                    pas16->scsi.host_pos++;
+
+                    if (pas16->scsi.host_pos == MIN(512, dev->buffer_length)) {
+                        pas16->scsi.status &= ~0x04;
+                        timer_on_auto(&pas16->scsi.drq_timer, 1.0);
+                    }
+                }
+            }
             break;
         case 0x5c03:
             if (pas16->has_scsi) {
                 if (val & 0x80) {
-                    pas16->scsi->ncr.irq_state = 0;
-                    if (pas16->scsi_irq != -1)
-                        picintc(1 << pas16->scsi_irq);
+                    ncr->irq_state = 0;
+                    if (ncr->irq != -1)
+                        ncr->irq_ena(ncr, ncr->priv, 0);
                 }
             }
             break;
@@ -2172,8 +2482,11 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x8003:
             pas16->sys_conf_4 = val;
-            if (pas16->has_scsi && (pas16->scsi_irq != -1) && !(val & 0x20))
-                picintc(1 << pas16->scsi_irq);
+            pas16_log("SYSCONF4=%02x.\n", val & 0x20);
+            if (pas16->has_scsi && (ncr->irq != -1)) {
+                if (!(val & 0x20))
+                    ncr->irq_ena(ncr, ncr->priv, 0);
+            }
             break;
 
         case 0xbc00:
@@ -2205,14 +2518,16 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             pas16->io_conf_3 = val;
             if (pas16->irq != -1)
                 picintc(1 << pas16->irq);
+
             pas16->irq       = pas16_irq_convert(val & 0x0f);
             if (pas16->has_scsi) {
-                if (pas16->scsi_irq != -1)
-                    picintc(1 << pas16->scsi_irq);
-                pas16->scsi_irq  = pas16_irq_convert(val >> 4);
-                ncr5380_set_irq(&pas16->scsi->ncr, pas16->scsi_irq);
-            }
+                if (ncr->irq != -1)
+                    ncr->irq_ena(ncr, ncr->priv, 0);
 
+                ncr->irq  = pas16_scsi_irqs[val >> 4];
+                pas16_log("NCR IRQ %d set up, val high nibble=%02x.\n", ncr->irq, val >> 4);
+                pas16->scsi_irq = ncr->irq;
+            }
             pas16_log("pas16_out : set PAS IRQ %i, val=%02x\n", pas16->irq, val & 0x0f);
             break;
         case 0xf003:
@@ -3489,6 +3804,7 @@ static void *
 pas_init(UNUSED(const device_t *info))
 {
     pas16_t *pas16 = calloc(1, sizeof(pas16_t));
+    ncr_t *ncr = &pas16->scsi.ncr;
 
     pas16->type = 0;
     pas16->is_old_pas = 1;
@@ -3510,8 +3826,32 @@ pas_init(UNUSED(const device_t *info))
     }
 
     if (pas16->has_scsi) {
-        pas16->scsi = device_add(&scsi_pas_device);
-        timer_add(&pas16->scsi->timer, pas16_scsi_callback, pas16, 0);
+        scsi_bus_t *scsi_bus;
+
+        ncr->bus = scsi_get_bus();
+        scsi_bus = &ncr->scsibus;
+
+        ncr->priv                       = pas16;
+        ncr->dma_mode_ext               = pas_scsi_dma_mode_ext;
+        ncr->dma_send_ext               = pas_scsi_dma_send_ext;
+        ncr->dma_initiator_receive_ext  = pas_scsi_dma_initiator_receive_ext;
+        ncr->timer                      = pas_scsi_timer_on_auto;
+        ncr->irq_ena                    = pas_scsi_irq_enable;
+        scsi_bus->bus_device            = ncr->bus;
+        scsi_bus->timer                 = ncr->timer;
+        scsi_bus->priv                  = ncr->priv;
+        pas16->scsi.status              = 0x00;
+        pas16->scsi.host_pos            = 512;
+
+        scsi_bus_set_speed(ncr->bus, 5000000.0);
+        scsi_bus->speed = 0.2;
+        scsi_bus->divider = 1.0;
+        scsi_bus->multi = 1.0;
+
+        for (int i = 0; i < 8; i++)
+            scsi_device_reset(&scsi_devices[ncr->bus][i]);
+
+        timer_add(&pas16->scsi.drq_timer, pas16_scsi_callback, pas16, 0);
         timer_add(&pas16->scsi_timer, pas16_timeout_callback, pas16, 0);
         other_scsi_present++;
     }
@@ -3520,8 +3860,8 @@ pas_init(UNUSED(const device_t *info))
     pas16_reset(pas16);
     pas16->pit->dev_priv = pas16;
     if (pas16->has_scsi) {
-        pas16->scsi_irq = pas16->type ? 11 : 7;
-        ncr5380_set_irq(&pas16->scsi->ncr, pas16->scsi_irq);
+        pas16->scsi_irq = -1;
+        ncr->irq = pas16->type ? 11 : 7;
     }
     for (uint8_t i = 0; i < 3; i++)
         pitf_ctr_set_gate(pas16->pit, i, 0);
@@ -3569,6 +3909,7 @@ static void *
 pas16_init(const device_t *info)
 {
     pas16_t *pas16 = calloc(1, sizeof(pas16_t));
+    ncr_t *ncr = &pas16->scsi.ncr;
 
     if (pas16_next > 3) {
         fatal("Attempting to add a Pro Audio Spectrum instance beyond the maximum amount\n");
@@ -3592,8 +3933,32 @@ pas16_init(const device_t *info)
     pas16->this_id = 0xbc + pas16_next;
 
     if (pas16->has_scsi) {
-        pas16->scsi = device_add(&scsi_pas_device);
-        timer_add(&pas16->scsi->timer, pas16_scsi_callback, pas16, 0);
+        scsi_bus_t *scsi_bus;
+
+        ncr->bus = scsi_get_bus();
+        scsi_bus = &ncr->scsibus;
+
+        ncr->priv                       = pas16;
+        ncr->dma_mode_ext               = pas_scsi_dma_mode_ext;
+        ncr->dma_send_ext               = pas_scsi_dma_send_ext;
+        ncr->dma_initiator_receive_ext  = pas_scsi_dma_initiator_receive_ext;
+        ncr->timer                      = pas_scsi_timer_on_auto;
+        ncr->irq_ena                    = pas16_scsi_irq_enable;
+        scsi_bus->bus_device            = ncr->bus;
+        scsi_bus->timer                 = ncr->timer;
+        scsi_bus->priv                  = ncr->priv;
+        pas16->scsi.status              = 0x00;
+        pas16->scsi.host_pos            = 512;
+
+        scsi_bus_set_speed(ncr->bus, 5000000.0);
+        scsi_bus->speed = 0.2;
+        scsi_bus->divider = 1.0;
+        scsi_bus->multi = 1.0;
+
+        for (int i = 0; i < 8; i++)
+            scsi_device_reset(&scsi_devices[ncr->bus][i]);
+
+        timer_add(&pas16->scsi.drq_timer, pas16_scsi_callback, pas16, 0);
         timer_add(&pas16->scsi_timer, pas16_timeout_callback, pas16, 0);
         other_scsi_present++;
     }
@@ -3604,9 +3969,9 @@ pas16_init(const device_t *info)
     pas16->irq = pas16->type ? 10 : 5;
     pas16->io_conf_3 = pas16->type ? 0x07 : 0x04;
     if (pas16->has_scsi) {
-        pas16->scsi_irq = pas16->type ? 11 : 7;
+        pas16->scsi_irq = -1;
+        ncr->irq  = pas16->type ? 11 : 7;
         pas16->io_conf_3 |= (pas16->type ? 0x80 : 0x60);
-        ncr5380_set_irq(&pas16->scsi->ncr, pas16->scsi_irq);
     }
     pas16->dma = 3;
     for (uint8_t i = 0; i < 3; i++)

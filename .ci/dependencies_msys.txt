@@ -10,8 +10,11 @@ libpng
 rtmidi
 libslirp
 fluidsynth
-qt5-static
-qt5-translations
+libwebp
+zstd
+libarchive
+qt6-static
+qt6-translations
 vulkan-headers
 libsndfile
 libserialport
@@ -20,4 +23,3 @@ rust
 rust-src
 cargo-c
 corrosion
-zstd

@@ -311,18 +311,20 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 return;
             o                                  = svga->seqregs[svga->seqaddr & 0xf];
             svga->seqregs[svga->seqaddr & 0xf] = val;
-            if (o != val && (svga->seqaddr & 0xf) == 1) {
-                svga_log("SEQADDR1 write1.\n");
-                svga_recalctimings(svga);
-            }
             switch (svga->seqaddr & 0xf) {
-                case 1:
-                    if (svga->scrblank && !(val & 0x20))
+                case 1: {
+                    /* Keep register readback immediate. Short Screen Off pulses
+                       during palette uploads would blank whole rendered rows. */
+                    uint8_t screen_off = svga->dispon ? (svga->scrblank & 0x20) : (val & 0x20);
+                    uint8_t blank      = (svga->scrblank & ~0x20) | screen_off;
+                    if (svga->scrblank != blank)
                         svga->fullchange = 3;
-                    svga->scrblank = (svga->scrblank & ~0x20) | (val & 0x20);
-                    svga_log("SEQADDR1 write2.\n");
+                    if (svga->scrblank == blank && (o ^ val) == 0x20)
+                        break;
+                    svga->scrblank = blank;
                     svga_recalctimings(svga);
                     break;
+                }
                 case 2:
                     svga->writemask = val & 0xf;
                     break;
@@ -1793,6 +1795,13 @@ svga_poll(void *priv)
 
             if (svga->fullchange)
                 svga->fullchange--;
+
+            uint8_t blank = (svga->scrblank & ~0x20) | (svga->seqregs[1] & 0x20);
+            if (svga->scrblank != blank) {
+                svga->scrblank   = blank;
+                svga->fullchange = 3;
+                svga_recalctimings(svga);
+            }
         }
         if (svga->vc == svga->vsyncstart) {
             svga->dispon = 0;
@@ -2012,7 +2021,9 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
        display memory window. Windows 98 multi-monitor support relies on this
        to verify a secondary VGA card's legacy memory is off before it lets
        the card decode its PCI memory. */
-    if (!(svga->miscout & 0x02))
+    if (!(svga->miscout & 0x02) &&
+        ((svga->ven_mem_enabled == NULL) ||
+         !svga->ven_mem_enabled(svga->ven_mem_enabled_priv)))
         return 0xffffffff;
 
     addr &= 0x1ffff;
@@ -2297,6 +2308,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     } else if (svga->chain4 && !svga->force_old_addr) {
         readplane = addr & 3;
         addr      = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
+        latch_addr = addr;
     } else if (svga->chain2_read) {
         readplane = (readplane & 2) | (addr & 1);
         addr &= ~1;

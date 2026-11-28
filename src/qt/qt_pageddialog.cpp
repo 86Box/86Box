@@ -24,6 +24,64 @@
 #include <QIcon>
 #include <QLayout>
 
+PagedDialogStack::PagedDialogStack(QWidget *parent)
+    : QStackedWidget(parent)
+{
+    connect(this, &QStackedWidget::currentChanged, this, [this]() { updateGeometry(); });
+}
+
+void
+PagedDialogStack::setFitCurrentPage(bool enabled)
+{
+    fitCurrentPage = enabled;
+    updateGeometry();
+}
+
+QSize
+PagedDialogStack::sizeHint() const
+{
+    const QWidget *page = currentWidget();
+    if (!fitCurrentPage || page == nullptr)
+        return QStackedWidget::sizeHint();
+
+    const QMargins margins = contentsMargins();
+    return page->sizeHint() + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
+}
+
+QSize
+PagedDialogStack::minimumSizeHint() const
+{
+    const QWidget *page = currentWidget();
+    if (!fitCurrentPage || page == nullptr)
+        return QStackedWidget::minimumSizeHint();
+
+    const QMargins margins = contentsMargins();
+    return page->minimumSizeHint().expandedTo(page->minimumSize()) +
+           QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
+}
+
+bool
+PagedDialogStack::hasHeightForWidth() const
+{
+    if (!fitCurrentPage)
+        return QStackedWidget::hasHeightForWidth();
+
+    return currentWidget() != nullptr && currentWidget()->hasHeightForWidth();
+}
+
+int
+PagedDialogStack::heightForWidth(int width) const
+{
+    const QWidget *page = currentWidget();
+    if (!fitCurrentPage)
+        return QStackedWidget::heightForWidth(width);
+    if (page == nullptr || !page->hasHeightForWidth())
+        return -1;
+
+    const QMargins margins = contentsMargins();
+    return page->heightForWidth(qMax(0, width - margins.left() - margins.right())) + margins.top() + margins.bottom();
+}
+
 class PageListModel : public QAbstractListModel {
 public:
     PageListModel(const QVector<PagedDialog::Page> &pages, QObject *parent)
@@ -86,6 +144,7 @@ PagedDialog::PagedDialog(const QString &title, const QSize &defaultSize, const Q
                 ui->stackedWidget->setCurrentIndex(current.row());
                 ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
                 ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
+                growToFitPages();
             });
 }
 
@@ -98,6 +157,12 @@ QStackedWidget *
 PagedDialog::pageStack() const
 {
     return ui->stackedWidget;
+}
+
+void
+PagedDialog::setFitCurrentPage(bool enabled)
+{
+    ui->stackedWidget->setFitCurrentPage(enabled);
 }
 
 void
@@ -118,9 +183,8 @@ PagedDialog::aboutToShowPage(int index)
     (void) index;
 }
 
-/* The size is taken once, on the first show, when the pages are in place:
-   the page stack needs as much room as its largest page, so the dialog fits
-   all of them, with the text of the language in use. */
+/* Take the initial size on the first show, when the pages are in place,
+   using the stack's sizing policy and the text of the language in use. */
 void
 PagedDialog::showEvent(QShowEvent *event)
 {
@@ -137,7 +201,16 @@ PagedDialog::growToFitPages()
     if (!sized)
         return;
 
-    /* The new page is not counted until the layout is brought up to date. */
+    /* The stack sits inside another widget's layout. Refresh those inner
+       layouts first so the top-level size hint includes the selected page. */
+    for (QWidget *widget = ui->stackedWidget; widget != this; widget = widget->parentWidget()) {
+        if (widget->layout() != nullptr) {
+            widget->layout()->invalidate();
+            widget->layout()->activate();
+        }
+        widget->updateGeometry();
+    }
+    layout()->invalidate();
     layout()->activate();
     resize(size().expandedTo(minimumSizeHint()));
 }

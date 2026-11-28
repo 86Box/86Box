@@ -137,6 +137,9 @@ static int sound_in_recover_attempts = 0;
 static int sound_in_good_ticks = 0;
 static int sound_in_wedge_attempts = 0;
 static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
+static double       sound_in_tone_hz    = 0.0; /* test tone instead of the host's input */
+static double       sound_in_tone_phase = 0.0;
+static double       sound_in_tone_amp   = 16384.0;
 
 static thread_t     *sound_fdd_thread_h = NULL;
 static event_t      *sound_fdd_event = NULL;
@@ -173,6 +176,7 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_488_device               },
     { &ess_1488_device              },
     { &imfc_device                  },
+    { &ibm_speech_device            },
     { &ssi2001_device               },
     { &thunderboard_device          },
     { &mmb_device                   },
@@ -208,6 +212,7 @@ static const SOUND_CARD sound_cards[] = {
     { &cs4232_device                },
     { &cs4235_device                },
     { &cs4236b_device               },
+    { &sscape_device                },
     { &ess_688_device               },
     { &ess_ess0100_pnp_device       },
     { &ess_ess0968_pnp_688_device   },
@@ -258,6 +263,7 @@ static const SOUND_CARD sound_cards[] = {
     /* MCA */
     { &adlib_mca_device             },
     { &ess_chipchat_16_mca_device   },
+    { &acpa_mca_device              },
     { &ncr_business_audio_device    },
     { &sb_mcv_device                },
     { &sb_pro_mcv_device            },
@@ -265,11 +271,13 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_soundpiper_16_mca_device },
     { &ess_soundpiper_32_mca_device },
     /* PCI */
+    { &vortex2_device               },
     { &cmi8338_device               },
     { &cmi8738_device               },
     { &es1370_device                },
     { &es1371_device                },
     { &ess_solo1_device             },
+    { &sb_awe64d_device             },
     { &es1373_device                },
     { &ct5880_device                },
     /* AC97 */
@@ -849,6 +857,17 @@ sound_reopen_output(void)
     sound_capture_resume(was_capturing);
 }
 
+/* replace the host's input with a sine of the given frequency and
+   level (dB below full scale, both channels); 0 Hz gives the host's input
+   back. */
+void
+sound_in_set_test_tone(double hz, double dbfs)
+{
+    sound_in_tone_hz    = (isfinite(hz) && (hz > 0.0)) ? hz : 0.0;
+    sound_in_tone_amp   = 32767.0 * pow(10.0, ((dbfs < 0.0) ? dbfs : 0.0) / 20.0);
+    sound_in_tone_phase = 0.0;
+}
+
 void
 sound_in_stop_input(void)
 {
@@ -901,6 +920,33 @@ midi_poll_ex(UNUSED(void *priv))
     timer_advance_u64(&midi_poll_timer, midi_poll_latch * 480);
 
     midi_poll();
+}
+
+/* Delay from a timer's current timestamp to a tick halfway between two sound
+   poll ticks, between half and one and a half output samples away. Timers due
+   on the same integer timestamp swap order every time they are re-armed, so a
+   timer running at the output rate in step with the sound poll timer makes its
+   card write two samples, then none. Returns latch if the sound poll timer is
+   not running. */
+uint64_t
+sound_poll_offset_delay(pc_timer_t *timer, uint64_t latch)
+{
+    int64_t period = (int64_t) sound_poll_latch;
+    int64_t diff;
+
+    if (!period || !timer_is_enabled(&sound_poll_timer))
+        return latch;
+
+    /* The two timestamps are at most a few samples apart. */
+    diff = (int64_t) ((sound_poll_timer.ts_integer - timer->ts_integer) << 32) +
+           (int64_t) sound_poll_timer.ts_frac - (int64_t) timer->ts_frac;
+    diff = (diff + (period / 2)) % period;
+    if (diff < 0)
+        diff += period;
+    if (diff < (period / 2))
+        diff += period;
+
+    return (uint64_t) diff;
 }
 
 void
@@ -982,6 +1028,23 @@ sound_poll(UNUSED(void *priv))
                     sound_in_wedge_attempts   = 0;
                     sound_in_good_ticks       = 0;
                 }
+            }
+
+            /* a test tone in place of the host's input (automation's
+               "audio tone"), at the rate the cards take the input at. */
+            if (sound_in_tone_hz > 0.0) {
+                const double step = (2.0 * M_PI) * (fmod(sound_in_tone_hz, fill_rate) / fill_rate);
+
+                for (size_t f = 0; f < want; f++) {
+                    const int16_t v = (int16_t) (sound_in_tone_amp * sin(sound_in_tone_phase));
+
+                    sound_input_buffer[f * 2]     = v;
+                    sound_input_buffer[f * 2 + 1] = v;
+                    sound_in_tone_phase += step;
+                    if (sound_in_tone_phase >= (2.0 * M_PI))
+                        sound_in_tone_phase -= 2.0 * M_PI;
+                }
+                in_len = want;
             }
 
             if (in_len > 0) {

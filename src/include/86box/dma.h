@@ -86,6 +86,7 @@ typedef struct dma_ctrl_t {
     int  (*mode)(int channel, void *priv);
 } dma_ctrl_t;
 
+extern void dma_core_init(void);
 extern void dma_init(void);
 extern void dma_init_pc98(void);
 extern void dma_set_pc98_autoinc(uint8_t channel, uint8_t mode);

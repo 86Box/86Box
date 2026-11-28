@@ -9,13 +9,16 @@
  *          Intel UPI-42/MCS-48 microcontroller emulation.
  *
  * Authors: RichardG, <richardg867@gmail.com>
+ *          WNT50, <wnt2195@gmail.com>
  *
  *          Copyright 2022 RichardG.
+ *          Copyright 2026 WNT50.
  */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <86box/upi42.h>
 #include <86box/plat_unused.h>
 
 #ifndef UPI42_STANDALONE
@@ -40,6 +43,9 @@
 #    include <86box/device.h>
 #    include <86box/io.h>
 #    include <86box/timer.h>
+#    ifdef UPI42_DEBUG_PORTS
+#        include <86box/mem.h>
+#    endif
 
 #    ifdef ENABLE_UPI42_LOG
 int upi42_do_log = ENABLE_UPI42_LOG;
@@ -62,20 +68,12 @@ upi42_log(const char *fmt, ...)
 
 #define UPI42_REG(upi42, r, op) ((upi42->psw & 0x10) ? (upi42->ram[24 + ((r) &7)] op) : (upi42->ram[(r) &7] op))
 
-#define UPI42_ROM_SHIFT         0  /* actually the mask */
-#define UPI42_RAM_SHIFT         16 /* actually the mask */
-#define UPI42_TYPE_MCS          (0 << 24)
-#define UPI42_TYPE_UPI          (1 << 24)
-#define UPI42_EXT_C42           (1 << 25)
+/* P2 flag outputs driven by the UPI-42 buffer hardware when EN FLAGS is active. */
+#define UPI42_P2_OBF            0x10
+#define UPI42_P2_NIBF           0x20
 
-#define UPI42_8048              ((1023 << UPI42_ROM_SHIFT) | (63 << UPI42_RAM_SHIFT) | UPI42_TYPE_MCS)
-#define UPI42_8049              ((2047 << UPI42_ROM_SHIFT) | (127 << UPI42_RAM_SHIFT) | UPI42_TYPE_MCS)
-#define UPI42_8041              ((1023 << UPI42_ROM_SHIFT) | (127 << UPI42_RAM_SHIFT) | UPI42_TYPE_UPI)
-#define UPI42_8042              ((2047 << UPI42_ROM_SHIFT) | (255 << UPI42_RAM_SHIFT) | UPI42_TYPE_UPI)
-#define UPI42_80C42             ((4095 << UPI42_ROM_SHIFT) | (255 << UPI42_RAM_SHIFT) | UPI42_TYPE_UPI | UPI42_EXT_C42)
-
-typedef struct _upi42_ {
-    int (*ops[256])(struct _upi42_ *upi42, uint32_t fetchdat);
+struct upi42 {
+    int (*ops[256])(struct upi42 *upi42, uint32_t fetchdat);
     uint32_t type;
     uint8_t  ram[256], *rom,       /* memory */
         ports_in[8], ports_out[8], /* I/O ports */
@@ -85,7 +83,8 @@ typedef struct _upi42_ {
         a,           /* accumulator */
         t,           /* timer counter */
         psw,         /* program status word */
-        sts;         /* UPI-42 status */
+        sts,         /* UPI-42 status (OBF/IBF and ST4-ST7) */
+        f1;          /* F1 flip-flop */
 
     uint16_t pc, rommask; /* program counter and ROM mask */
 
@@ -97,17 +96,106 @@ typedef struct _upi42_ {
 
     int cycs; /* cycle counter */
 
-#ifndef UPI42_STANDALONE
-    uint8_t  ram_index;
-    uint16_t rom_index;
-#endif
-} upi42_t;
+    uint8_t pend_data; /* latched master write */
+    uint8_t pend_cmd;  /* 0 = none, 1 = data, 2 = command */
 
-static inline void
-upi42_mirror_f0(upi42_t *upi42)
+    upi42_hooks hooks; /* external signal callbacks */
+    void       *hpriv; /* callback private data */
+    int         irq_level; /* last state sent out through irq_out */
+
+#ifdef UPI42_DEBUG_PORTS
+    uint16_t rom_index;
+    uint8_t  ram_index;
+    uint32_t ram_addr;
+    uint8_t  bm_stat;
+#endif
+};
+
+static uint8_t
+upi42_port_output(const upi42_t *upi42, int port)
 {
-    /* Update status register F0 flag to match PSW F0 flag. */
-    upi42->sts = ((upi42->psw & 0x20) >> 3) | (upi42->sts & ~0x04);
+    uint8_t val = upi42->ports_out[port];
+
+    if ((port == 2) && upi42->flags) {
+        if (!(upi42->sts & 0x01))
+            val &= ~UPI42_P2_OBF;
+        if (upi42->sts & 0x02)
+            val &= ~UPI42_P2_NIBF;
+    }
+
+    return val;
+}
+
+static void
+upi42_update_port(upi42_t *upi42, int port)
+{
+    if (upi42->hooks.port_out != NULL)
+        upi42->hooks.port_out(upi42->hpriv, port, upi42_port_output(upi42, port));
+}
+
+static void
+upi42_update_irq(upi42_t *upi42)
+{
+    int level = (upi42->i_raise && upi42->i) || (upi42->tcnti_raise && upi42->tcnti);
+
+    if ((upi42->hooks.irq_out != NULL) && (level != upi42->irq_level)) {
+        upi42->irq_level = level;
+        upi42->hooks.irq_out(upi42->hpriv, level);
+    }
+}
+
+/* STS as seen by the host: F0 comes from PSW, F1 from its own flip-flop. */
+static uint8_t
+upi42_compose_sts(upi42_t *upi42)
+{
+    return (upi42->sts & 0x03) | ((upi42->psw & 0x20) >> 3) | (upi42->f1 ? 0x08 : 0) | (upi42->sts & 0xf0);
+}
+
+/* Apply a latched master write at the next execution boundary. */
+static void
+upi42_apply_pending(upi42_t *upi42)
+{
+    if (upi42->pend_cmd == 0)
+        return;
+
+    /* The input buffer holds a single byte: a host write while IBF is set is
+       ignored by the 8042. The host is expected to wait for IBF to clear, but
+       not every program does (the IBM diagnostics writes the next command as
+       soon as the previous data byte has been posted). */
+    if (upi42->sts & 0x02) {
+        upi42->pend_cmd = 0;
+        return;
+    }
+
+    upi42->dbb_in = upi42->pend_data;
+    upi42->f1     = (upi42->pend_cmd == 2);
+    upi42->sts   |= 0x02;
+
+    if (upi42->flags)
+        upi42_update_port(upi42, 2);
+
+    if (upi42->i)
+        upi42->i_raise = 1;
+
+    upi42->pend_cmd = 0;
+    upi42_update_irq(upi42);
+}
+
+static inline uint8_t
+upi42_port_pins(upi42_t *upi42, int port)
+{
+    uint8_t in;
+
+    port &= 7;
+
+    if ((port == 1) && (upi42->hooks.p1_in != NULL))
+        in = upi42->hooks.p1_in(upi42->hpriv);
+    else if ((port == 2) && (upi42->hooks.p2_in != NULL))
+        in = upi42->hooks.p2_in(upi42->hpriv);
+    else
+        in = upi42->ports_in[port];
+
+    return in & upi42_port_output(upi42, port);
 }
 
 static int
@@ -166,7 +254,6 @@ static int
 upi42_op_MOV_A_PSW(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->psw;
-    upi42_mirror_f0(upi42);
     return 1;
 }
 
@@ -174,7 +261,6 @@ static int
 upi42_op_MOV_PSW_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw = upi42->a;
-    upi42_mirror_f0(upi42);
     return 1;
 }
 
@@ -195,7 +281,7 @@ upi42_op_MOV_T_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 static int
 upi42_op_MOV_STS_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
-    upi42->sts = (upi42->a & 0xf0) | (upi42->sts & 0x0f);
+    upi42->sts = (upi42->a & 0xf0) | (upi42->sts & 0x03);
     return 1;
 }
 
@@ -255,7 +341,7 @@ static int
 upi42_op_IN_A_Pp(upi42_t *upi42, uint32_t fetchdat)
 {
     int port = fetchdat & 3;
-    upi42->a = upi42->ports_in[port] & upi42->ports_out[port];
+    upi42->a = upi42_port_pins(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -265,13 +351,20 @@ upi42_op_IN_A_DBB(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->dbb_in;
     upi42->sts &= ~0x02; /* clear IBF */
+
+    if (upi42->flags)
+        upi42_update_port(upi42, 2);
+
     return 1;
 }
 
 static int
 upi42_op_OUTL_Pp_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
-    upi42->ports_out[fetchdat & 3] = upi42->a;
+    int port = fetchdat & 3;
+
+    upi42->ports_out[port] = upi42->a;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -281,6 +374,10 @@ upi42_op_OUT_DBB_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->dbb_out = upi42->a;
     upi42->sts |= 0x01; /* set OBF */
+
+    if (upi42->flags)
+        upi42_update_port(upi42, 2);
+
     return 1;
 }
 
@@ -288,7 +385,7 @@ static int
 upi42_op_MOVD_A_Pp(upi42_t *upi42, uint32_t fetchdat)
 {
     int port = 4 | (fetchdat & 3);
-    upi42->a = (upi42->ports_in[port] & upi42->ports_out[port]) & 0x0f;
+    upi42->a = upi42_port_pins(upi42, port) & 0x0f;
     upi42->cycs--;
     return 1;
 }
@@ -296,7 +393,9 @@ upi42_op_MOVD_A_Pp(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_MOVD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ports_out[4 | (fetchdat & 3)] = upi42->a & 0x0f;
+    int port = 4 | (fetchdat & 3);
+    upi42->ports_out[port] = upi42->a & 0x0f;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -370,7 +469,10 @@ upi42_op_XRL_A_imm(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ANL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ports_out[fetchdat & 3] &= fetchdat >> 8;
+    int port = fetchdat & 3;
+
+    upi42->ports_out[port] &= fetchdat >> 8;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 2;
 }
@@ -378,7 +480,10 @@ upi42_op_ANL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ORL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ports_out[fetchdat & 3] |= fetchdat >> 8;
+    int port = fetchdat & 3;
+
+    upi42->ports_out[port] |= fetchdat >> 8;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 2;
 }
@@ -386,7 +491,9 @@ upi42_op_ORL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ANLD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ports_out[4 | (fetchdat & 3)] &= upi42->a;
+    int port = 4 | (fetchdat & 3);
+    upi42->ports_out[port] &= upi42->a;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -394,7 +501,9 @@ upi42_op_ANLD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ORLD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 {
-    upi42->ports_out[4 | (fetchdat & 3)] |= upi42->a;
+    int port = 4 | (fetchdat & 3);
+    upi42->ports_out[port] |= upi42->a;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -580,7 +689,6 @@ static int
 upi42_op_CLR_F0(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw &= ~0x20;
-    upi42_mirror_f0(upi42);
     return 1;
 }
 
@@ -588,21 +696,20 @@ static int
 upi42_op_CPL_F0(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw ^= 0x20;
-    upi42_mirror_f0(upi42);
     return 1;
 }
 
 static int
 upi42_op_CLR_F1(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
-    upi42->sts &= ~0x08;
+    upi42->f1 = 0;
     return 1;
 }
 
 static int
 upi42_op_CPL_F1(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
-    upi42->sts ^= 0x08;
+    upi42->f1 = !upi42->f1;
     return 1;
 }
 
@@ -728,7 +835,6 @@ upi42_op_RET(upi42_t *upi42, uint32_t fetchdat)
     /* Load new Program Status Word and unmask interrupts if this is RETR. */
     if (fetchdat & 0x10) {
         upi42->psw = (frame1 & 0xf0) | (upi42->psw & 0x0f);
-        upi42_mirror_f0(upi42);
 
         upi42->irq_mask = 0;
     }
@@ -773,8 +879,8 @@ UPI42_COND_JMP_IMM(JNT0, !upi42->t0, )
 UPI42_COND_JMP_IMM(JT1, upi42->t1, )
 UPI42_COND_JMP_IMM(JNT1, !upi42->t1, )
 UPI42_COND_JMP_IMM(JF0, upi42->psw & 0x20, )
-UPI42_COND_JMP_IMM(JF1, upi42->sts & 0x08, )
-UPI42_COND_JMP_IMM(JTF, upi42->tf, upi42->tf = 0)
+UPI42_COND_JMP_IMM(JF1, upi42->f1, )
+UPI42_COND_JMP_IMM(JTF, !upi42->tf, upi42->tf = 0)
 UPI42_COND_JMP_IMM(JBb, upi42->a & (1 << ((fetchdat >> 5) & 7)), )
 UPI42_COND_JMP_IMM(JNIBF, !(upi42->sts & 0x02), )
 UPI42_COND_JMP_IMM(JOBF, upi42->sts & 0x01, )
@@ -796,6 +902,7 @@ static int
 upi42_op_EN_FLAGS(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->flags = 1;
+    upi42_update_port(upi42, 2);
     return 1;
 }
 
@@ -845,47 +952,64 @@ static int (*const ops_80c42[256])(upi42_t *upi42, uint32_t fetchdat) = {
     // clang-format on
 };
 
-void
-upi42_exec(void *priv)
+int
+upi42_step(upi42_t *upi42)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
+    int cost;
 
-    /* Skip everything if we're suspended, or just process timer if we're in a multi-cycle instruction. */
+    /* Apply any write latched by the host at this execution boundary. */
+    upi42_apply_pending(upi42);
+
+    /* A suspended core does not consume any cycles. */
     if (upi42->suspend)
-        return;
-    else if (++upi42->cycs < 0)
-        goto timer;
+        return 0;
+
+    /* Refresh externally driven test inputs. */
+    if (upi42->hooks.t0_in != NULL)
+        upi42->t0 = !!upi42->hooks.t0_in(upi42->hpriv);
+    if (upi42->hooks.t1_in != NULL)
+        upi42->t1 = !!upi42->hooks.t1_in(upi42->hpriv);
+
+    upi42->cycs = 0;
 
     /* Trigger interrupt if requested. */
-    if (upi42->irq_mask) {
-        /* Masked, we're currently in an ISR. */
-    } else if (upi42->i_raise) {
-        /* External interrupt. Higher priority than the timer interrupt. */
+    if (!upi42->irq_mask && (upi42->i_raise || upi42->tcnti_raise)) {
+        int vector;
+
+        if (upi42->i_raise) {
+            /* External interrupt. Higher priority than the timer interrupt. */
+            upi42->i_raise = 0;
+            vector         = 3;
+        } else {
+            /* Timer interrupt. */
+            upi42->tcnti_raise = 0;
+            vector             = 7;
+        }
         upi42->irq_mask = 1;
-        upi42->i_raise  = 0;
 
+        /* CALL_imm pushes pc + 2, so step back to push the interrupted pc. */
         upi42->pc -= 2;
-        upi42->cycs++;
-        upi42_op_CALL_imm(upi42, 3 << 8);
-        return;
-    } else if (upi42->tcnti_raise) {
-        /* Timer interrupt. */
-        upi42->irq_mask    = 1;
-        upi42->tcnti_raise = 0;
+        upi42_op_CALL_imm(upi42, (uint32_t) vector << 8);
 
-        upi42->pc -= 2;
-        upi42->cycs++;
-        upi42_op_CALL_imm(upi42, 7 << 8);
-        return;
-    }
+        /* Account for the base cycle like the normal path does. */
+        upi42->cycs--;
+    } else {
+        /* Fetch instruction. Reads wrap within the ROM mask. */
+        uint32_t fetchdat = upi42->rom[upi42->pc & upi42->rommask]
+                          | ((uint32_t) upi42->rom[(upi42->pc + 1) & upi42->rommask] << 8);
 
-    /* Fetch instruction. */
-    uint32_t fetchdat = upi42->rom[upi42->pc & upi42->rommask]
-        | ((uint32_t) upi42->rom[(upi42->pc + 1) & upi42->rommask] << 8);
+        /* Decode instruction. */
+        uint8_t insn = fetchdat & 0xff;
+        if (upi42->ops[insn] == NULL) {
+            upi42_log("UPI42: Unknown opcode %02X at %04X\n", insn, upi42->pc);
+#ifdef UPI42_STANDALONE
+            abort();
+#else
+            upi42->suspend = 1;
+            return 0;
+#endif
+        }
 
-    /* Decode instruction. */
-    uint8_t insn = fetchdat & 0xff;
-    if (upi42->ops[insn]) {
         /* Execute instruction. */
         int pc_inc = upi42->ops[insn](upi42, fetchdat);
 
@@ -894,55 +1018,71 @@ upi42_exec(void *priv)
 
         /* Decrement cycle counter. Multi-cycle instructions also decrement within their code. */
         upi42->cycs--;
-    } else {
-        fatal("UPI42: Unknown opcode %02X (%08X)\n", insn, fetchdat);
-        return;
     }
 
-timer:
-    /* Process timer. */
+    /* The base cycle plus whatever the instruction itself accounted for. */
+    cost = -upi42->cycs;
+
+    /* Process timer: the prescaler advances once every 32 machine cycles. */
     if (!upi42->run_timer) {
         /* Timer disabled. */
     } else if (upi42->skip_timer_inc) {
         /* Some instructions don't increment the timer. */
         upi42->skip_timer_inc = 0;
     } else {
-        /* Increment counter once the prescaler overflows,
-           and set timer flag once the main value overflows. */
-        if ((++upi42->prescaler == 0) && (++upi42->t == 0)) {
-            upi42->tf = 1;
+        int prescaler = upi42->prescaler + cost;
 
-            /* Fire counter interrupt if enabled. */
-            if (upi42->tcnti)
-                upi42->tcnti_raise = 1;
+        while (prescaler >= 32) {
+            prescaler -= 32;
+
+            if (++upi42->t == 0) {
+                upi42->tf = 1;
+
+                /* Fire counter interrupt if enabled. */
+                if (upi42->tcnti)
+                    upi42->tcnti_raise = 1;
+            }
         }
+
+        upi42->prescaler = prescaler;
+    }
+
+    upi42_update_irq(upi42);
+
+    return cost;
+}
+
+void
+upi42_run(upi42_t *upi42, uint32_t cycles)
+{
+    while (cycles > 0) {
+        int cost = upi42_step(upi42);
+
+        /* A suspended core does not consume any cycles. */
+        if (cost <= 0)
+            break;
+
+        /* The last instruction may overshoot the budget; do not let the
+           unsigned subtraction wrap around. */
+        if ((uint32_t) cost >= cycles)
+            break;
+
+        cycles -= (uint32_t) cost;
     }
 }
 
 uint8_t
-upi42_port_read(void *priv, int port)
+upi42_port_read(upi42_t *upi42, int port)
 {
-    const upi42_t *upi42 = (upi42_t *) priv;
-
-    /* Read base port value. */
-    port &= 7;
-    uint8_t ret = upi42->ports_in[port] & upi42->ports_out[port];
-
-    /* Apply special meanings. */
-    switch (port) {
-        default:
-            break;
-    }
+    uint8_t ret = upi42_port_pins(upi42, port);
 
     upi42_log("UPI42: port_read(%d) = %02X\n", port, ret);
     return ret;
 }
 
 void
-upi42_port_write(void *priv, int port, uint8_t val)
+upi42_port_write(upi42_t *upi42, int port, uint8_t val)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
-
     port &= 7;
     upi42_log("UPI42: port_write(%d, %02X)\n", port, val);
 
@@ -951,111 +1091,120 @@ upi42_port_write(void *priv, int port, uint8_t val)
 }
 
 uint8_t
-upi42_port_output(void *priv, int port)
+upi42_master_read_status(upi42_t *upi42)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
-    return upi42->ports_out[port & 7];
+    uint8_t ret;
+
+    /* Flush a latched write so host polling sees the new state. */
+    upi42_apply_pending(upi42);
+    ret = upi42_compose_sts(upi42);
+
+    upi42_log("UPI42: sts_read() = %02X\n", ret);
+    return ret;
+}
+
+uint8_t
+upi42_master_read_data(upi42_t *upi42)
+{
+    uint8_t ret;
+
+    upi42_apply_pending(upi42);
+    ret = upi42->dbb_out;
+
+    upi42_log("UPI42: dbb_read() = %02X\n", ret);
+    upi42->sts &= ~0x01; /* clear OBF */
+
+    if (upi42->flags)
+        upi42_update_port(upi42, 2);
+
+    return ret;
+}
+
+void
+upi42_master_write_data(upi42_t *upi42, uint8_t val)
+{
+    upi42_log("UPI42: dbb_write(%02X)\n", val);
+
+    /* A write that is still waiting for the next boundary makes this one
+       a second write to a single-byte input buffer: after the first is
+       applied, IBF is set, so the 8042 ignores it. */
+    if (upi42->pend_cmd != 0)
+        return;
+
+    /* Latched until the next execution boundary. */
+    upi42->pend_data = val;
+    upi42->pend_cmd  = 1;
+}
+
+void
+upi42_master_write_cmd(upi42_t *upi42, uint8_t val)
+{
+    upi42_log("UPI42: cmd_write(%02X)\n", val);
+
+    if (upi42->pend_cmd != 0)
+        return;
+
+    /* Latched until the next execution boundary. */
+    upi42->pend_data = val;
+    upi42->pend_cmd  = 2;
+}
+
+uint8_t
+upi42_get_sts(upi42_t *upi42)
+{
+    return upi42_compose_sts(upi42);
 }
 
 uint16_t
-upi42_pc(void *priv)
+upi42_get_pc(upi42_t *upi42)
 {
-    return ((upi42_t *) priv)->pc;
-}
-
-void
-upi42_set_test_inputs(void *priv, int t0, int t1)
-{
-    upi42_t *upi42 = (upi42_t *) priv;
-    if (upi42->run_counter && upi42->t1 && !t1 && (++upi42->t == 0)) {
-        upi42->tf = 1;
-        if (upi42->tcnti)
-            upi42->tcnti_raise = 1;
-    }
-    upi42->t0 = !!t0;
-    upi42->t1 = !!t1;
-}
-
-void
-upi42_free(void *priv)
-{
-    free(priv);
-}
-
-/* NOTE: The dbb/sts/cmd functions use I/O handler signatures; port is ignored. */
-
-uint8_t
-upi42_dbb_read(UNUSED(uint16_t port), void *priv)
-{
-    upi42_t *upi42 = (upi42_t *) priv;
-
-    uint8_t ret = upi42->dbb_out;
-    upi42_log("UPI42: dbb_read(%04X) = %02X\n", port, ret);
-    upi42->sts &= ~0x01; /* clear OBF */
-    return ret;
-}
-
-void
-upi42_dbb_write(UNUSED(uint16_t port), uint8_t val, void *priv)
-{
-    upi42_t *upi42 = (upi42_t *) priv;
-
-    upi42_log("UPI42: dbb_write(%04X, %02X)\n", port, val);
-    upi42->dbb_in = val;
-    upi42->sts    = (upi42->sts & ~0x08) | 0x02; /* clear F1 and set IBF */
-    if (upi42->i)                                /* fire IBF interrupt if enabled */
-        upi42->i_raise = 1;
+    return upi42->pc;
 }
 
 uint8_t
-upi42_sts_read(UNUSED(uint16_t port), void *priv)
+upi42_get_psw(upi42_t *upi42)
 {
-    const upi42_t *upi42 = (upi42_t *) priv;
-
-    uint8_t ret = upi42->sts;
-    upi42_log("UPI42: sts_read(%04X) = %02X\n", port, ret);
-    return ret;
+    return upi42->psw;
 }
 
-void
-upi42_cmd_write(UNUSED(uint16_t port), uint8_t val, void *priv)
+uint8_t
+upi42_get_ram(upi42_t *upi42, uint8_t addr)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
-
-    upi42_log("UPI42: cmd_write(%04X, %02X)\n", port, val);
-    upi42->dbb_in = val;
-    upi42->sts |= 0x0a; /* set F1 and IBF */
-    if (upi42->i)       /* fire IBF interrupt if enabled */
-        upi42->i_raise = 1;
+    return upi42->ram[addr & upi42->rammask];
 }
 
 void
 upi42_reset(void *priv)
 {
-    upi42_t *upi42        = (upi42_t *) priv;
-    upi42->pc      = 0; /* program counter */
-    upi42->psw     = 0; /* stack pointer, register bank and F0 */
-    upi42->a              = 0;
-    upi42->t              = 0;
-    upi42->cycs           = 0;
+    upi42->pc      = 0;   /* program counter */
+    upi42->psw     = 0;   /* stack pointer, register bank and F0 */
+    upi42->dbf     = 0;   /* ROM bank */
+    upi42->i       = 0;   /* external interrupt */
+    upi42->tcnti   = 0;   /* timer/counter interrupt */
+    upi42->tf      = 0;   /* timer flag */
+    upi42->sts     = 0;   /* OBF, IBF and ST4-ST7 */
+    upi42->f1      = 0;   /* UPI-42 F1 flip-flop */
+    upi42->flags   = 0;   /* UPI-42 buffer interrupts */
+    upi42->suspend = 0;   /* 80C42 suspend flag */
+
+    upi42->pend_cmd = 0;  /* drop any latched master write */
+
     upi42->prescaler      = 0;
+    upi42->skip_timer_inc = 0;
     upi42->run_timer      = 0;
     upi42->run_counter    = 0;
-    upi42->skip_timer_inc = 0;
-    upi42->dbf     = 0; /* ROM bank */
-    upi42->i       = 0; /* external interrupt */
     upi42->i_raise        = 0;
-    upi42->tcnti   = 0; /* timer/counter interrupt */
     upi42->tcnti_raise    = 0;
     upi42->irq_mask       = 0;
-    upi42->tf      = 0; /* timer flag */
-    upi42->sts     = 0; /* F1 */
-    upi42->flags   = 0; /* UPI-42 buffer interrupts */
-    upi42->suspend = 0; /* 80C42 suspend flag */
-    upi42->t0             = 1;
-    upi42->t1             = 1;
-    memset(upi42->ports_out, 0, sizeof(upi42->ports_out));
+    upi42->cycs           = 0;
+
+    /* Ports are quasi-bidirectional and read back as 1 after reset. */
     memset(upi42->ports_in, 0xff, sizeof(upi42->ports_in));
+    memset(upi42->ports_out, 0xff, sizeof(upi42->ports_out));
+    upi42->t0 = 1;
+    upi42->t1 = 1;
+
+    upi42_update_irq(upi42);
 }
 
 void
@@ -1076,25 +1225,41 @@ upi42_do_init(upi42_t *upi42, uint32_t type, uint8_t *rom)
         upi42->ops[0x33] = NULL; /* EN A20 */
         upi42->ops[0x63] = NULL; /* SEL PMB0 */
         upi42->ops[0x73] = NULL; /* SEL PMB1 */
-        upi42->ops[0x42] = NULL; /* SUSPEND */
+        upi42->ops[0x82] = NULL; /* SUSPEND */
         upi42->ops[0xe2] = NULL; /* SUSPEND */
     }
 
     memset(upi42->ports_in, 0xff, sizeof(upi42->ports_in));
+    memset(upi42->ports_out, 0xff, sizeof(upi42->ports_out));
     upi42->t0 = 1;
     upi42->t1 = 1;
 }
 
-void *
-upi42_init(uint32_t type, uint8_t *rom)
+upi42_t *
+upi42_create(uint32_t type, uint8_t *rom)
 {
     /* Allocate state structure. */
     upi42_t *upi42 = (upi42_t *) calloc(1, sizeof(upi42_t));
-    if (!upi42)
-        return NULL;
-    upi42_do_init(upi42, type, rom);
+    if (upi42 != NULL)
+        upi42_do_init(upi42, type, rom);
 
     return upi42;
+}
+
+void
+upi42_close(upi42_t *upi42)
+{
+    free(upi42);
+}
+
+void
+upi42_attach(upi42_t *upi42, const upi42_hooks *hooks, void *priv)
+{
+    if (hooks != NULL)
+        upi42->hooks = *hooks;
+    else
+        memset(&upi42->hooks, 0x00, sizeof(upi42->hooks));
+    upi42->hpriv = priv;
 }
 
 #ifdef UPI42_STANDALONE
@@ -1146,7 +1311,7 @@ main(int argc, char **argv)
     upi42_log(".\n");
 
     /* Initialize emulator. */
-    upi42_t *upi42 = (upi42_t *) upi42_init(type, rom);
+    upi42_t *upi42 = upi42_create(type, rom);
 
     if ((argc >= 4) && !strcmp(argv[2], "--batch")) {
         int     cycles     = atoi(argv[3]);
@@ -1204,9 +1369,11 @@ main(int argc, char **argv)
             upi42_log(" R%d=%02X", val, UPI42_REG(upi42, val, ));
         upi42_log("  T=%02X PSW=%02X TF=%d I=%d TCNTI=%d", upi42->t, upi42->psw, upi42->tf, upi42->i, upi42->tcnti);
         if (type & UPI42_TYPE_UPI) {
-            upi42_log("  STS=%02X", upi42->sts);
+            uint8_t sts = upi42_compose_sts(upi42);
+
+            upi42_log("  STS=%02X", sts);
             for (val = 0; val < 8; val++) {
-                if (upi42->sts & (1 << val)) {
+                if (sts & (1 << val)) {
                     upi42_log(" [%s]", flags_8042[val]);
                 } else {
                     upi42_log("  %s ", flags_8042[val]);
@@ -1228,13 +1395,13 @@ retry:
             /* Execute command. */
             switch (cmd) {
                 case 'c': /* write command */
-                    if (scanf("%X%*c", &val))
-                        upi42_cmd_write(0, val, upi42);
+                    if (scanf("%X%*c", &val, &cmd_buf))
+                        upi42_master_write_cmd(upi42, (uint8_t) val);
                     goto retry;
 
                 case 'd': /* write data */
-                    if (scanf("%X%*c", &val))
-                        upi42_dbb_write(0, val, upi42);
+                    if (scanf("%X%*c", &val, &cmd_buf))
+                        upi42_master_write_data(upi42, (uint8_t) val);
                     goto retry;
 
                 case 'g': /* go until */
@@ -1242,8 +1409,8 @@ retry:
                         go_until = -1;
                     break;
 
-                case 'r':                     /* read data */
-                    upi42_dbb_read(0, upi42); /* return value will be logged */
+                case 'r':                            /* read data */
+                    upi42_master_read_data(upi42);   /* return value will be logged */
                     goto skip_and_retry;
 
                 case 'q': /* exit */
@@ -1269,13 +1436,14 @@ skip_and_retry:
         }
 
         /* Execute a cycle. */
-        upi42_exec(upi42);
+        upi42_step(upi42);
     }
 
     return 0;
 }
-#    endif
-#elif !defined(UPI42_ROM_DEVICE)
+#else
+#ifdef UPI42_DEBUG_PORTS
+
 static void
 upi42_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -1288,7 +1456,7 @@ upi42_write(uint16_t port, uint8_t val, void *priv)
         /* Write to data port. */
         case 0x0060:
         case 0x0160:
-            upi42_dbb_write(0, val, upi42);
+            upi42_master_write_data(upi42, val);
             break;
 
         /* RAM Index. */
@@ -1304,17 +1472,17 @@ upi42_write(uint16_t port, uint8_t val, void *priv)
         /* Write to command port. */
         case 0x0064:
         case 0x0164:
-            upi42_cmd_write(0, val, upi42);
+            upi42_master_write_cmd(upi42, val);
             break;
 
         /* Input ports. */
         case 0x0180 ... 0x0187:
-            upi42->ports_in[addr & 0x0007] = val;
+            upi42->ports_in[port & 0x0007] = val;
             break;
 
         /* Output ports. */
         case 0x0188 ... 0x018f:
-            upi42->ports_out[addr & 0x0007] = val;
+            upi42->ports_out[port & 0x0007] = val;
             break;
 
         /* 4 = T0, 5 = T1. */
@@ -1421,8 +1589,7 @@ upi42_read(uint16_t port, void *priv)
         /* Read from data port and reset OBF. */
         case 0x0060:
         case 0x0160:
-            ret = upi42->dbb_out;
-            upi42->sts &= ~0x01; /* clear OBF */
+            ret = upi42_master_read_data(upi42);
             break;
 
         /* RAM Mask. */
@@ -1443,17 +1610,17 @@ upi42_read(uint16_t port, void *priv)
         /* Read status. */
         case 0x0064:
         case 0x0164:
-            ret = upi42->sts;
+            ret = upi42_compose_sts(upi42);
             break;
 
         /* Input ports. */
         case 0x0180 ... 0x0187:
-            ret = upi42->ports_in[addr & 0x0007];
+            ret = upi42->ports_in[port & 0x0007];
             break;
 
         /* Output ports. */
         case 0x0188 ... 0x018f:
-            ret = upi42->ports_out[addr & 0x0007];
+            ret = upi42->ports_out[port & 0x0007];
             break;
 
         /* Accumulator. */
@@ -1473,12 +1640,12 @@ upi42_read(uint16_t port, void *priv)
 
         /* 0-4 = Prescaler, 5 = TF, 6 = Skip Timer Inc, 7 = Run Timer. */
         case 0x0193:
-            ret = (upi42->prescaler & 0x1f) || ((upi42->tf & 0x01) << 5) || ((upi42->skip_timer_inc & 0x01) << 6) || ((upi42->run_timer & 0x01) << 7);
+            ret = (upi42->prescaler & 0x1f) | ((upi42->tf & 0x01) << 5) | ((upi42->skip_timer_inc & 0x01) << 6) | ((upi42->run_timer & 0x01) << 7);
             break;
 
         /* 0 = I, 1 = I Raise, 2 = TCNTI Raise, 3 = IRQ Mask, 4 = T0, 5 = T1, 6 = Flags, 7 = DBF. */
         case 0x0194:
-            ret = (upi42->i & 0x01) || ((upi42->i_raise & 0x01) << 1) || ((upi42->tcnti_raise & 0x01) << 2) || ((upi42->irq_mask & 0x01) << 3) || ((upi42->t0 & 0x01) << 4) || ((upi42->t1 & 0x01) << 5) || ((upi42->flags & 0x01) << 6) || ((upi42->dbf & 0x01) << 7);
+            ret = (upi42->i & 0x01) | ((upi42->i_raise & 0x01) << 1) | ((upi42->tcnti_raise & 0x01) << 2) | ((upi42->irq_mask & 0x01) << 3) | ((upi42->t0 & 0x01) << 4) | ((upi42->t1 & 0x01) << 5) | ((upi42->flags & 0x01) << 6) | ((upi42->dbf & 0x01) << 7);
             break;
 
         /* 0 = Suspend. */
@@ -1556,4 +1723,5 @@ upi42_read(uint16_t port, void *priv)
 
     return ret;
 }
+#endif /* UPI42_DEBUG_PORTS */
 #endif

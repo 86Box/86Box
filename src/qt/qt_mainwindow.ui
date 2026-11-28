@@ -98,6 +98,7 @@
     <addaction name="actionNon_maskable_interrupt"/>
     <addaction name="separator"/>
     <addaction name="actionACPI_Shutdown"/>
+    <addaction name="actionPower_off"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -108,12 +109,35 @@
      <property name="title">
       <string>S&amp;ound</string>
      </property>
+     <widget class="QMenu" name="menuMIDI">
+      <property name="title">
+       <string>M&amp;IDI output device</string>
+      </property>
+      <addaction name="separator"/>
+      <addaction name="actionMIDI_restart_device"/>
+     </widget>
+     <widget class="QMenu" name="menuMIDI_command">
+      <property name="title">
+       <string>Send MIDI &amp;command</string>
+      </property>
+      <addaction name="actionMIDI_reset_GM"/>
+      <addaction name="actionMIDI_reset_GS"/>
+      <addaction name="actionMIDI_reset_XG"/>
+      <addaction name="actionMIDI_reset_MT32"/>
+      <addaction name="separator"/>
+      <addaction name="actionMIDI_all_notes_off"/>
+     </widget>
      <addaction name="actionMute_Unmute"/>
      <addaction name="separator"/>
      <addaction name="actionSound_gain"/>
+     <addaction name="separator"/>
+     <addaction name="menuMIDI"/>
+     <addaction name="menuMIDI_command"/>
+     <addaction name="actionMIDI_LCD"/>
     </widget>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
+    <addaction name="actionShow_USB_activity"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
     <addaction name="actionTake_raw_screenshot"/>
@@ -440,7 +464,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Resizeable window</string>
+    <string>&amp;Resizable window</string>
    </property>
   </action>
   <action name="actionRemember_size_and_position">
@@ -675,6 +699,14 @@
     <string>&amp;Update status bar icons</string>
    </property>
   </action>
+  <action name="actionShow_USB_activity">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show US&amp;B activity</string>
+   </property>
+  </action>
   <action name="actionTake_screenshot">
    <property name="text">
     <string>Take s&amp;creenshot</string>
@@ -733,6 +765,44 @@
     <string>Sound &amp;gain…</string>
    </property>
   </action>
+  <action name="actionMIDI_reset_GM">
+   <property name="text">
+    <string>&amp;GM System On</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_GS">
+   <property name="text">
+    <string>G&amp;S Reset</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_XG">
+   <property name="text">
+    <string>&amp;XG System On</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_MT32">
+   <property name="text">
+    <string>&amp;MT-32 Reset</string>
+   </property>
+  </action>
+  <action name="actionMIDI_all_notes_off">
+   <property name="text">
+    <string>All &amp;notes off</string>
+   </property>
+  </action>
+  <action name="actionMIDI_restart_device">
+   <property name="text">
+    <string>Restart &amp;device</string>
+   </property>
+  </action>
+  <action name="actionMIDI_LCD">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show MIDI &amp;LCD</string>
+   </property>
+  </action>
   <action name="actionOpenGL">
    <property name="checkable">
     <bool>true</bool>
@@ -769,13 +839,25 @@
      <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>ACP&amp;I shutdown</string>
+    <string>&amp;ACPI shutdown</string>
    </property>
    <property name="toolTip">
     <string>ACPI shutdown</string>
    </property>
    <property name="visible">
     <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionPower_off">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/stop.ico</normaloff>:/menuicons/qt/icons/stop.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Power &amp;off</string>
+   </property>
+   <property name="toolTip">
+    <string>Power off</string>
    </property>
   </action>
   <action name="actionBegin_trace">

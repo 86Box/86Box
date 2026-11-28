@@ -31,7 +31,6 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QFile>
-#include <QTextStream>
 
 #ifdef Q_OS_MACOS
 #    include <pthread/qos.h>
@@ -56,6 +55,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #endif
 
 extern "C" {
+#include <86box/fs_name.h>
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/plat.h>
@@ -70,7 +70,6 @@ extern "C" {
 #    include "qt_rendererstack.hpp"
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
-#    include "qt_vmmanager_windarkmodefilter.hpp"
 #    include <86box/win.h>
 #    include <shobjidl.h>
 #    include <windows.h>
@@ -102,7 +101,6 @@ extern MainWindow   *main_window;
 
 extern "C" {
 #include <86box/keyboard.h>
-#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #ifndef Q_OS_MACOS
@@ -117,6 +115,8 @@ extern void exit_pause(void);
 #endif
 
 #include <locale.h>
+
+extern int cpu_override;
 
 void qt_set_sequence_auto_mnemonic(bool b);
 
@@ -461,7 +461,7 @@ main_thread_fn()
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
     plat_set_thread_name(nullptr, "main_thread");
-    runctl_run_loop(nullptr);
+    runctl_thread_run_loop(nullptr);
 
     cpu_thread_running = false;
     for (uint8_t i = 1; i < GFXCARD_MAX; i++) {
@@ -475,17 +475,11 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
-#ifdef USE_QDARKSTYLE
-WindowsDarkModeFilter *vmm_dark_mode_filter = nullptr;
-#endif
-
 int
 main(int argc, char *argv[])
 {
+    fs_codepage_init();
 #ifdef Q_OS_WINDOWS
-#    ifdef USE_QDARKSTYLE
-    bool wasDarkTheme = false;
-#    endif
     /* Check if Windows supports UTF-8 */
     if (GetACP() == CP_UTF8)
         acp_utf8 = 1;
@@ -523,28 +517,6 @@ main(int argc, char *argv[])
     }
 #endif
 
-#ifdef USE_QDARKSTYLE
-    Q_INIT_RESOURCE(darkstyle);
-    if (!util::isWindowsLightTheme()) {
-        QFile f(":qdarkstyle/dark/darkstyle.qss");
-
-        if (!f.exists())
-            printf("Unable to set stylesheet, file not found\n");
-        else {
-            if (f.open(QFile::ReadOnly | QFile::Text)) {
-                QTextStream ts(&f);
-                qApp->setStyleSheet(ts.readAll());
-                wasDarkTheme = true;
-            } else
-                printf("Unable to set stylesheet, unable to open file\n");
-        }
-        QPalette palette(qApp->palette());
-        palette.setColor(QPalette::Link, Qt::white);
-        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
-        qApp->setPalette(palette);
-    }
-#endif
-
     app.setApplicationName(EMU_NAME);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
@@ -566,15 +538,7 @@ main(int argc, char *argv[])
         return 0;
     }
 
-#ifdef USE_QDARKSTYLE
-    if (util::isWindowsLightTheme() && wasDarkTheme) {
-        qApp->setStyleSheet("");
-        QPalette palette(qApp->palette());
-        palette.setColor(QPalette::Link, Qt::blue);
-        palette.setColor(QPalette::LinkVisited, Qt::magenta);
-        qApp->setPalette(palette);
-    }
-#elif defined(Q_OS_WINDOWS)
+#ifdef HAS_COLOR_SCHEME_HINT
     /* The configuration is loaded now, so apply the color scheme from it */
     util::applyColorScheme();
 #endif
@@ -583,9 +547,9 @@ main(int argc, char *argv[])
 #ifdef Q_OS_MACOS
         qt_set_sequence_auto_mnemonic(false);
 #else
-        qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+        qt_set_sequence_auto_mnemonic(dopause || (kbd_req_capture && !mouse_capture));
 #endif
-    app.setStyle(new StyleOverride());
+    util::applyStyle();
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
 #ifndef RELEASE_BUILD
@@ -621,21 +585,8 @@ main(int argc, char *argv[])
         // vmm.show();
         // vmm.exec();
         VMManagerConfig::migratePreferences();
-#ifdef USE_QDARKSTYLE
-        auto darkModeFilter = std::unique_ptr<WindowsDarkModeFilter>(new WindowsDarkModeFilter());
-        if (darkModeFilter) {
-            qApp->installNativeEventFilter(darkModeFilter.get());
-        }
-        QTimer::singleShot(0, [&darkModeFilter] {
-#else
         QTimer::singleShot(0, [] {
-#endif
             const auto vmm_main_window = new VMManagerMainWindow();
-#ifdef USE_QDARKSTYLE
-            darkModeFilter.get()->setWindow(vmm_main_window);
-            // HACK
-            vmm_dark_mode_filter = darkModeFilter.get();
-#endif
             vmm_main_window->show();
             QApplication::processEvents(); // let the window paint before loading the list
             // Load cached list and start background discovery after the window is visible
@@ -868,10 +819,6 @@ main(int argc, char *argv[])
     QTimer::singleShot(0, &app, [] {
         plat_set_thread_name(nullptr, "qt_thread");
 
-#ifdef USE_QDARKSTYLE
-        extern bool NewDarkMode;
-        NewDarkMode = util::isWindowsLightTheme();
-#endif
         pc_reset_hard_init();
         main_window->updateMouseStrings();
 

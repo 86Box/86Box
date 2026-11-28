@@ -200,6 +200,21 @@ typedef struct sb_dsp_t {
     /* IRQ status flags (0x22C) */
     uint8_t  ess_irq_generic;
     uint8_t  ess_irq_dmactr;
+    uint8_t  ess_irq_fifohe;
+
+    /* the Audio 1 FIFO as seen by Extended mode programmed I/O (Audio_Base+Fh). While
+       it is in use the DMA hooks point at it, the card's own ones saved here. */
+    uint8_t  ess_fifo[256];
+    uint8_t  ess_fifo_rp;
+    uint8_t  ess_fifo_wp;
+    uint16_t ess_fifo_count;
+    uint8_t  ess_fifo_he;
+    uint8_t  ess_pio;
+    int    (*ess_pio_saved_readb)(void *priv);
+    int    (*ess_pio_saved_readw)(void *priv);
+    int    (*ess_pio_saved_writeb)(void *priv, uint8_t val);
+    int    (*ess_pio_saved_writew)(void *priv, uint16_t val);
+    void    *ess_pio_saved_priv;
 
     /* ESPCM */
     fifo64_t *espcm_fifo;
@@ -258,6 +273,7 @@ extern void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
 
 extern void sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent);
 extern void sb_dsp_close(sb_dsp_t *dsp);
+extern void sb_doreset(sb_dsp_t *dsp);
 
 extern void sb_dsp_setirq(sb_dsp_t *dsp, int irq);
 extern void sb_dsp_setdma8(sb_dsp_t *dsp, int dma);

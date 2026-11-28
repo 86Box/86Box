@@ -54,11 +54,13 @@ extern "C" {
 #include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
+#include <86box/fat_image.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
 #include <86box/runctl.h>
@@ -66,6 +68,7 @@ extern "C" {
 #include <86box/network.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
+#include <86box/pcmcia.h>
 #include <86box/plat_floppy_ioctl.h>
 };
 
@@ -80,6 +83,47 @@ extern "C" {
 std::shared_ptr<MediaMenu> MediaMenu::ptr;
 
 static QSize pixmap_size(16, 16);
+
+/* Archives that media can be mounted from, as libarchive reads them. */
+static const QStringList archive_extensions = {
+    "7z", "cab", "cpio", "lha", "lzh", "rar", "tar", "taz", "tb2", "tbz", "tbz2", "tgz", "tlz", "txz", "tz2", "tzst", "xar", "zip",
+    "tar.bz2", "tar.gz", "tar.lz", "tar.lzma", "tar.xz", "tar.z", "tar.zst"
+};
+
+/* Explains why a folder or an archive could not be mounted. */
+static QString
+folderMountError(int result)
+{
+    switch (result) {
+        case FAT_IMAGE_UNSUPPORTED:
+            return MediaMenu::tr("The selected drive does not support folder mounting.");
+        case FAT_IMAGE_FULL:
+            return MediaMenu::tr("The contents don't fit on any medium the drive takes, or a file is 4 GB or larger.");
+        case FAT_IMAGE_ROOT_FULL:
+            return MediaMenu::tr("There are too many files in the top folder for the root directory of the medium.");
+        case FAT_IMAGE_WRITE_ERROR:
+            return MediaMenu::tr("The temporary image could not be written.");
+        case FAT_IMAGE_NO_MEMORY:
+            return MediaMenu::tr("There is not enough memory to build the image.");
+        default:
+            return MediaMenu::tr("The folder or archive could not be read.");
+    }
+}
+
+/* Explains why files were left out of a folder or an archive that was mounted anyway. */
+static QString
+folderLeftOutWarning(int left_out, const QString &space)
+{
+    QStringList reasons;
+    if (left_out & FAT_IMAGE_LEFT_OUT_SPACE)
+        reasons << space;
+    if (left_out & FAT_IMAGE_LEFT_OUT_ROOT)
+        reasons << folderMountError(FAT_IMAGE_ROOT_FULL);
+    if (left_out & FAT_IMAGE_LEFT_OUT_READ)
+        reasons << MediaMenu::tr("Unable to read file");
+    return reasons.join("\n\n");
+}
+
 
 MediaMenu::MediaMenu(QWidget *parent)
     : QObject(parent)
@@ -147,6 +191,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { floppySelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { floppySelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() {
+            const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary floppy"), getMediaOpenDirectory());
+            if (!path.isEmpty())
+                floppyMount(i, path, false);
+        });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             floppyImageHistoryPos[slot] = menu->children().count();
@@ -203,23 +252,20 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         QIcon cdr_img_icon    = QIcon(":/settings/qt/icons/cdrw_image.ico");
         QIcon cdrw_img_icon   = QIcon(":/settings/qt/icons/cdrw_image.ico");
-        cdromMutePos = menu->children().count();
+        cdromMutePos[i] = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
-        menu->addSeparator();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
-        if (cdrom_is_writable(i))
+        if (cdrom_is_writable(t))
             menu->addSeparator();
-        if (cdrom_is_cdr(i))
+        if (cdrom_is_cdr(t))
             menu->addAction(getIconWithIndicator(cdr_img_icon, pixmap_size, QIcon::Normal, New), tr("&New CD-R image…"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDR); })->setCheckable(false);
-        if (cdrom_is_cdrw(i))
+        if (cdrom_is_cdrw(t))
             menu->addAction(getIconWithIndicator(cdrw_img_icon, pixmap_size, QIcon::Normal, New), tr("New CD-R&W image…"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDRW); })->setCheckable(false);
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
-            cdromImageHistoryPos[slot] = menu->children().count();
+            cdromImageHistoryPos[i][slot] = menu->children().count();
             menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { cdromReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
@@ -259,7 +305,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         menu->addSeparator();
 #endif
-        cdromEjectPos = menu->children().count();
+        cdromEjectPos[i] = menu->children().count();
         menu->addAction(tr("E&ject"), [this, i]() { cdromEject(i); })->setCheckable(false);
         cdromMenus[i] = menu;
         cdromUpdateMenu(i);
@@ -305,6 +351,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { rdiskSelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { rdiskSelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() {
+            const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary removable disk"), getMediaOpenDirectory());
+            if (!path.isEmpty())
+                rdiskMount(i, path, false);
+        });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             rdiskImageHistoryPos[slot] = menu->children().count();
@@ -325,6 +376,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { moSelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { moSelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() {
+            const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary removable disk"), getMediaOpenDirectory());
+            if (!path.isEmpty())
+                moMount(i, path, false);
+        });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             moImageHistoryPos[slot] = menu->children().count();
@@ -355,6 +411,26 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { tapeEject(i); });
         tapeMenus[i] = menu;
         tapeUpdateMenu(i);
+    });
+
+    mdMenus.clear();
+    MachineStatus::iterateMD([this, parentMenu](int i) {
+        auto *menu     = parentMenu->addMenu("");
+        QIcon img_icon = QIcon(":/settings/qt/icons/mo_image.ico");
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { mdNewImage(i); });
+        menu->addSeparator();
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { mdSelectImage(i, false); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { mdSelectImage(i, true); });
+        menu->addSeparator();
+        for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+            mdImageHistoryPos[slot] = menu->children().count();
+            menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { mdReload(i, slot); })->setCheckable(false);
+        }
+        menu->addSeparator();
+        mdEjectPos = menu->children().count();
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { mdEject(i); });
+        mdMenus[i] = menu;
+        mdUpdateMenu(i);
     });
 
     netMenus.clear();
@@ -621,7 +697,7 @@ MediaMenu::floppySelectImage(int i, bool wp)
         QString(),
         getMediaOpenDirectory(),
         tr("All images") %
-        util::DlgFilter({ "0??","1??","??0","86f","bin","cq?","d??","flp","hdm","im?","json","td0","*fd?","mfm","xdf" }) %
+        util::DlgFilter(QStringList({ "0??","1??","??0","86f","bin","cq?","d??","flp","hdm","im?","json","td0","*fd?","mfm","xdf" }) + archive_extensions) %
         tr("Advanced sector images") %
         util::DlgFilter({ "imd","json","td0" }) %
         tr("Basic sector images") %
@@ -630,6 +706,8 @@ MediaMenu::floppySelectImage(int i, bool wp)
         util::DlgFilter({ "fdi" }) %
         tr("Surface images") %
         util::DlgFilter({ "86f","mfm" }) %
+        tr("Archives") %
+        util::DlgFilter(archive_extensions) %
         tr("All files") %
         util::DlgFilter({ "*" }, true));
 
@@ -646,27 +724,51 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
     fdd_drive_t *drv = &drives[i];
 
     auto previous_image = QFileInfo(drv->image_path);
-    fdd_close(&drives[i]);
-    drv->read_only = wp ? 1 : 0;
-    if (!filename.isEmpty()) {
+    const bool prefixed_wp = filename.startsWith("wp://");
+    const QString path = prefixed_wp ? filename.mid(5) : filename;
+    QByteArray source = path.toUtf8();
+    int left_out = 0;
+    if (!source.isEmpty() && fat_image_is_source(source.data())) {
+        runctl_pause_wait(RUN_PAUSE_SYNC);
+        const auto result = fdd_mount_folder(drv, source.constData(), wp || prefixed_wp, &left_out);
+        runctl_resume(RUN_PAUSE_SYNC);
+        if (result == FAT_IMAGE_FULL) {
+            QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"),
+                                  tr("The contents exceed the capacity of the configured floppy drive."));
+            return;
+        } else if (result != FAT_IMAGE_OK) {
+            QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+            return;
+        }
+        mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString::fromUtf8(drv->image_path));
+    } else {
+        const bool was_folder = drv->folder_image;
+        if (was_folder)
+            runctl_pause_wait(RUN_PAUSE_SYNC);
+        fdd_close(drv);
+        drv->read_only = wp ? 1 : 0;
         QByteArray filenameBytes = filename.toUtf8();
 
-        if (filename.left(5) == "wp://")
-            drv->read_only = 1;
-        else if (drv->read_only)
-            filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
-
-        fdd_load(&drives[i], filenameBytes.data());
+        if (!filename.isEmpty()) {
+            if (prefixed_wp)
+                drv->read_only = 1;
+            else if (drv->read_only)
+                filenameBytes.prepend("wp://");
+            fdd_load(drv, filenameBytes.data());
+        }
+        if (was_folder)
+            runctl_resume(RUN_PAUSE_SYNC);
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
-    } else
-        mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
-    runctl_resume(RUN_PAUSE_SYNC);
-
+    }
     ui_sb_update_icon_state(SB_FLOPPY | i, drv->empty);
-    ui_sb_update_icon_wp(SB_FLOPPY | i, drv->read_only);
+    ui_sb_update_icon_wp(SB_FLOPPY | i, drv->writeprot);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
+
+    if (left_out)
+        QMessageBox::warning(parentWidget, tr("Warning"),
+                             folderLeftOutWarning(left_out, tr("The contents exceed the capacity of the configured floppy drive.")));
 }
 
 void
@@ -678,8 +780,12 @@ MediaMenu::floppyEject(int i)
     fdd_drive_t *drv = &drives[i];
 
     mhm.addImageToHistory(i, ui::MediaType::Floppy, drv->image_path, QString());
-    fdd_close(&drives[i]);
-    runctl_resume(RUN_PAUSE_SYNC);
+    const bool was_folder = drv->folder_image;
+    if (was_folder)
+        runctl_pause_wait(RUN_PAUSE_SYNC);
+    fdd_close(drv);
+    if (was_folder)
+        runctl_resume(RUN_PAUSE_SYNC);
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
@@ -718,7 +824,7 @@ MediaMenu::floppyUpdateMenu(int i)
     auto *exportMenu = dynamic_cast<QAction *>(childs[floppyExportPos]);
     ejectMenu->setEnabled(!name.isEmpty());
     ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
-    exportMenu->setEnabled(!name.isEmpty());
+    exportMenu->setEnabled(!name.isEmpty() && !drv->folder_image);
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(i, slot, ui::MediaType::Floppy);
@@ -803,7 +909,7 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
                                                 getMediaOpenDirectory(),
-                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "toc", "ccd", "mds", "mdx", "nrg", "aaruf", "aaruformat", "aif", "chd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+                                                tr("CD-ROM images") % util::DlgFilter(QStringList({ "iso", "cue", "toc", "ccd", "mds", "mdx", "b5t", "b6t", "nrg", "aaruf", "aaruformat", "aif", "chd" })) % tr("Archives") % util::DlgFilter(archive_extensions) % tr("All files") % util::DlgFilter({ "*" }, true));
     }
 
     if (filename.isEmpty())
@@ -983,7 +1089,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             }
             menu                  = cdromMenus[index];
             children              = menu->children();
-            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[slot]]);
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[index][slot]]);
             if (fn.left(8) == "ioctl://") {
                 menu_icon = host_icon;
 #ifdef Q_OS_WINDOWS
@@ -1055,6 +1161,25 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
                 imageHistoryUpdatePos->setIcon(menu_icon);
             }
             break;
+        case ui::MediaType::Md:
+            if (!mdMenus.contains(index))
+                return;
+            menu                  = mdMenus[index];
+            children              = menu->children();
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[mdImageHistoryPos[slot]]);
+            menu_icon             = QIcon(":/settings/qt/icons/mo_image.ico");
+            if (fn.left(5) == "wp://")
+                fi.setFile(fn.right(fn.length() - 5));
+            else
+                fi.setFile(fn);
+            if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
+                imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
+            } else {
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
+                imageHistoryUpdatePos->setIcon(menu_icon);
+            }
+            break;
     }
 
 #ifndef Q_OS_MACOS
@@ -1076,6 +1201,7 @@ MediaMenu::clearImageHistory()
     mhm.clearImageHistory();
     /* The USB flash drives keep their own recent list. */
     usb_flash_history_clear();
+    pcmcia_cf_history_clear();
     ui_sb_update_panes();
 }
 
@@ -1136,11 +1262,11 @@ MediaMenu::cdromUpdateMenu(int i)
     }
     QIcon mute_icon   = QIcon(":/settings/qt/icons/cdrom_mute.ico");
 
-    auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos]);
+    auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos[i]]);
     muteMenu->setIcon((cdrom[i].sound_on == 0) ? unmute_icon : mute_icon);
     muteMenu->setText((cdrom[i].sound_on == 0) ? tr("&Unmute") : tr("&Mute"));
 
-    auto *ejectMenu = dynamic_cast<QAction *>(childs[cdromEjectPos]);
+    auto *ejectMenu = dynamic_cast<QAction *>(childs[cdromEjectPos[i]]);
     ejectMenu->setEnabled(!name.isEmpty());
     QString menu_item_name;
     if (name.left(8) == "ioctl://") {
@@ -1226,7 +1352,10 @@ MediaMenu::rdiskSelectImage(int i, bool wp)
         parentWidget,
         QString(),
         QString(),
-        tr("Removable disk images") % util::DlgFilter({ "im?", "rdi", "sdi", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+        tr("All images") % util::DlgFilter(QStringList({ "im?", "rdi", "sdi", "zdi" }) + archive_extensions) %
+        tr("Removable disk images") % util::DlgFilter({ "im?", "rdi", "sdi", "zdi" }) %
+        tr("Archives") % util::DlgFilter(archive_extensions) %
+        tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!filename.isEmpty())
         rdiskMount(i, filename, wp);
@@ -1235,9 +1364,17 @@ MediaMenu::rdiskSelectImage(int i, bool wp)
 void
 MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
 {
-    const auto dev       = static_cast<rdisk_t *>(rdisk_drives[i].priv);
-    int        was_empty = rdisk_is_empty(i);
+    const auto       dev       = static_cast<rdisk_t *>(rdisk_drives[i].priv);
+    int              was_empty = rdisk_is_empty(i);
+    const QByteArray source    = ((filename.left(5) == "wp://") ? filename.mid(5) : filename).toUtf8();
+    const bool       is_folder = !source.isEmpty() && fat_image_is_source(source.constData());
+    int              result    = FAT_IMAGE_OK;
+    int              left_out  = 0;
 
+    /* Building or freeing a folder's image takes a while; keep the drive from being used meanwhile. */
+    const bool pause = is_folder || rdisk_drives[i].folder_image;
+    if (pause)
+        runctl_pause_wait(RUN_PAUSE_SYNC);
     rdisk_disk_close(dev);
     rdisk_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
@@ -1248,7 +1385,10 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
         else if (rdisk_drives[i].read_only)
             filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
 
-        rdisk_load(dev, filenameBytes.data(), 1);
+        if (is_folder)
+            result = rdisk_mount_folder(dev, filenameBytes.data(), 1, &left_out);
+        else
+            rdisk_load(dev, filenameBytes.data(), 1);
 
         /* Signal media change to the emulated machine. */
         rdisk_insert(dev);
@@ -1257,6 +1397,8 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
         if (was_empty)
             rdisk_insert(dev);
     }
+    if (pause)
+        runctl_resume(RUN_PAUSE_SYNC);
     mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].prev_image_path, rdisk_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_RDISK | i, rdisk_drives[i].fp == nullptr);
@@ -1267,6 +1409,11 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
     ui_sb_update_tip(SB_RDISK | i);
 
     config_save();
+
+    if (result != FAT_IMAGE_OK)
+        QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+    else if (left_out)
+        QMessageBox::warning(parentWidget, tr("Warning"), folderLeftOutWarning(left_out, folderMountError(FAT_IMAGE_FULL)));
 }
 
 void
@@ -1412,10 +1559,8 @@ MediaMenu::moSelectImage(int i, bool wp)
         parentWidget,
         QString(),
         getMediaOpenDirectory(),
-        tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("All files") % util::DlgFilter({
-                                                                                                    "*",
-                                                                                                },
-                                                                                                true));
+        tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("Archives") % util::DlgFilter(archive_extensions) %
+        tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!filename.isEmpty())
         moMount(i, filename, wp);
@@ -1424,9 +1569,17 @@ MediaMenu::moSelectImage(int i, bool wp)
 void
 MediaMenu::moMount(int i, const QString &filename, bool wp)
 {
-    const auto dev       = static_cast<mo_t *>(mo_drives[i].priv);
-    int        was_empty = mo_is_empty(i);
+    const auto       dev       = static_cast<mo_t *>(mo_drives[i].priv);
+    int              was_empty = mo_is_empty(i);
+    const QByteArray source    = ((filename.left(5) == "wp://") ? filename.mid(5) : filename).toUtf8();
+    bool             is_folder = !source.isEmpty() && fat_image_is_source(source.constData());
+    int              result    = FAT_IMAGE_OK;
+    int              left_out  = 0;
 
+    /* Building or freeing a folder's image takes a while; keep the drive from being used meanwhile. */
+    bool pause = is_folder || mo_drives[i].folder_image;
+    if (pause)
+        runctl_pause_wait(RUN_PAUSE_SYNC);
     mo_disk_close(dev);
     mo_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
@@ -1437,7 +1590,10 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
         else if (mo_drives[i].read_only)
             filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
 
-        mo_load(dev, filenameBytes.data(), 1);
+        if (is_folder)
+            result = mo_mount_folder(dev, filenameBytes.data(), 1, &left_out);
+        else
+            mo_load(dev, filenameBytes.data(), 1);
 
         /* Signal media change to the emulated machine. */
         mo_insert(dev);
@@ -1446,6 +1602,8 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
         if (was_empty)
             mo_insert(dev);
     }
+    if (pause)
+        runctl_resume(RUN_PAUSE_SYNC);
     mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_MO | i, mo_drives[i].fp == nullptr);
@@ -1453,6 +1611,11 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
     ui_sb_update_tip(SB_MO | i);
 
     config_save();
+
+    if (result != FAT_IMAGE_OK)
+        QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+    else if (left_out)
+        QMessageBox::warning(parentWidget, tr("Warning"), folderLeftOutWarning(left_out, folderMountError(FAT_IMAGE_FULL)));
 }
 
 void
@@ -1709,6 +1872,143 @@ MediaMenu::tapeUpdateMenu(int i)
 }
 
 void
+MediaMenu::mdNewImage(int i)
+{
+    const QString filename = QFileDialog::getSaveFileName(parentWidget, tr("Create…"), getMediaOpenDirectory(),
+                                                          tr("MD DATA images") % util::DlgFilter({ "img" }));
+
+    if (filename.isEmpty())
+        return;
+
+    if (md_create_image(filename.toUtf8().constData()) != 0) {
+        QMessageBox::critical(parentWidget, tr("Unable to create image"), filename);
+        return;
+    }
+
+    mdMount(i, filename, false);
+}
+
+void
+MediaMenu::mdSelectImage(int i, bool wp)
+{
+    const auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        getMediaOpenDirectory(),
+        tr("MD DATA images") % util::DlgFilter({ "img" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
+    if (!filename.isEmpty())
+        mdMount(i, filename, wp);
+}
+
+void
+MediaMenu::mdMount(int i, const QString &filename, bool wp)
+{
+    const auto dev       = static_cast<md_t *>(md_drives[i].priv);
+    int        was_empty = md_is_empty(i);
+
+    if (dev == nullptr)
+        return;
+
+    md_disk_close(dev);
+    md_drives[i].read_only = wp;
+    if (!filename.isEmpty()) {
+        QByteArray filenameBytes = filename.toUtf8();
+
+        if (filename.left(5) == "wp://")
+            md_drives[i].read_only = 1;
+        else if (md_drives[i].read_only)
+            filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
+
+        md_load(dev, filenameBytes.data(), 1);
+
+        /* Signal media change to the emulated machine. */
+        md_insert(dev);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            md_insert(dev);
+    }
+    mhm.addImageToHistory(i, ui::MediaType::Md, md_drives[i].prev_image_path, md_drives[i].image_path);
+
+    ui_sb_update_icon_state(SB_MD | i, md_drives[i].fp == nullptr);
+    mdUpdateMenu(i);
+    ui_sb_update_tip(SB_MD | i);
+
+    config_save();
+}
+
+void
+MediaMenu::mdEject(int i)
+{
+    const auto dev = static_cast<md_t *>(md_drives[i].priv);
+
+    if (dev == nullptr)
+        return;
+
+    mhm.addImageToHistory(i, ui::MediaType::Md, md_drives[i].image_path, QString());
+    md_disk_close(dev);
+    md_drives[i].image_path[0] = 0;
+    if (md_drives[i].bus_type) {
+        /* Signal disk change to the emulated machine. */
+        md_insert(dev);
+    }
+
+    ui_sb_update_icon_state(SB_MD | i, 1);
+    mdUpdateMenu(i);
+    ui_sb_update_tip(SB_MD | i);
+    config_save();
+}
+
+void
+MediaMenu::mdReloadPrev(int i)
+{
+    const auto dev = static_cast<md_t *>(md_drives[i].priv);
+
+    if (dev == nullptr)
+        return;
+
+    md_disk_reload(dev);
+    ui_sb_update_icon_state(SB_MD | i, strlen(md_drives[i].image_path) == 0);
+    ui_sb_update_icon_wp(SB_MD | i, md_drives[i].read_only);
+
+    mdUpdateMenu(i);
+    ui_sb_update_tip(SB_MD | i);
+
+    config_save();
+}
+
+void
+MediaMenu::mdReload(int index, int slot)
+{
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Md);
+    mdMount(index, filename, false);
+    mdUpdateMenu(index);
+    ui_sb_update_tip(SB_MD | index);
+}
+
+void
+MediaMenu::mdUpdateMenu(int i)
+{
+    QString   name = md_drives[i].image_path;
+    QFileInfo fi(md_drives[i].image_path);
+    if (!mdMenus.contains(i))
+        return;
+    auto *menu   = mdMenus[i];
+    auto  childs = menu->children();
+
+    auto *ejectMenu = dynamic_cast<QAction *>(childs[mdEjectPos]);
+    ejectMenu->setEnabled(!name.isEmpty());
+    ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
+
+    menu->setTitle(tr("&MD DATA %1 (%2): %3").arg(QString::number(i + 1), "SCSI", name.isEmpty() ? tr("(empty)") : name));
+    menu->setToolTip(tr("MD DATA %1 (%2): %3").arg(QString::number(i + 1), "SCSI", name.isEmpty() ? tr("(empty)") : name));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+        updateImageHistory(i, slot, ui::MediaType::Md);
+}
+
+void
 MediaMenu::nicConnect(int i)
 {
     network_connect(i, 1);
@@ -1732,8 +2032,12 @@ MediaMenu::nicUpdateMenu(int i)
     if (!netMenus.contains(i))
         return;
 
+    /* A PC network card (pcmcia.c): its socket's link and the card in it. */
+    const bool pccard = (i >= NET_CARD_MAX);
+    const int  socket = i - NET_CARD_MAX;
+
     QString netType;
-    switch (net_cards_conf[i].net_type) {
+    switch (pccard ? pcmcia_net_type[socket] : net_cards_conf[i].net_type) {
         default:
             netType = tr("Null Driver");
             break;
@@ -1757,15 +2061,21 @@ MediaMenu::nicUpdateMenu(int i)
             break;
     }
 
-    QString devName = DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);
+    QString devName = pccard ? QString::fromUtf8(pcmcia_card_get_name(pcmcia_card_type[socket])) :
+                               DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);
 
     auto *menu            = netMenus[i];
     auto  childs          = menu->children();
     auto *connectedAction = dynamic_cast<QAction *>(childs[netDisconnPos]);
     connectedAction->setChecked(network_is_connected(i));
 
-    menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
-    menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+    if (pccard) {
+        menu->setTitle(tr("PC Card &%1 (%2) %3").arg(QChar('A' + socket), netType, devName));
+        menu->setToolTip(tr("PC Card %1 (%2) %3").arg(QChar('A' + socket), netType, devName));
+    } else {
+        menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+        menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+    }
 }
 
 void
@@ -1908,10 +2218,15 @@ MediaMenu::usbPortUpdateMenu(int port)
         return;
     }
 
-    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, New), tr("&New flash drive…"), [this, label] { usbPortNewImage(label); });
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, New), tr("&New USB flash drive…"), [this, label] { usbPortNewImage(label); });
     menu->addSeparator();
     menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, label] { usbPortSelectImage(label, false); });
     menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, label] { usbPortSelectImage(label, true); });
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, label] {
+        const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary removable disk"), getMediaOpenDirectory());
+        if (!path.isEmpty())
+            usbPortPlug(label, path, false);
+    });
     menu->addSeparator();
 
     /* An empty port takes any of the machine's USB devices: one in another
@@ -1969,12 +2284,27 @@ MediaMenu::usbPortUpdateMenu(int port)
         menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Eject), tr("&Unplug"))->setEnabled(false);
 }
 
-/* The image must be a disk image; it may already be in another port, and
+/* The image must be a disk image, a folder or an archive; it may already be in another port, and
    then it moves here. */
 void
 MediaMenu::usbPortPlug(const QString &label, const QString &fn, bool wp)
 {
-    QFileInfo fi(fn);
+    QFileInfo        fi(fn);
+    const QByteArray source = fn.toUtf8();
+
+    if (fat_image_is_source(source.constData())) {
+        int left_out = 0;
+        int result   = usb_flash_prepare_folder(source.constData(), &left_out);
+        if (result != FAT_IMAGE_OK) {
+            QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+            return;
+        }
+        usb_port_flash_want(label.toUtf8().constData(), source.constData(), wp ? 1 : 0);
+        config_save();
+        if (left_out)
+            QMessageBox::warning(parentWidget, tr("Warning"), folderLeftOutWarning(left_out, folderMountError(FAT_IMAGE_FULL)));
+        return;
+    }
 
     if (!fi.exists() || (fi.size() < 512)) {
         QMessageBox::warning(parentWidget, tr("USB flash drive"), tr("%1 is not a disk image.").arg(fn));
@@ -1999,6 +2329,7 @@ MediaMenu::usbPortSelectImage(const QString &label, bool wp)
 {
     const QString fn = QFileDialog::getOpenFileName(parentWidget, QString(), getMediaOpenDirectory(),
                                                     tr("Flash drive images") % util::DlgFilter({ "img", "ima", "bin", "raw" }) %
+                                                    tr("Archives") % util::DlgFilter(archive_extensions) %
                                                     tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!fn.isEmpty())
@@ -2121,6 +2452,24 @@ void
 tape_reload(uint8_t id)
 {
     MediaMenu::ptr->tapeReloadPrev(id);
+}
+
+void
+md_eject(uint8_t id)
+{
+    MediaMenu::ptr->mdEject(id);
+}
+
+void
+md_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->mdMount(id, QString(fn), wp);
+}
+
+void
+md_reload(uint8_t id)
+{
+    MediaMenu::ptr->mdReloadPrev(id);
 }
 }
 

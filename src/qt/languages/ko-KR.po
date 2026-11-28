@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-01 17:51+0000\n"
+"PO-Revision-Date: 2026-11-14 02:27+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -48,10 +48,13 @@ msgstr "표시(&V)"
 msgid "&Hide status bar"
 msgstr "상태 바 숨기기(&H)"
 
+msgid "Show US&B activity"
+msgstr ""
+
 msgid "Hide &toolbar"
 msgstr "도구 모음 숨기기(&T)"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "창 크기 조절 가능(&R)"
 
 msgid "R&emember size && position"
@@ -80,6 +83,9 @@ msgstr "창 크기 지정하기(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3 화면 비율로 고정(&4)"
+
+msgid "Force &machine display ratio"
+msgstr ""
 
 msgid "Force &%1:%2 display ratio"
 msgstr "%1:%2 화면 비율로 고정(&%1)"
@@ -151,13 +157,13 @@ msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
 msgid "&Center"
-msgstr ""
+msgstr "중앙(&C)"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 중앙(&T)"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "4:3 정수 배율(세로)(&V)"
 
 msgid "Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터"
@@ -246,6 +252,42 @@ msgstr "환경설정(&P)…"
 msgid "Sound &gain…"
 msgstr "음량 증폭(&G)…"
 
+msgid "M&IDI output device"
+msgstr ""
+
+msgid "Restart &device"
+msgstr ""
+
+msgid "Send MIDI &command"
+msgstr ""
+
+msgid "&GM System On"
+msgstr ""
+
+msgid "G&S Reset"
+msgstr ""
+
+msgid "&XG System On"
+msgstr ""
+
+msgid "&MT-32 Reset"
+msgstr ""
+
+msgid "All &notes off"
+msgstr ""
+
+msgid "Show MIDI &LCD"
+msgstr ""
+
+msgid "MIDI LCD"
+msgstr ""
+
+msgid "Always on &top"
+msgstr ""
+
+msgid "&Close"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "추적 시작하기"
 
@@ -300,8 +342,8 @@ msgstr "비었음(&M)"
 msgid "Reload previous image"
 msgstr "이전 이미지 다시 불러오기"
 
-msgid "&Folder…"
-msgstr "폴더(&F)…"
+msgid "Mount &folder…"
+msgstr "폴더 마운트(&F)…"
 
 msgid "Preferences"
 msgstr "환경설정"
@@ -311,6 +353,12 @@ msgstr "음량 증폭"
 
 msgid "New Image"
 msgstr "새 이미지"
+
+msgid "Removable disk type:"
+msgstr ""
+
+msgid "MO type:"
+msgstr ""
 
 msgid "Settings"
 msgstr "설정"
@@ -405,6 +453,18 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "FPU:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr ""
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr ""
+
 msgid "Internal"
 msgstr "통합된"
 
@@ -414,35 +474,44 @@ msgstr "대기 상태:"
 msgid "MB"
 msgstr "MB"
 
+msgid "GB"
+msgstr ""
+
+msgid "%1 MB"
+msgstr ""
+
+msgid "%1 GB"
+msgstr ""
+
 msgid "Memory:"
 msgstr "메모리:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "호스트 시계와 동기화"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "시간대:"
 
 msgid "Local"
-msgstr ""
+msgstr "현지 시간"
 
 msgid "UTC"
-msgstr ""
+msgstr "협정 시계시(UTC)"
 
 msgid "Date:"
-msgstr ""
+msgstr "날짜:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "호스트와 일치"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "연도 조정:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(현재 %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "항상 사용할 연도:"
 
 msgid "Do not synchronize the date"
 msgstr ""
@@ -452,6 +521,12 @@ msgstr "286/386 프로세서에 486 인터프리터 사용"
 
 msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
+
+msgid "Dynamic recompiler is active"
+msgstr ""
+
+msgid "Dynamic recompiler is inactive"
+msgstr ""
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
@@ -687,6 +762,30 @@ msgstr "버스:"
 msgid "Channel:"
 msgstr "채널:"
 
+msgid "%1 (Onboard)"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Onboard"
+msgstr ""
+
+msgid "%1: no free channels"
+msgstr ""
+
+msgid "%1: channels %2 in use"
+msgstr ""
+
+msgid "IDE Conflict"
+msgstr ""
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+
+msgid "Do you want to save the configuration anyway?"
+msgstr ""
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -765,6 +864,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "광자기 드라이브"
 
+msgid "MD DATA drives"
+msgstr ""
+
 msgid "MO:"
 msgstr "광자기:"
 
@@ -783,8 +885,8 @@ msgstr "테이프 드라이브:"
 msgid "ISA RTC:"
 msgstr "ISA RTC 카드:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA 메모리 확장 카드"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA 메모리 확장 카드"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM 카드"
@@ -803,6 +905,27 @@ msgstr "카드 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "일반 ISA ROM 보드"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "Custom ROM:"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "ROM images"
+msgstr ""
+
+msgid "Unknown device"
+msgstr ""
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "일반 듀얼 ISA ROM 보드"
@@ -859,6 +982,9 @@ msgstr ""
 msgid "(empty)"
 msgstr "(비었음)"
 
+msgid "(not available)"
+msgstr ""
+
 msgid "All files"
 msgstr "모든 파일"
 
@@ -907,8 +1033,17 @@ msgstr "입력 장치(&D)"
 msgid "Sound"
 msgstr "사운드"
 
+msgid "%1 (not detected)"
+msgstr ""
+
+msgid "%1 Hz (host will resample)"
+msgstr ""
+
 msgid "Network"
 msgstr "네트워크"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr ""
 
 msgid "Ports (COM & LPT)"
 msgstr "포트 (COM & LPT)"
@@ -978,6 +1113,54 @@ msgstr "기타 이동식 저장장치"
 
 msgid "Other peripherals"
 msgstr "기타 주변기기"
+
+msgid "empty"
+msgstr ""
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr ""
+
+msgid "CompactFlash: %1"
+msgstr ""
+
+msgid "Empty (take the card out)"
+msgstr ""
+
+msgid "CompactFlash"
+msgstr ""
+
+msgid "&New CompactFlash card…"
+msgstr ""
+
+msgid "New CompactFlash card"
+msgstr ""
+
+msgid "Insert CompactFlash card"
+msgstr ""
+
+msgid "&Remove CompactFlash card"
+msgstr ""
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr ""
+
+msgid "PCMCIA"
+msgstr ""
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr ""
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+
+msgid "Network:"
+msgstr ""
+
+msgid "Socket %1"
+msgstr ""
+
+msgid "Socket %1: %2"
+msgstr ""
 
 msgid "Other devices"
 msgstr "기타 저장장치"
@@ -1156,11 +1339,23 @@ msgstr "광자기 %1 (%2): %3(&M)"
 msgid "MO images"
 msgstr "광자기 이미지"
 
+msgid "MD DATA images"
+msgstr ""
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr ""
+
+msgid "MD DATA %1 (%2): %3"
+msgstr ""
+
 msgid "Welcome to 86Box!"
 msgstr "86Box에 어서오세요!"
 
 msgid "Internal device"
 msgstr "내부 장치"
+
+msgid "External"
+msgstr ""
 
 msgid "&File"
 msgstr "파일(&F)"
@@ -1182,6 +1377,96 @@ msgstr "종료"
 
 msgid "No ROMs found"
 msgstr "ROM을 찾을 수 없습니다"
+
+msgid "Unsupported Hardware"
+msgstr ""
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+
+msgid "(and %i others)"
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+
+msgid "Do you want to continue?"
+msgstr ""
+
+msgid "Machine type \"%s\""
+msgstr ""
+
+msgid "Video card \"%s\""
+msgstr ""
+
+msgid "Keyboard \"%s\""
+msgstr ""
+
+msgid "Mouse \"%s\""
+msgstr ""
+
+msgid "Tablet \"%s\""
+msgstr ""
+
+msgid "Joystick \"%s\""
+msgstr ""
+
+msgid "Sound card \"%s\""
+msgstr ""
+
+msgid "MIDI output device \"%s\""
+msgstr ""
+
+msgid "MIDI input device \"%s\""
+msgstr ""
+
+msgid "Network card \"%s\""
+msgstr ""
+
+msgid "Serial port device \"%s\""
+msgstr ""
+
+msgid "Parallel port device \"%s\""
+msgstr ""
+
+msgid "Game port \"%s\""
+msgstr ""
+
+msgid "SCSI card \"%s\""
+msgstr ""
+
+msgid "Floppy controller \"%s\""
+msgstr ""
+
+msgid "Disk controller \"%s\""
+msgstr ""
+
+msgid "CD-ROM interface \"%s\""
+msgstr ""
+
+msgid "Memory expansion card \"%s\""
+msgstr ""
+
+msgid "ROM expansion card \"%s\""
+msgstr ""
+
+msgid "RTC card \"%s\""
+msgstr ""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr ""
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
 
 msgid "Do you want to save the settings?"
 msgstr "설정을 저장하시겠습니까?"
@@ -1218,6 +1503,24 @@ msgstr "이 메시지를 다시 표시하지 않음"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM 이미지"
+
+msgid "&New CD-R image…"
+msgstr ""
+
+msgid "New CD-R&W image…"
+msgstr ""
+
+msgid "CD-RW image"
+msgstr ""
+
+msgid "CD-R image"
+msgstr ""
+
+msgid "Aaru images"
+msgstr ""
+
+msgid "Unable to create image"
+msgstr ""
 
 msgid "%1 Device Configuration"
 msgstr "%1 장치 설정"
@@ -1593,17 +1896,20 @@ msgstr "오디오:"
 msgid "ACPI shutdown"
 msgstr "ACPI 종료"
 
-msgid "ACP&I shutdown"
-msgstr "ACPI 종료(&I)"
+msgid "&ACPI shutdown"
+msgstr "ACPI 종료(&A)"
 
 msgid "Power off"
 msgstr "전원 끄기"
 
-msgid "Power &off…"
-msgstr "전원 끄기(&o)…"
-
 msgid "Power &off"
 msgstr "전원 끄기(&o)"
+
+msgid "Suspen&d"
+msgstr ""
+
+msgid "Suspend"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "에뮬레이션된 컴퓨터의 전원을 끄면 데이터가 손실될 수 있습니다. "
@@ -2109,6 +2415,9 @@ msgstr "PS/2 키보드"
 msgid "PS/55 Keyboard"
 msgstr "PS/55 키보드"
 
+msgid "USB Keyboard"
+msgstr ""
+
 msgid "Keys"
 msgstr "키"
 
@@ -2139,8 +2448,14 @@ msgstr "PS/2 마우스"
 msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort 마우스"
 
+msgid "USB Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M 마이크로터치(직렬)"
+
+msgid "USB Tablet"
+msgstr ""
 
 msgid "Default Baud rate"
 msgstr "기본 보드 속도"
@@ -2165,6 +2480,9 @@ msgstr "OPL4-ML 도터보드"
 
 msgid "System MIDI"
 msgstr "시스템 미디"
+
+msgid "USB Speaker"
+msgstr ""
 
 msgid "MIDI Input Device"
 msgstr "미디 입력 장치"
@@ -2600,6 +2918,9 @@ msgstr "SLI"
 
 msgid "Start Address"
 msgstr "시작 주소"
+
+msgid "Allow RAM up to the system ROM"
+msgstr ""
 
 msgid "Contiguous Size"
 msgstr "연속 크기"
@@ -3461,6 +3782,18 @@ msgstr "밝게"
 msgid "Dark"
 msgstr "어둡게"
 
+msgid "Style:"
+msgstr ""
+
+msgid "Windows 11"
+msgstr ""
+
+msgid "Windows Native"
+msgstr ""
+
+msgid "Windows Classic"
+msgstr ""
+
 msgid "Force interpretation"
 msgstr "강제로 해석"
 
@@ -3798,7 +4131,7 @@ msgstr ""
 msgid "The search is limited to %1 bytes."
 msgstr ""
 
-msgid "Searching memory..."
+msgid "Searching memory…"
 msgstr ""
 
 msgid "The search was cancelled. The selection did not move."
@@ -3834,7 +4167,7 @@ msgstr ""
 msgid "Copy selection (ASCII)"
 msgstr ""
 
-msgid "Fill selection..."
+msgid "Fill selection…"
 msgstr ""
 
 msgid "Copy address"
@@ -3843,7 +4176,7 @@ msgstr ""
 msgid "Disassemble here"
 msgstr ""
 
-msgid "Dump memory from here..."
+msgid "Dump memory from here…"
 msgstr ""
 
 msgid "Memory viewer"
@@ -3873,7 +4206,7 @@ msgstr ""
 msgid "Live update"
 msgstr ""
 
-msgid "Dump..."
+msgid "Dump…"
 msgstr ""
 
 msgid "Commands"
@@ -3918,7 +4251,7 @@ msgstr ""
 msgid "Search downwards from the selection (F3)"
 msgstr ""
 
-msgid "Range..."
+msgid "Range…"
 msgstr ""
 
 msgid "Search within an address range instead of all memory"
@@ -4026,7 +4359,7 @@ msgstr ""
 msgid "Stopped."
 msgstr ""
 
-msgid "Stepping..."
+msgid "Stepping…"
 msgstr ""
 
 msgid "Running."
@@ -4098,8 +4431,9 @@ msgstr ""
 msgid "cleared"
 msgstr ""
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] ""
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr ""
@@ -4108,9 +4442,6 @@ msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
 
 msgid "Dump memory"
-msgstr ""
-
-msgid "Browse..."
 msgstr ""
 
 msgid "Start (hex, register or seg:off):"
@@ -4131,7 +4462,7 @@ msgstr ""
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
 
-msgid "Binary files (*.bin);;All files (*)"
+msgid "Binary files"
 msgstr ""
 
 msgid "The length must be a hex number above 0."
@@ -4143,7 +4474,7 @@ msgstr ""
 msgid "Could not open %1 for writing."
 msgstr ""
 
-msgid "Dumping memory..."
+msgid "Dumping memory…"
 msgstr ""
 
 msgid "Could not write to %1."
@@ -4281,7 +4612,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"
@@ -4330,4 +4661,112 @@ msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
+msgstr ""
+
+msgid "Mount folder as a temporary floppy"
+msgstr ""
+
+msgid "The selected drive does not support folder mounting."
+msgstr ""
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr ""
+
+msgid "Mount folder as a temporary removable disk"
+msgstr ""
+
+msgid "Unable to mount folder or archive"
+msgstr ""
+
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
+
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr ""
+
+msgid "The temporary image could not be written."
+msgstr ""
+
+msgid "There is not enough memory to build the image."
+msgstr ""
+
+msgid "The folder or archive could not be read."
+msgstr ""
+
+msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr ""
+
+msgid "&New USB flash drive…"
+msgstr ""
+
+msgid "unplugged"
+msgstr ""
+
+msgid "&Unplug"
+msgstr ""
+
+msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+msgid "Custom size:"
+msgstr ""
+
+msgid "None (blank)"
+msgstr ""
+
+msgid "FAT16"
+msgstr ""
+
+msgid "FAT32"
+msgstr ""
+
+msgid "Format:"
+msgstr ""
+
+msgid "Could not create %1."
+msgstr ""
+
+msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "%1 (write-protected)"
+msgstr ""
+
+msgid "USB flash drive"
+msgstr ""
+
+msgid "%1 is not a disk image."
+msgstr ""
+
+msgid "Flash drive images"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""

@@ -40,6 +40,7 @@
 #include <86box/sound.h>
 #include <86box/clock.h>
 #include <86box/snd_ac97.h>
+#include <86box/scsi.h>
 
 /* ALi ALADDiN-PRO II */
 int
@@ -155,7 +156,7 @@ machine_at_acerv62x_init(const machine_t *model)
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_APM));
-    device_add(&intel_flash_bxt_device);
+    device_add_params(&sst_flash_29ee020_device, (void *) SST_FORCE_128);
 
     /* Without this, the BIOS does not output anything with PCI video cards */
     spd_register(SPD_TYPE_EDO, 0x7, 256);
@@ -1969,7 +1970,10 @@ machine_at_p2bls_init(const machine_t *model)
 
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    /* PANSWOUT# goes to the south bridge's PWRBTN# input. */
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR | W83977_PANSWOUT_PWRBTN));
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
 #if 0
     device_add(ics9xxx_get(ICS9150_08)); /* setting proper speeds requires some interaction with the AS97127F ASIC */
 #endif
@@ -2011,7 +2015,10 @@ machine_at_p3bf_init(const machine_t *model)
 
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    /* PANSWOUT# goes to the PIIX4 LID input as on the CUBX: the DSDT has the
+       keyboard and mouse wake on GPE 0Bh, and the BIOS sets LID_POL for the
+       active low pulse. */
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR | W83977_PANSWOUT_LID));
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
@@ -3462,7 +3469,8 @@ machine_at_p3v133_init(const machine_t *model)
 
     device_add(&via_apro133_device);
     device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    /* PANSWOUT# goes to the south bridge's PWRBTN# input. */
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR | W83977_PANSWOUT_PWRBTN));
     device_add(ics9xxx_get(ICS9248_39));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
@@ -3613,7 +3621,8 @@ machine_at_p3v4x_init(const machine_t *model)
 
     device_add(&via_apro133a_device);
     device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    /* PANSWOUT# goes to the south bridge's PWRBTN# input. */
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR | W83977_PANSWOUT_PWRBTN));
     device_add(ics9xxx_get(ICS9250_18));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 1024);

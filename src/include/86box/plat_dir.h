@@ -17,8 +17,8 @@
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
-/* Windows (non-MinGW) and Termux need the POSIX re-implementations */
-#if (defined(_WIN32) && !defined(__MINGW32__)) || defined(__TERMUX__)
+/* Windows (non-MinGW) needs the POSIX re-implementations */
+#if defined(_WIN32) && !defined(__MINGW32__)
 #    ifdef _MAX_FNAME
 #        define MAXNAMLEN _MAX_FNAME
 #    else
@@ -76,6 +76,7 @@ typedef struct {
     size_t           path_len;
     HANDLE           find;
     WIN32_FIND_DATAA data;
+    int              first_entry;
     char            *temp;
 } plat_dir_t;
 
@@ -90,6 +91,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
 {
     if (LIKELY(context->find && (context->find != INVALID_HANDLE_VALUE)))
         FindClose(context->find);
+    context->first_entry = 1;
 
     context->path_dir_len = strlen(path);
     size_t len            = context->path_dir_len + 3;
@@ -103,7 +105,8 @@ plat_dir_open(plat_dir_t *context, const char *path)
     }
     snprintf(context->path, context->path_len, "%s\\*", path);
 
-    /* First entry is always . so we pre-load it for the default entry behavior. */
+    /* Preload the base entry for callers that inspect it before reading. */
+    context->first_entry = 1;
     context->find = FindFirstFileExA(context->path, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
     return LIKELY(context->find != INVALID_HANDLE_VALUE);
 }
@@ -165,14 +168,19 @@ extern const char *plat_dir_get_path(plat_dir_t *context);
 #endif
 
 static inline int
-plat_dir_read(plat_dir_t *context)
+plat_dir_read_entry(plat_dir_t *context, int follow_links)
 {
-    context->path[context->path_dir_len] = '\0';
-    while (FindNextFileA(context->find, &context->data)) {
+    int first = context->first_entry && !follow_links;
+    context->first_entry = 0;
+    while (first || FindNextFileA(context->find, &context->data)) {
+        first = 0;
+        context->path[context->path_dir_len] = '\0';
         if (!plat_dir_is_special_entry(context->data.cFileName)) {
+            if (!follow_links && (context->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+                continue;
             /* If this entry is a symlink, follow it and fill the target's attributes instead. */
             if ((context->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (context->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK)) {
-                HANDLE file = CreateFileA(plat_dir_get_path(context), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+                HANDLE file = CreateFileA(plat_dir_get_path(context), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
                 if (file != INVALID_HANDLE_VALUE) {
                     if (UNLIKELY(!context->temp))
                         context->temp = (char *) malloc(4096);
@@ -196,9 +204,16 @@ plat_dir_read(plat_dir_t *context)
     return 0;
 }
 
+/* Seconds since 1970 from a FILETIME, negative for times before 1970. */
+static inline int64_t
+plat_dir_convert_time(FILETIME ft)
+{
+    int64_t ticks = (int64_t) (((uint64_t) ft.dwHighDateTime << 32) | ft.dwLowDateTime) - 116444736000000000LL;
+    return (ticks >= 0) ? (ticks / 10000000LL) : -((-ticks + 9999999LL) / 10000000LL);
+}
+
 #    define plat_dir_get_name(context)      ((context)->data.cFileName)
 #    define plat_dir_get_size(context)      (((uint64_t) (context)->data.nFileSizeHigh << 32) | (context)->data.nFileSizeLow)
-#    define plat_dir_convert_time(ft)       (((((uint64_t) (ft).dwHighDateTime << 32) | (ft).dwLowDateTime) - 116444736000000000ULL) / 10000000ULL)
 #    define PLAT_DIR_HAS_BIRTHTIME          1
 #    define plat_dir_get_birthtime(context) (plat_dir_convert_time((context)->data.ftCreationTime))
 #    define plat_dir_get_mtime(context)     (plat_dir_convert_time((context)->data.ftLastWriteTime))
@@ -420,7 +435,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
         context->path     = (char *) malloc(len);
         context->path_len = len;
     }
-    strncpy(context->path, path, context->path_len - 1);
+    memcpy(context->path, path, context->path_dir_len + 1);
 
     /* Initialize attribute buffer. */
     if (UNLIKELY(!context->attr_buf)) {
@@ -495,31 +510,35 @@ plat_dir_count_children(plat_dir_t *context)
 }
 
 static inline int
-plat_dir_read(plat_dir_t *context)
+plat_dir_read_entry(plat_dir_t *context, int follow_links)
 {
-    /* Fetch next attribute batch if required. */
-    if (context->attr_remain <= 0) {
-        context->attr_remain = getattrlistbulk(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0);
-        if (UNLIKELY(context->attr_remain <= 0))
-            return 0;
-        context->attr_ptr = context->attr_buf;
+    for (;;) {
+        /* Fetch next attribute batch if required. */
+        if (context->attr_remain <= 0) {
+            context->attr_remain = getattrlistbulk(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0);
+            if (UNLIKELY(context->attr_remain <= 0))
+                return 0;
+            context->attr_ptr = context->attr_buf;
+        }
+
+        context->path[context->path_dir_len] = '\0';
+
+        /* Fill attributes for this entry and move on to the next one. */
+        context->attr_ptr += plat_dir_fill_attributes(context, context->attr_ptr);
+        context->attr_remain--;
+
+        /* If this entry is a symlink, follow it and fill the target's attributes instead. */
+        if (LIKELY(context->data.objtype) && (*context->data.objtype == VLNK)) {
+            if (!follow_links)
+                continue;
+            if (UNLIKELY(!context->temp))
+                context->temp = (uint8_t *) malloc(4096);
+            if (!getattrlistat(context->find, context->data.name, &context->attr_list, context->temp, 4096, 0))
+                plat_dir_fill_attributes(context, context->temp);
+        }
+
+        return 1;
     }
-
-    context->path[context->path_dir_len] = '\0';
-
-    /* Fill attributes for this entry and move on to the next one. */
-    context->attr_ptr += plat_dir_fill_attributes(context, context->attr_ptr);
-    context->attr_remain--;
-
-    /* If this entry is a symlink, follow it and fill the target's attributes instead. */
-    if (LIKELY(context->data.objtype) && (*context->data.objtype == VLNK)) {
-        if (UNLIKELY(!context->temp))
-            context->temp = (uint8_t *) malloc(4096);
-        if (!getattrlistat(context->find, context->data.name, &context->attr_list, context->temp, 4096, 0))
-            plat_dir_fill_attributes(context, context->temp);
-    }
-
-    return 1;
 }
 
 #    define plat_dir_get_name(context)      ((context)->data.name)
@@ -595,7 +614,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
         context->path     = (char *) malloc(len);
         context->path_len = len;
     }
-    strncpy(context->path, path, context->path_len - 1);
+    memcpy(context->path, path, context->path_dir_len + 1);
 
     context->find = opendir(path);
     if (UNLIKELY(!context->find))
@@ -604,6 +623,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
     context->stats_valid = !stat(path, &context->stats);
     if (UNLIKELY(!context->stats_valid || !S_ISDIR(context->stats.st_mode))) {
         closedir(context->find);
+        context->find = NULL;
         return 0;
     }
 
@@ -653,8 +673,16 @@ plat_dir_count_children(plat_dir_t *context)
     return ret;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern const char *plat_dir_get_path(plat_dir_t *context);
+#ifdef __cplusplus
+}
+#endif
+
 static inline int
-plat_dir_read(plat_dir_t *context)
+plat_dir_read_entry(plat_dir_t *context, int follow_links)
 {
     context->path[context->path_dir_len] = '\0';
     context->stats_valid                 = (uint8_t) -1;
@@ -662,6 +690,15 @@ plat_dir_read(plat_dir_t *context)
     while ((data = readdir(context->find))) {
         if (plat_dir_is_special_entry(data->d_name))
             continue;
+        if (!follow_links) {
+            context->data = data;
+            /* Use lstat even if d_type is unavailable. */
+            const int valid = !lstat(plat_dir_get_path(context), &context->stats);
+            context->path[context->path_dir_len] = '\0';
+            if (!valid || S_ISLNK(context->stats.st_mode))
+                continue;
+            context->stats_valid = 1;
+        }
         break;
     }
     context->data = data;
@@ -712,6 +749,18 @@ plat_dir_read(plat_dir_t *context)
 
 #    define plat_dir_is_hidden(context) (plat_dir_get_name((context))[0] == '.')
 #endif
+
+static inline int
+plat_dir_read(plat_dir_t *context)
+{
+    return plat_dir_read_entry(context, 1);
+}
+
+static inline int
+plat_dir_read_no_links(plat_dir_t *context)
+{
+    return plat_dir_read_entry(context, 0);
+}
 
 #ifdef __cplusplus
 extern "C" {

@@ -59,6 +59,8 @@ public:
                                  const QModelIndex          &index) const override;
 
 private:
+    [[nodiscard]] int contentShift(const QStyleOptionViewItem &option) const;
+
     VMManagerListViewDelegateStyle *m_ptr;
 
     QIcon default_icon;
@@ -68,7 +70,5 @@ private:
     QIcon paused_icon;
     QIcon unknown_icon;
 
-    QColor bg_color;
-    QColor highlight_color;
 };
 #endif // QT_VMMANAGER_LISTVIEWDELEGATE_H

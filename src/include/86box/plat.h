@@ -175,6 +175,7 @@ extern int      infocus;
 extern char     emu_version[200]; /* version ID string */
 extern int      rctrl_is_lalt;
 extern int      update_icons;
+extern int      usb_activity;
 
 extern int kbd_req_capture;
 extern int hide_status_bar;
@@ -211,6 +212,8 @@ extern void     plat_resize(int x, int y, int monitor_index);
 extern void     plat_resize_request(int x, int y, int monitor_index);
 extern int      plat_language_code(char *langcode);
 extern void     plat_language_code_r(int id, char *outbuf, int len);
+/* The language code of the UI as it is shown: the one chosen, or the host's for the system language. */
+extern void     plat_ui_language(char *outbuf, int len);
 extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
 #ifdef _WIN32
 extern void     plat_get_system_directory(char *outbuf);
@@ -252,6 +255,9 @@ extern void mo_reload(uint8_t id);
 extern void tape_eject(uint8_t id);
 extern void tape_mount(uint8_t id, char *fn, uint8_t wp);
 extern void tape_reload(uint8_t id);
+extern void md_eject(uint8_t id);
+extern void md_mount(uint8_t id, char *fn, uint8_t wp);
+extern void md_reload(uint8_t id);
 extern int     plat_is_block_device(const char *path);
 extern int64_t plat_get_block_device_size(const char *path);
 

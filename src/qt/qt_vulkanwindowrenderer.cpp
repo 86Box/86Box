@@ -185,6 +185,12 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
             list.push_back("VK_KHR_get_physical_device_properties2");
             vk_resources.vk_instance->setExtensions(list);
         }
+        /* Needed for VK_COLOR_SPACE_PASS_THROUGH_EXT. */
+        if (vk_resources.vk_instance->supportedExtensions().contains("VK_EXT_swapchain_colorspace")) {
+            auto list = vk_resources.vk_instance->extensions();
+            list.push_back("VK_EXT_swapchain_colorspace");
+            vk_resources.vk_instance->setExtensions(list);
+        }
         if (!vk_resources.vk_instance->create()) {
             vk_resources.vk_instance.reset();
             throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance."));
@@ -271,7 +277,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         img_info.tiling            = VK_IMAGE_TILING_OPTIMAL;
         img_info.usage             = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         img_info.samples           = VK_SAMPLE_COUNT_1_BIT;
-        img_info.initialLayout     = VK_IMAGE_LAYOUT_PREINITIALIZED;
+        img_info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
         img_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
         img_info.flags             = 0;
 
@@ -327,6 +333,7 @@ VulkanWindowRenderer::cleanupSwapchain()
 {
     if (isFinalized || !isInitialized)
         return;
+    swapchainComplete = false;
     m_devFuncs->vkDeviceWaitIdle(logi_device);
 #ifdef LIBRA_RUNTIME_VULKAN
     cleanupShaderSrcImages();
@@ -378,9 +385,11 @@ VulkanWindowRenderer::recreateSwapchain()
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, window_surface, &format_count, surface_formats.data());
 #if defined __unix__ && !defined __HAIKU__
     bool passthrough_found = false;
+    /* VK_COLOR_SPACE_PASS_THROUGH_EXT is only valid with this extension enabled. */
+    bool colorspace_ext = vk_resources.vk_instance->extensions().contains("VK_EXT_swapchain_colorspace");
 
     for (auto& surface_format : surface_formats) {
-        if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM && surface_format.colorSpace == VK_COLOR_SPACE_PASS_THROUGH_EXT) {
+        if (colorspace_ext && surface_format.format == VK_FORMAT_B8G8R8A8_UNORM && surface_format.colorSpace == VK_COLOR_SPACE_PASS_THROUGH_EXT) {
             passthrough_found = true;
         }
     }
@@ -424,7 +433,10 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 #endif
     swapchain_creation.imageArrayLayers         = 1;
-    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    /* No VK_IMAGE_USAGE_SAMPLED_BIT: nothing samples the swapchain images. Drivers that can't sample linear images
+       (V3D on the Raspberry Pi 5) can't create the swapchain with it when the compositor offers only linear buffers,
+       as sway does for a fullscreen window on the Pi's HDMI output. */
+    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchain_creation.minImageCount            = std::clamp(surfaceCaps.minImageCount + 1u, surfaceCaps.minImageCount, surfaceCaps.maxImageCount ? surfaceCaps.maxImageCount : std::numeric_limits<uint32_t>::max());
     swapchain_creation.imageExtent              = curExtent;
     swapchain_creation.preTransform             = surfaceCaps.currentTransform;
@@ -569,6 +581,20 @@ VulkanWindowRenderer::recreateSwapchain()
 #ifdef LIBRA_RUNTIME_VULKAN
     recreateShaderSrcImages();
 #endif
+    swapchainComplete = true;
+}
+
+/* Not a modal box: its event loop would run inside the event handler that failed and deliver events into a
+   renderer without a swapchain. */
+void
+VulkanWindowRenderer::showSwapchainError(const QString &message)
+{
+    if (!swapchainErrorBox) {
+        swapchainErrorBox = new QMessageBox(QMessageBox::Critical, tr("Error"), message, QMessageBox::Ok, main_window);
+        swapchainErrorBox->setAttribute(Qt::WA_DeleteOnClose);
+        swapchainErrorBox->show();
+    }
+    main_window->reloadAllRenderers();
 }
 
 VulkanWindowRenderer::~VulkanWindowRenderer()
@@ -592,7 +618,7 @@ VulkanWindowRenderer::finalize()
     if (!ensure_librashader_instance())
         goto clean_up_rest;
 #endif
-    for (unsigned int i = 0; i < shaderFilterChains.size(); i++)
+    for (unsigned int i = 0; i < shaderLibraFilterChains.size(); i++)
 #ifndef LIBRASHADER_STATIC
         librashader_inst.vk_filter_chain_free(&shaderLibraFilterChains[i]);
 #else
@@ -600,13 +626,17 @@ VulkanWindowRenderer::finalize()
 #endif
 
     shaderLibraFilterChains.clear();
-#endif
 
 #ifndef LIBRASHADER_STATIC
 clean_up_rest:
 #endif
-    m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
+#endif
     vmaDestroyImage(allocator, src_image, img_allocation);
+    if (blit_src_image) {
+        vmaDestroyImage(allocator, blit_src_image, blit_src_allocation);
+        blit_src_image      = nullptr;
+        blit_src_allocation = nullptr;
+    }
     vmaDestroyAllocator(allocator);
     vk_res_refcnt_dev--;
     if (vk_res_refcnt_dev <= 0) {
@@ -631,7 +661,8 @@ VulkanWindowRenderer::updateOptions()
 void
 VulkanWindowRenderer::render()
 {
-    if (!isInitialized || isFinalized)
+    /* After a failed recreateSwapchain(), wait for the next resize to retry. */
+    if (!isInitialized || isFinalized || !swapchainComplete)
         return;
     auto fence_res = m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_TRUE, UINT64_MAX);
     if (fence_res == VK_ERROR_DEVICE_LOST) {
@@ -639,7 +670,6 @@ VulkanWindowRenderer::render()
         finalize();
         return;
     }
-    m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
     /* Only the part of the image that lands inside the swapchain can be blitted, copied or used as a viewport. */
@@ -686,8 +716,7 @@ VulkanWindowRenderer::render()
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
         return;
     }
@@ -763,28 +792,6 @@ VulkanWindowRenderer::render()
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, srcflags, dstflags, 0, 0, nullptr, 0, nullptr, 1, &barrier);
     }
     vmaFlushAllocation(allocator, img_allocation, 0, VK_WHOLE_SIZE);
-
-#ifdef LIBRA_RUNTIME_VULKAN
-    if (shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
-        const VkImageMemoryBarrier image3_memory_barrier {
-            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
-            .dstAccessMask    = 0,
-            .oldLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .image            = swapchainImages[swapchain_image_index],
-            .subresourceRange = {
-                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                                .baseMipLevel   = 0,
-                                .levelCount     = 1,
-                                .baseArrayLayer = 0,
-                                .layerCount     = 1,
-                                }
-        };
-
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
-    }
-#endif
 
     VkClearColorValue clr_val = {};
     clr_val.float32[0] = 0;
@@ -868,7 +875,35 @@ VulkanWindowRenderer::render()
 
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
 
-    if (noshadersloaded) {
+    if (noshadersloaded && blit_src_image) {
+        VkImageMemoryBarrier blit_src_barrier { };
+        blit_src_barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        blit_src_barrier.image                           = blit_src_image;
+        blit_src_barrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
+        blit_src_barrier.newLayout                       = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        blit_src_barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        blit_src_barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        blit_src_barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit_src_barrier.subresourceRange.baseMipLevel   = 0;
+        blit_src_barrier.subresourceRange.levelCount     = 1;
+        blit_src_barrier.subresourceRange.baseArrayLayer = 0;
+        blit_src_barrier.subresourceRange.layerCount     = 1;
+        blit_src_barrier.srcAccessMask                   = VK_ACCESS_TRANSFER_READ_BIT;
+        blit_src_barrier.dstAccessMask                   = VK_ACCESS_TRANSFER_WRITE_BIT;
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &blit_src_barrier);
+
+        VkImageCopy blit_src_region = cregion;
+        blit_src_region.dstOffset   = cregion.srcOffset;
+        m_devFuncs->vkCmdCopyImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, blit_src_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_src_region);
+
+        blit_src_barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        blit_src_barrier.newLayout     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        blit_src_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        blit_src_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &blit_src_barrier);
+
+        m_devFuncs->vkCmdBlitImage(cmdBufs, blit_src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+    } else if (noshadersloaded) {
         m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
     } else {
 #ifdef LIBRA_RUNTIME_VULKAN
@@ -912,6 +947,8 @@ VulkanWindowRenderer::render()
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
     if (!shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
         for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
+            if (shaderFilterChains[swapchain_image_index][i].next_image_chain == swapchainImages[swapchain_image_index])
+                continue;
             const VkImageMemoryBarrier image_shader_memory_barrier {
                 .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .srcAccessMask    = 0,
@@ -933,11 +970,14 @@ VulkanWindowRenderer::render()
     }
 
     for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
+        /* The last chain draws into the swapchain image. Nothing samples that image, and the chain clears it, so it
+           goes straight to COLOR_ATTACHMENT_OPTIMAL and doesn't need VK_IMAGE_USAGE_SAMPLED_BIT. */
+        const bool                 to_swapchain = shaderFilterChains[swapchain_image_index][i].next_image_chain == swapchainImages[swapchain_image_index];
         const VkImageMemoryBarrier image_shader_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+            .srcAccessMask    = to_swapchain ? (VkAccessFlags) 0 : (VkAccessFlags) VK_ACCESS_SHADER_READ_BIT,
             .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .oldLayout        = to_swapchain ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .image            = shaderFilterChains.at(swapchain_image_index).at(i).next_image_chain,
             .subresourceRange = {
@@ -1026,14 +1066,14 @@ VulkanWindowRenderer::render()
     info.renderArea = { { 0, 0 }, curExtent };
     info.viewMask = 0;
     info.layerCount = 1;
-    fn_vkCmdBeginRendering(cmdBufs, &info);
 
+    /* Even an empty pass loads and stores the whole swapchain image on tiling GPUs. */
     if (qt_osd_needs_render()) {
+        fn_vkCmdBeginRendering(cmdBufs, &info);
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
         qt_osd_render(width(), height(), devicePixelRatio(), (void*)cmdBufs);
+        fn_vkCmdEndRendering(cmdBufs);
     }
-
-    fn_vkCmdEndRendering(cmdBufs);
 
     if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
         const VkImageMemoryBarrier image3_memory_barrier {
@@ -1164,6 +1204,7 @@ VulkanWindowRenderer::render()
     submitInfo.signalSemaphoreCount = 1;
 
     // Submit to the graphics queue passing a wait fence
+    m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto submit_res = m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
     if (submit_res != VK_SUCCESS) {
         QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(submit_res));
@@ -1252,8 +1293,7 @@ VulkanWindowRenderer::render()
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     } else if (result != VK_SUCCESS) {
         QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(res));
@@ -1282,7 +1322,10 @@ VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
     if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
         return false;
     }
-    if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+    /* Without blits from linear images, the source image is copied into an optimal image and blitted from there. */
+    if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)
+        && !((format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)
+             && (format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT))) {
         return false;
     }
 
@@ -1404,13 +1447,15 @@ VulkanWindowRenderer::initialize()
                 phys_device       = phys_devices[std::clamp((uint32_t)video_vk_device, 0u, physicalDevices - 1u)];
 
                 if (!isPhysicalDeviceUsable(phys_device)) {
+                    phys_device = nullptr;
                     for (uint32_t i = 0; i < phys_devices.size(); i++) {
                         if (isPhysicalDeviceUsable(phys_devices[i])) {
                             phys_device = phys_devices[i];
                             break;
                         }
                     }
-                    throw vulkan_init_error(tr("No usable Vulkan physical devices found."));
+                    if (!phys_device)
+                        throw vulkan_init_error(tr("No usable Vulkan physical devices found."));
                 }
 
                 if (vk_res_refcnt_dev)
@@ -1509,7 +1554,7 @@ VulkanWindowRenderer::initialize()
                 img_info.arrayLayers   = 1;
                 img_info.format        = VK_FORMAT_B8G8R8A8_UNORM;
                 img_info.tiling        = VK_IMAGE_TILING_LINEAR;
-                img_info.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                img_info.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                 img_info.samples       = VK_SAMPLE_COUNT_1_BIT;
                 img_info.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
                 img_info.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
@@ -1526,23 +1571,19 @@ VulkanWindowRenderer::initialize()
                     throw vulkan_init_error("Failed to create source image");
                 }
 
-                VkImageViewCreateInfo imageViewInfo { };
-                imageViewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-                imageViewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                imageViewInfo.format                          = VK_FORMAT_B8G8R8A8_UNORM;
-                imageViewInfo.image                           = src_image;
-                imageViewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-                imageViewInfo.subresourceRange.baseMipLevel   = 0;
-                imageViewInfo.subresourceRange.levelCount     = 1;
-                imageViewInfo.subresourceRange.baseArrayLayer = 0;
-                imageViewInfo.subresourceRange.layerCount     = 1;
-                imageViewInfo.components.r                    = VK_COMPONENT_SWIZZLE_R;
-                imageViewInfo.components.g                    = VK_COMPONENT_SWIZZLE_G;
-                imageViewInfo.components.b                    = VK_COMPONENT_SWIZZLE_B;
-                imageViewInfo.components.a                    = VK_COMPONENT_SWIZZLE_A;
+                VkFormatProperties format_prop { };
+                vk_resources.vk_instance->functions()->vkGetPhysicalDeviceFormatProperties(phys_device, VK_FORMAT_B8G8R8A8_UNORM, &format_prop);
+                if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+                    img_info.tiling        = VK_IMAGE_TILING_OPTIMAL;
+                    img_info.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                    img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-                if (m_devFuncs->vkCreateImageView(logi_device, &imageViewInfo, nullptr, &src_image_view) != VK_SUCCESS) {
-                    throw vulkan_init_error("Failed to create source image view");
+                    allocInfo       = { };
+                    allocInfo.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+                    if (vmaCreateImage(allocator, &img_info, &allocInfo, &blit_src_image, &blit_src_allocation, nullptr) != VK_SUCCESS) {
+                        throw vulkan_init_error("Failed to create blit source image");
+                    }
                 }
 
                 updateOptions();
@@ -1620,7 +1661,13 @@ VulkanWindowRenderer::initialize()
 #endif
                             shader->param_list.parameters = 0;
                             filter_chain_vk_opt_t vk{};
-                            vk.use_dynamic_rendering = 1;
+                            /* Render pass objects tell the driver the size of the output image. With dynamic rendering, Mesa's V3D
+                               driver (Raspberry Pi 5) can't tell whether a pass covers the whole image when its size isn't a
+                               multiple of the tile size, so it loads the image and clears it with a draw on every frame. */
+                            vk.use_dynamic_rendering = 0;
+                            /* render() keeps one frame in flight per swapchain image. librashader frees a frame's
+                               resources that many frames later (3 if not set). */
+                            vk.frames_in_flight = swapchainImages.size();
 #ifndef LIBRASHADER_STATIC
                             auto err = librashader_inst.vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
 #else
@@ -1658,9 +1705,9 @@ VulkanWindowRenderer::initialize()
                         }
                     }
                 }
-#endif
 #ifndef LIBRASHADER_STATIC
 skip_shaders:
+#endif
 #endif
                 if (video_framerate != -1) {
                     renderTimer->setTimerType(Qt::PreciseTimer);
@@ -1708,8 +1755,7 @@ VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     }
 }
@@ -1727,8 +1773,7 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
             if (video_framerate == -1)
                 render();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     }
 }
@@ -1800,8 +1845,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
             if (isInitialized && isExposed())
                 recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     }
     if (isExposed() && video_framerate == -1 && !isFinalized) {

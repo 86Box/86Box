@@ -175,6 +175,14 @@ extern void nvr_time_set(void *priv);
 extern void nvr_time_set_date(void *priv);
 
 extern void nvr_reg_write(uint16_t reg, uint8_t val, void *priv);
+/* nvr_at_handler_ex() flags */
+#define NVR_AT_INDEX_WO 0x01 /* The index port takes writes only, and leaves reads to whatever else answers there. */
+
+/*
+ * Maps or unmaps the AT RTC's index and data ports at base and base + 1,
+ * laid out as flags say; unmap it with the flags it was mapped with.
+ */
+extern void nvr_at_handler_ex(int set, uint16_t base, int flags, nvr_t *nvr);
 extern void nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
 extern void nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr);
 extern void nvr_at_index_read_handler(int set, uint16_t base, nvr_t *nvr);

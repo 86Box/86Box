@@ -40,6 +40,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/scsi.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -731,7 +732,8 @@ machine_at_ap5vm_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(machine_get_scsi_device(machine));
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -3060,7 +3062,7 @@ machine_at_t3032_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,          4, 1, 2, 3);
     pci_register_slot(0x11, PCI_CARD_NORMAL,          1, 2, 3, 4);
 
-    device_add(&cyrix_gxm_device);
+    device_add_params(&cyrix_gxm_device, (void *) GXM_KEEP_MEMORY_ON_CPU_RESET);
     device_add(&cs5530_device);
     device_add_params(&pc97317_device, (void *) (PCX730X_02E | PCX730X_PHOENIX_42I | PCX7307_PC97317));
     device_add(&sst_flash_29ee020_device);

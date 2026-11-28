@@ -569,8 +569,8 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     /* Something to report. The card fetches the sense itself when asked
        to, which is why the driver never issues REQUEST SENSE. */
     if ((flags1 & F1_ARS) && (senseptr != 0) && (senselen > 0)) {
-        scsi_device_request_sense(sd, sense, senselen_tx);
-        dma_bm_write(senseptr, sense, senselen_tx, 4);
+        scsi_device_request_sense(sd, sense, senselen);
+        dma_bm_write(senseptr, sense, senselen, 4);
 
         /* Not done; additional status available and sense stored; no
            adapter level fault, so the target's own status is what

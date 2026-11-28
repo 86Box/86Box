@@ -85,6 +85,8 @@ int harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs);
 typedef struct harness_gpu_span_t {
     int32_t  x0, x1, py;
     uint32_t drow, zrow;
+    int      ctiled, ztiled; /* the kernel applies the tile column offset
+                                per pixel to drow (color) or zrow (Z) */
     int64_t  e0, e1, e2;
     int64_t  zline;
     int64_t  w_e0, w_e1, w_e2;
@@ -99,7 +101,7 @@ typedef struct harness_gpu_span_t {
 typedef struct harness_gpu_cap_t {
     uint32_t nspans;     /* records written (may exceed the caller's array) */
     uint32_t got;        /* records copied out                             */
-    uint64_t need_spans; /* probe_tri_need's accept-bound reservation       */
+    uint64_t need_spans; /* gpu_tri_need's accept-bound reservation         */
     uint64_t need_px;
     uint32_t clo, chi;   /* prim_ranges color hazard interval             */
     uint32_t zlo, zhi;   /* ... and z                                      */
@@ -139,6 +141,7 @@ typedef struct harness_gpu_sub_t {
     int      accepted;    /* submit_tri return value                    */
     uint64_t bound_spans; /* cheap bbox bound, for the vector's context */
     uint64_t bound_px;
+    uint64_t trip_spans;  /* the count that decides the exact re-price  */
     uint64_t reprice;     /* exact re-price walks run                   */
     uint64_t toobig;      /* draws rejected after the exact count       */
     uint64_t miss;        /* reprice-consumption tripwire, must be 0    */
@@ -151,6 +154,26 @@ typedef struct harness_gpu_sub_t {
 int harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
                              const r3d_vtx_t *a, const r3d_vtx_t *b,
                              const r3d_vtx_t *c, harness_gpu_sub_t *res);
+
+/* What admission's self-alias test did with one triangle: the
+   production rage128_gpu_submit_tri on a fabricated backend whose serial
+   pipelines are reported built, so an aliasing draw can take the serial
+   run as on a live backend. ser / rej = the color-over-Z [0] and
+   render-to-texture [1] counts of draws kept as serial runs and refused
+   to the CPU; stg = render-to-texture draws that ran parallel because
+   every level they sample is a staged copy; serial = the flag of the
+   run the draw went to (-1 = no run). */
+typedef struct harness_gpu_alias_t {
+    int      accepted;
+    int      serial;
+    uint64_t ser[2], rej[2], stg;
+    uint64_t need_px;
+} harness_gpu_alias_t;
+
+/* Returns 0 if the probe is unavailable. */
+int harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
+                            const r3d_vtx_t *a, const r3d_vtx_t *b,
+                            const r3d_vtx_t *c, harness_gpu_alias_t *res);
 
 /* Exact texture-read hazard list (the exact texture range list of
    r128_gpu_t) behind the q hull: draws captured into one pending
@@ -279,6 +302,19 @@ uint64_t harness_gpu_fab_tiled(void *g);
 uint64_t harness_gpu_carry_submits(void *g);
 int      harness_gpu_carry_open(void *g);
 int      harness_gpu_async(void *g);
+/* The 2D rectangle kernel: 1 when the backend records queued
+   rectangles with it, 0 when the host could not set it up (the ops then
+   keep their buffer commands); the row count it starts at; what the
+   head-op recorder has recorded so far (buffer commands, copy regions,
+   rectangle dispatches); whether the open segment holds work not yet
+   submitted; and how many screen copies were queued through the
+   staging ring and how many were left to the CPU walk. */
+int      harness_gpu_r2d_on(void *g);
+unsigned harness_gpu_r2d_rows(void);
+void     harness_gpu_q2d_rec(void *g, uint64_t *cmds, uint64_t *regions,
+                             uint64_t *disp);
+int      harness_gpu_pending(void *g);
+void     harness_gpu_blit_rec(void *g, uint64_t *bounce, uint64_t *cpu);
 void     harness_gpu_wait_submitted(void *g);
 uint64_t harness_gpu_fab_fill_rects(void *g);
 uint64_t harness_gpu_fab_fill_cpu(void *g);

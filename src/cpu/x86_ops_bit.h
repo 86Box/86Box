@@ -8,7 +8,7 @@ opBT_w_r_a16(uint32_t fetchdat)
         SEG_CHECK_READ(cpu_state.ea_seg);
     cpu_state.eaaddr = (cpu_state.eaaddr + (((int32_t) (int16_t) cpu_state.regs[cpu_reg].w >> 4) * 2)) & 0xffff; /* 16-bit addressing wraps */
     eal_r = 0;
-    temp  = geteaw();
+    temp  = geteaw_noptr();
     if (cpu_state.abrt)
         return 1;
     flags_rebuild();
@@ -31,7 +31,7 @@ opBT_w_r_a32(uint32_t fetchdat)
         SEG_CHECK_READ(cpu_state.ea_seg);
     cpu_state.eaaddr += (((int32_t) (int16_t) cpu_state.regs[cpu_reg].w >> 4) * 2);
     eal_r = 0;
-    temp  = geteaw();
+    temp  = geteaw_noptr();
     if (cpu_state.abrt)
         return 1;
     flags_rebuild();
@@ -54,7 +54,7 @@ opBT_l_r_a16(uint32_t fetchdat)
         SEG_CHECK_READ(cpu_state.ea_seg);
     cpu_state.eaaddr = (cpu_state.eaaddr + (((int32_t) cpu_state.regs[cpu_reg].l >> 5) * 4)) & 0xffff; /* 16-bit addressing wraps */
     eal_r = 0;
-    temp  = geteal();
+    temp  = geteal_noptr();
     if (cpu_state.abrt)
         return 1;
     flags_rebuild();
@@ -77,7 +77,7 @@ opBT_l_r_a32(uint32_t fetchdat)
         SEG_CHECK_READ(cpu_state.ea_seg);
     cpu_state.eaaddr += (((int32_t) cpu_state.regs[cpu_reg].l >> 5) * 4);
     eal_r = 0;
-    temp  = geteal();
+    temp  = geteal_noptr();
     if (cpu_state.abrt)
         return 1;
     flags_rebuild();
@@ -102,12 +102,12 @@ opBT_l_r_a32(uint32_t fetchdat)
             SEG_CHECK_WRITE(cpu_state.ea_seg);                            \
         cpu_state.eaaddr = (cpu_state.eaaddr + (((int32_t) (int16_t) cpu_state.regs[cpu_reg].w >> 4) * 2)) & 0xffff; /* 16-bit addressing wraps */       \
         eal_r = eal_w = 0;                                                \
-        temp          = geteaw();                                         \
+        temp          = geteaw_noptr();                                         \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         tempc = (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) ? 1 : 0; \
         temp operation(1 << (cpu_state.regs[cpu_reg].w & 15));            \
-        seteaw(temp);                                                     \
+        seteaw_noptr(temp);                                                     \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         flags_rebuild();                                                  \
@@ -130,12 +130,12 @@ opBT_l_r_a32(uint32_t fetchdat)
             SEG_CHECK_WRITE(cpu_state.ea_seg);                            \
         cpu_state.eaaddr += (((int32_t) (int16_t) cpu_state.regs[cpu_reg].w >> 4) * 2);       \
         eal_r = eal_w = 0;                                                \
-        temp          = geteaw();                                         \
+        temp          = geteaw_noptr();                                         \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         tempc = (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) ? 1 : 0; \
         temp operation(1 << (cpu_state.regs[cpu_reg].w & 15));            \
-        seteaw(temp);                                                     \
+        seteaw_noptr(temp);                                                     \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         flags_rebuild();                                                  \
@@ -158,12 +158,12 @@ opBT_l_r_a32(uint32_t fetchdat)
             SEG_CHECK_WRITE(cpu_state.ea_seg);                            \
         cpu_state.eaaddr = (cpu_state.eaaddr + (((int32_t) cpu_state.regs[cpu_reg].l >> 5) * 4)) & 0xffff; /* 16-bit addressing wraps */       \
         eal_r = eal_w = 0;                                                \
-        temp          = geteal();                                         \
+        temp          = geteal_noptr();                                         \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         tempc = (temp & (1u << (cpu_state.regs[cpu_reg].l & 31))) ? 1 : 0; \
         temp operation(1u << (cpu_state.regs[cpu_reg].l & 31));            \
-        seteal(temp);                                                     \
+        seteal_noptr(temp);                                                     \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         flags_rebuild();                                                  \
@@ -186,12 +186,12 @@ opBT_l_r_a32(uint32_t fetchdat)
             SEG_CHECK_WRITE(cpu_state.ea_seg);                            \
         cpu_state.eaaddr += (((int32_t) cpu_state.regs[cpu_reg].l >> 5) * 4);       \
         eal_r = eal_w = 0;                                                \
-        temp          = geteal();                                         \
+        temp          = geteal_noptr();                                         \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         tempc = (temp & (1u << (cpu_state.regs[cpu_reg].l & 31))) ? 1 : 0; \
         temp operation(1u << (cpu_state.regs[cpu_reg].l & 31));            \
-        seteal(temp);                                                     \
+        seteal_noptr(temp);                                                     \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
         flags_rebuild();                                                  \

@@ -12,6 +12,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *          Marcos Alves
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
@@ -20,6 +21,7 @@
  *          Copyright 2021      dob205
  *          Copyright 2021      Andreas J. Reichel.
  *          Copyright 2021-2026 Jasmine Iwanek.
+ *          Copyright 2026      Marcos Alves.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -61,6 +63,7 @@
 #include <86box/random.h>
 #include <86box/nvr.h>
 #include <86box/machine.h>
+#include <86box/weitek.h>
 #include <86box/bugger.h>
 #include <86box/postcard.h>
 #include <86box/unittester.h>
@@ -71,6 +74,7 @@
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
+#include <86box/pcmcia.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/keyboard.h>
@@ -90,6 +94,7 @@
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/scsi_disk.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -131,6 +136,8 @@ int tracing_on = 0;
 /* Commandline options. */
 int dump_on_exit        = 0; /* (O) dump regs on exit */
 int start_in_fullscreen = 0; /* (O) start in fullscreen */
+int start_fast_forward  = 0; /* (O) start in fast forward mode */
+int start_paused        = 0; /* (O) start paused */
 #ifdef _WIN32
 int force_debug = 0; /* (O) force debug output */
 #endif
@@ -225,6 +232,8 @@ int      do_auto_pause                          = 0;              /* (G) Auto-pa
                                                                          loss */
 int      do_auto_dialog_pause                   = 0;              /* (G) Auto-pause the emulator on dialog boxes */
 int      force_constant_mouse                   = 0;              /* (C) Force constant updating of the mouse */
+int      pause_on_sleep                         = 1;              /* (C) Pause the emulator while the guest
+                                                                         is in an ACPI sleeping state */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
@@ -258,7 +267,8 @@ vfio_device_conf_t vfio_device_conf[VFIO_DEVICE_MAX] = { 0 };    /* (C) VFIO pas
 
 double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 3.x input scale */
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
-int      color_scheme = 0;                                        /* (C) Color scheme of UI (Windows-only) */
+int      color_scheme = 0;                                        /* (C) Color scheme of UI */
+char     ui_style[64] = { 0 };                                    /* (C) Qt style of UI, empty for the default */
 int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
 int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
 
@@ -806,6 +816,8 @@ pc_show_usage(void)
             "--automation-insecure\t\t- TCP: accept clients without a token (any local process,\n"
             "\t\t\t\t  or with --automation-allow-remote anyone, controls the machine)\n"
 #endif
+            "--fast-forward\t\t- start with fast forward enabled\n"
+            "--paused\t\t\t- start with the machine paused\n"
             "-A or --assetpath path\t\t- set 'path' to be asset path\n"
 #ifdef SHOW_EXTRA_PARAMS
             "-C or --config path\t\t- set 'path' to be config file\n"
@@ -887,6 +899,7 @@ pc_init(int argc, char *argv[])
     char            *global = NULL;
     char            *p;
     char             temp[2048];
+    char             vm_path[1024];
     char            *fn[FDD_NUM] = { NULL };
     int              window_x_1 = 0;
     int              window_y_1 = 0;
@@ -1017,6 +1030,10 @@ usage:
         } else if (!strcasecmp(argv[c], "--automation-insecure")) {
             automation_insecure = 1;
 #endif
+        } else if (!strcasecmp(argv[c], "--fast-forward")) {
+            start_fast_forward = 1;
+        } else if (!strcasecmp(argv[c], "--paused")) {
+            start_paused = 1;
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
         } else if (!strcasecmp(argv[c], "--logfile") || !strcasecmp(argv[c], "-L")) {
@@ -1222,8 +1239,57 @@ usage:
             plat_dir_create(usr_path);
     }
 
+    /* The VM path given with --vmpath, if any. */
+    strcpy(vm_path, usr_path);
+
+    /* Grab the name of the configuration file. */
+    if (cfg == NULL)
+        cfg = CONFIG_FILE;
+
+    /*
+     * If the configuration file name has (part of)
+     * a pathname, consider that to be part of the
+     * actual working directory.
+     *
+     * This can happen when people load a config
+     * file using the UI, for example.
+     */
+    p = path_get_filename(cfg);
+    if (cfg != p) {
+        /*
+         * OK, the configuration file name has a
+         * path component. Separate the two, and
+         * add the path component to the cfg path.
+         */
+        *(p - 1) = '\0';
+
+        /*
+         * If this is an absolute path, keep it, as
+         * there is probably have a reason to do so.
+         * Otherwise, assume the pathname given is
+         * relative to whatever the usr_path is.
+         */
+        if (path_abs(cfg))
+            strcpy(usr_path, cfg);
+        else
+            strcat(usr_path, cfg);
+    }
+
+    /* Make sure we have a trailing backslash. */
+    path_slash(usr_path);
+
+    /* At this point, we can safely create the full path name. */
+    path_append_filename(cfg_path, usr_path, p);
+
+    /*
+     * Without --vmpath, the VM-local ROM and asset paths
+     * are in the directory of the configuration file.
+     */
+    if (ppath == NULL)
+        strcpy(vm_path, usr_path);
+
     // Add the VM-local ROM path.
-    path_append_filename(temp, usr_path, "roms");
+    path_append_filename(temp, vm_path, "roms");
     rom_add_path(temp);
 
     // Add the standard ROM path in the same directory as the executable.
@@ -1233,7 +1299,7 @@ usage:
     plat_init_rom_paths();
 
     // Add the VM-local asset path.
-    path_append_filename(temp, usr_path, "assets");
+    path_append_filename(temp, vm_path, "assets");
     asset_add_path(temp);
 
     // Add the standard asset path in the same directory as the executable.
@@ -1319,48 +1385,11 @@ usage:
     } else
         asset_path[0] = '\0';
 
-    /* Grab the name of the configuration file. */
-    if (cfg == NULL)
-        cfg = CONFIG_FILE;
-
-    /*
-     * If the configuration file name has (part of)
-     * a pathname, consider that to be part of the
-     * actual working directory.
-     *
-     * This can happen when people load a config
-     * file using the UI, for example.
-     */
-    p = path_get_filename(cfg);
-    if (cfg != p) {
-        /*
-         * OK, the configuration file name has a
-         * path component. Separate the two, and
-         * add the path component to the cfg path.
-         */
-        *(p - 1) = '\0';
-
-        /*
-         * If this is an absolute path, keep it, as
-         * there is probably have a reason to do so.
-         * Otherwise, assume the pathname given is
-         * relative to whatever the usr_path is.
-         */
-        if (path_abs(cfg))
-            strcpy(usr_path, cfg);
-        else
-            strcat(usr_path, cfg);
-    }
-
     /* Make sure we have a trailing backslash. */
-    path_slash(usr_path);
     if (rom_path[0] != '\0')
         path_slash(rom_path);
     if (asset_path[0] != '\0')
         path_slash(asset_path);
-
-    /* At this point, we can safely create the full path name. */
-    path_append_filename(cfg_path, usr_path, p);
 
     /* Build the global configuration file path. */
     if (global == NULL) {
@@ -1476,6 +1505,13 @@ usage:
             pclog("# Asset path: %s\n", cur_asset_path->path);
         }
 
+        /* Set before the CPU thread exists, so they apply from the first quantum;
+           the frontends pick the state up from runctl when the thread starts. */
+        if (start_fast_forward)
+            runctl_set_mode(RUN_MODE_FAST);
+        if (start_paused)
+            runctl_pause(RUN_PAUSE_USER);
+
         /*
          * We are about to read the configuration file, which MAY
          * put data into global variables (the hard- and floppy
@@ -1489,6 +1525,7 @@ usage:
         rdisk_global_init();
         mo_global_init();
         tape_global_init();
+        md_global_init();
 
         /*
            Set the ID of all the floppy drives so their configuration
@@ -1900,6 +1937,7 @@ pc_reset_hard_close(void)
     mo_close();
 
     tape_close();
+    md_close();
 
     scsi_disk_close();
 
@@ -2035,6 +2073,7 @@ pc_reset_hard_init(void)
     mo_hard_reset();
 
     tape_hard_reset();
+    md_hard_reset();
 
     rdisk_hard_reset();
 
@@ -2044,6 +2083,14 @@ pc_reset_hard_init(void)
 
     /* Reset any ISA RTC cards. */
     isartc_reset();
+
+    if (weitek_fitted())
+        device_add(&weitek_3167_device);
+    else if (weitek_4167_fitted())
+        device_add(&weitek_4167_device);
+
+    /* The PC Card controller and its cards, if fitted. */
+    pcmcia_reset();
 
     /* Initialize the Voodoo cards here inorder to minimize
        the chances of the SCSI controller ending up on the bridge. */
@@ -2186,6 +2233,7 @@ pc_close(UNUSED(thread_t *ptr))
     mo_close();
 
     tape_close();
+    md_close();
 
     scsi_disk_close();
 
@@ -2224,7 +2272,7 @@ pc_run(void)
         acpi_sleep_run(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
     else
         debugger_cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
-    runctl_quantum_done(force_10ms ? 10000 : 1000);
+    runctl_thread_quantum_done(force_10ms ? 10000 : 1000);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif

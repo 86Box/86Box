@@ -22,6 +22,8 @@
 
 extern void img_load_raw_device(void *priv, const char *device_path);
 
+struct disk_size_t;
+extern int img_load_ram(void *priv, uint8_t *data, const struct disk_size_t *format);
 extern void img_load(void *priv, char *fn);
 extern void img_close(void *priv);
 

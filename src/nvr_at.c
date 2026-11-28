@@ -1118,27 +1118,30 @@ nvr_at_speed_changed(void *priv)
 }
 
 void
+nvr_at_handler_ex(int set, uint16_t base, int flags, nvr_t *nvr)
+{
+    if (flags & NVR_AT_INDEX_WO) {
+        io_handler(set, base, 1,
+                   NULL, NULL, NULL, nvr_write, NULL, NULL, nvr);
+        io_handler(set, base + 1, 1,
+                   nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+    } else
+        io_handler(set, base, 2,
+                   nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+}
+
+void
 nvr_at_handler(int set, uint16_t base, nvr_t *nvr)
 {
-    io_handler(set, base, 2,
-               nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+    nvr_at_handler_ex(set, base, 0, nvr);
 }
 
 void
 nvr_at_index_read_handler(int set, uint16_t base, nvr_t *nvr)
 {
-    io_handler(0, base, 1,
-               NULL, NULL, NULL, nvr_write, NULL, NULL, nvr);
-    nvr_at_handler(0, base, nvr);
-
-    if (set)
-        nvr_at_handler(1, base, nvr);
-    else {
-        io_handler(1, base, 1,
-                   NULL, NULL, NULL, nvr_write, NULL, NULL, nvr);
-        io_handler(1, base + 1, 1,
-                   nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
-    }
+    nvr_at_handler_ex(0, base, 0, nvr);
+    nvr_at_handler_ex(0, base, NVR_AT_INDEX_WO, nvr);
+    nvr_at_handler_ex(1, base, set ? 0 : NVR_AT_INDEX_WO, nvr);
 }
 
 void

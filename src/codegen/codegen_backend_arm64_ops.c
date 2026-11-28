@@ -108,6 +108,7 @@
 #    define OPCODE_CSEL               (0x0d4 << 21)
 #    define OPCODE_CSINC              (0x1a800400)
 #    define OPCODE_EOR_LSL            (0x250 << 21)
+#    define OPCODE_EORX_LSL           (0x650 << 21)
 #    define OPCODE_ORR_ASR            (0x154 << 21)
 #    define OPCODE_ORR_LSL            (0x150 << 21)
 #    define OPCODE_ORR_LSR            (0x152 << 21)
@@ -361,6 +362,7 @@ codegen_allocate_new_block(codeblock_t *block)
         fatal("codegen_allocate_new_block - offset out of range %x\n", offset);
     /*Add a jump instruction to the new block*/
     *(uint32_t *) &block_write_data[block_pos] = OPCODE_B | OFFSET26(offset);
+    codegen_allocator_written(block_write_data, block_pos + 4);
 
     /*Set write address to start of new block*/
     block_pos        = 0;
@@ -672,6 +674,15 @@ host_arm64_CBNZ_(codeblock_t *block, int reg)
 {
     codegen_alloc(block, 12);
     codegen_addlong(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+/*CBZ Xreg in the same template: a CBNZ over the B*/
+uint32_t *
+host_arm64_CBZ_(codeblock_t *block, int reg)
+{
+    codegen_alloc(block, 12);
+    codegen_addlong(block, OPCODE_CBNZ | OFFSET19(8) | Rt(reg));
     codegen_addlong(block, OPCODE_B);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }
@@ -1179,6 +1190,11 @@ void
 host_arm64_EOR_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
 {
     codegen_addlong(block, OPCODE_EOR_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
+void
+host_arm64_EORX_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
+{
+    codegen_addlong(block, OPCODE_EORX_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
 void
 host_arm64_EOR_REG_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
@@ -1988,6 +2004,14 @@ host_arm64_TBNZ(codeblock_t *block, int reg, int bit)
 {
     codegen_alloc(block, 12);
     codegen_addlong(block, OPCODE_TBZ | Rt(reg) | BIT_TBxZ(bit) | OFFSET14(8));
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_TBZ(codeblock_t *block, int reg, int bit)
+{
+    codegen_alloc(block, 12);
+    codegen_addlong(block, OPCODE_TBNZ | Rt(reg) | BIT_TBxZ(bit) | OFFSET14(8));
     codegen_addlong(block, OPCODE_B);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }

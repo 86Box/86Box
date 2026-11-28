@@ -13,6 +13,7 @@
 #define DEV_TAPE     0x10
 #define DEV_FDD      0x20
 #define DEV_LPT      0x40
+#define DEV_MD       0x80
 
 #define BUS_MFM      0
 #define BUS_ESDI     1

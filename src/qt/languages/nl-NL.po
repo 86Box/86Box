@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 21:33+0000\n"
+"PO-Revision-Date: 2026-11-28 07:57+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -48,10 +48,13 @@ msgstr "&Beeld"
 msgid "&Hide status bar"
 msgstr "&Statusbalk verbergen"
 
+msgid "Show US&B activity"
+msgstr "Toon US&B-activiteit"
+
 msgid "Hide &toolbar"
 msgstr "&Toolbar verbergen"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Venster met aanpasbare grootte"
 
 msgid "R&emember size && position"
@@ -80,6 +83,9 @@ msgstr "&Afmetingen opgeven…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Forceer &4:3 beeldverhouding"
+
+msgid "Force &machine display ratio"
+msgstr "Forceer &machinebeeldverhouding"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Forceer &%1:%2 beeldverhouding"
@@ -246,6 +252,42 @@ msgstr "&Voorkeuren…"
 msgid "Sound &gain…"
 msgstr "&Geluidsversterking…"
 
+msgid "M&IDI output device"
+msgstr "M&IDI-uitgangsapparaat"
+
+msgid "Restart &device"
+msgstr "Herstart &apparaat"
+
+msgid "Send MIDI &command"
+msgstr "Stuur MIDI-opdracht"
+
+msgid "&GM System On"
+msgstr "&GM Systeem Aan"
+
+msgid "G&S Reset"
+msgstr "G&S Reset"
+
+msgid "&XG System On"
+msgstr "&XG Systeem Aan"
+
+msgid "&MT-32 Reset"
+msgstr "&MT-32 Reset"
+
+msgid "All &notes off"
+msgstr "Alle &notities uit"
+
+msgid "Show MIDI &LCD"
+msgstr "Toon MIDI-&LCD"
+
+msgid "MIDI LCD"
+msgstr "MIDI-LCD"
+
+msgid "Always on &top"
+msgstr "Altijd op de &voorgrond houden"
+
+msgid "&Close"
+msgstr "&Sluiten"
+
 msgid "Begin trace"
 msgstr "Begin traceren"
 
@@ -262,13 +304,13 @@ msgid "&About 86Box…"
 msgstr "&Over 86Box…"
 
 msgid "&New image…"
-msgstr "&Nieuw imagebestand…"
+msgstr "&Nieuwe schijfkopie…"
 
 msgid "&Existing image…"
-msgstr "&Bestaand imagebestand…"
+msgstr "&Bestaande schijfkopie…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "Bestaand imagebestand (&Schrijfbeveiligd)…"
+msgstr "Bestaande schijfkopie (&Schrijfbeveiligd)…"
 
 msgid "&Record"
 msgstr "&Opnemen"
@@ -286,7 +328,7 @@ msgid "E&ject"
 msgstr "&Uitwerpen"
 
 msgid "&Image…"
-msgstr "&Imagebestand…"
+msgstr "&Schijfkopie…"
 
 msgid "E&xport to 86F…"
 msgstr "E&xporteer naar 86F…"
@@ -298,10 +340,10 @@ msgid "E&mpty"
 msgstr "&Leeg"
 
 msgid "Reload previous image"
-msgstr "Herlaad vorig imagebestand"
+msgstr "Herlaad vorige schijfkopie"
 
-msgid "&Folder…"
-msgstr "&Map…"
+msgid "Mount &folder…"
+msgstr "&Map aankoppelen…"
 
 msgid "Preferences"
 msgstr "Voorkeuren"
@@ -310,7 +352,13 @@ msgid "Sound Gain"
 msgstr "Geluidsversterking"
 
 msgid "New Image"
-msgstr "Nieuw imagebestand"
+msgstr "Nieuwe schijfkopie"
+
+msgid "Removable disk type:"
+msgstr "Verwisselbare schijftype:"
+
+msgid "MO type:"
+msgstr "MO-type:"
 
 msgid "Settings"
 msgstr "Instellingen"
@@ -405,6 +453,22 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "FPU:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+"Geheugengemapte floatingpoint-coprocessor op C0000000h. Compatibele "
+"programma's kunnen deze naast of in plaats van een 387 gebruiken."
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr "Weitek WTL 3167 coprocessor"
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+"Geheugengemapte floatingpoint-coprocessor op C0000000h voor compatibele 486 "
+"software."
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr "Weitek WTL 4167 coprocessor"
+
 msgid "Internal"
 msgstr "Geïntegreerd"
 
@@ -413,6 +477,15 @@ msgstr "Wachttoestanden:"
 
 msgid "MB"
 msgstr "MB"
+
+msgid "GB"
+msgstr "GB"
+
+msgid "%1 MB"
+msgstr "%1 MB"
+
+msgid "%1 GB"
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Geheugen:"
@@ -452,6 +525,12 @@ msgstr "Gebruik de 486-interpreter voor 286- en 386-processoren"
 
 msgid "Dynamic recompiler"
 msgstr "Dynamische recompiler"
+
+msgid "Dynamic recompiler is active"
+msgstr "Dynamische recompiler is actief"
+
+msgid "Dynamic recompiler is inactive"
+msgstr "Dynamische recompiler is niet actief"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Nauwkeurige FPU-omgeving voor de dynamische recompiler"
@@ -586,10 +665,10 @@ msgid "Internal LPT ECP DMA:"
 msgstr "Interne LPT ECP DMA:"
 
 msgid "Floppy disk controller:"
-msgstr "Floppy disk controller:"
+msgstr "Diskettecontroller:"
 
 msgid "CD-ROM controller:"
-msgstr "CD-ROM controller:"
+msgstr "Cd-rom controller:"
 
 msgid "Mitsumi interface"
 msgstr "Mitsumi-interface"
@@ -690,6 +769,32 @@ msgstr "Bus:"
 msgid "Channel:"
 msgstr "Kanaal:"
 
+msgid "%1 (Onboard)"
+msgstr "%1 (Geïntegreerd)"
+
+msgid "(none)"
+msgstr "(geen)"
+
+msgid "Onboard"
+msgstr "Geïntegreerd"
+
+msgid "%1: no free channels"
+msgstr "%1: geen beschikbare kanalen"
+
+msgid "%1: channels %2 in use"
+msgstr "%1: %2 kanalen in gebruik"
+
+msgid "IDE Conflict"
+msgstr "IDE-conflict"
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+"Deze IDE-controllers hebben kanalen nodig die al door een ander apparaat "
+"worden gebruikt en zullen daarom niet werken:"
+
+msgid "Do you want to save the configuration anyway?"
+msgstr "Wilt u de configuratie toch opslaan?"
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -709,13 +814,13 @@ msgid "Type:"
 msgstr "Type:"
 
 msgid "Image Format:"
-msgstr "Imageformaat:"
+msgstr "Schijfkopieformaat:"
 
 msgid "Block Size:"
 msgstr "Blokgrootte:"
 
 msgid "Floppy drives"
-msgstr "Floppy-schijfstations"
+msgstr "Diskettestations"
 
 msgid "5.25\" 180k"
 msgstr "5,25\" 180k"
@@ -760,13 +865,16 @@ msgid "Check BPB"
 msgstr "Controleer BPB"
 
 msgid "CD-ROM drives"
-msgstr "CD-ROM-stations"
+msgstr "Cd-romstations"
 
 msgid "CD-ROM:"
-msgstr "CD-ROM:"
+msgstr "Cd-rom:"
 
 msgid "MO drives"
-msgstr "MO-schijven"
+msgstr "MO-stations"
+
+msgid "MD DATA drives"
+msgstr "MD DATA-stations"
 
 msgid "MO:"
 msgstr "MO:"
@@ -786,8 +894,8 @@ msgstr "Tapestations:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA-geheugenuitbreiding"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA-geheugenuitbreiding"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM-kaart"
@@ -806,6 +914,29 @@ msgstr "Kaart 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "Generieke ISA ROM-kaart"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+"Geen apparaten gevonden. Controleer of VT-d of IOMMU is ingeschakeld op uw "
+"systeem."
+
+msgid "Custom ROM:"
+msgstr "Aangepast ROM:"
+
+msgid "Group"
+msgstr "Groep"
+
+msgid "Location"
+msgstr "Locatie"
+
+msgid "Name"
+msgstr "Naam"
+
+msgid "ROM images"
+msgstr "ROM-kopieën"
+
+msgid "Unknown device"
+msgstr "Onbekend apparaat"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Generieke dubbele ISA ROM-kaart"
@@ -832,13 +963,13 @@ msgid "Speed"
 msgstr "Snelheid"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "Verwijderbare schijf %1 (%2): %3"
+msgstr "Verwisselbare schijf %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "&Verwijderbare schijf %1 (%2): %3"
+msgstr "&Verwisselbare schijf %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "Verwijderbaar schijfimagebestand"
+msgstr "Schijfkopieën van verwisselbare schijven"
 
 msgid "Tape %1 (%2): %3"
 msgstr "Band %1 (%2): %3"
@@ -847,16 +978,22 @@ msgid "&Tape %1 (%2): %3"
 msgstr "&Band %1 (%2): %3"
 
 msgid "Tape images"
-msgstr "Bandimagebestand"
+msgstr "Bandkopieën"
 
 msgid "Image %1"
-msgstr "Image %1"
+msgstr "Schijfkopie %1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "%1 kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"%2\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
+msgstr ""
+"%1 kan geen bruikbare ROM-bestanden vinden.\n"
+"\n"
+"<a href=\"%2\">Download</a> een ROM-set en pak deze uit in de map \"roms\"."
 
 msgid "(empty)"
 msgstr "(leeg)"
+
+msgid "(not available)"
+msgstr "(niet beschikbaar)"
 
 msgid "All files"
 msgstr "Alle bestanden"
@@ -871,13 +1008,13 @@ msgid "Off"
 msgstr "Uit"
 
 msgid "All images"
-msgstr "Alle schijfimages"
+msgstr "Alle schijfkopieën"
 
 msgid "Basic sector images"
-msgstr "Basissectorimages"
+msgstr "Eenvoudige sector-schijfkopieën"
 
 msgid "Surface images"
-msgstr "Oppervlakte-images"
+msgstr "Oppervlakte-schijfkopieën"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Machine \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
@@ -903,8 +1040,17 @@ msgstr "Invoer&apparaat"
 msgid "Sound"
 msgstr "Geluid"
 
+msgid "%1 (not detected)"
+msgstr "%1 (niet gedetecteerd)"
+
+msgid "%1 Hz (host will resample)"
+msgstr "%1 Hz (de host past de samplefrequentie aan)"
+
 msgid "Network"
 msgstr "Netwerk"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr "IPv4 en ARP ontvangen als 802.3 LLC/SNAP-frames"
 
 msgid "Ports (COM & LPT)"
 msgstr "Poorten (COM & LPT)"
@@ -961,19 +1107,71 @@ msgid "Disks:"
 msgstr "Schijven:"
 
 msgid "Floppy:"
-msgstr "Floppy:"
+msgstr "Diskette:"
 
 msgid "Controllers:"
 msgstr "Controllers:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Floppy- en CD-ROM-stations"
+msgstr "Diskette- en cd-romstations"
 
 msgid "Other removable devices"
 msgstr "Andere verwijderbare apparaten"
 
 msgid "Other peripherals"
 msgstr "Andere randapparatuur"
+
+msgid "empty"
+msgstr "leeg"
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr "CompactFlash: %1 (Beveiligd tegen schrijven)"
+
+msgid "CompactFlash: %1"
+msgstr "CompactFlash: %1"
+
+msgid "Empty (take the card out)"
+msgstr "Leeg (neem de kaart uit)"
+
+msgid "CompactFlash"
+msgstr "CompactFlash"
+
+msgid "&New CompactFlash card…"
+msgstr "&Nieuwe CompactFlash-kaart…"
+
+msgid "New CompactFlash card"
+msgstr "Nieuwe CompactFlash-kaart"
+
+msgid "Insert CompactFlash card"
+msgstr "Plaats een CompactFlash-kaart"
+
+msgid "&Remove CompactFlash card"
+msgstr "Ve&rwijder CompactFlash-kaart"
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr "Kan %1 niet gebruiken als CompactFlash-schijfkopie."
+
+msgid "PCMCIA"
+msgstr "PCMCIA"
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr "PC Card-controller (Cirrus Logic CL-PD6722, ISA, poorten 3E0h-3E1h)"
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+"Een Intel 82365SL-compatibele PC Card-controller (PCMCIA) met twee sleuven, "
+"zoals aangetroffen in laptops en op PC Card-adapterkaarten.\n"
+"DOS Card and Socket Services, Windows 95/98 en Linux (i82365) herkennen deze "
+"controller."
+
+msgid "Network:"
+msgstr "Netwerk:"
+
+msgid "Socket %1"
+msgstr "Sleuf %1"
+
+msgid "Socket %1: %2"
+msgstr "Sleuf %1: %2"
 
 msgid "Other devices"
 msgstr "Andere apparaten"
@@ -1110,16 +1308,16 @@ msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
-msgstr "Floppy %1 (%2): %3"
+msgstr "Diskette %1 (%2): %3"
 
 msgid "&Floppy %1 (%2): %3"
-msgstr "&Floppy %1 (%2): %3"
+msgstr "&Diskette %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "Geavanceerde sector-images"
+msgstr "Geavanceerde sector-schijfkopieën"
 
 msgid "Flux images"
-msgstr "Flux images"
+msgstr "Flux-schijfkopieën"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Weet je zeker dat je de geëmuleerde machine wilt resetten?"
@@ -1140,13 +1338,25 @@ msgid "&MO %1 (%2): %3"
 msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
-msgstr "MO-images"
+msgstr "MO-schijfkopieën"
+
+msgid "MD DATA images"
+msgstr "MD DATA-schijfkopieën"
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr "&MD DATA %1 (%2): %3"
+
+msgid "MD DATA %1 (%2): %3"
+msgstr "MD DATA %1 (%2): %3"
 
 msgid "Welcome to 86Box!"
 msgstr "Welkom bij 86Box!"
 
 msgid "Internal device"
 msgstr "Intern apparaat"
+
+msgid "External"
+msgstr "Extern"
 
 msgid "&File"
 msgstr "&Bestand"
@@ -1164,10 +1374,114 @@ msgid "&Check for updates…"
 msgstr "&Controleren op updates…"
 
 msgid "Exit"
-msgstr "&Afsluiten"
+msgstr "Afsluiten"
 
 msgid "No ROMs found"
 msgstr "Geen ROMs gevonden"
+
+msgid "Unsupported Hardware"
+msgstr "Niet ondersteunde hardware"
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+"De hardware in dit machineprofiel wordt niet ondersteund door deze versie "
+"van 86Box."
+
+msgid "(and %i others)"
+msgstr "(en %i anderen)"
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine vervangen en de "
+"bestaande configuratie overschreven."
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine verwijderd en de "
+"bestaande configuratie overschreven."
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+"Als u de configuratie toch laadt, wordt de huidige machine vervangen, worden "
+"de overige componenten verwijderd en wordt de bestaande configuratie "
+"overschreven."
+
+msgid "Do you want to continue?"
+msgstr "Wilt u doorgaan?"
+
+msgid "Machine type \"%s\""
+msgstr "Machinetype \"%s\""
+
+msgid "Video card \"%s\""
+msgstr "Videokaart \"%s\""
+
+msgid "Keyboard \"%s\""
+msgstr "Toetsenbord \"%s\""
+
+msgid "Mouse \"%s\""
+msgstr "Muis \"%s\""
+
+msgid "Tablet \"%s\""
+msgstr "Tablet \"%s\""
+
+msgid "Joystick \"%s\""
+msgstr "Joystick \"%s\""
+
+msgid "Sound card \"%s\""
+msgstr "Geluidskaart \"%s\""
+
+msgid "MIDI output device \"%s\""
+msgstr "MIDI-uitvoerapparaat \"%s\""
+
+msgid "MIDI input device \"%s\""
+msgstr "MIDI-invoerapparaat \"%s\""
+
+msgid "Network card \"%s\""
+msgstr "Netwerkkaart \"%s\""
+
+msgid "Serial port device \"%s\""
+msgstr "Seriëlepoortapparaat \"%s\""
+
+msgid "Parallel port device \"%s\""
+msgstr "Parallelepoortapparaat \"%s\""
+
+msgid "Game port \"%s\""
+msgstr "Gamepoort \"%s\""
+
+msgid "SCSI card \"%s\""
+msgstr "SCSI-kaart \"%s\""
+
+msgid "Floppy controller \"%s\""
+msgstr "Diskettecontroller \"%s\""
+
+msgid "Disk controller \"%s\""
+msgstr "Schijfcontroller \"%s\""
+
+msgid "CD-ROM interface \"%s\""
+msgstr "Cd-rominterface \"%s\""
+
+msgid "Memory expansion card \"%s\""
+msgstr "Geheugenuitbreidingskaart \"%s\""
+
+msgid "ROM expansion card \"%s\""
+msgstr "ROM-uibreidingskaart \"%s\""
+
+msgid "RTC card \"%s\""
+msgstr "RTC-kaart \"%s\""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+"De schijfkopie \"%s\" overschrijdt de maximale capaciteit van dit station en "
+"wordt genegeerd."
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr ""
+"%s is niet aangesloten: alle USB-poorten van deze machine zijn in gebruik."
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
+"%s is niet aangesloten: deze machine heeft geen USB-controller waarop "
+"apparaten kunnen worden aangesloten."
 
 msgid "Do you want to save the settings?"
 msgstr "Wil je de instellingen opslaan?"
@@ -1191,7 +1505,25 @@ msgid "Don't show this message again"
 msgstr "Dit bericht niet meer tonen"
 
 msgid "CD-ROM images"
-msgstr "CD-ROM-images"
+msgstr "Cd-romschijfkopie"
+
+msgid "&New CD-R image…"
+msgstr "&Nieuwe CD-R-schijfkopie…"
+
+msgid "New CD-R&W image…"
+msgstr "Nieuwe CD-R-schijfkopie…"
+
+msgid "CD-RW image"
+msgstr "&CD-RW-schijfkopie"
+
+msgid "CD-R image"
+msgstr "CD-R-schijfkopie"
+
+msgid "Aaru images"
+msgstr "Aaru-schijfkopie"
+
+msgid "Unable to create image"
+msgstr "Kan de schijfkopie niet aanmaken"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Apparaatconfiguratie"
@@ -1218,7 +1550,7 @@ msgid "C&assette: %1"
 msgstr "C&assette: %1"
 
 msgid "Cassette images"
-msgstr "Cassette-images"
+msgstr "Cassette-schijfkopieën"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartridge %1: %2"
@@ -1227,7 +1559,7 @@ msgid "Car&tridge %1: %2"
 msgstr "Car&tridge %1: %2"
 
 msgid "Cartridge images"
-msgstr "Cartridge-images"
+msgstr "Cartridge-schijfkopieën"
 
 msgid "Resume execution"
 msgstr "Hervat uitvoering"
@@ -1494,7 +1826,9 @@ msgid "Remove directory failed"
 msgstr "Verwijderen map mislukt"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr "Enkele bestanden in de machinemap konden niet verwijderd worden. Verwijder deze handmatig."
+msgstr ""
+"Enkele bestanden in de machinemap kunnen niet verwijderd worden. Verwijder "
+"deze handmatig."
 
 msgid "Build"
 msgstr "Build"
@@ -1565,17 +1899,20 @@ msgstr "Audio:"
 msgid "ACPI shutdown"
 msgstr "ACPI-uitschakeling"
 
-msgid "ACP&I shutdown"
-msgstr "ACP&I-uitschakeling"
+msgid "&ACPI shutdown"
+msgstr "&ACPI-uitschakeling"
 
 msgid "Power off"
 msgstr "Uitschakelen"
 
-msgid "Power &off…"
-msgstr "&Uitschakelen…"
-
 msgid "Power &off"
 msgstr "&Uitschakelen"
+
+msgid "Suspen&d"
+msgstr "On&derbreken"
+
+msgid "Suspend"
+msgstr "Onderbreken"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -1604,13 +1941,13 @@ msgid "Add Existing Hard Disk"
 msgstr "Bestaande harde schijf toevoegen"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI-schijfimages kunnen niet groter zijn dan 4 GB."
+msgstr "HDI-schijfkopieën kunnen niet groter zijn dan 4 GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Schijfimages kunnen niet groter zijn dan 127 GB."
+msgstr "Schijfkopieën kunnen niet groter zijn dan 127 GB."
 
 msgid "Hard disk images"
-msgstr "Harde schijf-images"
+msgstr "Harde-schijfkopieën"
 
 msgid "Unable to read file"
 msgstr "Kan bestand niet lezen"
@@ -1619,16 +1956,18 @@ msgid "Unable to write file"
 msgstr "Kan bestand niet schrijven"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- of HDX-images met een andere sectorgrootte dan 512 worden niet ondersteund."
+msgstr ""
+"HDI- of HDX-schijfkopieën met een andere sectorgrootte dan 512 worden niet "
+"ondersteund."
 
 msgid "Disk image file already exists"
-msgstr "Schijfimagebestand bestaat al"
+msgstr "Schijfkopiebestand bestaat al"
 
 msgid "Please specify a valid file name."
 msgstr "Geef een geldige bestandsnaam op."
 
 msgid "Disk image created"
-msgstr "Schijfimage gemaakt"
+msgstr "Schijfkopie aangemaakt"
 
 msgid "Make sure the file exists and is readable."
 msgstr "Controleer of het bestand bestaat en leesbaar is."
@@ -1637,7 +1976,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Zorg ervoor dat het bestand wordt opgeslagen in een schrijfbare map."
 
 msgid "Disk image too large"
-msgstr "Schijfimage te groot"
+msgstr "Te grote schijfkopie"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Vergeet niet om de nieuw aangemaakte schijf te partitioneren en te formatteren."
@@ -1646,7 +1985,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Het geselecteerde bestand wordt overschreven. Weet u zeker dat u het wilt gebruiken?"
 
 msgid "Unsupported disk image"
-msgstr "Niet-ondersteunde schijfimage"
+msgstr "Niet-ondersteunde schijfkopie"
 
 msgid "Unable to read device"
 msgstr "Kan apparaat niet lezen"
@@ -1667,22 +2006,22 @@ msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads,
 msgstr "Gedetecteerd blokapparaat: %1\nGrootte: %2 MB\nGeometrie: %3 cilinders, %4 koppen, %5 sectoren"
 
 msgid "Failed to write the disk image."
-msgstr "Schrijven van de schijfimage mislukt."
+msgstr "Schrijven van de schijfkopie mislukt."
 
 msgid "Failed to read the disk image."
-msgstr "Lezen van de schijfimage mislukt."
+msgstr "Lezen van de schijfkopie mislukt."
 
 msgid "The disk image has been successfully created."
-msgstr "De schijfimage is succesvol aangemaakt."
+msgstr "De schijfkopie is succesvol aangemaakt."
 
 msgid "Raw image"
-msgstr "Ruw image"
+msgstr "Ruwe schijfkopie"
 
 msgid "HDI image"
-msgstr "HDI-image"
+msgstr "HDI-schijfkopie"
 
 msgid "HDX image"
-msgstr "HDX-image"
+msgstr "HDX-schijfkopie"
 
 msgid "Fixed-size VHD"
 msgstr "VHD met vaste grootte"
@@ -1697,13 +2036,13 @@ msgid "(N/A)"
 msgstr "(N/B)"
 
 msgid "Raw image (.img)"
-msgstr "Ruw image (.img)"
+msgstr "Ruwe schijfkopie (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI-image (.hdi)"
+msgstr "HDI-schijfkopie (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX-image (.hdx)"
+msgstr "HDX-schijfkopie (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "VHD met vaste grootte (.vhd)"
@@ -1727,7 +2066,16 @@ msgid "Select the parent VHD"
 msgstr "Selecteer de bovenliggende VHD"
 
 msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen. Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
+msgstr ""
+"Bovenliggende en onderliggende schijftijdstempels komen niet overeen. Dit "
+"kan betekenen dat de bovenliggende schijfkopie is gewijzigd nadat de "
+"verschil-schijfkopie is gemaakt.\n"
+"\n"
+"Dit kan ook gebeuren als de schijfkopiebestanden zijn verplaatst of "
+"gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt."
+"\n"
+"\n"
+"Wil je de tijdstempels herstellen?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen"
@@ -1736,10 +2084,10 @@ msgid "Could not fix VHD timestamp."
 msgstr "Kan VHD tijdstempel niet herstellen."
 
 msgid "CD-ROM %1 (%2): %3"
-msgstr "CD-ROM %1 (%2): %3"
+msgstr "Cd-rom %1 (%2): %3"
 
 msgid "&CD-ROM %1 (%2): %3"
-msgstr "&CD-ROM %1 (%2): %3"
+msgstr "&Cd-rom %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1820,7 +2168,7 @@ msgid "2% below perfect RPM"
 msgstr "2% onder perfecte RPM"
 
 msgid "Creating image…"
-msgstr "Image wordt gemaakt…"
+msgstr "Schijfkopie wordt aangemaakt…"
 
 msgid "(System Default)"
 msgstr "(Systeemstandaard)"
@@ -1832,7 +2180,7 @@ msgid "Mouse sensitivity:"
 msgstr "Muisgevoeligheid:"
 
 msgid "Select media images from program working directory"
-msgstr "Selecteer media-images uit de werkmap van het programma"
+msgstr "Selecteer mediaschijfkopieën uit de werkmap van het programma"
 
 msgid "PIT mode:"
 msgstr "PIT-modus:"
@@ -1910,7 +2258,7 @@ msgid "&Connected"
 msgstr "&Verbonden"
 
 msgid "Clear image &history"
-msgstr "Imagegeschiedenis verwijderen(&H)"
+msgstr "Schijfkopiegeschiedenis verwijderen(&H)"
 
 msgid "Create…"
 msgstr "Aanmaken…"
@@ -1973,7 +2321,11 @@ msgid "Falling back to software rendering."
 msgstr "Terugvallen op software rendering."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>Bij het selecteren van media-images (CD-ROM, floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op macOS.</p></body></html>"
+msgstr ""
+"<html><head/><body><p>Bij het selecteren van mediaschijfkopieën (cd-rom, "
+"diskette, etc.) zal de \"open dialoog\" starten in dezelfde map als het "
+"86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen "
+"toe op macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Deze machine is misschien verplaatst of gekopieerd."
@@ -2050,6 +2402,9 @@ msgstr "PS/2 Toetsenbord"
 msgid "PS/55 Keyboard"
 msgstr "PS/55 Toetsenbord"
 
+msgid "USB Keyboard"
+msgstr "USB-toetsenbord"
+
 msgid "Keys"
 msgstr "Toetsen"
 
@@ -2080,8 +2435,14 @@ msgstr "PS/2 muis"
 msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort muis"
 
+msgid "USB Mouse"
+msgstr "USB-muis"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serieel)"
+
+msgid "USB Tablet"
+msgstr "USB-tablet"
 
 msgid "Default Baud rate"
 msgstr "Standaard baudrate"
@@ -2106,6 +2467,9 @@ msgstr "OPL4-ML-dochterbord"
 
 msgid "System MIDI"
 msgstr "Systeem MIDI"
+
+msgid "USB Speaker"
+msgstr "USB-luidspreker"
 
 msgid "MIDI Input Device"
 msgstr "MIDI-ingangsapparaat"
@@ -2541,6 +2905,9 @@ msgstr "SLI"
 
 msgid "Start Address"
 msgstr "Startadres"
+
+msgid "Allow RAM up to the system ROM"
+msgstr "RAM toestaan tot aan het systeem-ROM"
 
 msgid "Contiguous Size"
 msgstr "Aaneengesloten grootte"
@@ -3116,13 +3483,16 @@ msgid "GLSL Error"
 msgstr "GLSL-fout"
 
 msgid "Could not load shader: %1"
-msgstr "Kon de shader niet laden: %1"
+msgstr "Kan de shader niet laden: %1"
 
 msgid "Could not load texture: %1"
-msgstr "Kon de textuur niet laden: %1"
+msgstr "Kan de textuur niet laden: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr "Kon de shader niet compileren:\n\n%1"
+msgstr ""
+"Kan de shader niet compileren:\n"
+"\n"
+"%1"
 
 msgid "Program not linked:\n\n%1"
 msgstr "Programma niet gelinkt:\n\n%1"
@@ -3146,7 +3516,7 @@ msgid "Move down"
 msgstr "Omlaag verplaatsen"
 
 msgid "Could not load file %1"
-msgstr "Kon bestand %1 niet laden"
+msgstr "Kan bestand %1 niet laden"
 
 msgid "Emulator"
 msgstr "Emulator"
@@ -3271,7 +3641,7 @@ msgid "No Machines Found!"
 msgstr "Geen machines gevonden!"
 
 msgid "Check for updates on startup"
-msgstr "Controleer op updates bij starten"
+msgstr "Bij het opstarten controleren op updates"
 
 msgid "Unable to determine release information"
 msgstr "Kan release-informatie niet bepalen"
@@ -3393,6 +3763,18 @@ msgstr "Licht"
 msgid "Dark"
 msgstr "Donker"
 
+msgid "Style:"
+msgstr "Stijl:"
+
+msgid "Windows 11"
+msgstr "Windows 11"
+
+msgid "Windows Native"
+msgstr "Windows Systeemeigen"
+
+msgid "Windows Classic"
+msgstr "Windows Klassiek"
+
 msgid "Force interpretation"
 msgstr "Interpretatie afdwingen"
 
@@ -3433,37 +3815,37 @@ msgid "System Default"
 msgstr "Systeemstandaard"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "Het bestand of de map „%s“ kan niet worden geopend."
+msgstr "Schijfkopie of de map \"%s\" kan niet worden geopend."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr "De cue-lijst „%s“ kan niet worden geopend."
+msgstr "De cue-lijst \"%s\" kan niet worden geopend."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr "Het MDS-bestand „%s“ kan niet worden geopend."
+msgstr "Het MDS-bestand \"%s\" kan niet worden geopend."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "De cd-rom-image „%s“ kan niet worden geladen."
+msgstr "De cd-romschijfkopie \"%s\" kan niet worden geladen."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
-"is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
+"Schijfkopie \"%s\" kan niet worden geladen: het bestand „%1“ ontbreekt, dat "
+"nodig is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
-"Laden van image \"%s\" niet mogelijk: %1 ontbreekt, welke vereist is voor "
-"Aaru image bestandstype ondersteuning."
+"Laden van schijfkopie \"%s\" niet mogelijk: %1 ontbreekt, welke vereist is "
+"voor Aaru-schijfkopie bestandstype ondersteuning."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
-"De DVD-image „%s“ is in een station geplaatst dat geen DVD-media ondersteunt "
-"en wordt daarom genegeerd."
+"DVD-schijfkopie \"%s\" is in een station geplaatst dat geen DVD-media "
+"ondersteunt en wordt daarom genegeerd."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr "%s: Er kon geen verbinding worden gemaakt met %s: %s"
+msgstr "%s: Er kan geen verbinding worden gemaakt met %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr "%s: %s kon niet worden aangemaakt: %s"
+msgstr "%s: %s kan niet worden aangemaakt: %s"
 
 msgid "%s: Attached to %s"
 msgstr "%s: Toegevoegd aan %s"
@@ -3472,7 +3854,7 @@ msgid "%s: Virtual console already in use by %s"
 msgstr "%s: De Virtual Console wordt al gebruikt door %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr "%s: De terminal kon niet worden aangemaakt: %s"
+msgstr "%s: De terminal kan niet worden aangemaakt: %s"
 
 msgid "Auto-detect"
 msgstr "Automatische herkenning"
@@ -3626,7 +4008,7 @@ msgstr "Luminantiegrenswaarde (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
-"VFIO: kon /dev/vfio/vfio niet openen: %s. Zorg dat de vfio-pci-module "
+"VFIO: kan /dev/vfio/vfio niet openen: %s. Zorg dat de vfio-pci-module "
 "geladen is."
 
 msgid "VFIO %s: Invalid device location."
@@ -3644,7 +4026,7 @@ msgid "VFIO %s: Device is not bound to vfio-pci."
 msgstr "VFIO %s: Apparaat is niet gekoppeld aan vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr "VFIO %s: Kon IOMMU-groep niet openen %d: %s"
+msgstr "VFIO %s: Kan IOMMU-groep niet openen %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
@@ -3653,17 +4035,17 @@ msgstr ""
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
-"VFIO: Kon het gastgeheugen niet toewijzen voor DMA: %s. De limiet voor "
+"VFIO: Kan het gastgeheugen niet toewijzen voor DMA: %s. De limiet voor "
 "vergrendeld geheugen (ulimit -l) is mogelijk te laag."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
-"VFIO %s: Kon het ROM-bestand \"%s\" niet lezen; de apparaat-eigen ROM wordt "
+"VFIO %s: Kan het ROM-bestand \"%s\" niet lezen; de apparaat-eigen ROM wordt "
 "gebruikt."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
-"VFIO %s: Kon het ROM-bestand \"%s\" niet lezen; de ROM is uitgeschakeld."
+"VFIO %s: Kan het ROM-bestand \"%s\" niet lezen; de ROM is uitgeschakeld."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
@@ -3695,7 +4077,7 @@ msgstr ""
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
-"VFIO: Kon de apparaten niet voorbereiden op doorvoer:\n"
+"VFIO: Kan de apparaten niet voorbereiden op doorvoer:\n"
 "%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
@@ -3740,564 +4122,751 @@ msgstr "De emulator is bezig; de geheugenweergave is niet geüpdatet."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
+"De overeenkomst bevindt zich niet in het toegewezen geheugen; de selectie en "
+"de weergave zijn niet verplaatst."
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "Schrijven kan alleen naar RAM en videogeheugen."
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
+"niet weggeschreven (niet schijfbare RAM of videogeheugen, of de emulator is "
+"bezig)."
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "De emulator is bezig; probeer nogmaals."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "%1 bytes van %2 gekopieerd naar het klembord"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (%1 kan niet gelezen worden)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " van een %1 byteselectie"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "Er is geen toegewezen geheugen om te doorzoeken."
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "Er is geen toegewezen geheugen in het opgevraagde bereik."
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "De zoekopdracht is beperkt to %1 bytes."
 
-msgid "Searching memory..."
-msgstr ""
+msgid "Searching memory…"
+msgstr "Geheugen aan het doorzoeken…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "De zoekopdracht was afgebroken. De selectie is niet verplaatst."
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Gevonden op %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Niet gevonden. De selectie is niet verplaatst."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Vul selectie"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Vul %1 bytes van %2 met (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Geef een hexdecimale byte in van 00 to FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Gevuld met %1 van %2 bytes met %3 (%4 waren niet schrijfbare RAM of "
+"videogeheugen)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Geselecteerd: %1 bytes (%2 zijn ovegeslagen)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Bewerk byte"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Kopieer selectie (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Kopieer selectie (ASCII)"
 
-msgid "Fill selection..."
-msgstr ""
+msgid "Fill selection…"
+msgstr "Vul selectie…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopieer adres"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Hier disassembleren"
 
-msgid "Dump memory from here..."
-msgstr ""
+msgid "Dump memory from here…"
+msgstr "Dump geheugen vanaf hier…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Geheugenviewer"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pauzeren / Hervatten"
 
 msgid "Step"
-msgstr ""
+msgstr "Stap"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Voer de gegeven aantal instructies uit (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Instructies per stap"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fysiek"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Adres, register of seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "Uitvoeren"
 
 msgid "Live update"
-msgstr ""
+msgstr "Live bijwerken"
 
-msgid "Dump..."
-msgstr ""
+msgid "Dump…"
+msgstr "Dump…"
 
 msgid "Commands"
-msgstr ""
+msgstr "Opdrachten"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Toon of verberg debuggeropdrachten (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Hexadecimale bytes"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII-tekst"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Waarde, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Waarde, word"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Waarde, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Waarnaar zoeken: ruwe hexadecimale bytes, tekst of een hexadecimale waarde "
+"die little-endian is opgeslagen, zoals weergegeven in de hexweergave."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Geheugen doorzoeken"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
+"Ctrl+F voor focus op dit veld; Enter of F3 voor de volgende "
+"zoekovereenkomst, Shift+F3 voor de vorige."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Vind vorige"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Vooruit zoeken vanaf de selectie (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Vind volgende"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Achteruit zoeken vanaf de selectie (F3)"
 
-msgid "Range..."
-msgstr ""
+msgid "Range…"
+msgstr "Bereik…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Zoek in een adresbereik in plaats van het gehele geheugen"
 
 msgid "From"
-msgstr ""
+msgstr "Van"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Waar de zoekopdracht begint (hexadecimaal, register of seg:off; leeg "
+"betekent de eerste toegewezen byte; . betekent het begin van de selectie)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Naar (inclusief)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Waar de zoekopdracht eindigt, inclusief dit adres (hexadecimaal, register of "
+"seg:off; leeg betekent de laatste toegewezen byte; . betekent het einde van "
+"de selectie)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Bereik vanaf"
 
 msgid "to"
-msgstr ""
+msgstr "naar"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Toegewezen, niet RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Niet toegewezen"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Niet toegankelijk"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Niet toegankelijk: alleen apparaatdrivers kunnen deze locatie uitlezen ("
+"omdat uitlezen neveneffecten zou hebben), of de lineaire geheugenpagina is "
+"niet aanwezig."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Lineair adres, register of sec:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Volg CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Bytes"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Instructie"
 
 msgid "Note"
-msgstr ""
+msgstr "Opmerking"
 
 msgid "Double-click a line to set or clear a breakpoint there"
 msgstr ""
+"Dubbelklik op een regel om daar een onderbrekingspunt in te stellen of te "
+"verwijderen"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Disassemblage"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Disassemblage (niet beschikbaar in deze versie)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "Bericht van de viewer"
 
 msgid "Selected range"
-msgstr ""
+msgstr "Geselecteerd bereik"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Debuggeropdrachten"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Uitvoer van debuggeropdracht"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Debuggeropdracht"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "help — opdrachten; Omhoog/Omlaag — geschiedenis; . — geselecteerd adres"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Opdrachten delen de adresruimte en selectie van de geheugenviewer. Typ help "
+"voor een overzicht van de opdrachten."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "De processor laten uitvoeren (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Stop de processor bij de volgende instructie (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Te veel onderbrekingspunten."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Gestopt: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "De emulator is bezig; de weergave is niet geüpdatet."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Gestopt bij onderbrekingspunt."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Gestopt na stapsgewijs uitvoeren."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Gestopt."
 
-msgid "Stepping..."
-msgstr ""
+msgid "Stepping…"
+msgstr "Stapsgewijs uitvoeren…"
 
 msgid "Running."
-msgstr ""
+msgstr "Actief."
 
 msgid "The emulator is paused; resume it to run or step."
 msgstr ""
+"De emulator is gepauzeerd. Hervat de uitvoering om door te gaan of "
+"stapsgewijs uit te voeren."
 
 msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
+"De dynamische hercompiler is uitgeschakeld zolang dit venster geopend is."
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Voer een adres in."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "De selector kan niet worden opgezocht."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Onbekend segment \"%1\"."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Onbekende offset \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Het lineaire adres is niet toegewezen aan fysiek geheugen."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" is geen adres of register."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Gebruik: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
+"De selectie is fysiek. Gebruik een lineair adres of schakel over naar de "
+"lineaire adresruimte."
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
+"r naam [hexadecimale waarde]: lees of bewerk een door de huidige processor "
+"ondersteunde register.\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH "
+"DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (verborgen "
+"descriptorcache)\n"
+"Selectors laden descriptors zonder gastinstructies uit te voeren; "
+"cachevelden worden rechtstreeks gewijzigd.\n"
+"Schrijfbewerkingen vereisen dat de uitvoering is gepauzeerd op een volledige "
+"instructiegrens. NEC 8080-modus register bewerkingen niet beschikbaar."
 
 msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
 msgstr ""
+"Getallen zijn hexadecimaal; stapaantallen zijn decimaal. Adressen kunnen "
+"registers en seg:off bevatten.\n"
+". staat voor de hexadecimale selectie; als een geheugenadres wordt "
+"weggelaten, wordt deze selectie gebruikt.\n"
+"help | clear | refresh | regs\n"
+"run | pause | step [aantal]\n"
+"space physical|linear | goto adres | db [adres [lengte]] (max. 1000 "
+"hexadecimale bytes)\n"
+"write address byte [byte ...] | dump (opent de export van de selectie)\n"
+"dbio [adres [lengte]] | writeio address byte [byte ...] (neveneffecten van "
+"apparaatbewerkingen; vereist pauzeren)\n"
+"u adres (lineaire disassemblage) | volgen aan|uit\n"
+"bp adres | bc adres|all | bl (lineaire onderbrekingspunten)\n"
+"r [register [waarde]] (lezen/instellen; waarden zijn hexadecimaal); help "
+"registers geeft een lijst met registernamen\n"
+"peek poort [b|w|d] | poke poort waarde [b|w|d]\n"
+"Voor het schrijven naar registers of geheugen en voor I/O-bewerkingen moet "
+"de uitvoering gepauzeerd zijn. I/O-bewerkingen roepen de apparaatdrivers "
+"aan, inclusief leesbewerkingen met neveneffecten."
 
 msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
 msgstr ""
+"Register niet beschikbaar, ongeldige waarde of de processor is niet "
+"gepauzeerd op een volledige instructiegrens."
 
 msgid "Pause the processor before side-effecting memory access."
 msgstr ""
+"Pauzeer de processor voordat benadering van geheugen waarbij neveneffecten "
+"kunnen optreden."
 
 msgid "Write exceeds 4096 bytes or wraps the address space."
 msgstr ""
+"De schrijfbewerking overschrijdt 4096 bytes of loopt over de adresruimte "
+"heen."
 
 msgid "Pause the processor before writing memory."
-msgstr ""
+msgstr "Pauzeer de processor voordat naar geheugen geschreven wordt."
 
 msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
 msgstr ""
+"%1 van de %2 byte-schrijfbewerkingen uitgevoerd; apparaten kunnen "
+"schrijfbewerkingen negeren. Niet vertaalde adressen worden overgeslagen."
 
 msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
 msgstr ""
+"%1 van de %2 bytes geschreven; alleen-lezen of niet-toegankelijke bytes "
+"worden overgeslagen."
 
 msgid "Disassembly is not available in this build."
-msgstr ""
+msgstr "Disassemblage is niet beschikbaar in deze versie."
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "Onderbrekingspunt %1 van %2."
 
 msgid "set"
-msgstr ""
+msgstr "gezet"
 
 msgid "cleared"
-msgstr ""
+msgstr "gewist"
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] "%1 onderbrekingspunt, lineaire adressen:"
+msgstr[1] "%1 onderbrekingspunten, lineaire adressen:"
 
 msgid "Pause the processor before accessing I/O ports."
-msgstr ""
+msgstr "Pauzeer de processor voordat I/O-poorten benaderd worden."
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
-msgstr ""
+msgstr "Onbekende opdracht of ongeldige argumenten. Typ help voor de syntax."
 
 msgid "Dump memory"
-msgstr ""
-
-msgid "Browse..."
-msgstr ""
+msgstr "Dump geheugen"
 
 msgid "Start (hex, register or seg:off):"
-msgstr ""
+msgstr "Start (hexadecimaal, register of seg:off):"
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "Lengte (hexadecimale bytes):"
 
 msgid "Address space:"
-msgstr ""
+msgstr "Adresruimte:"
 
 msgid "Fill byte for memory that cannot be read:"
-msgstr ""
+msgstr "Opvulbyte voor geheugen dat niet kan worden uitgelezen:"
 
 msgid "File:"
-msgstr ""
+msgstr "Bestand:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
+"Alleen RAM en ander rechtstreeks toegewezen geheugen worden uitgelezen. Niet-"
+"toegewezen en niet-toegankelijke bytes worden niet uitgelezen; in plaats "
+"daarvan wordt de opvulbyte ingevuld."
 
-msgid "Binary files (*.bin);;All files (*)"
-msgstr ""
+msgid "Binary files"
+msgstr "Binaire bestanden"
 
 msgid "The length must be a hex number above 0."
-msgstr ""
+msgstr "De lengte moet een hexadecimaal getal groter dan 0 zijn."
 
 msgid "The fill byte must be a hex number from 00 to FF."
-msgstr ""
+msgstr "De opvulbyte moet een hexadecimaal getal in het bereik 00 en FF zijn."
 
 msgid "Could not open %1 for writing."
-msgstr ""
+msgstr "Kan %1 niet openen voor schrijfbewerking."
 
-msgid "Dumping memory..."
-msgstr ""
+msgid "Dumping memory…"
+msgstr "Geheugen aan het dumpen…"
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "Kan niet schrijven naar %1."
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
 msgstr ""
+"%1 bytes gedumpt van %2 naar %3 (%4 bytes kunnen niet worden uitgelezen en "
+"zijn opgevuld)."
 
 msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
-msgstr ""
+msgstr "Voer paren van hexadecimale bytes in, b.v. \"8B 44 24 08\"."
 
 msgid "\"%1\" is not made of hex bytes."
-msgstr ""
+msgstr "\"%1\" bestaat niet uit hexadecimale bytes."
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Voer een hexadecimale waarde van 0 to %1 in."
 
 msgid "The value is too large for %1 bytes."
-msgstr ""
+msgstr "De waarde is te groot voor %1 bytes."
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "Voer een zoekterm in."
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "Het eindadres ligt vóór het beginadres."
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Seriële Plug and Play"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Standaard 9600 bps modem (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Standaard 14400 bps modem (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Standaard 28800 bps modem (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Standaard modem (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Uitgebreide 9600 bps modem (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Uitgebreide 14400 bps modem (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Uitgebreide 28800 bps modem (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Uitgebreide modem (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Telefoontoonregio"
 
 msgid "North America"
-msgstr ""
+msgstr "Noord America"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Verenigd Koninkrijk"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Continentaal Europa"
 
 msgid "Japan"
-msgstr ""
+msgstr "Japan"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Modemstandaard voor handshakes"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Automatisch (op basis van de DTE-snelheid)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Verbindingtype"
 
 msgid "Username"
-msgstr ""
+msgstr "Gebruikersnaam"
 
 msgid "Password"
-msgstr ""
+msgstr "Wachtwoord"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "PPP Compressie en Encryptie"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Automatisch"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "MPPE verplicht stellen"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "PPP-multilinkgroep (hetzelfde voor elke verbinding)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "PPP Primaire DNS Server"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "PPP Secondaire DNS Server"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "CCP-onderhandeling per richting"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Bidirectioneel"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Alleen Verzenden"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Alleen Ontvangen"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Asymmetrisch heeft de voorkeur"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "PPP-terugbelverzoek (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Aangeboden (de beller kan weigeren)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Verplicht (de beller moet accepteren)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "PPP-keepalive-interval (seconden, 0 = uitgeschakeld)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Ontvangen DTMF-tonen doorgeven aan de host(<DLE>cijfer)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Uit (alleen met +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
-msgstr ""
+msgstr "Beller-ID tussen emulatorinstanties (op beide inschakelen)"
 
-msgid "Caller ID sent when dialling (number,name)"
-msgstr ""
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "Beller-ID verzenden bij het bellen (nummer,naam)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Wachtrijlimiet voor netwerkverkeer naar de gast (terugdrukregeling)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Onbeperkt (verouderd)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 ms lijntijd"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 ms lijntijd"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 s lijntijd"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 s lijntijd"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "TCP-timeout voor verzenden"
 
 msgid "Card:"
-msgstr ""
+msgstr "Kaart:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Hub:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Massaopslag:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"De stations zijn harde schijven, cd-romstations en andere verwisselbare "
+"apparaten die op hun eigen pagina's zijn geconfigureerd, op de SCSI-bus, in "
+"de kanalen met de naam \"USB Mass Storage\". Elk station vormt één logische "
+"eenheid, in de volgorde van de kanalen."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Harde schijven…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Cd-romstations…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Andere verwisselbare apparaten…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "4-poorts USB 1.1-hub"
 
 msgid "USB Mass Storage"
+msgstr "USB-massaopslag"
+
+msgid "Mount folder as a temporary floppy"
+msgstr "Map als tijdelijke diskette koppelen"
+
+msgid "The selected drive does not support folder mounting."
+msgstr "Het geselecteerde station ondersteunt het koppelen van mappen niet."
+
+msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
+"De inhoud overschrijdt de capaciteit van het geconfigureerde diskettestation."
+
+msgid "Mount folder as a temporary removable disk"
+msgstr "Map als tijdelijke verwisselbare schijf koppelen"
+
+msgid "Unable to mount folder or archive"
+msgstr "Kan de map of het archief niet koppelen"
+
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
+"De inhoud past niet op een van de opslagmedia die het station ondersteunt, "
+"of een bestand is 4 GB of groter."
+
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr "Er staan te veel bestanden in de hoofdmap van het opslagmedium."
+
+msgid "The temporary image could not be written."
+msgstr "De tijdelijke schijfkopie kan niet worden weggeschreven."
+
+msgid "There is not enough memory to build the image."
+msgstr "Er is onvoldoende geheugen om de schijfkopie aan te maken."
+
+msgid "The folder or archive could not be read."
+msgstr "De map of het archief kan niet worden gelezen."
+
+msgid "Archives"
+msgstr "Archieven"
+
+msgid "New USB flash drive"
+msgstr "Nieuwe USB-stick"
+
+msgid "&New USB flash drive…"
+msgstr "&Nieuwe USB-stick…"
+
+msgid "unplugged"
+msgstr "losgekoppeld"
+
+msgid "&Unplug"
+msgstr "&Loskoppelen"
+
+msgid "&Unplug %1"
+msgstr "&Loskoppelen %1"
+
+msgid "Plug in %1 (%2)"
+msgstr "%1 (%2) aansluiten"
+
+msgid "&Move %1 to"
+msgstr "&Verplaats %1 naar"
+
+msgid "Size:"
+msgstr "Grootte:"
+
+msgid "Custom size:"
+msgstr "Aangepaste grootte:"
+
+msgid "None (blank)"
+msgstr "Geen (leeg)"
+
+msgid "FAT16"
+msgstr "FAT16"
+
+msgid "FAT32"
+msgstr "FAT32"
+
+msgid "Format:"
+msgstr "Formatteren:"
+
+msgid "Could not create %1."
+msgstr "Kan %1 niet aanmaken."
+
+msgid "%1 already exists. Replace it?"
+msgstr "%1 bestaat al. Wilt u dit vervangen?"
+
+msgid "USB port %1 (%2)"
+msgstr "USB-poort %1 (%2)"
+
+msgid "USB port"
+msgstr "USB-poort"
+
+msgid "%1 (write-protected)"
+msgstr "%1 (schrijfbeveiligd)"
+
+msgid "USB flash drive"
+msgstr "USB-stick"
+
+msgid "%1 is not a disk image."
+msgstr "%1 is geen schijfkopie."
+
+msgid "Flash drive images"
+msgstr "Schijfkopieën van USB-sticks"
+
+msgid "PCI card"
+msgstr "PCI-kaart"
+
+msgid "hub"
+msgstr "hub"
+
+msgid "board"
+msgstr "kaart"
+
+msgid "now in port %1"
+msgstr "nu in poort %1"

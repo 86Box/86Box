@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <stdalign.h>
 #ifndef _WIN32
+#    include <dirent.h>
 #    include <libgen.h>
 #endif
 #include <86box/86box.h>
@@ -46,6 +47,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
+#include <86box/media_archive.h>
 
 #include <sndfile.h>
 
@@ -136,7 +138,15 @@ typedef struct
 
 #define dstruct_t mds_disc_struct_t
 
-typedef struct cd_image_t {
+typedef struct blindwrite_block_t {
+    int64_t       start;
+    int64_t       end;
+    uint64_t      offset;
+    uint32_t      stride;
+    track_file_t *file;
+} blindwrite_block_t;
+
+typedef struct cd_image_writable_t {
     cdrom_t      *dev;
     void         *log;
     int           is_dvd;
@@ -149,12 +159,16 @@ typedef struct cd_image_t {
     uint32_t      bad_sectors_num;
     track_t      *tracks;
     uint32_t     *bad_sectors;
+    mds_dpm_t     dpm;
     dstruct_t     dstruct;
 
     sbi_replacement_ent* sector_subs;
     uint64_t sector_subs_size;
 
     FILE *subs_file;
+
+    blindwrite_block_t *blindwrite_blocks;
+    uint32_t            blindwrite_block_count;
 } cd_image_t;
 
 typedef enum
@@ -286,7 +300,8 @@ typedef struct
 typedef struct
 {
     uint32_t type;
-    uint32_t pad[2];
+    uint32_t start;
+    uint32_t resolution;
     uint32_t entries;
 } mds_dpm_block_t;
 #pragma pack(pop)
@@ -555,6 +570,14 @@ index_file_init(const uint8_t id, const char *filename, int *error, int *is_viso
     track_file_t *tf = NULL;
 
     *is_viso = 0;
+
+#ifndef IS_TEST
+    if (media_archive_is_archive(filename)) {
+        tf = viso_init(id, filename, error);
+        *is_viso = !*error;
+        return tf;
+    }
+#endif
 
     /* Current we only support .BIN files, either combined or one per
        track. In the future, more is planned. */
@@ -1730,7 +1753,7 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
             // Parse SINF chunks first to identify the sessions.
             // Also parse CUEX chunks to identify useful information.
             chunk_pos = ftello64(file);
-            *(uint32_t*)idbuffer = read_uint32_nrg(file); 
+            *(uint32_t*)idbuffer = read_uint32_nrg(file);
             uint32_t chunk_size = read_uint32_nrg(file);
             if (memcmp(idbuffer, "XOAD", 4) == 0) {
                 uint64_t lead_out_length = 0;
@@ -2218,20 +2241,56 @@ typedef struct toc_track_t {
 
 static int image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp);
 
+/* Convert a cdrdao length or position to frames.  MM:SS:FF is already in
+   frames; a bare number counts units of unit_size bytes (4-byte samples for
+   audio positions, single bytes for DATAFILE lengths). */
 static uint64_t
-image_toc_get_frame(char **line, const uint32_t sector_size)
+image_toc_get_frame(char **line, const uint32_t unit_size, const uint32_t sector_size)
 {
     char value[64] = { 0 };
     unsigned int m, s, f;
-    uint64_t bytes;
+    uint64_t count;
 
     if (!image_cue_get_buffer(value, line, 0))
         return 0;
     if (sscanf(value, "%u:%u:%u", &m, &s, &f) == 3)
         return ((uint64_t) m * 60 + s) * 75 + f;
-    if (sscanf(value, "%" SCNu64, &bytes) == 1)
-        return sector_size ? bytes / sector_size : 0;
+    if (sscanf(value, "%" SCNu64, &count) == 1)
+        return sector_size ? (count * unit_size) / sector_size : 0;
     return 0;
+}
+
+/* Parse the arguments after the file name of a TOC file directive:
+       DATAFILE "file" [#byte-offset] [length]
+       FILE|AUDIOFILE "file" [#byte-offset] start [length]
+   and return the position of the track's first sector in the file. The
+   length is not needed, the CUE loader ends each track at the next index in
+   the same file or at the end of the file. */
+static int
+image_toc_get_file_start(char **line, const int is_data, const uint32_t sector_size,
+                         uint64_t *start)
+{
+    char     value[64] = { 0 };
+    char    *next      = *line;
+    uint64_t offset    = 0;
+    uint64_t bytes;
+    char     extra;
+
+    *start = 0;
+    if (image_cue_get_buffer(value, &next, 0) && (value[0] == '#')) {
+        /* The CUE model addresses files in whole sectors, a byte offset
+           that splits a sector cannot be represented. */
+        if ((sscanf(value + 1, "%" SCNu64 "%c", &bytes, &extra) != 1) ||
+            (sector_size == 0) || (bytes % sector_size))
+            return 0;
+        offset = bytes / sector_size;
+        *line  = next;
+    }
+    /* A DATAFILE's only positional argument is its length. */
+    if (!is_data)
+        *start = image_toc_get_frame(line, 4, 2352);
+    *start += offset;
+    return 1;
 }
 
 /* Read the cdrdao TOC format and feed its normalized layout to the CUE
@@ -2258,6 +2317,9 @@ image_load_toc(cd_image_t *img, const char *tocfile)
         char *type;
         if (comment != NULL)
             *comment = '\0';
+        /* The tokenizer only splits on blanks, keep line ends out of the
+           last argument. */
+        buf[strcspn(buf, "\r\n")] = '\0';
         if (!image_cue_get_keyword(&command, &line)) {
             success = 0;
             break;
@@ -2296,14 +2358,18 @@ image_load_toc(cd_image_t *img, const char *tocfile)
                 strcpy(track->file_type, "WAVE");
             uint32_t sector_size = !strcmp(track->cue_type, "AUDIO") ? 2352 :
                                    (strrchr(track->cue_type, '/') ? atoi(strrchr(track->cue_type, '/') + 1) : 2352);
-            track->offset = image_toc_get_frame(&line, sector_size);
+            if (!image_toc_get_file_start(&line, !strcmp(command, "DATAFILE"), sector_size,
+                                          &track->offset)) {
+                success = 0;
+                break;
+            }
         } else if (!strcmp(command, "START")) {
             if (track != NULL)
-                track->start = image_toc_get_frame(&line, 2352);
+                track->start = image_toc_get_frame(&line, 4, 2352);
         } else if (!strcmp(command, "PREGAP") || !strcmp(command, "SILENCE") ||
                    !strcmp(command, "ZERO")) {
             if (track != NULL)
-                track->pregap += image_toc_get_frame(&line, 2352);
+                track->pregap += image_toc_get_frame(&line, 4, 2352);
         } else if (!strcmp(command, "COPY")) {
             if (track != NULL)
                 track->flags |= 1;
@@ -2823,7 +2889,6 @@ image_load_nrg(cd_image_t *img, const char *nrgfile)
     return ret;
 }
 
-#ifndef IS_TEST
 /*
    Converts UTF-16 string into UTF-8 string.
 
@@ -2858,6 +2923,8 @@ utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
 
         // check for surrogate pair
         if (codepoint >= 0xD800 && codepoint <= 0xDBFF) {
+            if (i == u16_str_len)
+                return -1;
             uint16_t high_surr = codepoint;
             uint16_t low_surr  = u16_str[i++];
 
@@ -2915,6 +2982,494 @@ utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
     return (long int)j;
 }
 
+/*
+   BlindWrite 5/6 descriptor layout ported from rust-dos (src/cdrom/b6t.rs
+   and src/cdrom/image.rs), based on Rok Mandeljc's libMirage B6T parser.
+ */
+static const char blindwrite_signature[] = "BWT5 STREAM SIGN";
+
+typedef struct blindwrite_cursor_t {
+    const uint8_t *data;
+    size_t         remaining;
+} blindwrite_cursor_t;
+
+static const uint8_t *
+blindwrite_take(blindwrite_cursor_t *cursor, uint64_t size)
+{
+    if (size > cursor->remaining)
+        return NULL;
+
+    const uint8_t *data = cursor->data;
+    cursor->data += size;
+    cursor->remaining -= size;
+    return data;
+}
+
+static uint16_t
+blindwrite_u16(const uint8_t *data)
+{
+    return data[0] | (data[1] << 8);
+}
+
+static uint32_t
+blindwrite_u32(const uint8_t *data)
+{
+    return blindwrite_u16(data) | ((uint32_t) blindwrite_u16(data + 2) << 16);
+}
+
+static int
+blindwrite_data_size(uint32_t stride)
+{
+    return (stride == 2368 || stride == 2448) ? RAW_SECTOR_SIZE : stride;
+}
+
+static int
+blindwrite_compare_blocks(const void *a, const void *b)
+{
+    const blindwrite_block_t *left  = a;
+    const blindwrite_block_t *right = b;
+
+    return (left->start > right->start) - (left->start < right->start);
+}
+
+/* Resolve a path component case-insensitively on case-sensitive hosts. */
+static int
+blindwrite_append_component(char *path, size_t size, const char *name, int directory)
+{
+    const size_t prefix = strlen(path);
+    struct stat  info;
+
+    if (strlen(name) >= size - prefix)
+        return 0;
+    strcpy(path + prefix, name);
+    const int type = directory ? S_IFDIR : S_IFREG;
+    if (!stat(path, &info) && (info.st_mode & S_IFMT) == type)
+        return 1;
+
+#ifndef _WIN32
+    path[prefix] = '\0';
+    DIR *dir = opendir(prefix ? path : ".");
+    if (dir != NULL) {
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            if (!strcasecmp(entry->d_name, name) && strlen(entry->d_name) < size - prefix) {
+                strcpy(path + prefix, entry->d_name);
+                if (!stat(path, &info) && (info.st_mode & S_IFMT) == type) {
+                    closedir(dir);
+                    return 1;
+                }
+            }
+        }
+        closedir(dir);
+    }
+#endif
+    return 0;
+}
+
+static track_file_t *
+blindwrite_open_data(cd_image_t *img, const char *descriptor, char *name)
+{
+    char path[sizeof(((track_file_t *) 0)->fn)];
+    char *base = name;
+    size_t prefix = 0;
+    int relative = name[0] != '/' && name[0] != '\\' && strchr(name, ':') == NULL;
+    int error;
+
+    for (const char *p = descriptor; *p; p++)
+        if (*p == '/' || *p == '\\')
+            prefix = p - descriptor + 1;
+    if (prefix >= sizeof(path))
+        return NULL;
+
+    for (char *p = name; *p; p++) {
+        if (*p == '\\')
+            *p = '/';
+        if (*p == '/') {
+            if (p - base == 2 && base[0] == '.' && base[1] == '.')
+                relative = 0;
+            base = p + 1;
+        }
+    }
+    if (!*base || !strcmp(base, ".") || !strcmp(base, ".."))
+        return NULL;
+
+    memcpy(path, descriptor, prefix);
+    path[prefix] = '\0';
+    if (relative && base != name) {
+        char *part = name;
+        while (part < base) {
+            char *slash = strchr(part, '/');
+            *slash = '\0';
+            const int found = !*part || blindwrite_append_component(path, sizeof(path) - 1, part, 1);
+            *slash = '/';
+            if (!found)
+                break;
+            if (strlen(path) && path[strlen(path) - 1] != '/')
+                strcat(path, "/");
+            part = slash + 1;
+        }
+        if (part == base && blindwrite_append_component(path, sizeof(path), base, 0))
+            return bin_init(img->dev->id, path, &error);
+    }
+
+    /* Absolute names and missing relative paths fall back to the descriptor's folder. */
+    path[prefix] = '\0';
+    if (!blindwrite_append_component(path, sizeof(path), base, 0))
+        return NULL;
+    return bin_init(img->dev->id, path, &error);
+}
+
+static int
+blindwrite_load_blocks(cd_image_t *img, blindwrite_cursor_t *cursor, const char *path)
+{
+    const uint8_t *header = blindwrite_take(cursor, 8);
+    if (header == NULL || !blindwrite_take(cursor, blindwrite_u32(header + 4)))
+        return 0;
+
+    const uint32_t count = blindwrite_u32(header);
+    if (!count || count > cursor->remaining / 58)
+        return 0;
+
+    img->blindwrite_blocks = calloc(count, sizeof(blindwrite_block_t));
+    if (img->blindwrite_blocks == NULL)
+        return 0;
+    img->blindwrite_block_count = count;
+
+    for (uint32_t i = 0; i < count; i++) {
+        blindwrite_block_t *block = &img->blindwrite_blocks[i];
+        const uint8_t *entry = blindwrite_take(cursor, 52);
+        if (entry == NULL)
+            return 0;
+
+        const uint32_t bytes = blindwrite_u32(entry + 4);
+        const int32_t sectors = (int32_t) blindwrite_u32(entry + 44);
+        const uint32_t name_bytes = blindwrite_u32(entry + 48);
+        const uint8_t *name = blindwrite_take(cursor, name_bytes);
+        uint16_t units[1024];
+        char filename[sizeof(units) * 2];
+
+        if (sectors <= 0 || name == NULL || !name_bytes || (name_bytes & 1) ||
+            name_bytes > sizeof(units) || !blindwrite_take(cursor, 4))
+            return 0;
+
+        block->stride = bytes / sectors;
+        if (block->stride != 2048 && block->stride != 2336 && block->stride != 2352 &&
+            block->stride != 2368 && block->stride != 2448)
+            return 0;
+
+        block->start = (int32_t) blindwrite_u32(entry + 40);
+        block->end = block->start + sectors;
+        block->offset = blindwrite_u32(entry + 24);
+
+        size_t length = name_bytes / 2;
+        for (size_t j = 0; j < length; j++)
+            units[j] = blindwrite_u16(name + 2 * j);
+        while (length && units[length - 1] == 0)
+            length--;
+        for (size_t j = 0; j < length; j++)
+            if (units[j] == 0)
+                return 0;
+        if (!length || utf16_to_utf8(units, length, (uint8_t *) filename, sizeof(filename)) < 0)
+            return 0;
+
+        block->file = blindwrite_open_data(img, path, filename);
+        if (block->file == NULL ||
+            block->offset + (uint64_t) sectors * block->stride > block->file->get_length(block->file))
+            return 0;
+    }
+
+    qsort(img->blindwrite_blocks, count, sizeof(blindwrite_block_t), blindwrite_compare_blocks);
+    return 1;
+}
+
+static const blindwrite_block_t *
+blindwrite_find_block(const cd_image_t *img, int64_t lba)
+{
+    for (uint32_t i = 0; i < img->blindwrite_block_count; i++) {
+        const blindwrite_block_t *block = &img->blindwrite_blocks[i];
+        if (block->start > lba)
+            break;
+        if (lba < block->end)
+            return block;
+    }
+    return NULL;
+}
+
+static int
+blindwrite_add_track(cd_image_t *img, const uint8_t *entry, uint8_t session)
+{
+    const uint8_t kind = entry[0];
+    const int64_t start = (int32_t) blindwrite_u32(entry + 42);
+    const int32_t length = (int32_t) blindwrite_u32(entry + 46);
+    const uint32_t pregap = blindwrite_u32(entry + 22);
+    const int64_t index1 = start + pregap;
+    const int64_t end = start + length;
+    int size = 0;
+
+    if (start < -150 || length <= 0 || pregap >= (uint32_t) length ||
+        index1 < 0 || end > INT32_MAX)
+        return 0;
+
+    /* Match the track to every data block it intersects, including split files. */
+    for (uint32_t i = 0; i < img->blindwrite_block_count; i++) {
+        const blindwrite_block_t *block = &img->blindwrite_blocks[i];
+        if (block->start >= end)
+            break;
+        if (block->end <= start || block->end <= 0)
+            continue;
+        const int block_size = blindwrite_data_size(block->stride);
+        if (size && size != block_size)
+            return 0;
+        size = block_size;
+    }
+
+    const int mode2 = kind >= 3 && kind <= 5;
+    if ((size == 2048 && kind != 2 && kind != 4 && kind != 6) ||
+        (size == 2336 && !mode2) || !size)
+        return 0;
+
+    track_t *track = image_insert_track(img, session, entry[12]);
+    track->attr = 0x10 | (entry[10] & 0x0f) | (kind != 1 ? 0x04 : 0);
+    track->mode = kind == 1 ? 0 : (mode2 && size != 2048 ? 2 : 1);
+    track->sector_size = size;
+    track->idx[0].type = INDEX_ZERO;
+    track->idx[0].start = start + 150;
+    track->idx[0].length = pregap;
+    track->idx[1].type = INDEX_ZERO;
+    track->idx[1].start = index1 + 150;
+    track->idx[1].length = length - pregap;
+
+    img->has_audio |= kind == 1;
+    img->has_data |= kind != 1;
+    img->is_dvd |= kind == 6;
+    return 1;
+}
+
+static int
+blindwrite_load_sessions(cd_image_t *img, blindwrite_cursor_t *cursor, uint16_t sessions)
+{
+    uint8_t previous_track = 0;
+    uint8_t previous_session = 0;
+
+    for (uint16_t i = 0; i < sessions; i++) {
+        const uint8_t *header = blindwrite_take(cursor, 16);
+        if (header == NULL)
+            return 0;
+
+        const uint16_t session = blindwrite_u16(header);
+        const uint8_t entries = header[2];
+        uint64_t lead_out = 0;
+        int mode2 = 0;
+
+        if (session <= previous_session || session > UINT8_MAX)
+            return 0;
+        previous_session = session;
+
+        const int toc = img->tracks_num;
+        for (unsigned j = 0; j < 3; j++)
+            image_insert_track(img, session, 0xa0 + j);
+        const int first = img->tracks_num;
+
+        for (unsigned j = 0; j < entries; j++) {
+            const uint8_t *entry = blindwrite_take(cursor, 64);
+            if (entry == NULL || entry[0] > 6)
+                return 0;
+            if (entry[0] == 0)
+                continue;
+            if (entry[0] != 6 && !blindwrite_take(cursor, 8))
+                return 0;
+            if (entry[12] < 1 || entry[12] > 99)
+                continue;
+            if (entry[12] <= previous_track || !blindwrite_add_track(img, entry, session))
+                return 0;
+            previous_track = entry[12];
+
+            const track_t *track = &img->tracks[img->tracks_num - 1];
+            lead_out = track->idx[1].start + track->idx[1].length;
+            mode2 |= track->mode == 2;
+        }
+        if (first == img->tracks_num)
+            return 0;
+
+        const uint64_t first_track = img->tracks[first].point;
+        const uint8_t attr = img->tracks[img->tracks_num - 1].attr;
+        const uint64_t toc_frames[] = {
+            first_track * 60 * 75 + (mode2 ? 0x20 * 75 : 0),
+            previous_track * 60 * 75,
+            lead_out
+        };
+        for (unsigned j = 0; j < 3; j++) {
+            track_t *track = &img->tracks[toc + j];
+            track->attr = attr;
+            track->idx[1].start = toc_frames[j];
+        }
+    }
+    return previous_track != 0;
+}
+
+/*
+   DPM data: u32 start sector, resolution and count, then count angles in
+   1/256 turn, as Alcohol 120% stores them. It is at byte 32 of the
+   descriptor's DPM block and at byte 12 of a .bwa file.
+ */
+static int
+blindwrite_parse_dpm(mds_dpm_t *dpm, const uint8_t *data, size_t size, size_t at)
+{
+    if (at > size || (size - at) / 4 < 3)
+        return 0;
+
+    data += at;
+    size -= at;
+    const uint32_t start = blindwrite_u32(data);
+    const uint32_t resolution = blindwrite_u32(data + 4);
+    const uint32_t count = blindwrite_u32(data + 8);
+    if (!resolution || !count || count > (size - 12) / 4)
+        return 0;
+
+    uint32_t *angles = malloc((size_t) count * sizeof(uint32_t));
+    if (angles == NULL)
+        return 0;
+    for (uint32_t i = 0; i < count; i++) {
+        angles[i] = blindwrite_u32(data + 12 + 4 * (size_t) i);
+        /* Angles that go back are not a measurement. */
+        if (i && angles[i] < angles[i - 1]) {
+            free(angles);
+            return 0;
+        }
+    }
+
+    free(dpm->data);
+    dpm->start = start;
+    dpm->resolution = resolution;
+    dpm->count = count;
+    dpm->data = angles;
+    return 1;
+}
+
+static int
+blindwrite_load_bwa(cd_image_t *img, const char *descriptor)
+{
+    char path[1024];
+    const char *name = descriptor;
+    for (const char *p = descriptor; *p; p++)
+        if (*p == '/' || *p == '\\')
+            name = p + 1;
+
+    const char *dot = strrchr(name, '.');
+    const size_t stem = dot ? (size_t) (dot - name) : strlen(name);
+    const size_t prefix = name - descriptor;
+    if (prefix + stem + 5 > sizeof(path))
+        return 0;
+
+    char bwa[sizeof(path)];
+    memcpy(bwa, name, stem);
+    strcpy(bwa + stem, ".bwa");
+    memcpy(path, descriptor, prefix);
+    path[prefix] = '\0';
+    if (!blindwrite_append_component(path, sizeof(path), bwa, 0))
+        return 0;
+
+    FILE *fp = plat_fopen(path, "rb");
+    if (fp == NULL)
+        return 0;
+
+    int result = 0;
+    if (!fseeko64(fp, 0, SEEK_END)) {
+        const off64_t size = ftello64(fp);
+        /* 16 MB is far more angles than any disc has sectors. */
+        if (size >= 24 && size <= (16 << 20) && !fseeko64(fp, 0, SEEK_SET)) {
+            uint8_t *data = malloc(size);
+            if (data != NULL && fread(data, 1, size, fp) == (size_t) size)
+                result = blindwrite_parse_dpm(&img->dpm, data, size, 12);
+            free(data);
+        }
+    }
+    fclose(fp);
+    return result;
+}
+
+static int
+blindwrite_parse(cd_image_t *img, const uint8_t *data, size_t size, const char *path)
+{
+    blindwrite_cursor_t cursor = { data, size };
+    const uint8_t *header = blindwrite_take(&cursor, 260);
+    if (header == NULL || memcmp(header, blindwrite_signature, sizeof(blindwrite_signature) - 1))
+        return 0;
+
+    const uint16_t profile = blindwrite_u16(header + 48);
+    const int cd = (profile >= 0x08 && profile <= 0x0a) ||
+                   (profile >= 0x20 && profile <= 0x22) ||
+                   (profile >= 0x80 && profile <= 0x82);
+    const uint64_t metadata = (uint64_t) blindwrite_u32(header + 240) + blindwrite_u32(header + 244) +
+                              blindwrite_u16(header + 96) + blindwrite_u16(header + 98) +
+                              blindwrite_u16(header + 100) + blindwrite_u32(header + 104) +
+                              blindwrite_u32(header + 120) +
+                              (cd ? blindwrite_u16(header + 102) : blindwrite_u32(header + 124));
+    const uint32_t dpm_length = blindwrite_u32(header + 256);
+    const uint8_t *dpm = NULL;
+    if (!blindwrite_take(&cursor, metadata) ||
+        !blindwrite_load_blocks(img, &cursor, path) ||
+        !blindwrite_load_sessions(img, &cursor, blindwrite_u16(header + 50)) ||
+        (dpm = blindwrite_take(&cursor, dpm_length)) == NULL ||
+        !blindwrite_take(&cursor, 4))
+        return 0;
+
+    const uint8_t *footer = blindwrite_take(&cursor, 16);
+    if (footer == NULL || memcmp(footer, "BWT5 STREAM FOOT", 16))
+        return 0;
+
+    if (header[64]) {
+        unsigned i = 0;
+        while (i < 13 && header[65 + i] >= '0' && header[65 + i] <= '9')
+            i++;
+        if (i == 13)
+            memcpy(img->mcn, header + 65, 13);
+    }
+
+    /* The .bwa file beside the descriptor has the whole table; the descriptor
+       usually keeps only its start. */
+    if (!blindwrite_load_bwa(img, path))
+        blindwrite_parse_dpm(&img->dpm, dpm, dpm_length, 32);
+    return 1;
+}
+
+static int
+blindwrite_has_signature(const char *path)
+{
+    FILE *fp = plat_fopen(path, "rb");
+    if (fp == NULL)
+        return 0;
+
+    char signature[sizeof(blindwrite_signature) - 1];
+    const int match = fread(signature, 1, sizeof(signature), fp) == sizeof(signature) &&
+                      !memcmp(signature, blindwrite_signature, sizeof(signature));
+    fclose(fp);
+    return match;
+}
+
+static int
+image_load_blindwrite(cd_image_t *img, const char *path)
+{
+    FILE *fp = plat_fopen(path, "rb");
+    if (fp == NULL)
+        return 0;
+
+    uint8_t *data = NULL;
+    int result = 0;
+    if (!fseeko64(fp, 0, SEEK_END)) {
+        const off64_t size = ftello64(fp);
+        if (size >= 280 && (uint64_t) size <= SIZE_MAX && !fseeko64(fp, 0, SEEK_SET)) {
+            data = malloc(size);
+            if (data != NULL && fread(data, 1, size, fp) == (size_t) size)
+                result = blindwrite_parse(img, data, size, path);
+        }
+    }
+    free(data);
+    fclose(fp);
+    return result;
+}
+
+#ifndef IS_TEST
 static int
 mds_decrypt_error(cd_image_t *img, const char *mdsfile, FILE **fp)
 {
@@ -3158,6 +3713,102 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     return isDVD + 1;
 }
 
+/*
+   DPM blocks are a u32 count and a u32 offset per block; each block is an
+   mds_dpm_block_t header and entries u32 values. Type 1 is the angle table,
+   type 2 the bad sector list; the first block of each type is used.
+ */
+int
+mds_load_dpm_blocks(FILE *fp, const uint32_t offs, mds_dpm_t *dpm,
+                    uint32_t **bad_sectors, uint32_t *bad_sectors_num)
+{
+    mds_dpm_block_t block      = { 0 };
+    uint32_t        blocks_num = 0x00000000;
+    uint32_t        block_offs = 0x00000000;
+    size_t          read_size;
+
+    fseek(fp, offs, SEEK_SET);
+    if (fread(&blocks_num, 1, sizeof(uint32_t), fp) != sizeof(uint32_t))
+        return 0;
+
+    for (uint32_t b = 0; b < blocks_num; b++) {
+        /* A damaged block after the bad sector list does not fail the image. */
+        fseek(fp, offs + 4 + (b * 4), SEEK_SET);
+        if (fread(&block_offs, 1, sizeof(uint32_t), fp) != sizeof(uint32_t))
+            return (*bad_sectors != NULL);
+
+        fseek(fp, block_offs, SEEK_SET);
+        if (fread(&block, 1, sizeof(mds_dpm_block_t), fp) != sizeof(mds_dpm_block_t))
+            return (*bad_sectors != NULL);
+
+        read_size = (size_t) block.entries * sizeof(uint32_t);
+
+        if ((block.type == 0x00000001) && (dpm->data == NULL) && (block.resolution != 0) && (block.entries != 0)) {
+            dpm->data = (uint32_t *) malloc(read_size);
+            /* The table only affects timing, the image stays usable without it. */
+            if ((dpm->data == NULL) || (fread(dpm->data, 1, read_size, fp) != read_size))
+                mds_dpm_free(dpm);
+            else {
+                dpm->start      = block.start;
+                dpm->resolution = block.resolution;
+                dpm->count      = block.entries;
+            }
+        } else if ((block.type == 0x00000002) && (*bad_sectors == NULL)) {
+            *bad_sectors_num = block.entries;
+            *bad_sectors     = (uint32_t *) calloc(*bad_sectors_num, sizeof(uint32_t));
+            if ((read_size != 0) &&
+                ((*bad_sectors == NULL) || (fread(*bad_sectors, 1, read_size, fp) != read_size)))
+                return 0;
+        }
+    }
+
+    return 1;
+}
+
+/* Angle in turns from the table start and density in turns per sector. */
+int
+mds_dpm_get(const mds_dpm_t *dpm, const uint32_t sector, double *angle, double *density)
+{
+    const int64_t rel = (int64_t) sector - (int64_t) dpm->start;
+    uint32_t      lo;
+    uint32_t      diff;
+    int64_t       i;
+
+    if ((dpm->data == NULL) || (rel < 0) ||
+        (rel >= (((int64_t) dpm->count + 1) * dpm->resolution)))
+        return 0;
+
+    i = rel / dpm->resolution;
+
+    if (i >= dpm->count) {
+        /* Past the last value, the last interval continues. */
+        i    = dpm->count;
+        lo   = dpm->data[dpm->count - 1];
+        diff = (dpm->count > 1) ? (lo - dpm->data[dpm->count - 2]) : lo;
+    } else {
+        lo   = (i == 0) ? 0 : dpm->data[i - 1];
+        diff = dpm->data[i] - lo;
+    }
+
+    const double d = ((double) diff) / 256.0 / (double) dpm->resolution;
+
+    if (density != NULL)
+        *density = d;
+    if (angle != NULL)
+        *angle = (((double) lo) / 256.0) + (((double) (rel - (i * dpm->resolution))) * d);
+
+    return 1;
+}
+
+void
+mds_dpm_free(mds_dpm_t *dpm)
+{
+    if (dpm->data != NULL)
+        free(dpm->data);
+
+    memset(dpm, 0x00, sizeof(mds_dpm_t));
+}
+
 static int
 image_load_mds(cd_image_t *img, const char *mdsfile)
 {
@@ -3178,9 +3829,6 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     mds_trk_ex_block_t    mds_trk_ex_block    = { 0 };
     mds_footer_t          mds_footer          = { 0 };
     mds_v2_footer_t       mds_v2_footer       = { 0 };
-    mds_dpm_block_t       mds_dpm_block       = { 0 };
-    uint32_t              mds_dpm_blocks_num  = 0x00000000;
-    uint32_t              mds_dpm_block_offs  = 0x00000000;
 
     img->tracks     = NULL;
     img->tracks_num = 0;
@@ -3318,48 +3966,13 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
         }
     }
 
-    if (mds_hdr.dpm_blocks_offs != 0x00) {
-        fseek(fp, mds_hdr.dpm_blocks_offs, SEEK_SET);
-        if (LOG_VAR(dbnret) fread(&mds_dpm_blocks_num, 1, sizeof(uint32_t), fp) != sizeof(uint32_t)) {
-            image_log(img->log, "dbnret = %i (expected: %i)\n", (int) dbnret, (int) sizeof(uint32_t));
-            if (fp != NULL)
-                fclose(fp);
-            return 0;
-        }
-
-        if (mds_dpm_blocks_num > 0)  for (int b = 0; b < mds_dpm_blocks_num; b++) {
-            fseek(fp, mds_hdr.dpm_blocks_offs + 4 + (b * 4), SEEK_SET);
-            if (LOG_VAR(dboret) fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp) != sizeof(uint32_t)) {
-                image_log(img->log, "dboret = %i (expected: %i)\n", (int) dboret, (int) sizeof(uint32_t));
-                if (fp != NULL)
-                    fclose(fp);
-                return 0;
-            }
-
-            fseek(fp, mds_dpm_block_offs, SEEK_SET);
-            if (LOG_VAR(dbret) fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp) != sizeof(mds_dpm_block_t)) {
-                image_log(img->log, "dbret = %i (expected: %i)\n", (int) dbret, (int) sizeof(mds_dpm_block_t));
-                if (fp != NULL)
-                    fclose(fp);
-                return 0;
-            }
-
-            /* We currently only support the bad sectors block and not (yet) actual DPM. */
-            if (mds_dpm_block.type == 0x00000002) {
-                /* Bad sectors. */
-                img->bad_sectors_num = mds_dpm_block.entries;
-                img->bad_sectors     = (uint32_t *) calloc(img->bad_sectors_num, sizeof(uint32_t));
-                fseek(fp, mds_dpm_block_offs + sizeof(mds_dpm_block_t), SEEK_SET);
-                int read_size = img->bad_sectors_num * sizeof(uint32_t);
-                if (LOG_VAR(dbtret) fread(img->bad_sectors, 1, read_size, fp) != read_size) {
-                    image_log(img->log, "dbtret = %i (expected: %i)\n", (int) dbtret, (int) read_size);
-                    if (fp != NULL)
-                        fclose(fp);
-                    return 0;
-                }
-                break;
-            }
-        }
+    if ((mds_hdr.dpm_blocks_offs != 0x00) &&
+        !mds_load_dpm_blocks(fp, mds_hdr.dpm_blocks_offs, &img->dpm,
+                             &img->bad_sectors, &img->bad_sectors_num)) {
+        image_log(img->log, "Unable to read the DPM blocks\n");
+        if (fp != NULL)
+            fclose(fp);
+        return 0;
     }
 
     for (int s = 0; s < mds_hdr.sess_num; s++) {
@@ -3762,9 +4375,22 @@ image_read_sector(const void *local, uint8_t *buffer,
     const uint64_t sect   = (uint64_t) lba;
 
     image_get_track_and_index(img, lba, &track, &index);
+    if (track < 0)
+        return 0;
 
     const track_t       *trk          = &(img->tracks[track]);
     const track_index_t *idx          = &(trk->idx[index]);
+    int                   stored       = idx->type >= INDEX_NORMAL;
+    uint8_t               subch_type   = trk->subch_type;
+    const blindwrite_block_t *block    = NULL;
+    if (img->blindwrite_blocks != NULL) {
+        block = blindwrite_find_block(img, (int32_t) lba);
+        stored = ((block != NULL) && (blindwrite_data_size(block->stride) == trk->sector_size));
+        if (!stored && index != 0)
+            return 0;
+        if (stored)
+            subch_type = block->stride == 2448 ? 0x08 : (block->stride == 2368 ? 0x10 : 0);
+    }
     const int            track_is_raw = ((trk->sector_size == RAW_SECTOR_SIZE) ||
                                          (trk->sector_size == 2448));
     const uint64_t       seek         = ((((sect + 150) - idx->start) + idx->file_start) *
@@ -3784,7 +4410,7 @@ image_read_sector(const void *local, uint8_t *buffer,
 
             memset(buffer, 0x00, 2448);
 
-            if ((trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
+            if ((trk->attr & 0x04) && (!stored || !track_is_raw)) {
                 offset += 16ULL;
 
                 /* Construct the header. */
@@ -3807,14 +4433,23 @@ image_read_sector(const void *local, uint8_t *buffer,
                 }
             }
 
-            if (idx->type >= INDEX_NORMAL)
+            if (stored && block != NULL) {
+                const uint64_t pos = block->offset + ((int32_t) lba - block->start) * block->stride;
+                ret = block->file->read(block->file, buffer, pos, block->stride);
+                if (ret > 0 && block->stride == 2448) {
+                    uint8_t linear[96];
+                    memcpy(linear, buf + 2352, sizeof(linear));
+                    cdrom_interleave_subch(buf + 2352, linear);
+                }
+            } else if (stored)
                 /* Read the data from the file. */
                 ret = idx->file->read(idx->file, buffer, seek, trk->sector_size);
             else
                 /* Index is not in the file, no read to fail here. */
                 ret = 1;
 
-            if ((ret > 0) && (trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
+            if ((ret > 0) && (trk->attr & 0x04) && (!stored || !track_is_raw) &&
+                !(stored && block != NULL && trk->sector_size == 2336)) {
                 uint32_t crc;
 
                 if ((trk->mode == 1) && !img->data_tracks_scrambled) {
@@ -3842,25 +4477,22 @@ image_read_sector(const void *local, uint8_t *buffer,
                 }
             }
 
-            if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {
+            if ((ret > 0) && (!stored || subch_type != 0x08)) {
                 buffer -= offset;
 
-                if (trk->subch_type == 0x10)
+                if (subch_type == 0x10)
                     memcpy(q, &(buffer[2352]), 12);
                 else {
                     /* Construct Q. */
                     q[0] = (trk->attr >> 4) | ((trk->attr & 0xf) << 4);
                     q[1] = bin2bcd(trk->point);
-                    q[2] = index;
-                    if (index == 0) {
-                        /*
-                           Pre-gap sector relative frame addresses count from
-                           00:01:74 downwards.
-                         */
-                        FRAMES_TO_MSF((int32_t) (149 - (lba + 150 - idx->start)), &m, &s, &f);
-                    } else {
-                        FRAMES_TO_MSF((int32_t) (lba + 150 - idx->start), &m, &s, &f);
-                    }
+                    q[2] = bin2bcd(index);
+                    const uint64_t track_start = trk->idx[1].start;
+                    const uint64_t frame = (uint32_t) (lba + 150);
+                    /* Track-relative time counts down through index 00 and up from index 01. */
+                    const int32_t relative = (index == 0) ? (track_start - frame - 1) :
+                                                           (frame - track_start);
+                    FRAMES_TO_MSF(relative, &m, &s, &f);
                     q[3] = bin2bcd(m & 0xff);
                     q[4] = bin2bcd(s & 0xff);
                     q[5] = bin2bcd(f & 0xff);
@@ -4021,6 +4653,17 @@ image_has_audio(const void *local)
     return img->has_audio;
 }
 
+static int
+image_get_dpm(const void *local, const uint32_t sector, double *angle, double *density)
+{
+    const cd_image_t *img = (const cd_image_t *) local;
+
+    if (img->dpm.data == NULL)
+        return -1;
+
+    return mds_dpm_get(&img->dpm, sector, angle, density);
+}
+
 static void
 image_close(void *local)
 {
@@ -4028,6 +4671,10 @@ image_close(void *local)
 
     if (img != NULL) {
         image_clear_tracks(img);
+
+        for (uint32_t i = 0; i < img->blindwrite_block_count; i++)
+            bin_close(img->blindwrite_blocks[i].file);
+        free(img->blindwrite_blocks);
 
         if (img->subs_file != NULL) {
             fclose(img->subs_file);
@@ -4043,6 +4690,8 @@ image_close(void *local)
 
         if (img->bad_sectors != NULL)
             free(img->bad_sectors);
+
+        mds_dpm_free(&img->dpm);
 
         free(img);
 
@@ -4084,7 +4733,15 @@ static const cdrom_ops_t image_ops = {
     NULL,
     image_close,
     NULL,
-    image_get_mcn
+    image_get_mcn,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    image_get_dpm
 };
 
 /* Public functions. */
@@ -4097,6 +4754,7 @@ image_open(cdrom_t *dev, const char *path)
 
     if (img != NULL) {
         int       ret;
+        const int is_blindwrite = (dot && (!stricmp(dot, ".b5t") || !stricmp(dot, ".b6t")));
 #ifndef IS_TEST
         const int is_ccd  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CCD"));
 #endif
@@ -4117,15 +4775,16 @@ image_open(cdrom_t *dev, const char *path)
         img->dev          = dev;
         img->has_data     = 0;
 
+        if (is_blindwrite || blindwrite_has_signature(path)) {
+            ret = image_load_blindwrite(img, path);
 #ifndef IS_TEST
-        if (is_ccd) {
+        } else if (is_ccd) {
             ret = image_load_ccd(img, path);
 
             if (ret >= 1)
                 img->is_dvd = 2;
-        } else
 #endif
-        if (is_toc) {
+        } else if (is_toc) {
             ret = image_load_toc(img, path);
 
             if (ret >= 2)

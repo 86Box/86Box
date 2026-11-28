@@ -41,7 +41,7 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/plat.h>
 #include <86box/sound.h>
-#include <cpu.h>
+#include <cpu_table.h>
 #include <86box/thread.h> // required for network.h
 #include <86box/timer.h>  // required for network.h and fdd.h
 #include <86box/cdrom.h>
@@ -562,6 +562,10 @@ VMManagerSystem::launch86Box(bool settings)
         args << "--nohook";
     if (start_in_fullscreen)
         args << "--fullscreen";
+    if (start_fast_forward)
+        args << "--fast-forward";
+    if (start_paused)
+        args << "--paused";
     if (!confirm_exit_cmdl)
         args << "--noconfirm";
 #ifdef Q_OS_WINDOWS
@@ -944,6 +948,11 @@ VMManagerSystem::setupVars()
             auto scsi_id            = scsi_card_get_from_internal_name(scsi_internal_name.toUtf8().data());
             auto scsi_device        = scsi_card_getdevice(scsi_id);
             auto scsi_name          = DeviceConfig::DeviceName(scsi_device, scsi_card_get_internal_name(scsi_id), 1);
+            if ((ci != -1) && (scsi_internal_name == "internal")) {
+                auto internal_device = machine_get_scsi_device(ci);
+                if (internal_device)
+                    scsi_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+            }
             if (!scsi_name.isEmpty()) {
                 scsiControllers.append(scsi_name);
             }

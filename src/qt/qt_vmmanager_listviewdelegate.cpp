@@ -31,9 +31,6 @@ VMManagerListViewDelegate::VMManagerListViewDelegate(QObject *parent)
     stopped_icon = QIcon(":/menuicons/qt/icons/acpi_shutdown.ico");
     paused_icon  = QIcon(":/menuicons/qt/icons/pause.ico");
     unknown_icon = QApplication::style()->standardIcon(QStyle::SP_MessageBoxQuestion);
-
-    highlight_color = QColor("#616161");
-    bg_color        = QColor("#272727");
 }
 
 VMManagerListViewDelegate::~VMManagerListViewDelegate()
@@ -43,10 +40,6 @@ void
 VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                  const QModelIndex &index) const
 {
-    bool windows_light_mode = true;
-#ifdef Q_OS_WINDOWS
-    windows_light_mode = util::isWindowsLightTheme();
-#endif
     QStyleOptionViewItem opt(option);
     initStyleOption(&opt, index);
     const QPalette &palette(opt.palette);
@@ -87,10 +80,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
             status_icon = unknown_icon;
     }
 
-    // Used to determine if the horizontal separator should be drawn
-    const bool lastIndex  = (index.model()->rowCount() - 1) == index.row();
-    const bool hasIcon    = !opt.icon.isNull();
-    const int  bottomEdge = rect.bottom();
+    const bool hasIcon = !opt.icon.isNull();
     QFont      f(opt.font);
 
     f.setPointSizeF(m_ptr->statusFontPointSize(opt.font));
@@ -100,42 +90,47 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     painter->setClipRect(rect);
     painter->setFont(opt.font);
 
-    // Draw the background
-    if (opt.state & QStyle::State_Selected) {
-        // When selected, only draw the highlighted part until the horizontal separator
-        int  offset        = 2;
-        auto highlightRect = rect.adjusted(0, 0, 0, -offset);
-        painter->fillRect(highlightRect, windows_light_mode ? palette.highlight().color() : highlight_color);
-        // Then fill the remainder with the normal color
-        auto regularRect = rect.adjusted(0, rect.height() - offset, 0, 0);
-        painter->fillRect(regularRect, windows_light_mode ? palette.light().color() : bg_color);
-    } else {
-        // Otherwise just draw the background color as usual
-        painter->fillRect(rect, windows_light_mode ? palette.light().color() : bg_color);
-    }
+    // Draw the background, then let the style draw the selection and hover states
+    // the same way as in other item views
+    const bool    selected = (opt.state & QStyle::State_Selected);
+    const QStyle *style    = opt.widget ? opt.widget->style() : QApplication::style();
+    // Pick the colors from the same group as the style does for the selection, so
+    // the text of an unfocused selection matches its inactive highlight
+    const QPalette::ColorGroup cg = !(opt.state & QStyle::State_Enabled) ? QPalette::Disabled
+                                  : (opt.state & QStyle::State_Active)   ? QPalette::Active
+                                                                         : QPalette::Inactive;
+    painter->fillRect(rect, palette.color(cg, QPalette::Base));
+    // Some styles (windows11) only draw the selection as a part of the whole item,
+    // so draw an item without its contents
+    QStyleOptionViewItem panelOpt(opt);
+    panelOpt.text.clear();
+    panelOpt.icon = QIcon();
+    panelOpt.features &= ~(QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration);
+    style->drawControl(QStyle::CE_ItemViewItem, &panelOpt, painter, opt.widget);
 
-    // Draw bottom line. Last line gets a different color
-    painter->setPen(lastIndex ? palette.dark().color()
-                              : palette.mid().color());
-    painter->drawLine(lastIndex ? rect.left() : m_ptr->margins.left(),
-                      bottomEdge, rect.right(), bottomEdge);
+    const int shift = contentShift(opt);
+
+    // Styles that fill the selection with the highlight color draw its text in the
+    // highlighted text color, the others keep the regular text color
+    const bool highlightedText = selected && util::selectionUsesHighlightedText(style);
 
     // Draw system icon
     if (hasIcon) {
-        painter->drawPixmap(contentRect.left(), contentRect.top(),
+        painter->drawPixmap(contentRect.left() + shift, contentRect.top(),
                             opt.icon.pixmap(m_ptr->iconSize));
     }
 
     // System name
     QRect systemNameRect(m_ptr->systemNameBox(opt, index));
 
-    systemNameRect.moveTo(m_ptr->margins.left() + m_ptr->iconSize.width()
+    // Place it relative to the item, so it scrolls along with the icon
+    systemNameRect.moveTo(contentRect.left() + shift + m_ptr->iconSize.width()
                               + m_ptr->spacingHorizontal,
                           contentRect.top());
     // If desired, font can be changed here
     //    painter->setFont(f);
     painter->setFont(opt.font);
-    painter->setPen(palette.text().color());
+    painter->setPen(palette.color(cg, highlightedText ? QPalette::HighlightedText : QPalette::Text));
     painter->drawText(systemNameRect, Qt::TextSingleLine, opt.text);
 
     // Draw status icon
@@ -157,7 +152,7 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     //    painter->setFont(opt.font);
     painter->setFont(f);
-    painter->setPen(palette.windowText().color());
+    painter->setPen(palette.color(cg, highlightedText ? QPalette::HighlightedText : QPalette::WindowText));
     painter->drawText(statusRect, Qt::TextSingleLine,
                       index.data(VMManagerModel::Roles::ProcessStatusString).toString());
 
@@ -212,24 +207,60 @@ VMManagerListViewDelegate::sizeHint(const QStyleOptionViewItem &option,
     const int iconHeight = m_ptr->iconSize.height();
     const int h          = textHeight > iconHeight ? textHeight : iconHeight;
 
-    // return the same width
+    // The width of the contents, the list view stretches the items to its own width.
+    // Asking for the view's width here would keep the items as wide as the view was
+    // when they were laid out, so a narrower view would get a horizontal scroll bar.
+    // Note: the status line is the status icon followed by the status text
+    const int textWidth = qMax(m_ptr->systemNameBox(opt, index).width(),
+                               m_ptr->margins.left() + m_ptr->smallIconSize.width() + m_ptr->statusBox(opt, index).width());
+    const int w         = m_ptr->margins.left() + contentShift(opt) + m_ptr->iconSize.width()
+        + m_ptr->spacingHorizontal + textWidth + m_ptr->margins.right();
+
     // for height, add margins on top and bottom *plus* either the text or icon height, whichever is greater
     // Note: text height is the combined value of the system name and the status just below the name
-    return { opt.rect.width(), m_ptr->margins.top() + h + m_ptr->margins.bottom() };
+    return { w, m_ptr->margins.top() + h + m_ptr->margins.bottom() };
+}
+
+int
+VMManagerListViewDelegate::contentShift(const QStyleOptionViewItem &option) const
+{
+    // Styles can move the contents of list view items to make room for a selection
+    // indicator of their own (windows11), so move ours by the same amount. They don't
+    // know the view without the widget, so the difference is that shift.
+    const QStyle        *style = option.widget ? option.widget->style() : QApplication::style();
+    QStyleOptionViewItem decorationOpt(option);
+    decorationOpt.text.clear();
+    decorationOpt.icon = QIcon();
+    decorationOpt.features &= ~QStyleOptionViewItem::HasDisplay;
+    decorationOpt.features |= QStyleOptionViewItem::HasDecoration;
+    decorationOpt.decorationSize = m_ptr->iconSize;
+
+    return style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, option.widget).left()
+        - style->subElementRect(QStyle::SE_ItemViewItemDecoration, &decorationOpt, nullptr).left();
 }
 
 VMManagerListViewDelegateStyle::VMManagerListViewDelegateStyle()
     : iconSize(32, 32)
     , smallIconSize(16, 16)
     ,
-    // bottom gets a little more than the top because of the custom separator
-    margins(4, 10, 8, 12)
+    margins(4, 10, 8, 10)
     ,
     // Spacing between icon and text
     spacingHorizontal(8)
     , spacingVertical(4)
 {
     //
+}
+
+/* Returns the box text is drawn into from its left edge. The bounding rectangle
+   only covers the ink, which can start to the right of where the text is drawn
+   from, so cover both the ink and the advance from there on. */
+static QRect
+textBox(const QFontMetrics &fm, const QString &text)
+{
+    const QRect ink = fm.boundingRect(text);
+
+    return QRect(0, ink.top(), qMax(fm.horizontalAdvance(text), ink.right() + 1), ink.height()).adjusted(0, 0, 1, 1);
 }
 
 QRect
@@ -240,7 +271,7 @@ VMManagerListViewDelegateStyle::statusBox(const QStyleOptionViewItem &option,
 
     f.setPointSizeF(statusFontPointSize(option.font));
 
-    return QFontMetrics(f).boundingRect(index.data(VMManagerModel::Roles::ProcessStatusString).toString()).adjusted(0, 0, 1, 1);
+    return textBox(QFontMetrics(f), index.data(VMManagerModel::Roles::ProcessStatusString).toString());
 }
 
 qreal
@@ -253,5 +284,5 @@ VMManagerListViewDelegateStyle::statusFontPointSize(const QFont &f) const
 QRect
 VMManagerListViewDelegateStyle::systemNameBox(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    return option.fontMetrics.boundingRect(option.text).adjusted(0, 0, 1, 1);
+    return textBox(option.fontMetrics, option.text);
 }

@@ -75,11 +75,12 @@ startup), `frames` (frames rendered) and `held`.
 
 | Request | Effect |
 |---|---|
-| `status` | Protocol and emulator version, `ms`, `frames`, `held`, `paused` (UI pause), `ff` (fast forward), last frame size `w`/`h`, `bios_mode` (BIOS data area 0x449), `quantum_ms`. |
-| `hold` | Stop running the CPU between requests. |
-| `release` | Resume normal real-time execution. |
-| `ff [on\|off]` | Fast forward on or off, as the UI's (no pacing to real time when the machine runs); with no argument, what it is. Reply has `ff`. |
-| `step <ms>` | Run exactly `ms` of emulated time, then reply. If held, runs without real-time pacing (as fast as the host allows), then holds again. |
+| `status` | Protocol and emulator version, `ms`, `frames`, `held`, `paused` (UI pause), `ff` (fast forward), last frame size `w`/`h`, `bios_mode` (BIOS data area 0x449), `quantum_ms`, `reasons_back` (as for `release`, the last time the hold ended). |
+| `hold` | Stop running the CPU between requests. While held, automation has the controls: the UI's Pause and Fast forward are locked, and pauses by the user, an inactive window, a dialog, a warning or a VNC renderer without a client are ignored until `release`. A guest that enters ACPI sleep, a fatal error or a debugger stop still pause it. |
+| `release` | Stop holding and hand the controls back. Reply has `reasons_back`: the pauses that were ignored while held and are in effect now (`user`, `focus`, `dialog`, `message`, `remote`). Disconnecting doesn't release: a held machine stays held, and the UI's controls stay locked, until a client sends `release`. A command still running when the client disconnects is aborted. |
+| `wake` | Wake a guest that is paused in an ACPI sleeping state, as the UI's Resume does. |
+| `ff [on\|off]` | Fast forward on or off, the same setting as the UI's (no pacing to real time when the machine runs); with no argument, what it is. Reply has `ff`. |
+| `step <ms> [paced]` | Run exactly `ms` of emulated time, then reply. If held, runs without real-time pacing (as fast as the host allows), then holds again; with `paced`, it follows `ff` instead, for example to record sound in real time. |
 | `wait text <timeout_ms> <text>` | Run until `<text>` (rest of line, matched against raw screen bytes) appears in a single row of the text screen, or until the timeout. Reply has `matched`. |
 | `wait mem <timeout_ms> <addr> <hex>` | Run until physical memory at `addr` equals the hex bytes, or until the timeout. |
 | `wait sound <timeout_ms> <dBFS>` | Run until any sound stream reaches the level (peak, dBFS), or until the timeout. Adds `stream` and `onset_ms`, the emulated time of the first sample at the level (sound arrives in blocks of about 20 ms, so the run stops up to a block later). |
@@ -94,6 +95,7 @@ startup), `frames` (frames rendered) and `held`.
 | `audio start [<dir>]` / `audio stop` | Record every sound stream: with `<dir>`, as `<dir>/<stream>.wav`; without, in memory only, for a client on another machine to fetch with `audio pull`. The WAVs are (16-bit stereo, each at its own rate): `main` (the sound cards' digital audio, at the configured sample rate), `music` (OPL FM and the PC speaker, 49716 Hz), `wavetable`, `ym2151`, `cd`, `fdd`, `hdd`, `midi`. The streams polled on emulated timers (`main`, `music`, `wavetable`, `ym2151`) are sample-exact: frame n is at `start_ms + n * 1000 / rate`. The others are rendered on their own threads and are dated by when their blocks arrive. A stream whose rate changes goes on in a new segment (`<stream>-2.wav` and so on). `stop` replies with `start_ms` and each segment's `name`, `segment`, `rate`, `frames`, `start_ms`, `exact` and `file` (with a directory), and for a sample-exact stream `drift_frames`: frames written and pending, against the emulated time elapsed (0 means no gap). Capture runs whether or not the host has a sound device, and while fast-forwarding. |
 | `audio level <ms>` | Peak and RMS level (dBFS) of each stream over its last `ms` (up to 30 s), with `rate` and `last_ms`, when its last block arrived. |
 | `audio read <stream> <ms>` | The stream's last `ms` (up to 30 s) as base64 16-bit stereo `data`, with `rate`, `frames` and `end_ms`. |
+| `audio tone <hz> [<dBFS>]` | Feed a sine wave into guest audio input on both channels. The default level is −6 dBFS. Use `audio tone 0` to restore host input. |
 | `audio pull <stream> <from> [<max_frames>]` | The recording's samples for one stream, from position `from` (frames since the recording, or the segment, started) up to now, or up to where it stopped: base64 16-bit stereo `data`, with `segment`, `rate`, `from`, `frames`, `next` (the `from` for the next pull, so successive pulls join exactly), `recording`, and `lost`: frames that left the 30 s ring before they were pulled. Works over TCP, and after `audio stop` for the last samples. After a rate change, pull the new `segment` from 0. |
 | `serial read <port> [<from> [<max>]]` | What the guest has sent on COM`<port>` from position `from` (default 0) on, at most `max` bytes (default and limit 65536), as hex `data`. With `from` and `next` (the `from` for the next read), `pos` (bytes sent so far), `lost` (bytes asked for that were no longer kept), `last_ms` (emulated time of the last byte), `pending` (bytes queued for the guest that it hasn't taken), `taken` (bytes it has taken), `attached`, and the lines: `dtr`, `rts`, `break` (set by the guest), `cts`, `dsr`, `dcd`, `ri` (seen by it). Fails if the port doesn't have the `automation` backend. |
 | `serial write <port> <hex>` | Queue bytes for the guest to receive on COM`<port>` (up to 65536 waiting). Reply has `queued` and `pending`; fails with `input queue full`, queueing nothing, if they don't fit. |
@@ -108,13 +110,17 @@ startup), `frames` (frames rendered) and `held`.
 | `pciw <bus> <dev> <func> <reg> <hex> [<width>]` | Write configuration space the same way. Reply has `present`. |
 | `regs` | General registers, `eip`, `eflags`, segment selectors, `cs_base`, `cr0`. From the 286: each segment's descriptor cache (`ds_base`, `ds_limit`, `ds_ar` and so on, `ar` being descriptor bytes 5 and 6: the access byte, then G, D/B, AVL and limit 19:16), `gdtr_base`/`gdtr_limit`, `idtr_base`/`idtr_limit`, `ldtr` and `tr` with their base, limit and `ar`, and `cpl`. From the 386: `cr2` (the last page-fault address), `cr3` (the page directory base), `dr0`–`dr3`, `dr6`, `dr7` and `smm`. `cr4` and `tsc` on CPUs that have them. No x86 CPU has a CR1 (`MOV` to or from it is an invalid opcode, see `src/cpu/x86_ops_mov_ctrl.h`), so there is none. |
 | `fpu` | The x87: `fcw`, `fsw` (with TOP), `ftw` (the full tag word, two bits per register), `top`, and `st0`–`st7` as 20 hex digits each (sign and exponent, then the significand), as FSAVE would store them. With MMX, `mm0`–`mm7` as 16 hex digits. Fails without an FPU. |
-| `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). |
-| `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. |
+| `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). A folder or an archive is mounted as a FAT12 disk of the drive's type, built in memory; `wp://` before the path write-protects it. What doesn't fit is left out, and the reply's `left_out` lists why: `space` (out of space, or a file of 4 GB or more), `root` (the root directory is full), `read` (files or folders could not be read; files that fail partway through are kept, reading as zeros past the failure). |
+| `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. A folder or an archive is mounted as a virtual ISO. |
+| `rdisk load <drive> <path>` / `rdisk eject <drive>` | Change removable disk media. A folder or an archive is mounted as a FAT12, FAT16 or FAT32 disk, on the drive's default medium or the smallest one it fits; `wp://` before the path write-protects it. If no medium holds everything, the largest one gets what fits, and the reply has `left_out` as for `fdd load`. |
+| `mo load <drive> <path>` / `mo eject <drive>` | Change magneto-optical media. A folder or an archive is mounted as a FAT disk without a partition table, in the medium's sector size, on the drive's default medium or the smallest one it fits; MiniDiscs can't take one. `wp://` and `left_out` are as for `rdisk load`. |
+| `usb ports` | The USB ports, as `ports`: each one's `port` label (`1`, `2`... on the controllers, `1.2` on a hub), `state` (`empty`, `flash`, `device` or `off`), and for a flash drive its `image`, `wp` and `online` (the host can reach it), for any other device its `device` name. |
+| `usb plug <port> <path>` / `usb unplug <port>` | Plug a USB flash drive into a port, or pull it out. The path is a raw disk image, or a folder or an archive, which is built as a partitioned FAT disk of the default 256 MB or the smallest of 16 MB to 32 GB it fits; `wp://` and `left_out` are as for `rdisk load`. The drive goes in once the emulation has caught up, as when plugged from the menu: check with `usb ports`. |
 | `media put <name> <bytes>`, then the bytes | Receive a file from the client, for a client on another machine: the line is followed on the connection by exactly `<bytes>` raw bytes, saved as `automation-media/<name>` in the VM directory (created if needed), replacing a file of that name once all of it has arrived. `<name>` must stay in that folder: no `/`, `\` or `:`, and not `.` or `..`; any other name the OS refuses gets its error. Reply has `path`, to use with `fdd load` or `cd load`, and `bytes`. The machine runs on (or stays held) while the bytes arrive. If the name is bad or the file can't be written, the bytes are still read, and the reply is an error with the OS's reason; if `<bytes>` isn't a number, the connection is closed, since what follows can't be told from the next request. See [Media from a client](#media-from-a-client). |
 | `media remove <name>` | Delete a file received with `media put`. |
 | `log [<from> [<max>]]` | What 86Box has written to its log, from position `from` (bytes logged since startup; default 0) on, at most `max` bytes (default and limit 65536), as `text`: the last 64 KB are kept. With `from`, `next` (the `from` for the next read), `pos` (bytes logged so far) and `lost` (bytes asked for that were no longer kept). Includes warnings, which 86Box logs instead of showing them (see [Warnings](#warnings)); a release build logs little else. |
 | `reset hard` / `reset cad` | Hard reset, or send Ctrl+Alt+Del. |
-| `quit soft` | Soft power-off, like the GUI "Power off (soft)" button. Machine must not be held. |
+| `quit soft` | Press the machine's power button, like the GUI "ACPI shutdown" / "Suspend" action; a hard power-off on machines without one. Machine must not be held. |
 | `quit` | Power off and exit 86Box. |
 
 Numbers accept C syntax (`0x` hex, decimal).
@@ -244,6 +250,18 @@ and an automation client can share a machine:
 - While the machine is held, the stub still answers GDB: registers, memory,
   breakpoints and monitor commands work. A GDB `continue` or `step` takes
   effect when the CPU next runs, for example during an automation `step`.
+
+## ACPI sleep
+
+When the guest enters an ACPI sleeping state and pause on sleep is on (the
+default), the machine stays paused, also while held, until something wakes
+it: the `wake` command, or the UI's Resume when automation doesn't hold it.
+
+- A `step`, `wait` or `key` command that is running when the guest goes to
+  sleep ends at once, with `"stopped":"sleep"` in its reply. A `wait` that
+  ends this way has `"matched":false`.
+- While the guest sleeps, `step`, `wait` and `key` fail with an error that
+  says to send `wake` first.
 
 ## Determinism notes
 

@@ -931,8 +931,7 @@ static const device_t ibm5140_power_device = {
     .internal_name = "ibm5140_power",
     .flags = DEVICE_ONBOARD,
     .close = ibm5140_close,
-    .reset = ibm5140_reset,
-    .power_button = ibm5140_power_button
+    .reset = ibm5140_reset
 };
 
 ibm5140_power_t *
@@ -972,5 +971,6 @@ ibm5140_power_create(ibm5140_video_t *video)
                      pit_devs[0].data);
     ibm5140_handlers(dev, 1);
     device_add_ex(&ibm5140_power_device, dev);
+    machine_set_power_button(POWER_BUTTON_CONVERTIBLE_SUSPEND, ibm5140_power_button, dev);
     return dev;
 }

@@ -10,9 +10,11 @@
  *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Jasmine Iwanek <jriwanek@gmail.com>
+ *          Marcos Alves
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2025 Jasmine Iwanek
+ *          Copyright 2026 Marcos Alves
  */
 #include <cstdint>
 #include <cstdio>
@@ -51,6 +53,7 @@ extern "C" {
 #include "qt_settings_completer.hpp"
 
 #include "qt_settingsotherperipherals.hpp"
+#include "qt_settingspcmcia.hpp"
 #include "ui_qt_settingsotherperipherals.h"
 
 #include "qt_deviceconfig.hpp"
@@ -198,6 +201,10 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 {
     ui->setupUi(this);
 
+    /* The PC Card controller and its sockets, a tab of its own. */
+    pcmcia = new SettingsPcmcia(this);
+    ui->tabWidgetSound->addTab(pcmcia, QIcon(":/settings/qt/icons/pcmcia.ico"), tr("PCMCIA"));
+
     /* Memory expansion cards: one shared set of four slots, fed from the
        ISA board list (isamem) on ISA machines and from the MCA board list
        (mcamem) on MCA machines. */
@@ -314,6 +321,7 @@ void
 SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
+    pcmcia->onCurrentMachineChanged(machineId);
 
     bool machineHasIsa          = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
     bool machineHasIsaOrSidecar = hasIsaOrSidecarBus(machineId);
@@ -494,7 +502,13 @@ SettingsOtherPeripherals::changed()
     has_changed |= vfioChanged();
 #endif
 
-    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+    return (has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0) | pcmcia->changed();
+}
+
+int
+SettingsOtherPeripherals::pcmciaCard(int s) const
+{
+    return pcmcia->socketCard(s);
 }
 
 void
@@ -505,6 +519,7 @@ SettingsOtherPeripherals::restore()
 void
 SettingsOtherPeripherals::save(int soft)
 {
+    pcmcia->save(soft);
     if (soft)
         return;
 
@@ -552,7 +567,8 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const int type = ui->comboBoxRTC->currentData().toInt();
+    ui->pushButtonConfigureRTC->setEnabled((type != 0) && isartc_has_config(type) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -582,7 +598,8 @@ SettingsOtherPeripherals::on_comboBoxMemExpCard1_currentIndexChanged(int index)
         return;
 
     const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
-    ui->pushButtonConfigureMemExpCard1->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
+    const int  type    = ui->comboBoxMemExpCard1->currentData().toInt();
+    ui->pushButtonConfigureMemExpCard1->setEnabled(device_is_valid(memexp_slot_device(type, mca_bus), machineId) && memexp_slot_has_config(type, mca_bus));
 }
 
 void
@@ -599,7 +616,8 @@ SettingsOtherPeripherals::on_comboBoxMemExpCard2_currentIndexChanged(int index)
         return;
 
     const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
-    ui->pushButtonConfigureMemExpCard2->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
+    const int  type    = ui->comboBoxMemExpCard2->currentData().toInt();
+    ui->pushButtonConfigureMemExpCard2->setEnabled(device_is_valid(memexp_slot_device(type, mca_bus), machineId) && memexp_slot_has_config(type, mca_bus));
 }
 
 void
@@ -616,7 +634,8 @@ SettingsOtherPeripherals::on_comboBoxMemExpCard3_currentIndexChanged(int index)
         return;
 
     const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
-    ui->pushButtonConfigureMemExpCard3->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
+    const int  type    = ui->comboBoxMemExpCard3->currentData().toInt();
+    ui->pushButtonConfigureMemExpCard3->setEnabled(device_is_valid(memexp_slot_device(type, mca_bus), machineId) && memexp_slot_has_config(type, mca_bus));
 }
 
 void
@@ -633,7 +652,8 @@ SettingsOtherPeripherals::on_comboBoxMemExpCard4_currentIndexChanged(int index)
         return;
 
     const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
-    ui->pushButtonConfigureMemExpCard4->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
+    const int  type    = ui->comboBoxMemExpCard4->currentData().toInt();
+    ui->pushButtonConfigureMemExpCard4->setEnabled(device_is_valid(memexp_slot_device(type, mca_bus), machineId) && memexp_slot_has_config(type, mca_bus));
 }
 
 void
@@ -649,7 +669,8 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard1_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard1->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const int type = ui->comboBoxIsaRomCard1->currentData().toInt();
+    ui->pushButtonConfigureIsaRomCard1->setEnabled((type != 0) && isarom_has_config(type) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -664,7 +685,8 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard2_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard2->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const int type = ui->comboBoxIsaRomCard2->currentData().toInt();
+    ui->pushButtonConfigureIsaRomCard2->setEnabled((type != 0) && isarom_has_config(type) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -679,7 +701,8 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard3_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard3->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const int type = ui->comboBoxIsaRomCard3->currentData().toInt();
+    ui->pushButtonConfigureIsaRomCard3->setEnabled((type != 0) && isarom_has_config(type) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -694,7 +717,8 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard4_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard4->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const int type = ui->comboBoxIsaRomCard4->currentData().toInt();
+    ui->pushButtonConfigureIsaRomCard4->setEnabled((type != 0) && isarom_has_config(type) && hasIsaOrSidecarBus(machineId));
 }
 
 void

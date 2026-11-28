@@ -50,6 +50,7 @@ uint32_t cr4;
 uint32_t dr[8];
 
 int cpu_debug_regs_486 = 0;
+int cpu_dr_io_armed    = 0;
 
 /* One cache line, read as two words by the block-to-block transfer */
 cpu_events_t cpu_events __attribute__((aligned(64)));
@@ -64,6 +65,11 @@ int nmi_enable = 1;
 
 int alt_access;
 int cpl_override = 0;
+/* The kinds of cpl_override access (CPL_OVERRIDE_*) whose writes skip the
+   CR0.WP test, as every such write did before; set per processor by
+   cpu_set(). The CPL 3 half of the page protection is lifted for every
+   kind whatever this says. */
+int cpl_override_wp_exempt = CPL_OVERRIDE_ON | CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
 
 uint16_t cpu_cur_status = 0;
 
@@ -83,9 +89,8 @@ int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
 
-/* ACPI clock control, see cpu.h. */
-int cpu_stpclk          = 0;
-int cpu_throttle_run    = 0;
+/* ACPI clock control, see cpu.h (cpu_stpclk and cpu_throttle_run live in
+   cpu_events). */
 int cpu_throttle_period = 8;
 int cpu_throttle_break  = 0;
 
@@ -241,6 +246,13 @@ uint32_t addr64;
 uint32_t addr64_2;
 uint32_t addr64a[8];
 uint32_t addr64a_2[8];
+
+uintptr_t mmut_hit_r  = (uintptr_t) LOOKUP_INV;
+uintptr_t mmut_hit_r2 = (uintptr_t) LOOKUP_INV;
+uintptr_t mmut_hit_w  = (uintptr_t) LOOKUP_INV;
+uint32_t  mmut_hit_r_page;
+uint32_t  mmut_hit_r2_page;
+uint32_t  mmut_hit_w_page;
 
 static pc_timer_t *cpu_fast_off_timer  = NULL;
 static double      cpu_fast_off_period = 0.0;
@@ -589,7 +601,7 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
     }
 
     int pc = cpu_prefetch_cycles;
-    if (!(machine_has_bus(machine, MACHINE_BUS_MCA | MACHINE_BUS_MCA32)) &&
+    if (!cpu_mca_bus &&
         (cpu_prefetch_cycles == cpu_rom_prefetch_cycles) &&
         ((is586 && !cpu_cache_int_enabled) || (is_p6 && !(msr.mtrr_deftype & 0x800))))
         pc *= cpu_prefetch_width;
@@ -852,6 +864,7 @@ smram_restore_state_p5(uint32_t *saved_state)
     cpu_state.seg_cs.access  = (saved_state[SMRAM_FIELD_P5_CS_ACCESS] >> 8) & 0xff;
     cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_P5_CS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_cs);
+    mem_held_release();
 
     /* DS */
     cpu_state.seg_ds.seg     = saved_state[SMRAM_FIELD_P5_DS_SELECTOR];
@@ -1050,7 +1063,9 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_cs.access  = (saved_state[SMRAM_FIELD_P6_CS_SELECTOR_AR] >> 16) & 0xff;
     cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_P6_CS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_cs);
+    mem_held_release();
     cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((saved_state[SMRAM_FIELD_P6_CPL] & 0x03) << 5);
+    mem_held_release();
 
     /* DS */
     cpu_state.seg_ds.seg     = saved_state[SMRAM_FIELD_P6_DS_SELECTOR];
@@ -1244,6 +1259,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
     cpu_state.seg_cs.access  = (saved_state[SMRAM_FIELD_AMD_K_CS_ACCESS] >> 8) & 0xff;
     cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_AMD_K_CS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_cs);
+    mem_held_release();
 
     /* DS */
     cpu_state.seg_ds.seg     = saved_state[SMRAM_FIELD_AMD_K_DS_SELECTOR];
@@ -1260,6 +1276,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
     cpu_state.seg_ss.access = (saved_state[SMRAM_FIELD_AMD_K_SS_ACCESS] >> 8) & 0xff;
     /* The actual CPL (DPL of CS) is overwritten with DPL of SS. */
     cpu_state.seg_cs.access  = (cpu_state.seg_cs.access & ~0x60) | (cpu_state.seg_ss.access & 0x60);
+    mem_held_release();
     cpu_state.seg_ss.ar_high = (saved_state[SMRAM_FIELD_AMD_K_SS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_ss);
 
@@ -1334,6 +1351,7 @@ gxm_smm_load_cs(uint32_t addr, x86seg *seg)
     do_seg_load(seg, segdat);
     seg->seg     = sel & 0xffff;
     seg->checked = 0;
+    mem_held_release();
 
     use32 = (segdat[3] & 0x40) ? 0x300 : 0;
     if (use32)
@@ -1354,7 +1372,7 @@ cyrix_smm_decode_op(int *is_rep)
 
     *is_rep = 0;
     for (int c = 0; c < 15; c++) {
-        op = readmembl(cs + ((cpu_state.oldpc + c) & (use32 ? 0xffffffff : 0xffff)));
+        op = readmembl_nh(cs + ((cpu_state.oldpc + c) & (use32 ? 0xffffffff : 0xffff)));
         if (cpu_state.abrt)
             break;
         if ((op == 0xf2) || (op == 0xf3))
@@ -1453,6 +1471,7 @@ smram_restore_state_cyrix(uint32_t *saved_state)
     /* Restore CPL: the DPL bits alone, the rest of the access rights are
        the descriptor's (on the MediaGX, bits 21-22 are its DPL anyway). */
     cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (((saved_state[5] >> 21) & 0x03) << 5);
+    mem_held_release();
 
     /* The header's ESI or EDI, of a REP INS or OUTS that was trapped, is the
        one RSM restores (the handler may have backed it up to restart). */
@@ -1541,6 +1560,19 @@ enter_smm(int in_hlt)
         in_smm = 1;
         smram_backup_all();
         smram_recalc_all(0);
+
+        /* A20 is unmasked before the save state is written: SMRAM above
+           1 MiB with bit 20 set in its address (e.g. FFFE0000h) must be
+           reachable for an SMI raised with the A20 gate closed. RSM puts
+           the mask back after it has read the save state (leave_smm()). */
+        if (unmask_a20_in_smm) {
+            old_rammask = rammask;
+            rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+            if (is6117 || is386ex)
+                rammask |= 0x3000000;
+
+            flushmmucache();
+        }
     }
 
     if (is_cxsmm) {
@@ -1595,6 +1627,7 @@ enter_smm(int in_hlt)
         cpu_state.seg_cs.checked = 1;
 
         smm_seg_load(&cpu_state.seg_cs);
+        mem_held_release();
     } else {
         cpu_state.pc             = 0x8000;
         cpu_state.seg_ds.seg     = 0x00000000;
@@ -1622,6 +1655,7 @@ enter_smm(int in_hlt)
 
         smm_seg_load(&cpu_state.seg_es);
         smm_seg_load(&cpu_state.seg_cs);
+        mem_held_release();
         smm_seg_load(&cpu_state.seg_ds);
         smm_seg_load(&cpu_state.seg_ss);
         smm_seg_load(&cpu_state.seg_fs);
@@ -1673,15 +1707,6 @@ enter_smm(int in_hlt)
     }
 
     smm_in_hlt = in_hlt;
-
-    if (unmask_a20_in_smm && !nested) {
-        old_rammask = rammask;
-        rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-        if (is6117 || is386ex)
-            rammask |= 0x3000000;
-
-        flushmmucache();
-    }
 
     oldcpl = 0;
 
@@ -1787,6 +1812,8 @@ leave_smm(void)
     }
     cpl_override = 0;
 
+    /* The save state was read above with A20 still unmasked, as it was
+       written (enter_smm()); only now does the mask go back. */
     if (unmask_a20_in_smm && !nested) {
         rammask = old_rammask;
 
@@ -1842,11 +1869,9 @@ leave_smm(void)
     cpu_386_flags_extract();
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
     cpu_cur_status &= ~CPU_STATUS_SMM;
-    if (cr0 & 1) {
+    if (cr0 & 1)
         cpu_cur_status |= CPU_STATUS_PMODE;
-        if (cpu_state.eflags & VM_FLAG)
-            cpu_cur_status |= CPU_STATUS_V86;
-    }
+    cpu_set_v86_status();
     cpu_update_64k_status();
 
     nmi_mask = 1;
@@ -1894,6 +1919,7 @@ leave_smm(void)
    Any other exception belongs to the code -- #UD from the ARPL Windows 9x
    uses as a V86 breakpoint, #DE, #BR -- and the block ends there for good,
    as it always did: discarding those recorded them afresh on every run. */
+/* Re-pointing a page's byte masks also discards the record. */
 int codegen_record_faulted;
 
 /* Set while x86_int() delivers an external interrupt, whose vector is never
@@ -2159,11 +2185,27 @@ cpu_386_flags_rebuild(void)
    lookup tables, so every data access takes the slow path, which makes the
    check. The memory access macros and the effective-address fast path then
    need no test of their own, and cost nothing with the option off. The tables
-   are flushed as a breakpoint gets armed. */
+   are flushed as a breakpoint gets armed. An I/O breakpoint (R/W 10b) is
+   checked by the port access alone (io.c), so it arms cpu_dr_io_armed
+   instead and leaves memory accesses and recompiled code at full speed. */
 void
 cpu_dr7_update(void)
 {
-    int armed = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
+    int armed    = 0;
+    int io_armed = 0;
+
+    if (cpu_debug_regs_486 && is386) {
+        for (uint8_t i = 0; i < 4; i++) {
+            if (!((dr[7] >> (i << 1)) & 0x03))
+                continue;
+            if (((dr[7] >> (16 + (i << 2))) & 0x03) == 0x02)
+                io_armed = 1;
+            else
+                armed = 1;
+        }
+    }
+
+    cpu_dr_io_armed = io_armed;
 
     if (armed && !cpu_dr_armed) {
         cpu_dr_armed = 1;
@@ -2251,6 +2293,7 @@ sysenter(UNUSED(uint32_t fetchdat))
     cpu_state.seg_cs.access     = 0x9b;
     cpu_state.seg_cs.ar_high    = 0xcf;
     cpu_state.seg_cs.checked    = 1;
+    mem_held_release();
     oldcpl                      = 0;
 
     cpu_state.seg_ss.seg        = ((msr.sysenter_cs + 8) & 0xfffc);
@@ -2394,6 +2437,7 @@ syscall_op(UNUSED(uint32_t fetchdat))
     cpu_state.seg_cs.access     = 0x9b;
     cpu_state.seg_cs.ar_high    = 0xcf;
     cpu_state.seg_cs.checked    = 1;
+    mem_held_release();
     oldcpl                      = 0;
 
     /* SS */

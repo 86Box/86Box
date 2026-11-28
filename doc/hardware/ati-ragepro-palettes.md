@@ -39,9 +39,11 @@ palette, as required by the driver's ordinary texture bindings.
 This models the observed driver's palette-loading use of the texture cache;
 it is not a complete texture-cache replacement/eviction model or a physical
 hardware measurement of cache-line size. TEX_CNTL bit 30 retains its
-documented cache-size-select name. The older packed TEX_PALETTE path keeps
-its explicit index in bits 31:24; writing 0x340 does not select a separate
-auto-increment upload mode.
+documented cache-size-select name. The Rage Pro register reference
+(RR35107, pp. 6-24–6-25) defines TEX_PALETTE_INDEX (0x340) as a 10-bit word
+index and TEX_PALETTE (0x37c) as a read-only RGB565 view of the palette RAM.
+Each palette read advances the index modulo 1024. Older chips retain the
+packed TEX_PALETTE write with an explicit index in bits 31:24.
 
 ## CI8 tiling
 

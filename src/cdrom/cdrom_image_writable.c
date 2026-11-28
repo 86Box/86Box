@@ -23,7 +23,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-#ifdef ENABLE_IMAGE_LOG
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
 #include <stdarg.h>
 #endif
 #include <stdint.h>
@@ -72,8 +72,9 @@ typedef struct cue_area_t {
     int     generated;
 } cue_area_t;
 
-typedef struct cd_image_t {
+typedef struct cd_image_writable_t {
     cdrom_t           *dev;
+    void              *log;
     FILE              *spool;
     void              *source;           /* The image, until something changes the disc. */
     int                rewritable;
@@ -92,7 +93,8 @@ typedef struct cd_image_t {
     int32_t            nwa;
     int                dirty;            /* The spool has what the image does not. */
     uint32_t           reserved;         /* Size of the track that is reserved next. */
-    int                packet_open;      /* Packets end at the next SYNCHRONIZE CACHE. */
+    int32_t            hole_start;       /* A reserved track that a later track was recorded ahead of. */
+    int32_t            hole_end;         /* Its end, exclusive. */    int                packet_open;      /* Packets end at the next SYNCHRONIZE CACHE. */
     int32_t            fixed_packet;     /* Packet size of a formatted disc. */
     int                recording;        /* A session is arriving whole: a cue sheet or raw. */
 
@@ -109,6 +111,24 @@ typedef struct cd_image_t {
 
 static int     wimage_finalize(cd_image_t *img);
 
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+int image_writable_do_log = ENABLE_WRITABLE_IMAGE_LOG;
+
+void
+image_log(void *priv, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (image_writable_do_log) {
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define image_writable_log(priv, fmt, ...)
+#endif
+
 /* Unrecorded blocks of a formatted disc, which reads as if it was all written with zeros. */
 static int
 wimage_is_unrecorded(const uint8_t *buffer)
@@ -119,7 +139,7 @@ wimage_is_unrecorded(const uint8_t *buffer)
 }
 
 static int
-wimage_spool_write(cd_image_t *img, const int32_t lba, const uint8_t *buffer)
+wimage_spool_write(cd_image_t *img, int32_t lba, const uint8_t *buffer)
 {
     if ((img->spool == NULL) ||
         fseek(img->spool, (long) lba * WIMAGE_SECTOR_SIZE, SEEK_SET) ||
@@ -154,7 +174,7 @@ wimage_take_over(cd_image_t *img)
 }
 
 static int
-wimage_spool_read(void *priv, const int32_t lba, uint8_t *buffer)
+wimage_spool_read(void *priv, int32_t lba, uint8_t *buffer)
 {
     cd_image_t *img = (cd_image_t *) priv;
     size_t      len;
@@ -181,7 +201,7 @@ wimage_spool_read(void *priv, const int32_t lba, uint8_t *buffer)
 
 /* As above, for the image, where those blocks do not have to take up any room. */
 static int
-wimage_finalize_read(void *priv, const int32_t lba, uint8_t *buffer)
+wimage_finalize_read(void *priv, int32_t lba, uint8_t *buffer)
 {
     cd_image_t *img = (cd_image_t *) priv;
     size_t      len;
@@ -203,6 +223,7 @@ wimage_format_state(const cd_image_t *img, char *state, const size_t len)
 {
     snprintf(state, len, WIMAGE_STATE_FORMAT, img->session, img->session_track, img->session_open,
              img->track_open, img->disc_closed, img->nwa, img->fixed_packet);
+    image_writable_log(img->log, "Format state: %s\n", state);
 }
 
 /* From here on, a crash loses nothing that the guest has seen go to the disc. */
@@ -235,6 +256,8 @@ wimage_checkpoint(cd_image_t *img)
         fprintf(fp, "%i %i %i %i %i %i %i %i %.12s\n", t->number, t->session, t->ctl, t->mode,
                 t->packet, t->start, t->index1, t->end, t->isrc[0] ? t->isrc : "-");
     }
+
+    fprintf(fp, "%u %i %i\n", img->reserved, img->hole_start, img->hole_end);
 
     fclose(fp);
 
@@ -290,6 +313,13 @@ wimage_read_checkpoint(cd_image_t *img, int *rewritable)
     img->tracks_num = num;
     ret             = 0;
 
+    /* A checkpoint from before reservations were kept ends here. */
+    if (fscanf(fp, "%u %i %i", &img->reserved, &img->hole_start, &img->hole_end) != 3) {
+        img->reserved   = 0;
+        img->hole_start = 0;
+        img->hole_end   = 0;
+    }
+
 done:
     fclose(fp);
 
@@ -316,7 +346,7 @@ wimage_generate(cd_image_t *img, const int32_t start, const int32_t end, const i
 }
 
 static const aaru_write_track_t *
-wimage_find_track(const cd_image_t *img, const int32_t lba)
+wimage_find_track(const cd_image_t *img, int32_t lba)
 {
     for (int i = 0; i < img->tracks_num; i++)
         if ((lba >= img->tracks[i].start) && (lba <= img->tracks[i].end))
@@ -618,7 +648,8 @@ wimage_has_data(const void *local)
 
 /* Decodes a cue sheet Data Form byte, using the data block types of the write parameters page. */
 static int
-wimage_decode_data_form(const uint8_t form, int *data_block_type, int *mode, int *generated)
+wimage_decode_data_form(const void *local, const uint8_t form,
+                        int *data_block_type, int *mode, int *generated)
 {
     const int sub = form & 0xc0;
 
@@ -665,6 +696,9 @@ wimage_decode_data_form(const uint8_t form, int *data_block_type, int *mode, int
                 *data_block_type |= 16;
             break;
     }
+
+    image_writable_log(img->log, "wimage_decode_data_form(): mode = %i, data_block_type = %02X\n",
+                       *mode, *data_block_type);
 
     /* Sub-channel can only follow raw data, as that is all a data block type can say. */
     if (sub != 0x00) {
@@ -742,7 +776,7 @@ wimage_send_cuesheet(const void *local, const uint8_t *buffer, const int len)
         if (tno == 0x00)
             continue;
 
-        if (wimage_decode_data_form(e[3], &dbt, &mode, &generated))
+        if (wimage_decode_data_form(img, e[3], &dbt, &mode, &generated))
             return -1;
 
         if (tno == 0xaa) {
@@ -866,6 +900,35 @@ wimage_open_track(cd_image_t *img, const int32_t lba, const int mode, const int 
     (void) wimage_generate(img, t->start, lba, mode);
 }
 
+/* The track after a reservation is being recorded first, so the reserved one is made now and filled later. */
+static void
+wimage_open_hole(cd_image_t *img, const int mode, const int ctl)
+{
+    aaru_write_track_t *t = &(img->tracks[img->tracks_num]);
+
+    t->number  = img->tracks_num + 1;
+    t->session = img->session;
+    t->ctl     = ctl & 0x0f;
+    t->mode    = mode;
+    t->packet  = 0;
+    memset(t->isrc, 0x00, sizeof(t->isrc));
+    t->start   = (img->session_open && (img->tracks_num > img->session_track)) ?
+                 (img->tracks[img->tracks_num - 1].end + 1) : img->nwa;
+    t->index1  = img->nwa;
+    t->end     = img->nwa + img->reserved - 1;
+
+    img->hole_start = t->index1;
+    img->hole_end   = t->end + 1;
+
+    img->tracks_num++;
+    img->session_open = 1;
+    img->nwa          = t->end + 1 + WIMAGE_TRACK_GAP;
+    img->reserved     = 0;
+
+    (void) wimage_generate(img, t->start, t->index1, mode);
+    wimage_checkpoint(img);
+}
+
 static int
 wimage_write_sector(const void *local, const uint8_t *buffer, const int32_t sector,
                     const int write_type, const int mode, const int ctl)
@@ -873,52 +936,153 @@ wimage_write_sector(const void *local, const uint8_t *buffer, const int32_t sect
     cd_image_t *img    = (cd_image_t *) local;
     const int   packet = (write_type == 0);
 
-    if (wimage_take_over(img))
-        return -1;
+    image_writable_log(img->log, "    Write image sector:\n");
 
-    /* A formatted disc is overwritten in place, and it can not be recorded on otherwise. */
+    if (wimage_take_over(img)) {
+        image_writable_log(img->log, "        Error: Take over\n");
+        return -1;
+    }
+
+    /*
+       A formatted disc is overwritten in place, and it can not be recorded on otherwise.
+       Packet writing programs, DirectCD among them, may select Track-at-Once for that
+       as well, so both are accepted, but SAO and raw are not.
+     */
     if (img->fixed_packet) {
-        if (!packet || (sector < img->tracks[0].start) || (sector > img->tracks[0].end))
+        if ((write_type > 1) || (sector < img->tracks[0].start) || (sector > img->tracks[0].end)) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+            if (write_type > 1) {
+                image_writable_log(img->log, "        Error: Invalid write type %i\n",
+                                   write_type);
+            }
+            if (sector < img->tracks[0].start) {
+                image_writable_log(img->log, "        Error: Sector %i is before track 0 start %i\n",
+                                   sector, img->tracks[0].start);
+            }
+            if (sector > img->tracks[0].end) {
+                image_writable_log(img->log, "        Error: Sector %i is after track 0 end %i\n",
+                                   sector, img->tracks[0].end);
+            }
+#endif
             return -1;
+        }
 
         img->tracks[0].mode = mode;
 
-        return wimage_spool_write(img, sector, buffer);
+        int ret = wimage_spool_write(img, sector, buffer);
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+        if (ret) {
+            image_writable_log(img->log, "        Error: Spool write failed in fixed packet mode\n");
+        } else {
+            image_writable_log(img->log, "        Success: In fixed packet mode\n");
+        }
+#endif
+        return ret;
     }
 
-    if (img->disc_closed || (sector >= WIMAGE_CAPACITY))
+    if (img->disc_closed || (sector >= WIMAGE_CAPACITY)) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+        if (img->disc_closed) {
+            image_writable_log(img->log, "        Error: Disc closed\n");
+        }
+        if (sector >= WIMAGE_CAPACITY) {
+            image_writable_log(img->log, "        Error: Sector %i is after image capacity %i\n",
+                               sector, WIMAGE_CAPACITY);
+        }
+#endif
         return -1;
+    }
 
     /* A cue sheet's first pre-gap is before LBA 0, and an Aaru disc does not start until there. */
-    if (sector < 0)
-        return ((write_type == 2) && img->recording) ? 0 : -1;
+    if (sector < 0) {
+        int ret = ((write_type == 2) && img->recording) ? 0 : -1;
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+        if (ret == -1) {
+            image_writable_log(img->log, "        Error: Sector %i is negative in SAO mode\n",
+                               sector);
+        } else {
+            image_writable_log(img->log, "        Success: Sector %i is negative in SAO mode\n",
+                               sector);
+        }
+#endif
+        return ret;
+    }
 
     if (write_type == 2) {
-        if ((img->cue_num == 0) || !img->recording)
+        if ((img->cue_num == 0) || !img->recording) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+            if (img->cue_num == 0) {
+                image_writable_log(img->log, "        Error: Cue number is zero\n");
+            }
+            if (!img->recording) {
+                image_writable_log(img->log, "        Error: Not recording in SAO mode\n");
+            }
+#endif
             return -1;
+        }
 
-        if (wimage_spool_write(img, sector, buffer))
+        if (wimage_spool_write(img, sector, buffer)) {
+            image_writable_log(img->log, "        Error: Spool write failed in SAO mode\n");
             return -1;
+        }
 
         if (sector > img->cue_written)
             img->cue_written = sector;
 
+        image_writable_log(img->log, "        Success: In SAO mode\n");
         return 0;
     }
 
+    if ((sector >= img->hole_start) && (sector < img->hole_end)) {
+        if (wimage_spool_write(img, sector, buffer)) {
+            image_writable_log(img->log, "        Error: Spool write failed in reserved track\n");
+            return -1;
+        }
+
+        image_writable_log(img->log, "        Success: In reserved track\n");
+        return 0;
+    }
+
+    if (!img->track_open && img->reserved && !img->recording &&
+        ((img->tracks_num + 1) < WIMAGE_MAX_TRACKS) &&
+        (sector >= (img->nwa + (int32_t) img->reserved + WIMAGE_TRACK_GAP)))
+            wimage_open_hole(img, mode, ctl);
+
     /* The next writable address moves past a track's gap, and never back. */
     if (!img->track_open) {
-        if ((img->tracks_num >= WIMAGE_MAX_TRACKS) || (sector < img->nwa) || img->recording)
+        if ((img->tracks_num >= WIMAGE_MAX_TRACKS) || (sector < img->nwa) || img->recording) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+            if (img->tracks_num >= WIMAGE_MAX_TRACKS) {
+                image_writable_log(img->log, "        Error: Number of tracks %i >= %i\n",
+                                   img->tracks_num, WIMAGE_MAX_TRACKS);
+            }
+            if (sector < img->nwa) {
+                image_writable_log(img->log, "        Error: Real sector %i is before NWA %i\n",
+                                   sector, img->nwa);
+            }
+            if (img->recording) {
+                image_writable_log(img->log, "        Error: Recording in non-SAO mode\n");
+            }
+#endif
             return -1;
+        }
 
         wimage_open_track(img, sector, mode, ctl, packet);
-    } else if (img->tracks[img->tracks_num - 1].packet != packet)
+    } else if (img->tracks[img->tracks_num - 1].packet != packet) {
+        image_writable_log(img->log, "        Error: Packet mismatch (%i != %i)\n",
+                           img->tracks[img->tracks_num - 1].packet, packet);
         return -1;
-    else if (sector < (packet ? img->nwa : img->tracks[img->tracks_num - 1].index1))
+    }
+    else if (sector < (packet ? img->nwa : img->tracks[img->tracks_num - 1].index1)) {
+        image_writable_log(img->log, "        Error: Sector %i < packet %i\n",
+                           sector, (packet ? img->nwa : img->tracks[img->tracks_num - 1].index1));
         return -1;
+    }
 
-    if (wimage_spool_write(img, sector, buffer))
+    if (wimage_spool_write(img, sector, buffer)) {
+        image_writable_log(img->log, "        Error: Spool write failed in non-SAO mode\n");
         return -1;
+    }
 
     img->packet_open = packet;
 
@@ -926,7 +1090,9 @@ wimage_write_sector(const void *local, const uint8_t *buffer, const int32_t sect
         img->tracks[img->tracks_num - 1].end = sector;
 
     img->nwa = img->tracks[img->tracks_num - 1].end + 1;
+    image_writable_log(img->log, "        New NWA now: %i\n", img->nwa);
 
+    image_writable_log(img->log, "        Success: In non-SAO mode\n");
     return 0;
 }
 
@@ -953,16 +1119,37 @@ wimage_write_raw(const void *local, const uint8_t *buffer, const uint8_t *q, con
     aaru_write_track_t *t;
     uint8_t             raw[WIMAGE_SECTOR_SIZE];
 
-    if (wimage_take_over(img))
+    image_writable_log(img->log, "    Write image raw sector:\n");
+
+    if (wimage_take_over(img)) {
+        image_writable_log(img->log, "        Error: Take over\n");
         return -1;
+    }
 
     if (img->disc_closed || img->fixed_packet || img->track_open ||
-        (img->recording && img->cue_num))
+        (img->recording && img->cue_num)) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+        if (img->disc_closed) {
+            image_writable_log(img->log, "        Error: Disc closed\n");
+        }
+        if (img->fixed_packet) {
+            image_writable_log(img->log, "        Error: Fixed packet mode\n");
+        }
+        if (img->track_open) {
+            image_writable_log(img->log, "        Error: Track_open\n");
+        }
+        if (img->recording && img->cue_num) {
+            image_writable_log(img->log, "        Error: Recording with non-zero cue number\n");
+        }
+#endif
         return -1;
+    }
 
     if (!img->recording) {
-        if (sector > img->nwa)
+        if (sector > img->nwa) {
+            image_writable_log(img->log, "        Error: Sector %i is after NWA %i\n", sector, img->nwa);
             return -1;
+        }
 
         img->recording      = 1;
         img->cue_tracks_num = img->tracks_num;
@@ -982,16 +1169,42 @@ wimage_write_raw(const void *local, const uint8_t *buffer, const uint8_t *q, con
     if ((adr == 1) && (q[1] == 0xaa))
         img->cue_end = 1;
 
-    if ((sector < 0) || img->cue_end || ((adr == 1) && (q[1] == 0x00)))
+    if ((sector < 0) || img->cue_end || ((adr == 1) && (q[1] == 0x00))) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+        if (sector < 0) {
+            image_writable_log(img->log, "        Success: Secctor %i is below zero\n",
+                               sector);
+        }
+        if (img->cue_end) {
+            image_writable_log(img->log, "        Success: End of cue reached\n");
+        }
+        if ((adr == 1) && (q[1] == 0x00)) {
+            image_writable_log(img->log, "        Success: Zero Q1 with ADR 1\n");
+        }
+#endif
         return 0;
+    }
 
-    if (sector >= WIMAGE_CAPACITY)
+    if (sector >= WIMAGE_CAPACITY) {
+        image_writable_log(img->log, "        Error: Sector %i is after image capacity %i\n",
+                           sector, WIMAGE_CAPACITY);
         return -1;
+    }
 
     if ((adr == 1) && ((img->tracks_num == img->cue_tracks_num) ||
                        (bcd2bin(q[1]) != img->tracks[img->tracks_num - 1].number))) {
-        if ((bcd2bin(q[1]) != (img->tracks_num + 1)) || (img->tracks_num >= WIMAGE_MAX_TRACKS))
+        if ((bcd2bin(q[1]) != (img->tracks_num + 1)) || (img->tracks_num >= WIMAGE_MAX_TRACKS)) {
+#ifdef ENABLE_IMAGE_WRITABLE_LOG
+            if (bcd2bin(q[1]) != (img->tracks_num + 1)) {
+                image_writable_log(img->log, "        Error: Q1 does not match the track number\n");
+            }
+            if (img->tracks_num >= WIMAGE_MAX_TRACKS) {
+                image_writable_log(img->log, "        Error: Number of tracks %i >= %i\n",
+                                   img->tracks_num, WIMAGE_MAX_TRACKS);
+            }
+#endif
             return -1;
+        }
 
         t          = &(img->tracks[img->tracks_num]);
         t->number  = img->tracks_num + 1;
@@ -1009,8 +1222,11 @@ wimage_write_raw(const void *local, const uint8_t *buffer, const uint8_t *q, con
     }
 
     /* Sectors that do not say where they are before the first one that does are lost. */
-    if (img->tracks_num == img->cue_tracks_num)
+    if (img->tracks_num == img->cue_tracks_num) {
+        image_writable_log(img->log, "        Success: Number of tracks %i == %i\n",
+                           img->tracks_num, img->cue_tracks_num);
         return 0;
+    }
 
     t = &(img->tracks[img->tracks_num - 1]);
 
@@ -1035,12 +1251,15 @@ wimage_write_raw(const void *local, const uint8_t *buffer, const uint8_t *q, con
             t->mode = raw[15] & 0x03;
     }
 
-    if (wimage_spool_write(img, sector, raw))
+    if (wimage_spool_write(img, sector, raw)) {
+        image_writable_log(img->log, "        Error: Spool write failed\n");
         return -1;
+    }
 
     t->end           = sector;
     img->cue_written = sector;
 
+    image_writable_log(img->log, "        Success\n");
     return 0;
 }
 
@@ -1062,6 +1281,7 @@ wimage_close_track(cd_image_t *img)
     else {
         /* A reservation takes up its room whether or not it was used. */
         img->nwa = MAX(t->end + 1, (int32_t) (t->index1 + img->reserved)) + WIMAGE_TRACK_GAP;
+        image_writable_log(img->log, "Track closed, NWA now %i\n", img->nwa);
     }
 
     img->reserved = 0;
@@ -1088,8 +1308,10 @@ wimage_end_cue(cd_image_t *img)
         img->tracks_num--;
     }
 
-    if (img->tracks_num > img->cue_tracks_num)
+    if (img->tracks_num > img->cue_tracks_num) {
         img->nwa = img->tracks[img->tracks_num - 1].end + 1 + WIMAGE_TRACK_GAP;
+        image_writable_log(img->log, "End cue: NWA now %i\n", img->nwa);
+    }
     else if (img->tracks_num == img->session_track)
         img->session_open = 0;
 
@@ -1121,6 +1343,7 @@ wimage_close_session(cd_image_t *img, const int multi_session)
 
     img->nwa           = end + 1 + WIMAGE_LEAD_IN + WIMAGE_PREGAP +
                          ((img->session == 1) ? WIMAGE_LEAD_OUT_1ST : WIMAGE_LEAD_OUT);
+    image_writable_log(img->log, "Close session: NWA now %i\n", img->nwa);
     img->session_open  = 0;
     img->session++;
     img->session_track = img->tracks_num;
@@ -1150,7 +1373,8 @@ wimage_write_to_toc(const void *local, const uint8_t track)
         case CD_WTOC_CLOSE_SESSION:
             return wimage_close_session(img, 1);
         default:
-            wimage_close_track(img);
+            if ((track == 0xff) || (img->track_open && (track == img->tracks_num)))
+                wimage_close_track(img);
             return 0;
     }
 }
@@ -1172,6 +1396,8 @@ wimage_flush(const void *local, const int multi_session)
 
         img->packet_open = 0;
         img->nwa         = nwa + WIMAGE_PACKET_LINK;
+
+        image_writable_log(img->log, "Flush: NWA now %i\n", img->nwa);
 
         if (wimage_generate(img, nwa, img->nwa, img->tracks[img->tracks_num - 1].mode))
             return -1;
@@ -1214,6 +1440,8 @@ wimage_reset(cd_image_t *img)
     img->cue_num       = 0;
     img->fixed_packet  = 0;
     img->reserved      = 0;
+    img->hole_start    = 0;
+    img->hole_end      = 0;
     img->nwa           = 0;
     img->dirty         = 0;
 
@@ -1279,6 +1507,7 @@ wimage_blank(const void *local, const int type, const uint32_t lba)
         img->session_open  = 1;
         img->disc_closed   = 0;
         img->nwa           = t->end + 1 + WIMAGE_TRACK_GAP;
+        image_writable_log(img->log, "Blank type 4: NWA now %i\n", img->nwa);
 
         return wimage_finalize(img);
     }
@@ -1291,6 +1520,7 @@ wimage_blank(const void *local, const int type, const uint32_t lba)
         img->session_open  = 1;
         img->disc_closed   = 0;
         img->nwa           = img->tracks[img->tracks_num - 1].end + 1 + WIMAGE_TRACK_GAP;
+        image_writable_log(img->log, "Blank type 2: NWA now %i\n", img->nwa);
 
         return wimage_finalize(img);
     }
@@ -1305,6 +1535,7 @@ wimage_blank(const void *local, const int type, const uint32_t lba)
         img->session_open  = 1;
         img->disc_closed   = 0;
         img->nwa           = img->tracks[img->tracks_num - 1].end + 1 + WIMAGE_TRACK_GAP;
+        image_writable_log(img->log, "Blank type 5: NWA now %i\n", img->nwa);
 
         return wimage_finalize(img);
     }
@@ -1319,6 +1550,7 @@ wimage_blank(const void *local, const int type, const uint32_t lba)
     img->session_open  = 0;
     img->disc_closed   = 0;
     img->nwa           = wimage_after_session(img->tracks[first - 1].end, session - 1);
+    image_writable_log(img->log, "Blank: NWA now %i\n", img->nwa);
 
     return wimage_finalize(img);
 }
@@ -1347,7 +1579,7 @@ wimage_format(const void *local, const uint32_t blocks, const uint32_t packet_si
 
     t->number  = 1;
     t->session = 1;
-    t->ctl     = 0x07;    /* Data, recorded incrementally. */
+    t->ctl     = 0x05;    /* Data, recorded incrementally. */
     t->mode    = 1;
     t->packet  = 1;
     t->start   = 0;
@@ -1360,6 +1592,7 @@ wimage_format(const void *local, const uint32_t blocks, const uint32_t packet_si
     img->disc_closed   = 1;
     img->fixed_packet  = packet;
     img->nwa           = WIMAGE_CAPACITY;
+    image_writable_log(img->log, "Format: NWA now %i\n", img->nwa);
     img->dirty         = 1;
 
     return wimage_finalize(img);
@@ -1405,6 +1638,12 @@ wimage_get_write_info(const void *local, cdrom_write_info_t *wi)
     wi->lead_in_start  = nwa + 150 - WIMAGE_PREGAP - WIMAGE_LEAD_IN;
     wi->track_packet   = img->track_open && img->tracks[img->tracks_num - 1].packet;
     wi->fixed_packet   = img->fixed_packet;
+
+    if (img->reserved) {
+        wi->after_reserved = wi->track_start + img->reserved + WIMAGE_TRACK_GAP;
+        wi->after_free     = (wi->after_reserved < WIMAGE_CAPACITY) ?
+                             (WIMAGE_CAPACITY - wi->after_reserved) : 0;
+    }
 }
 
 static int
@@ -1486,6 +1725,9 @@ wimage_close(void *local)
         plat_remove(img->spool_path);
         plat_remove(img->state_path);
     }
+
+    log_close(img->log);
+    img->log = NULL;
 
     free(img);
 }
@@ -1605,6 +1847,11 @@ wimage_open(cdrom_t *dev, const char *path, const int type)
         free(img);
         return NULL;
     }
+
+    char      n[1024] = { 0 };
+
+    sprintf(n, "CD-ROM %i CD-R ", dev->id + 1);
+    img->log          = log_open(n);
 
     dev->ops = &image_ops;
 

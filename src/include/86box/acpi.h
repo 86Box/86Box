@@ -184,6 +184,8 @@ typedef struct acpi_t {
     int         gp_count;      /* SiS general purpose timer: its count, */
     uint64_t    gp_last_clock; /* and the ACPI clock when it started */
     int         piix4_ab;      /* PIIX4 before the PIIX4E: its throttling */
+    int         ali_1543c;     /* M7101 of an M1543C: its GPE1 registers */
+    uint16_t    via_pri_irq;   /* VIA Primary Interrupt Channel (PCI Rx45-44) */
     pc_timer_t  timer;
     pc_timer_t  resume_timer;
     pc_timer_t  pwrbtn_timer;
@@ -213,8 +215,10 @@ extern int        acpi_rtc_status;
 extern atomic_int acpi_pwrbut_pressed;
 #endif
 extern int        acpi_enabled;
-/* Nonzero while the machine is in an ACPI sleeping state: pc_run() then calls
-   acpi_sleep_run() instead of running the CPU. */
+/* While the machine is in an ACPI sleeping state, that state's SUS_* flags,
+   and 0 otherwise: pc_run() then calls acpi_sleep_run() instead of running
+   the CPU. SUS_NVR marks suspend to RAM, where the main power (VCC) is off
+   and only the resume well and the devices on standby power still run. */
 extern int        acpi_sleeping;
 
 extern const device_t acpi_ali_device;
@@ -235,6 +239,8 @@ extern void    acpi_pwrbut_hold(void);
 extern void    acpi_sleep_run(int32_t cycs);
 /* An event on a general-purpose input of the board's ACPI chip. */
 extern void    acpi_gpe_event(int source);
+/* IRQs raised while the machine sleeps (IRQ resume). */
+extern void    acpi_irq_resume(uint16_t lines, uint16_t unmasked);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
 extern void    acpi_gp_timer_timeout(void *priv, int n);
@@ -246,6 +252,8 @@ extern void    acpi_set_slot(acpi_t *dev, int slot);
 /* The PIIX4 (82371AB) rather than the PIIX4E: its throttling starts at a
    P_LVL2 read, ends at a break event and has the duty cycle inverted. */
 extern void    acpi_set_piix4_ab(acpi_t *dev, int ab);
+extern void    acpi_set_ali_1543c(acpi_t *dev, int is_1543c);
+extern void    acpi_set_via_pri_irq(acpi_t *dev, uint16_t irqs);
 extern void    acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void    acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void    acpi_set_irq_line(acpi_t *dev, int irq_line);

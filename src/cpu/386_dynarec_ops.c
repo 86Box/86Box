@@ -150,10 +150,12 @@ dynarec_iret_pm(int is32)
 }
 
 /*The CS load and the tail of the compiled IRET's real-mode and CR4.VME
-  forms, which pop and merge the flags themselves*/
+  forms, which pop and merge the flags themselves. The real-mode IRETD can
+  load VM, ahead of the CS load as in the op*/
 void
 dynarec_iret_cs(uint16_t seg)
 {
+    cpu_set_v86_status();
     op_loadcs(seg);
     cycles -= timing_iret_rm;
     nmi_enable       = 1;
@@ -178,15 +180,20 @@ dynarec_rf_after_op(void)
 }
 
 /*The walk of a compiled block's second page where the interpreter's code
-  fetch first reads from it (getpccache(): mmutranslate_read on every change
-  of fetch page): the Accessed bits, and the #PF a page that is no longer
-  present raises, from oldpc. Nonzero then, which leaves the block*/
+  fetch first reads from it (getpccache(): mmutranslate_read on a change of
+  fetch page that mem_fetch_lookup() does not answer): the Accessed bits, and
+  the #PF a page that is no longer present raises, from oldpc. Nonzero then,
+  which leaves the block*/
 int
 dynarec_fetch_walk(uint32_t addr)
 {
-    if (!(cr0 >> 31))
+    uint64_t phys;
+
+    if (!(cr0 >> 31) || (mem_fetch_lookup(addr) != 0xffffffffffffffffULL))
         return 0;
-    (void) mmutranslatereal(addr, 0);
+    phys = mmutranslatereal(addr, 0);
+    if (!cpu_state.abrt)
+        mem_fetch_walked(addr, phys);
 
     return !!cpu_state.abrt;
 }
@@ -249,8 +256,9 @@ dynarec_dtr(uint32_t op)
 
 /*The compiled CALL far, direct and indirect: the interpreter's CALL_FAR
   macro, so the pushes in the call gate's size and the CS put back after a
-  faulting push are the op's. The target offset comes in cpu_state.pc;
-  ret_pc is the address after the instruction*/
+  faulting push are the op's, unless call_far_pm_fast() makes the call.
+  The target offset comes in cpu_state.pc; ret_pc is the address after the
+  instruction*/
 int
 dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc)
 {
@@ -261,8 +269,10 @@ dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc)
     uint32_t old_pc;
     uint16_t new_pc = cpu_state.pc;
 
-    cpu_state.pc = ret_pc;
-    CALL_FAR_w(new_cs, new_pc);
+    if (!call_far_pm_fast(new_cs, new_pc, ret_pc, 0)) {
+        cpu_state.pc = ret_pc;
+        CALL_FAR_w(new_cs, new_pc);
+    }
     /*A task switch can keep the RF it loads*/
     if (cpu_debug_regs_486)
         dynarec_rf_after_op();
@@ -279,8 +289,10 @@ dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc)
     uint32_t old_pc;
     uint32_t new_pc = cpu_state.pc;
 
-    cpu_state.pc = ret_pc;
-    CALL_FAR_l(new_cs, new_pc);
+    if (!call_far_pm_fast(new_cs, new_pc, ret_pc, 1)) {
+        cpu_state.pc = ret_pc;
+        CALL_FAR_l(new_cs, new_pc);
+    }
     if (cpu_debug_regs_486)
         dynarec_rf_after_op();
     return 0;
@@ -329,6 +341,7 @@ dynarec_mov_cr0(uint32_t rm)
         flushmmucache_write();
     if ((val & 0x01) && !(cr0 & 0x01))
         cpu_state.seg_cs.access &= 0x9f;
+    mem_held_release();
     cr0 = val;
     if (cpu_16bitbus)
         cr0 |= 0x10;

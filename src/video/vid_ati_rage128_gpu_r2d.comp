@@ -1,0 +1,127 @@
+#version 450
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATI Rage 128 Pro -- GPU backend, 2D rectangle fill and copy
+ *          pass.
+ *
+ *          This kernel runs a queued solid fill or byte copy over a
+ *          whole rectangle in one dispatch. The frame buffer is a flat
+ *          byte buffer to Vulkan, so a rectangle narrower than its
+ *          pitch is a set of separate byte ranges, one per row. A
+ *          buffer fill command takes one range, so a fill of a hundred
+ *          rows costs a hundred commands for each buffer it reaches. A
+ *          buffer copy command takes a list of regions, and the
+ *          recorder puts up to 64 in one command, so a copy of a
+ *          hundred rows costs a hundred regions in two commands. A
+ *          compute dispatch has no such unit. The queue entries are
+ *          rage128_gpu_2d_fill, rage128_gpu_2d_copy and
+ *          rage128_gpu_2d_blit in vid_ati_rage128_gpu.c, and
+ *          gpu_disp_fills there records one dispatch of this kernel for
+ *          an op that gpu_r2d_ok accepts. The bytes stored must equal
+ *          the ones the buffer commands store, which in turn equal the
+ *          CPU walk's.
+ *
+ *          The kernel knows nothing about pixel depth. A fill arrives
+ *          with its color already repeated to a 32-bit word and with a
+ *          word-aligned address, pitch and row length (the queue side
+ *          only queues such fills as fills), so it stores whole words.
+ *          A copy moves bytes at any alignment.
+ *
+ * Authors: skiretic.
+ *
+ *          Copyright 2026 skiretic.
+ */
+
+layout(local_size_x = 256) in;
+
+/* This kernel has its own descriptor set layout and push-constant range,
+   like the read-modify-write kernel, so the shading kernels' shared
+   layout and every pipeline built on it stay as they are. Binding 0 is
+   the VRAM buffer the guest sees, binding 1 the backend's mirror of it,
+   binding 2 the 2D staging ring. */
+layout(std430, binding = 0) buffer V { uint vram[]; };
+layout(std430, binding = 1) buffer M { uint mir[]; };
+layout(std430, binding = 2) buffer W { uint stg[]; };
+
+/* mode bit 0: 0 = fill, 1 = copy. Bit 1 (fill): store into the mirror as
+   well. Bit 2 (copy): the source is the staging ring, else VRAM. Bit 3
+   (copy): the destination is the staging ring, else VRAM. */
+layout(push_constant) uniform P {
+    uint mode;
+    uint addr;   /* dst byte address of row 0 */
+    uint pitch;  /* dst row stride, bytes (word-aligned when rows > 1) */
+    uint len;    /* row length, bytes */
+    uint rows;
+    uint src;    /* copy: src byte address of row 0 */
+    uint spitch; /* copy: src row stride, bytes; 0 = one row for every row */
+    uint color;  /* fill: the word stored */
+} pc;
+
+uint
+src_byte(uint off)
+{
+    uint w = (pc.mode & 4u) != 0u ? stg[off >> 2] : vram[off >> 2];
+
+    return (w >> ((off & 3u) * 8u)) & 0xffu;
+}
+
+/* One thread per 32-bit destination word of one row, as in the
+   read-modify-write kernel. Two rows never share a word: gpu_r2d_ok
+   accepts a multi-row op only when its pitch is a multiple of 4 and at
+   least the row's span in whole words. The dispatch rounds the thread
+   count up to 256; the extra threads return at the rows check.
+
+   A copy's word that lies wholly inside the row is built from four
+   source bytes and stored. A word at the row's start or end also holds
+   bytes outside the row: it is loaded, only the bytes inside the row
+   are replaced, and it is stored, so the bytes outside keep their
+   values. The queue side orders every other writer of those bytes
+   against this op by whole words (gpu_fill_vranges, gpu_f_add), and it
+   sends a copy whose source and destination share a word through the
+   staging ring, so no thread reads a word that another one stores. */
+void
+main()
+{
+    uint words = ((pc.addr & 3u) + pc.len + 3u) >> 2;
+    uint id    = gl_GlobalInvocationID.x;
+    uint r     = id / words;
+    uint w     = id % words;
+
+    if (r >= pc.rows)
+        return;
+
+    uint row0 = pc.addr + r * pc.pitch;
+    uint wa   = (row0 >> 2) + w;
+
+    if ((pc.mode & 1u) == 0u) {
+        vram[wa] = pc.color;
+        if ((pc.mode & 2u) != 0u)
+            mir[wa] = pc.color;
+        return;
+    }
+
+    uint  wb   = wa << 2;
+    uint  lo   = max(wb, row0);
+    uint  hi   = min(wb + 4u, row0 + pc.len);
+    uint  srow = pc.src + r * pc.spitch;
+    bool  tost = (pc.mode & 8u) != 0u;
+    uint  v    = 0u;
+
+    if (lo != wb || hi != wb + 4u)
+        v = tost ? stg[wa] : vram[wa];
+    for (uint b = lo; b < hi; b++) {
+        uint sh = (b & 3u) * 8u;
+
+        v = (v & ~(0xffu << sh)) | (src_byte(srow + (b - row0)) << sh);
+    }
+    if (tost)
+        stg[wa] = v;
+    else
+        vram[wa] = v;
+}

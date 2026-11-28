@@ -49,7 +49,7 @@ signals:
     void status(const QString &msg);
     /* The selection, as one line for the viewer's status row. */
     void rangeReport(const QString &text);
-    void dumpRequested(uint32_t start, uint32_t len);
+    void dumpRequested(uint32_t start, uint64_t len);
     void disassembleRequested(uint32_t addr);
     void memoryWritten();
 
@@ -135,7 +135,7 @@ private slots:
     void onPoll();
     void onDisasmGo();
     void onDisasmItemActivated(QTreeWidgetItem *item, int column);
-    void onDump(uint32_t start, uint32_t len);
+    void onDump(uint32_t start, uint64_t len);
     void onSearch(bool forward);
     void refreshAll();
     void executeCommand();

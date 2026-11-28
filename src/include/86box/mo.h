@@ -35,7 +35,9 @@ typedef struct mo_type_t {
     uint8_t     medium_type_code; /* In the mode parameter header. */
 } mo_type_t;
 
-#define KNOWN_MO_TYPES 19
+#define KNOWN_MO_TYPES 14
+/* The M.O. disks come first in the table; the rest are Hi-MD discs. */
+#define KNOWN_MO_DISK_TYPES 10
 static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
   // 3.5" standard M.O. disks
     { "3.5\" 128 MB (ISO 10090)", 248826,   512 },
@@ -49,14 +51,6 @@ static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
     { "5.25\" 650 MB",            314568,  1024 },
     { "5.25\" 1 GB",              904995,   512 },
     { "5.25\" 1.3 GB",            637041,  1024 },
-  /* MiniDisc, as Aaru device reports 173, 273 and 324 have them.  The medium type is 03h in reports 273 and
-     324; MDW-60 has none in report 273 and is taken to be the same.  The blocks of a 2336-byte disc are not
-     data: READ only worked on the MMD-140A and, with Hi-MD, on the four Hi-MD formats. */
-    { "MiniDisc (audio)",         45070,   2336, 0x01 },
-    { "MD Data 140 MB (MMD-140A)", 70464,  2048, 0x03 },
-    { "MD 60 min (MDW-60)",       57312,   2336, 0x03 },
-    { "MD 74 min (MDW-74)",       70464,   2336, 0x03 },
-    { "MD 80 min (MDW-80)",       76096,   2336, 0x03 },
   /* Hi-MD: the 1 GB disc and standard discs in Hi-MD format */
     { "Hi-MD 1 GB",               494023,  2048, 0x44 },
     { "Hi-MD on MDW-60",          112311,  2048, 0x00 },
@@ -90,45 +84,41 @@ typedef struct mo_drive_type_t {
 } mo_drive_type_t;
 
 /* The number of a drive type is saved in configuration files, so new types go at the end of the table. */
-#define MO_TYPE_SONY_MDM110 28
-#define MO_TYPE_SONY_MDH10  29
-#define MO_TYPE_SONY_HIMD   30
+#define MO_TYPE_SONY_HIMD   28
 
-#define KNOWN_MO_DRIVE_TYPES 31
+#define KNOWN_MO_DRIVE_TYPES 29
 static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
-    { "86BOX",    "MAGNETO OPTICAL", "1.00", 0, MO_DRIVE_TYPE_SCSI_ATAPI, { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }},
-    { "FUJITSU",  "M2512A",          "1314", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "FUJITSU",  "M25-MCC3064AP",   "0051", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
-    { "FUJITSU",  "M2513-MCC3064SS", "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "FUJITSU",  "MCE3130AP",       "0011", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
-    { "FUJITSU",  "MCE3130SS",       "0070", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "FUJITSU",  "MCF3064AP",       "0030", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
-    { "FUJITSU",  "MCF3064SS",       "0030", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "FUJITSU",  "MCF3064UB",       "0030", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* USB */
-    { "FUJITSU",  "MCJ3230AP-S",     "0030", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
-    { "FUJITSU",  "MCJ3230SS-S",     "0030", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "FUJITSU",  "MCJ3230UB-S",     "0040", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* USB */
-    { "HP",       "S6300.65",        "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "HP",       "C1716C",          "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "0632AAA",         "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "0632CHC",         "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "0632CHX",         "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "MD3125A",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "MD3125B",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "MTA-3127",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "IBM",      "MTA-3230",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "MATSHITA", "LF-3000",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "MOST",     "RMD-5100",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "RICOH",    "RO-5031E",        "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "SONY",     "SMO-C301",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "SONY",     "SMO-C501",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "TEAC",     "OD-3000",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    { "TOSHIBA",  "OD-D300",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
-    /* SONY MD Data and Hi-MD: Aaru device reports 324, 273 and 173.  Report 173 is a USB Walkman, kept here as SCSI
-       like the other USB drives. */
-    { "SONY",     "MDM110",          "1.01", 11, MO_DRIVE_TYPE_SCSI,      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 }},
-    { "SONY",     "MDH-10",          "1.11", 11, MO_DRIVE_TYPE_SCSI,      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 }},
-    { "SONY",     "Hi-MD WALKMAN",   "1000", 15, MO_DRIVE_TYPE_SCSI,      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 }},
+    { "86BOX",    "MAGNETO OPTICAL", "1.00", 0, MO_DRIVE_TYPE_SCSI_ATAPI, { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }},
+    { "FUJITSU",  "M2512A",          "1314", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "M25-MCC3064AP",   "0051", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
+    { "FUJITSU",  "M2513-MCC3064SS", "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCE3130AP",       "0011", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
+    { "FUJITSU",  "MCE3130SS",       "0070", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCF3064AP",       "0030", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
+    { "FUJITSU",  "MCF3064SS",       "0030", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCF3064UB",       "0030", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* USB */
+    { "FUJITSU",  "MCJ3230AP-S",     "0030", 0, MO_DRIVE_TYPE_ATAPI,      { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
+    { "FUJITSU",  "MCJ3230SS-S",     "0030", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCJ3230UB-S",     "0040", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 }}, /* USB */
+    { "HP",       "S6300.65",        "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0 }},
+    { "HP",       "C1716C",          "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0 }},
+    { "IBM",      "0632AAA",         "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0 }},
+    { "IBM",      "0632CHC",         "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0 }},
+    { "IBM",      "0632CHX",         "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0 }},
+    { "IBM",      "MD3125A",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "IBM",      "MD3125B",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "IBM",      "MTA-3127",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "IBM",      "MTA-3230",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "MATSHITA", "LF-3000",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "MOST",     "RMD-5100",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "RICOH",    "RO-5031E",        "1.00", 6, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0 }},
+    { "SONY",     "SMO-C301",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "SONY",     "SMO-C501",        "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0 }},
+    { "TEAC",     "OD-3000",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "TOSHIBA",  "OD-D300",         "1.00", 0, MO_DRIVE_TYPE_SCSI,       { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    /* SONY Hi-MD: Aaru device report 173, a USB Walkman, kept here as SCSI like the other USB drives. The MD DATA
+       drives are not M.O. drives, see md.h. */
+    { "SONY",     "Hi-MD WALKMAN",   "1000", 10, MO_DRIVE_TYPE_SCSI,      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 }},
 };
 
 typedef struct mo_drive_t {
@@ -149,7 +139,7 @@ typedef struct mo_drive_t {
     uint8_t            read_only; /* Struct variable reserved for
                                      media status. */
     uint8_t            pad;
-    uint8_t            pad0;
+    uint8_t            folder_image; /* the medium was built from a folder or an archive */
 
     FILE              *fp;
     void              *priv;
@@ -236,6 +226,9 @@ extern void mo_hard_reset(void);
 extern void mo_reset(scsi_common_t *sc);
 extern int  mo_is_empty(const uint8_t id);
 extern void mo_load(const mo_t *dev, const char *fn, const int skip_insert);
+/* Mounts a folder or an archive and returns a fat_image_result_t; if left_out isn't NULL, it gets the
+   FAT_IMAGE_LEFT_OUT_* flags of what didn't fit. */
+extern int  mo_mount_folder(mo_t *dev, const char *fn, const int skip_insert, int *left_out);
 extern void mo_close(void);
 
 #ifdef __cplusplus

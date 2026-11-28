@@ -53,6 +53,10 @@ typedef struct codeblock_t {
 
     uint64_t  page_mask, page_mask2;
     uint64_t *dirty_mask, *dirty_mask2;
+    /*While the current code has the entry check (CODEBLOCK_CHECKED): the
+      two dirty words of its chunks, which writes still set and the link
+      routine tests with page_mask and page_mask2; otherwise NULL*/
+    uint64_t *chk_dirty;
 
     /*Previous and next pointers, for the codeblock list associated with
       each physical page. Two sets of pointers, as a codeblock can be
@@ -83,6 +87,19 @@ typedef struct codeblock_t {
       rewritten often does not keep other code on its page from compiling.*/
     uint8_t  smc_strikes;
     uint64_t smc_cooldown_until;
+
+    /*A second link for each of the two page lists: to the page's blocks
+      whose dirty test reads the dirty bits of the same 64-byte chunk
+      (chunk_key), or to the page's other blocks (chunk_key 64), so that a
+      flush visits only the blocks over dirty chunks. chunk_lists is the
+      page's entry in the table of those lists. list_stamp grows with every
+      listing: the page lists, filled at the head, are in falling list_stamp
+      order.*/
+    uint32_t chunk_prev, chunk_next;
+    uint32_t chunk_prev_2, chunk_next_2;
+    uint32_t chunk_lists, chunk_lists_2;
+    uint8_t  chunk_key, chunk_key_2;
+    uint64_t list_stamp;
 } codeblock_t;
 
 /*Keep the cutoff below the measured break-even point for fragmented SMC
@@ -104,6 +121,9 @@ extern uint32_t *codeblock_hash;
 
 extern uint8_t *block_write_data;
 
+extern int     codegen_timing_peek;
+extern uint8_t codegen_peekb(uint32_t addr);
+
 
 /*Code block uses FPU*/
 #define CODEBLOCK_HAS_FPU 1
@@ -123,6 +143,10 @@ extern uint8_t *block_write_data;
 #define CODEBLOCK_NO_IMMEDIATES 0x80
 /*Code block is on the block list of its first page*/
 #define CODEBLOCK_IN_PAGE_LIST 0x100
+/*Code block is compiled with an entry check: while its current code has one,
+  writes do not mark it and the check compares its bytes with memory on every
+  entry instead (CODEGEN_BACKEND_HAS_ENTRY_CHECK)*/
+#define CODEBLOCK_CHECKED 0x200
 
 #define BLOCK_PC_INVALID        0xffffffff
 
@@ -379,6 +403,8 @@ extern void codegen_block_start_recompile(codeblock_t *block);
 extern void codegen_block_end_recompile(codeblock_t *block);
 extern int  codegen_block_restore_version(codeblock_t *block);
 extern void codegen_block_version_check_ins(uint32_t addr);
+extern int  codegen_block_check(codeblock_t *block);
+extern int  codegen_block_put_back(codeblock_t *block);
 extern void codegen_block_end(void);
 extern void codegen_delete_block(codeblock_t *block);
 extern void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
@@ -393,6 +419,25 @@ extern void codegen_check_seg_write(codeblock_t *block, struct ir_data_t *ir, x8
 extern void codegen_check_regs(void);
 
 extern int codegen_purge_purgable_list(void);
+
+/*The entry check the backend puts in front of the block being compiled: the
+  two dirty words of the block's chunks, dirty[0] and dirty[1], tested with
+  dirty_bits[0] and dirty_bits[1] (written since: as a block marked by writes
+  and dirty, it goes to the C loop); then nr words of its two chunks, at their
+  host address in the mapping exec (as read from exec_slot) plus offset, each
+  compared as (word ^ chk[2n]) & chk[2n + 1], word[n] words from that address.
+  nr 0 is no check.*/
+typedef struct codegen_entry_check_t {
+    const uint64_t *dirty;
+    uint64_t        dirty_bits[2];
+    uint8_t       **exec_slot;
+    const uint8_t  *exec;
+    uint32_t        offset;
+    int             nr;
+    const uint8_t  *word;
+    const uint64_t *chk;
+} codegen_entry_check_t;
+extern codegen_entry_check_t codegen_entry_check;
 /*Delete a random code block to free memory. This is obviously quite expensive, and
   will only be called when the allocator is out of memory*/
 extern void codegen_delete_random_block(int required_mem_block);
@@ -463,6 +508,28 @@ extern uint32_t op_old_pc;
 extern int codegen_flags_changed;
 /*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
 extern void codegen_flags_known_reset(void);
+/*An inline flags rebuild of the block: its uops start..end-1 and the bits of
+  flags it writes*/
+typedef struct codegen_flags_inline_t {
+    int      start;
+    int      end;
+    uint16_t written;
+} codegen_flags_inline_t;
+extern int codegen_flags_inline_sites(const codegen_flags_inline_t **sites);
+/*A flag read compiled as one uop in place of the one uop calling func: the
+  bits of flags the call reads as the dead flags pass sees it, and the uop
+  that set the flags op it was compiled for when an unrolled copy whose loop
+  starts after that uop must call func instead (-1 otherwise). pair: the uop
+  writes 16 bits of its register and the next uop, a CMP_IMM_JZ/JNZ_DEST,
+  tests them; a copy that calls func tests the whole result instead*/
+typedef struct codegen_flags_read_t {
+    int      uop;
+    uint16_t read;
+    int      producer;
+    void    *func;
+    int      pair;
+} codegen_flags_read_t;
+extern int codegen_flags_read_sites(const codegen_flags_read_t **sites);
 
 /*Set while the block being recompiled is a V86 block entered with every
   segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep

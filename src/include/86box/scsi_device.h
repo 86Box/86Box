@@ -51,6 +51,21 @@
 #define GPCMD_FORMAT_UNIT                             0x04
 #define GPCMD_RESERVE_TRACK                           0x53
 #define GPCMD_SEND_OPC                                0x54
+#define GPCMD_READ_OPC_INFO_PHILIPS                   0xd2 /* Philips Vendor Unique commands */
+#define GPCMD_WRITE_OPC_INFO_PHILIPS                  0xd3
+#define GPCMD_FIRST_WRITABLE_ADDRESS_PHILIPS          0xe2
+#define GPCMD_FORMAT_TRACK_PHILIPS                    0xe3
+#define GPCMD_RESERVE_TRACK_PHILIPS                   0xe4
+#define GPCMD_READ_TRACK_INFO_PHILIPS                 0xe5
+#define GPCMD_WRITE_TRACK_PHILIPS                     0xe6
+#define GPCMD_MEDIUM_LOAD_UNLOAD_PHILIPS              0xe7
+#define GPCMD_FINISH_TRACK_PHILIPS                    0xe8
+#define GPCMD_FIXATION_PHILIPS                        0xe9
+#define GPCMD_UPDATE_PMA_PHILIPS                      0xea
+#define GPCMD_SEND_ABSORPTION_ERRORS_PHILIPS          0xeb
+#define GPCMD_RECOVER_PHILIPS                         0xec
+#define GPCMD_WRITE_SESSION_PHILIPS                   0xed
+#define GPCMD_READ_SESSION_INFO_PHILIPS               0xee
 #define GPCMD_BLANK                                   0xa1
 #define GPCMD_READ_BLOCK_LIMITS                       0x05
 #define GPCMD_IOMEGA_SENSE                            0x06
@@ -106,19 +121,23 @@
 #define GPCMD_READ_DISC_INFORMATION                   0x51
 #define GPCMD_READ_TRACK_INFORMATION                  0x52
 #define GPCMD_MODE_SELECT_10                          0x55
+#define GPCMD_REPAIR_TRACK                            0x58
 #define GPCMD_MODE_SENSE_10                           0x5a
 #define GPCMD_CLOSE_TRACK_SESSION                     0x5b
 #define GPCMD_READ_BUFFER_CAPACITY                    0x5c
 #define GPCMD_SEND_CUE_SHEET                          0x5d
 #define GPCMD_PLAY_AUDIO_12                           0xa5
+#define GPCMD_SET_READ_AHEAD                          0xa7 /* For streaming */
 #define GPCMD_READ_12                                 0xa8
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12            0xa9
 #define GPCMD_WRITE_12                                0xaa
 #define GPCMD_ERASE_12                                0xac
+#define GPCMD_GET_PERFORMANCE                         0xac /* For streaming */
 #define GPCMD_READ_DVD_STRUCTURE                      0xad /* For reading. */
 #define GPCMD_WRITE_AND_VERIFY_12                     0xae
 #define GPCMD_VERIFY_12                               0xaf
 #define GPCMD_PLAY_CD_OLD                             0xb4
+#define GPCMD_SET_STREAMING                           0xb6 /* For streaming */
 #define GPCMD_READ_CD_OLD                             0xb8 /* Should be equivalent to 0xbe */
 #define GPCMD_READ_CD_MSF                             0xb9
 #define GPCMD_AUDIO_SCAN                              0xba
@@ -201,6 +220,12 @@
 #define GPMODE_DATA_COMPRESS_PAGE          0x0f
 #define GPMODE_DEVICE_CONFIG_PAGE          0x10
 #define GPMODE_MEDIUM_PARTITION_PAGE       0x11
+#define GPMODE_SUBHEADER_PAGE_PHILIPS      0x20
+#define GPMODE_WRITE_TRACK_PAGE_PHILIPS    0x21
+#define GPMODE_CATALOGUE_PAGE_PHILIPS      0x22
+#define GPMODE_SPEED_PAGE_PHILIPS          0x23
+#define GPMODE_INCREMENT_PAGE_PHILIPS      0x24
+#define GPMODE_INCREMENT_EXT_PAGE_PHILIPS  0x25
 #define GPMODE_CAPABILITIES_PAGE           0x2a
 #define GPMODE_IOMEGA_PAGE                 0x2f
 #define GPMODE_UNK_VENDOR_PAGE             0x30
@@ -395,7 +420,7 @@
 #define MODE_SELECT_PHASE_PAGE        4
 
 typedef struct mode_sense_pages_t {
-    uint8_t            pages[0x40][0x40];
+    uint8_t            pages[0x40][0xc8];
 } mode_sense_pages_t;
 
 /* This is so we can access the common elements to all SCSI device structs

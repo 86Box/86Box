@@ -128,8 +128,12 @@ extern void sound_in_remove_handler(void (*put_buffer)(int16_t *buffer,
                                                         int len, void *priv),
                                     void *priv);
 
+struct pc_timer_t;
+extern uint64_t sound_poll_offset_delay(struct pc_timer_t *timer, uint64_t latch);
+
 extern void sound_in_start_input(void);
 extern void sound_in_stop_input(void);
+extern void sound_in_set_test_tone(double hz, double dbfs); /* automation "audio tone" */
 
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
@@ -293,6 +297,7 @@ extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
 extern const device_t sb_awe64_ide_device;
 extern const device_t sb_awe64_gold_device;
+extern const device_t sb_awe64d_device;
 
 /* Crystal CS423x */
 extern const device_t cs4232_device;
@@ -330,12 +335,18 @@ extern const device_t ess_solo1_onboard_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;
+/* Aureal Vortex 2 */
+extern const device_t vortex2_device;
+
 extern const device_t es1371_device;
 extern const device_t es1371_onboard_device;
 extern const device_t es1373_device;
 extern const device_t es1373_onboard_device;
 extern const device_t ct5880_device;
 extern const device_t ct5880_onboard_device;
+
+/* Ensoniq Soundscape */
+extern const device_t sscape_device;
 
 /* Gravis UltraSound family */
 extern const device_t gus_device;
@@ -349,6 +360,12 @@ extern const device_t gus_pnp_device;
 extern const device_t gus_pnp_new_device;
 extern const device_t gus_pnp_nocd_device;
 extern const device_t gus_pnp_compaq_device;
+
+/* IBM M-ACPA/A (Audio Capture & Playback Adapter) */
+extern const device_t acpa_mca_device;
+
+/* IBM PS/2 Speech Adapter */
+extern const device_t ibm_speech_device;
 
 /* IBM Music Feature Card */
 extern const device_t imfc_device;

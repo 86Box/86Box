@@ -739,7 +739,11 @@ pcjs_load(void *priv, char *fn)
 
     d86f_common_handlers(drv);
 
-    drv->seek = pcjs_seek;
+    const fdd_format_t ops = {
+        .seek = pcjs_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
 }
 

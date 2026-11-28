@@ -246,11 +246,13 @@ extern void lapic_index_board_reset(uint8_t index);
 static int reset_init;
 
 /* Common reset function. */
+#ifdef USE_DYNAREC
 /* 1 soft, 2 hard: a reset raised inside a recompiled block, done once the
    block has returned (x86_reset_deferred), with the sources of its soft
    resets */
 static int reset_deferred;
 static int reset_deferred_src;
+#endif
 
 /* A 387 beside the CPU, taken through RESET with it by the board. It comes
    out as FNINIT leaves it, but with IM clear and IE, ES and B set (80387
@@ -522,11 +524,12 @@ reset_common(int hard, int src)
     if (is_gxm)
         cpu_gxm_reset();
 
-    if (reset_init)
-        /* INIT leaves CD and NW, and sets ET (Pentium Vol. 3, Table 16-1,
-           note 2). */
-        cr0 = (cr0 & 0x60000000) | 0x10;
-    else if (hascache)
+    /* INIT is specified to leave CD and NW (Pentium Vol. 3, Table
+       16-1 note 2.  In 86Box this breaks IDE soft-reset/warmboot (the
+       internal cache model is only a timing switch and the IDE path
+       is sensitive to the preserved state).  Force the RESET values
+       instead; other INIT preserves (MSRs, FPU) remain. */
+    if (hascache)
         /* CD, NW and ET: "The state of control register CR0 is 60000010H"
            after reset on the Intel486 and later (SDM 1999 vol. 3, 8.1.1) */
         cr0 = 0x60000010;
@@ -767,4 +770,10 @@ fpu_postamble(void)
     }
 
     cpu_state.fpu_ea = cpu_state.eaaddr;
+}
+
+void
+x86_sub_cycles(int cycs)
+{
+    cycles -= cycs;
 }

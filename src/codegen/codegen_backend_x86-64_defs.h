@@ -61,6 +61,12 @@ extern void *codegen_mem_load_double;
 extern void *codegen_mem_store_byte;
 extern void *codegen_mem_store_word;
 extern void *codegen_mem_store_long;
+/*Entries of the byte / word / long store routines behind their writelookup2
+  test, for a block's store that missed it or is misaligned (NULL under
+  USE_GDBSTUB)*/
+extern void *codegen_mem_store_byte_tracked;
+extern void *codegen_mem_store_word_tracked;
+extern void *codegen_mem_store_long_tracked;
 extern void *codegen_mem_store_quad;
 extern void *codegen_mem_store_single;
 extern void *codegen_mem_store_double;
@@ -78,3 +84,11 @@ void codegen_mem_slow_reset(void);
 void codegen_mem_slow_emit(codeblock_t *block);
 /*REP MOVS/STOS routines, indexed by [STOS][log2 element size][32-bit addressing]*/
 extern void *codegen_rep_rout[2][3][2];
+/*Protected-mode loads of DS, ES, FS, GS and SS (seg_load_cache), in that order*/
+extern void *codegen_load_seg_rout[5];
+/*Protected-mode RETF at the same level (cs_load_cache), indexed by
+  [32-bit operand][32-bit stack]*/
+extern void *codegen_retf_rout[2][2];
+/*Protected-mode CALL far at the same level (cs_load_cache), indexed by
+  [32-bit operand][32-bit stack]*/
+extern void *codegen_call_far_rout[2][2];

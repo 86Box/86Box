@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-06 17:16+0000\n"
+"PO-Revision-Date: 2026-11-25 14:05+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -48,10 +48,13 @@ msgstr "&Προβολή"
 msgid "&Hide status bar"
 msgstr "&Απόκρυψη γραμμής κατάστασης"
 
+msgid "Show US&B activity"
+msgstr "Εμφάνιση δραστηριότητας US&B"
+
 msgid "Hide &toolbar"
 msgstr "Απόκρυψη &γραμμής εργαλείων"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Προσαρμόσιμο παράθυρο"
 
 msgid "R&emember size && position"
@@ -80,6 +83,9 @@ msgstr "Ορισμός &διαστάσεων…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Εξαναγκασμός &αναλογίας οθόνης 4:3"
+
+msgid "Force &machine display ratio"
+msgstr "Επιβολή αναλογίας οθόνης &μηχανής"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Εξαναγκασμός &αναλογίας οθόνης &%1:%2"
@@ -157,7 +163,7 @@ msgid "4:3 Cen&ter"
 msgstr "4:3 Κέν&τρο"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Κλιμάκωση ακέραιου πολλαπλασίου 4:3 (&κατακόρυφη)"
 
 msgid "Inverted VGA monitor"
 msgstr "Αντεστραμμένο VGA monitor"
@@ -246,6 +252,42 @@ msgstr "&Προτιμήσεις…"
 msgid "Sound &gain…"
 msgstr "&Ενίσχυση ήχου…"
 
+msgid "M&IDI output device"
+msgstr "Συσκευή εξόδου M&IDI"
+
+msgid "Restart &device"
+msgstr "Επανεκκίνηση &συσκευής"
+
+msgid "Send MIDI &command"
+msgstr "Αποστολή &εντολής MIDI"
+
+msgid "&GM System On"
+msgstr "Σύστημα &GM Ενεργό"
+
+msgid "G&S Reset"
+msgstr "Επαναφορά G&S"
+
+msgid "&XG System On"
+msgstr "Σύστημα &XG Ενεργό"
+
+msgid "&MT-32 Reset"
+msgstr "Επαναφορά &MT-32"
+
+msgid "All &notes off"
+msgstr "Όλες οι &νότες απενεργοποιημένες"
+
+msgid "Show MIDI &LCD"
+msgstr "Εμφάνιση MIDI &LCD"
+
+msgid "MIDI LCD"
+msgstr "MIDI LCD"
+
+msgid "Always on &top"
+msgstr "Πάντα στο &προσκήνιο"
+
+msgid "&Close"
+msgstr "&Κλείσιμο"
+
 msgid "Begin trace"
 msgstr "Αρχλη καταγραφής"
 
@@ -300,8 +342,8 @@ msgstr "&Κενό"
 msgid "Reload previous image"
 msgstr "Επαναφώρτωση προηγύμενης εικόνας"
 
-msgid "&Folder…"
-msgstr "&Φάκελος…"
+msgid "Mount &folder…"
+msgstr "Προσάρτηση &φακέλου…"
 
 msgid "Preferences"
 msgstr "Προτιμήσεις"
@@ -311,6 +353,12 @@ msgstr "Ενίσχυση Ήχου"
 
 msgid "New Image"
 msgstr "Δημιουργία εικόνας"
+
+msgid "Removable disk type:"
+msgstr "Τύπος αφαιρούμενου δίσκου:"
+
+msgid "MO type:"
+msgstr "Τύπος MO:"
 
 msgid "Settings"
 msgstr "Ρυθμίσεις"
@@ -405,6 +453,23 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "FPU:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+"Συνεπεξεργαστής κινητής υποδιαστολής χαρτογραφημένος στη μνήμη στη διεύθυνση "
+"C0000000h. Τα συμβατά προγράμματα μπορούν να τον χρησιμοποιήσουν παράλληλα ή "
+"αντί για έναν 387."
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr "Συνεπεξεργαστής Weitek WTL 3167"
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+"Συνεπεξεργαστής κινητής υποδιαστολής χαρτογραφημένος στη μνήμη, στη "
+"διεύθυνση C0000000h, για λογισμικό συμβατό με 486."
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr "Συνεπεξεργαστής Weitek WTL 4167"
+
 msgid "Internal"
 msgstr "Ενσωματωμένο"
 
@@ -413,6 +478,15 @@ msgstr "Καταστάσεις αναμονής:"
 
 msgid "MB"
 msgstr "MB"
+
+msgid "GB"
+msgstr "GB"
+
+msgid "%1 MB"
+msgstr "%1 MB"
+
+msgid "%1 GB"
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Μνήμη:"
@@ -452,6 +526,12 @@ msgstr "Χρησιμοποιήστε τον διερμηνέα 486 για επε
 
 msgid "Dynamic recompiler"
 msgstr "Δυναμικός αναμεταγλωττιστής"
+
+msgid "Dynamic recompiler is active"
+msgstr "Ο δυναμικός επαναμεταγλωττιστής είναι ενεργός"
+
+msgid "Dynamic recompiler is inactive"
+msgstr "Ο δυναμικός επαναμεταγλωττιστής είναι ανενεργός"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμεταγλωττιστή"
@@ -689,6 +769,32 @@ msgstr "Δίαυλος:"
 msgid "Channel:"
 msgstr "Κανάλι:"
 
+msgid "%1 (Onboard)"
+msgstr "%1 (Ενσωματωμένο)"
+
+msgid "(none)"
+msgstr "(κανένα)"
+
+msgid "Onboard"
+msgstr "Ενσωματωμένο"
+
+msgid "%1: no free channels"
+msgstr "%1: δεν υπάρχουν ελεύθερα κανάλια"
+
+msgid "%1: channels %2 in use"
+msgstr "%1: κανάλια %2 σε χρήση"
+
+msgid "IDE Conflict"
+msgstr "Διένεξη IDE"
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+"Αυτοί οι ελεγκτές IDE χρειάζονται κανάλια που χρησιμοποιούνται ήδη από άλλη "
+"συσκευή και δεν θα λειτουργήσουν:"
+
+msgid "Do you want to save the configuration anyway?"
+msgstr "Θέλετε να αποθηκεύσετε τη διαμόρφωση ούτως ή άλλως;"
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -767,6 +873,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "Οδηγοί MO"
 
+msgid "MD DATA drives"
+msgstr "Οδηγοί MD DATA"
+
 msgid "MO:"
 msgstr "MO:"
 
@@ -785,8 +894,8 @@ msgstr "Οδηγοί ταινίας:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Επέκταση Μνήμης ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Επέκταση Μνήμης ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Κάρτες ROM ISA"
@@ -805,6 +914,29 @@ msgstr "Κάρτα 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "Γενική ISA ROM πλακέτα"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+"Δεν βρέθηκαν συσκευές. Βεβαιωθείτε ότι το VT-d ή το IOMMU είναι "
+"ενεργοποιημένο στο σύστημά σας."
+
+msgid "Custom ROM:"
+msgstr "Προσαρμοσμένη ROM:"
+
+msgid "Group"
+msgstr "Ομάδα"
+
+msgid "Location"
+msgstr "Τοποθεσία"
+
+msgid "Name"
+msgstr "Όνομα"
+
+msgid "ROM images"
+msgstr "Εικόνες ROM"
+
+msgid "Unknown device"
+msgstr "Άγνωστη συσκευή"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Γενική Διπλή ISA ROM πλακέτα"
@@ -857,6 +989,9 @@ msgstr "Το %1 δεν μπόρεσε να εντοπίσει καμία ROM.\n\
 msgid "(empty)"
 msgstr "(κενό)"
 
+msgid "(not available)"
+msgstr "(μη διαθέσιμο)"
+
 msgid "All files"
 msgstr "Όλα τα αρχεία"
 
@@ -902,8 +1037,17 @@ msgstr "&Συσκευή εισόδου"
 msgid "Sound"
 msgstr "Ήχος"
 
+msgid "%1 (not detected)"
+msgstr "%1 (δεν εντοπίστηκε)"
+
+msgid "%1 Hz (host will resample)"
+msgstr "%1 Hz (ο κεντρικός υπολογιστής θα κάνει επαναδειγματοληψία)"
+
 msgid "Network"
 msgstr "Δίκτυο"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr "Λήψη IPv4 και ARP ως 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
@@ -973,6 +1117,59 @@ msgstr "Άλλες αφαιρούμενες συσκευές"
 
 msgid "Other peripherals"
 msgstr "Άλλα περιφερειακά"
+
+msgid "empty"
+msgstr "κενό"
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr "CompactFlash: %1 (προστασία εγγραφής)"
+
+msgid "CompactFlash: %1"
+msgstr "CompactFlash: %1"
+
+msgid "Empty (take the card out)"
+msgstr "Άδειο (αφαιρέστε την κάρτα)"
+
+msgid "CompactFlash"
+msgstr "CompactFlash"
+
+msgid "&New CompactFlash card…"
+msgstr "&Δημιουργία κάρτας CompactFlash…"
+
+msgid "New CompactFlash card"
+msgstr "Δημιουργία κάρτας CompactFlash"
+
+msgid "Insert CompactFlash card"
+msgstr "Εισαγωγή κάρτας CompactFlash"
+
+msgid "&Remove CompactFlash card"
+msgstr "&Αφαίρεση κάρτας CompactFlash"
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr "Δεν ήταν δυνατή η χρήση του %1 ως εικόνας CompactFlash."
+
+msgid "PCMCIA"
+msgstr "PCMCIA"
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr "Ελεγκτής PC Card (Cirrus Logic CL-PD6722, ISA, θύρες 3E0h-3E1h)"
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+"Ένας ελεγκτής PC Card (PCMCIA), συμβατός με τον Intel 82365SL, που διαθέτει "
+"δύο υποδοχές, συναντάται σε φορητούς υπολογιστές καθώς και σε κάρτες "
+"προσαρμογέα PC Card.\n"
+"Οι υπηρεσίες καρτών και υποδοχών (card and socket services) στο DOS, καθώς "
+"και τα Windows 95/98 και το Linux (i82365), τον εντοπίζουν."
+
+msgid "Network:"
+msgstr "Δίκτυο:"
+
+msgid "Socket %1"
+msgstr "Socket %1"
+
+msgid "Socket %1: %2"
+msgstr "Socket %1: %2"
 
 msgid "Other devices"
 msgstr "Άλλες συσκευές"
@@ -1143,11 +1340,23 @@ msgstr "&MO %1 (%2): %3"
 msgid "MO images"
 msgstr "Εικόνες MO"
 
+msgid "MD DATA images"
+msgstr "Εικόνες MD DATA"
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr "&MD DATA %1 (%2): %3"
+
+msgid "MD DATA %1 (%2): %3"
+msgstr "MD DATA %1 (%2): %3"
+
 msgid "Welcome to 86Box!"
 msgstr "Καλως ορίσατε στο 86Box!"
 
 msgid "Internal device"
 msgstr "Εσωτερική συσκευή"
+
+msgid "External"
+msgstr "Εξωτερικός"
 
 msgid "&File"
 msgstr "&Αρχείο"
@@ -1169,6 +1378,108 @@ msgstr "Έξοδος"
 
 msgid "No ROMs found"
 msgstr "Δεν βρέθηκαν ROMs"
+
+msgid "Unsupported Hardware"
+msgstr "Μη υποστηριζόμενο υλικό"
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+"Το υλικό σε αυτό το προφίλ μηχανής δεν υποστηρίζεται από την τρέχουσα έκδοση "
+"του 86Box."
+
+msgid "(and %i others)"
+msgstr "(και %i ακόμη)"
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+"Η φόρτωση της διαμόρφωσης ούτως ή άλλως θα αντικαταστήσει την μηχανή και θα "
+"εγγράψει πάνω από την υπάρχουσα διαμόρφωση."
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+"Η φόρτωση της διαμόρφωσης ούτως ή άλλως θα αφαιρέσει αυτά τα στοιχεία και θα "
+"εγγράψει πάνω από την υπάρχουσα διαμόρφωση."
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+"Η φόρτωση της διαμόρφωσης ούτως ή άλλως θα αντικαταστήσει την μηχανή, θα "
+"αφαιρέσει αυτά τα στοιχεία και θα εγγράψει πάνω από την υπάρχουσα διαμόρφωση."
+
+msgid "Do you want to continue?"
+msgstr "Επιθυμείτε να συνεχίσετε?"
+
+msgid "Machine type \"%s\""
+msgstr "Τύπος μηχανής \"%s\""
+
+msgid "Video card \"%s\""
+msgstr "Κάρτα γραφικών \"%s\""
+
+msgid "Keyboard \"%s\""
+msgstr "Πληκτρολόγιο \"%s\""
+
+msgid "Mouse \"%s\""
+msgstr "Ποντίκι \"%s\""
+
+msgid "Tablet \"%s\""
+msgstr "Ταμπλέτα \"%s\""
+
+msgid "Joystick \"%s\""
+msgstr "Χειριστήριο \"%s\""
+
+msgid "Sound card \"%s\""
+msgstr "Κάρτα ήχου \"%s\""
+
+msgid "MIDI output device \"%s\""
+msgstr "Συσκευή εξόδου MIDI \"%s\""
+
+msgid "MIDI input device \"%s\""
+msgstr "Συσκευή εισόδου MIDI \"%s\""
+
+msgid "Network card \"%s\""
+msgstr "Κάρτα δικτύου \"%s\""
+
+msgid "Serial port device \"%s\""
+msgstr "Συσκευή σειριακής θύρας \"%s\""
+
+msgid "Parallel port device \"%s\""
+msgstr "Συσκευή παράλληλης θύρας \"%s\""
+
+msgid "Game port \"%s\""
+msgstr "Θύρα παιχνιδιών \"%s\""
+
+msgid "SCSI card \"%s\""
+msgstr "Κάρτα SCSI \"%s\""
+
+msgid "Floppy controller \"%s\""
+msgstr "Ελεγκτής δισκέτας \"%s\""
+
+msgid "Disk controller \"%s\""
+msgstr "Ελεγκτής δίσκου \"%s\""
+
+msgid "CD-ROM interface \"%s\""
+msgstr "Διεπαφή CD-ROM \"%s\""
+
+msgid "Memory expansion card \"%s\""
+msgstr "Κάρτα επέκτασης μνήμης \"%s\""
+
+msgid "ROM expansion card \"%s\""
+msgstr "Κάρτα επέκτασης ROM \"%s\""
+
+msgid "RTC card \"%s\""
+msgstr "Κάρτα RTC \"%s\""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+"Η εικόνα \"%s\" υπερβαίνει τη μέγιστη χωρητικότητα αυτής της μονάδας δίσκου "
+"και θα αγνοηθεί."
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr "%s δεν συνδέθηκε: όλες οι θύρες USB αυτής της μηχανής είναι σε χρήση."
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
+"%s δεν συνδέθηκε: αυτό το μηχάνημα δεν διαθέτει ελεγκτή USB που να μπορεί να "
+"δεχθεί συσκευές."
 
 msgid "Do you want to save the settings?"
 msgstr "Επιθυμείτε να αποθηκεύσετε τις ρυθμίσεις;"
@@ -1193,6 +1504,24 @@ msgstr "Να μην ξαναεμφανιστεί αυτό το μήνυμα"
 
 msgid "CD-ROM images"
 msgstr "Εικόνες CD-ROM"
+
+msgid "&New CD-R image…"
+msgstr "&Δημιουργία εικόνας CD-R…"
+
+msgid "New CD-R&W image…"
+msgstr "Δημιουργία εικόνας CD-R&W…"
+
+msgid "CD-RW image"
+msgstr "Εικόνα CD-RW"
+
+msgid "CD-R image"
+msgstr "Εικόνα CD-R"
+
+msgid "Aaru images"
+msgstr "Εικόνες Aaru"
+
+msgid "Unable to create image"
+msgstr "Αδυναμία δημιουργίας εικόνας"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Προσαρμογή Συσκευής"
@@ -1352,7 +1681,7 @@ msgstr "Χρήση %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] "%n ενεργή(ές) μηχανή(ές)"
+msgstr[0] "%n ενεργή μηχανή"
 msgstr[1] "%n ενεργές μηχανές"
 
 msgid " (+%n more)"
@@ -1575,17 +1904,20 @@ msgstr "Ήχος:"
 msgid "ACPI shutdown"
 msgstr "Τερματισμός ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Τερματισμός ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Τερματισμός &ACPI"
 
 msgid "Power off"
 msgstr "Απενεργοποίηση"
 
-msgid "Power &off…"
-msgstr "&Απενεργοποίηση…"
-
 msgid "Power &off"
 msgstr "&Απενεργοποίηση"
+
+msgid "Suspen&d"
+msgstr "&Αναστολή"
+
+msgid "Suspend"
+msgstr "Αναστολή"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -1596,10 +1928,10 @@ msgid "Hard disk (%1)"
 msgstr "Σκληρός δίσκος (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "LED πλακέτας"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "LED πλακέτας %1"
 
 msgid "Custom…"
 msgstr "Προσαρμογή…"
@@ -2087,6 +2419,9 @@ msgstr "Πληκτρολόγιο PS/2"
 msgid "PS/55 Keyboard"
 msgstr "Πληκτρολόγιο PS/55"
 
+msgid "USB Keyboard"
+msgstr "Πληκτρολόγιο USB"
+
 msgid "Keys"
 msgstr "Πλήκτρα"
 
@@ -2117,8 +2452,14 @@ msgstr "Ποντίκι PS/2"
 msgid "PS/2 QuickPort Mouse"
 msgstr "Ποντίκι PS/2 QuickPort"
 
+msgid "USB Mouse"
+msgstr "Ποντίκι USB"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (Σειριακό)"
+
+msgid "USB Tablet"
+msgstr "Ταμπλέτα USB"
 
 msgid "Default Baud rate"
 msgstr "Προεπιλεγμένος ρυθμός Baud"
@@ -2143,6 +2484,9 @@ msgstr "Θυγατρική κάρτα OPL4-ML"
 
 msgid "System MIDI"
 msgstr "MIDI συστήματος"
+
+msgid "USB Speaker"
+msgstr "Ηχείο USB"
 
 msgid "MIDI Input Device"
 msgstr "Συσκευή Εισαγωγής MIDI"
@@ -2517,7 +2861,7 @@ msgid "Snow emulation"
 msgstr "Εξομοίωση εφέ \"χιονιού\""
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "Πλακέτα Βελτίωσης Απεικόνισης (GO329)"
 
 msgid "Monitor type"
 msgstr "Τύπος οθόνης"
@@ -2578,6 +2922,9 @@ msgstr "SLI"
 
 msgid "Start Address"
 msgstr "Διεύθυνση εκκίνησης"
+
+msgid "Allow RAM up to the system ROM"
+msgstr "Επιτρέψτε RAM έως το μέγεθος της ROM του συστήματος"
 
 msgid "Contiguous Size"
 msgstr "Μέγεθος συνέχειας"
@@ -3453,6 +3800,18 @@ msgstr "Φωτεινό"
 msgid "Dark"
 msgstr "Σκοτεινό"
 
+msgid "Style:"
+msgstr "Στυλ:"
+
+msgid "Windows 11"
+msgstr "Windows 11"
+
+msgid "Windows Native"
+msgstr "Εγγενές Windows"
+
+msgid "Windows Classic"
+msgstr "Κλασικό Windows"
+
 msgid "Force interpretation"
 msgstr "Εξαναγκασμός ερμηνείας"
 
@@ -3796,571 +4155,767 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Συσκευή απενεργοποίησης μέσω λογισμικού (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "&Προβολέας μνήμης"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "Ο εξομοιωτής είναι απασχολημένος; η προβολή μνήμης δεν ενημερώθηκε."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
+"Η αντιστοιχία δεν είναι στη χαρτογραφημένη μνήμη; η επιλογή και η προβολή "
+"δεν μετακινήθηκαν."
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "Η εγγραφή είναι δυνατή μόνο στην RAM και στην μνήμη βίντεο."
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
+"δεν έγινε εγγραφή (μη εγγράψιμη μνήμη RAM ή μνήμη βίντεο, ή ο εξομοιωτής "
+"είναι απασχολημένος)."
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "Ο εξομοιωτής είναι απασχολημένος; δοκιμάστε ξανά."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "Αντιγράφηκαν %1 bytes από %2 στο πρόχειρο"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (%1 δεν ήταν δυνατή η ανάγνωση)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " μιας επιλογής %1 byte"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "Δεν υπάρχει χαρτογραφημένη μνήμη για αναζήτηση."
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "Δεν υπάρχει χαρτογραφημένη μνήμη στο ζητούμενο εύρος."
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "Η αναζήτηση περιορίζεται σε %1 bytes."
 
-msgid "Searching memory..."
-msgstr ""
+msgid "Searching memory…"
+msgstr "Αναζήτηση στη μνήμη…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "Η αναζήτηση ακυρώθηκε. Η επιλογή δεν μετακινήθηκε."
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Βρέθηκε στο %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Δεν βρέθηκε. Η επιλογή δεν μετακινήθηκε."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Συμπλήρωση επιλογής"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Συμπλήρωσε %1 bytes από %2 με (δεκαεξαδικά):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Εισάγετε ένα byte σε δεκαεξαδική μορφή, από 00 έως FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Συμπληρώθηκαν %1 από %2 bytes με %3 (%4 δεν ήταν εγγράψιμη μνήμη RAM ή μνήμη "
+"βίντεο)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Επιλέχθηκαν: %1 bytes (παραλείφθηκαν %2)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Επεξεργασία byte"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Αντιγραφή επιλογής (δεκαεξαδική)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Αντιγραφή επιλογής (ASCII)"
 
-msgid "Fill selection..."
-msgstr ""
+msgid "Fill selection…"
+msgstr "Συμπλήρωση επιλογής…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Αντιγραφή διεύθυνσης"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Αποσυναρμολόγηση εδώ"
 
-msgid "Dump memory from here..."
-msgstr ""
+msgid "Dump memory from here…"
+msgstr "Εξαγωγή μνήμης από εδώ…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Προβολέας μνήμης"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Παύση / Συνέχεια"
 
 msgid "Step"
-msgstr ""
+msgstr "Βήμα"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Εκτέλεσε τον καθορισμένο αριθμό εντολών (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Εντολές ανα βήμα"
 
 msgid "Physical"
-msgstr ""
+msgstr "Φυσικό"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Διεύθυνση, καταχωρητής ή seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "Πάμε"
 
 msgid "Live update"
-msgstr ""
+msgstr "Live ενημέρωση"
 
-msgid "Dump..."
-msgstr ""
+msgid "Dump…"
+msgstr "Εξαγωγή…"
 
 msgid "Commands"
-msgstr ""
+msgstr "Εντολές"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Εμφάνιση ή απόκρυψη εντολών αποσφαλμάτωσης (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Δεκαεξαδικά bytes"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "Κείμενο ASCII"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Τιμή, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Τιμή, word"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Τιμή, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Προς αναζήτηση: ακατέργαστα bytes σε δεκαεξαδική μορφή, κείμενο ή μια "
+"δεκαεξαδική τιμή αποθηκευμένη σε μορφή little-endian, όπως εμφανίζεται στην "
+"προβολή δεκαεξαδικών δεδομένων."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Αναζήτηση μνήμης"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
+"Το Ctrl+F εστιάζει σε αυτό το πλαίσιο; Το Enter ή το F3 εντοπίζει την "
+"επόμενη αντιστοίχιση, ενώ το Shift+F3 την προηγούμενη."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Εύρεση προηγούμενου"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Αναζήτηση προς τα πάνω από την επιλογή (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Εύρεση επόμενου"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Αναζήτηση προς τα κάτω από την επιλογή (F3)"
 
-msgid "Range..."
-msgstr ""
+msgid "Range…"
+msgstr "Εύρος…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Αναζήτηση εντός εύρους διευθύνσεων αντί για ολόκληρη τη μνήμη"
 
 msgid "From"
-msgstr ""
+msgstr "Από"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Το σημείο έναρξης της αναζήτησης (δεκαεξαδική μορφή, καταχωρητής ή seg:off; "
+"το κενό υποδηλώνει το πρώτο αντιστοιχισμένο byte; ενώ το . υποδηλώνει την "
+"αρχή της επιλογής)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Έως (συμπεριλαμβανομένου)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Εκεί όπου τελειώνει η αναζήτηση, συμπεριλαμβανομένης της συγκεκριμένης "
+"διεύθυνσης (δεκαεξαδική μορφή, καταχωρητής ή seg:off; το κενό υποδηλώνει το "
+"τελευταίο αντιστοιχισμένο byte; το . υποδηλώνει το τέλος της επιλογής)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Εύρος από"
 
 msgid "to"
-msgstr ""
+msgstr "έως"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Αντιστοιχισμένη (μνήμη), όχι RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Μη αντιστοιχισμένο"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Μη προσβάσιμο"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Μη προσβάσιμο: εκεί απαντούν μόνο χειριστές συσκευών (η ανάγνωση θα είχε "
+"παρενέργειες), ή η γραμμική σελίδα δεν είναι παρούσα."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Γραμμική διεύθυνση, καταχωρητής ή seg:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Ακολούθηση CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Bytes"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Εντολή"
 
 msgid "Note"
-msgstr ""
+msgstr "Σημείωση"
 
 msgid "Double-click a line to set or clear a breakpoint there"
 msgstr ""
+"Κάντε διπλό κλικ σε μια γραμμή για να ορίσετε ή να καταργήσετε ένα σημείο "
+"διακοπής σε αυτήν"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Αποσυναρμολόγηση"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Αποσυναρμολόγηση (μη διαθέσιμη σε αυτήν την έκδοση)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "Μήνυμα προγράμματος προβολής"
 
 msgid "Selected range"
-msgstr ""
+msgstr "Επιλεγμένο εύρος"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Εντολές αποσφαλμάτωσης"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Έξοδος εντολής αποσφαλματωτή"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Εντολή αποσφαλμάτωσης"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "βοήθεια — εντολές; Πάνω/Κάτω — ιστορικό; . — επιλεγμένη διεύθυνση"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Οι εντολές μοιράζονται τον χώρο διευθύνσεων και την επιλογή του προβολέα "
+"μνήμης. Πληκτρολογήστε help για τις εντολές."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Άφησε τον επεξεργαστή να εκτελέσει (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Διακοπή του επεξεργαστή στην επόμενη εντολή (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Πάρα πολλά σημεία διακοπής."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Διακόπηκε: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "Ο εξομοιωτής είναι απασχολημένος; η προβολή δεν ενημερώθηκε."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Η εκτέλεση σταμάτησε σε ένα σημείο διακοπής."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Η εκτέλεση σταμάτησε μετά από βήμα εκτέλεσης."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Διακόπηκε."
 
-msgid "Stepping..."
-msgstr ""
+msgid "Stepping…"
+msgstr "Εκτέλεση βήματος…"
 
 msgid "Running."
-msgstr ""
+msgstr "Εκτελείται."
 
 msgid "The emulator is paused; resume it to run or step."
 msgstr ""
+"Ο εξομοιωτής βρίσκεται σε παύση; συνεχίστε τη λειτουργία του για εκτέλεση ή "
+"εκτέλεση βήμα προς βήμα."
 
 msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
+"Ο δυναμικός αναμεταγλωττιστής είναι απενεργοποιημένος όσο αυτό το παράθυρο "
+"είναι ανοιχτό."
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Εισάγετε μια διεύθυνση."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "Ο επιλογέας δεν μπορεί να εντοπιστεί."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Άγνωστο τμήμα \"%1\"."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Άγνωστη μετατόπιση \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Η γραμμική διεύθυνση δεν είναι αντιστοιχισμένη στη φυσική μνήμη."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" δεν είναι διεύθυνση ή καταχωρητής."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Χρήση: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
+"Η επιλογή είναι φυσική; χρησιμοποιήστε μια γραμμική διεύθυνση ή μεταβείτε "
+"στον γραμμικό χώρο."
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
+"r name [δεκαεξαδική-τιμή]: ανάγνωση ή επεξεργασία ενός καταχωρητή που "
+"υποστηρίζεται από τον τρέχοντα επεξεργαστή.\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH "
+"DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (κρυφή λανθάνουσα "
+"μνήμη περιγραφέων)\n"
+"Οι επιλογείς φορτώνουν περιγραφείς χωρίς την εκτέλεση εντολών του επισκέπτη; "
+"τα πεδία της λανθάνουσας μνήμης αποτελούν κυριολεκτικές επεξεργασίες.\n"
+"Οι εγγραφές απαιτούν παύση σε πλήρες όριο εντολής. Οι επεξεργασίες "
+"καταχωρητών σε λειτουργία NEC 8080 είναι μη διαθέσιμες."
 
 msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
 msgstr ""
+"Οι αριθμοί είναι δεκαεξαδικοί; οι μετρήσεις βημάτων είναι δεκαδικές. Οι "
+"διευθύνσεις δέχονται καταχωρητές και seg:off.\n"
+". αναφέρεται στη δεκαεξαδική επιλογή; οι διευθύνσεις μνήμης που "
+"παραλείπονται τη χρησιμοποιούν.\n"
+"help | clear | refresh | regs\n"
+"run | pause | step [count]\n"
+"space physical|linear | goto address | db [address [length]] (μέγιστο 1000 "
+"δεκαεξαδικά bytes)\n"
+"write address byte [byte ...] | εξαγωγή (ανοίγει την εξαγωγή επιλογής)\n"
+"dbio [address [length]] | writeio address byte [byte ...] (παρενέργειες "
+"συσκευής; απαιτεί παύση)\n"
+"u address (linear disassembly) | follow on|off\n"
+"bp address | bc address|all | bl (γραμμικά σημεία διακοπής)\n"
+"r [register [value]] (read/set; είναι τιμές δεκαεξαδικές); οι καταχωρητές "
+"help εμφανίζουν ονόματα\n"
+"peek port [b|w|d] | poke port value [b|w|d]\n"
+"Οι εγγραφές καταχωρητών/μνήμης και οι ενέργειες I/O απαιτούν παύση. Οι "
+"ενέργειες I/O καλούν χειριστές συσκευών, συμπεριλαμβανομένων των "
+"παρενεργειών ανάγνωσης."
 
 msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
 msgstr ""
+"Ο καταχωρητής δεν είναι διαθέσιμος, η τιμή δεν είναι έγκυρη ή ο επεξεργαστής "
+"δεν βρίσκεται σε παύση σε πλήρες όριο εντολής."
 
 msgid "Pause the processor before side-effecting memory access."
 msgstr ""
+"Κάντε παύση τον επεξεργαστή πριν από την πρόσβαση στη μνήμη που προκαλεί "
+"παρενέργειες."
 
 msgid "Write exceeds 4096 bytes or wraps the address space."
 msgstr ""
+"Η εγγραφή υπερβαίνει τα 4096 bytes ή υπερβαίνει τα όρια του χώρου "
+"διευθύνσεων."
 
 msgid "Pause the processor before writing memory."
-msgstr ""
+msgstr "Κάντε παύση τον επεξεργαστή πριν γράψετε στη μνήμη."
 
 msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
 msgstr ""
+"Εκδόθηκαν %1 από %2 εγγραφές byte; οι συσκευές ενδέχεται να αγνοήσουν τις "
+"εγγραφές. Οι αμετάφραστες διευθύνσεις παραλείπονται."
 
 msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
 msgstr ""
+"Γράφτηκαν %1 από %2 bytes; τα bytes μόνο για ανάγνωση ή τα μη προσβάσιμα "
+"παραλείπονται."
 
 msgid "Disassembly is not available in this build."
-msgstr ""
+msgstr "Η αποσυναρμολόγηση δεν είναι διαθέσιμη σε αυτήν την έκδοση."
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "Σημείο διακοπής %1 στο %2."
 
 msgid "set"
-msgstr ""
+msgstr "σειρά"
 
 msgid "cleared"
-msgstr ""
+msgstr "εκκαθαρίστηκε"
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] "%n σημείο διακοπής, γραμμικές διευθύνσεις:"
+msgstr[1] "%n σημεία διακοπής, γραμμικές διευθύνσεις:"
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr ""
+"Κάντε παύση τον επεξεργαστή πριν αποκτήσετε πρόσβαση στις θύρες "
+"εισόδου/εξόδου."
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
+"Άγνωστη εντολή ή μη έγκυρα ορίσματα. Πληκτρολογήστε help για τη σύνταξη."
 
 msgid "Dump memory"
-msgstr ""
-
-msgid "Browse..."
-msgstr ""
+msgstr "Εξαγωγή μνήμης"
 
 msgid "Start (hex, register or seg:off):"
-msgstr ""
+msgstr "Έναρξη (δεκαεξαδικό, καταχωρητής ή seg:off):"
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "Μήκος (δεκαεξαδικά bytes):"
 
 msgid "Address space:"
-msgstr ""
+msgstr "Χώρος διευθύνσεων:"
 
 msgid "Fill byte for memory that cannot be read:"
-msgstr ""
+msgstr "Byte πλήρωσης για μη αναγνώσιμη μνήμη:"
 
 msgid "File:"
-msgstr ""
+msgstr "Αρχείο:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
+"Γίνεται ανάγνωση μόνο της μνήμης RAM και άλλης άμεσα αντιστοιχισμένης "
+"μνήμης. Τα μη αντιστοιχισμένα και μη προσβάσιμα bytes δεν διαβάζονται; στη "
+"θέση τους εγγράφεται το byte πλήρωσης."
 
-msgid "Binary files (*.bin);;All files (*)"
-msgstr ""
+msgid "Binary files"
+msgstr "Δυαδικά αρχεία"
 
 msgid "The length must be a hex number above 0."
-msgstr ""
+msgstr "Το μήκος πρέπει να είναι ένας δεκαεξαδικός αριθμός άνω του 0."
 
 msgid "The fill byte must be a hex number from 00 to FF."
 msgstr ""
+"Το byte συμπλήρωσης πρέπει να είναι ένας δεκαεξαδικός αριθμός από 00 έως FF."
 
 msgid "Could not open %1 for writing."
-msgstr ""
+msgstr "Δεν ήταν δυνατό το άνοιγμα του %1 για εγγραφή."
 
-msgid "Dumping memory..."
-msgstr ""
+msgid "Dumping memory…"
+msgstr "Εξαγωγή περιεχομένων μνήμης…"
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "Δεν ήταν δυνατή η εγγραφή στο %1."
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
 msgstr ""
+"Εξήχθησαν %1 bytes από %2 σε %3 (%4 bytes δεν μπόρεσαν να διαβαστούν και "
+"συμπληρώθηκαν)."
 
 msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
-msgstr ""
+msgstr "Εισαγάγετε δεκαεξαδικά bytes ανά ζεύγη, π.χ. \"8B 44 24 08\"."
 
 msgid "\"%1\" is not made of hex bytes."
-msgstr ""
+msgstr "Το \"%1\" δεν αποτελείται από δεκαεξαδικά bytes."
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Εισάγετε μια δεκαεξαδική τιμή από το 0 έως το %1."
 
 msgid "The value is too large for %1 bytes."
-msgstr ""
+msgstr "Η τιμή είναι πολύ μεγάλη για %1 bytes."
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "Εισάγετε κάτι για αναζήτηση."
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "Το εύρος τελειώνει πριν ξεκινήσει."
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Σειριακό Plug and Play"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Πρότυπο 9600 bps μόντεμ (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Πρότυπο 14400 bps μόντεμ (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Πρότυπο 28800 bps μόντεμ (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Πρότυπο μόντεμ (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Ενισχυμένο 9600 bps μόντεμ (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Ενισχυμένο 14400 bps μόντεμ (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Ενισχυμένο 28800 bps μόντεμ (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Ενισχυμένο μόντεμ (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Περιοχή Τόνου Τηλεφώνου"
 
 msgid "North America"
-msgstr ""
+msgstr "Βόρεια Αμερική"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Ηνωμένο Βασίλειο"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Ηπειρωτική Ευρώπη"
 
 msgid "Japan"
-msgstr ""
+msgstr "Ιαπωνία"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Πρότυπο συγχρονισμού μόντεμ"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Αυτόματο (από την ταχύτητα DTE)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Τύπος Σύνδεσης"
 
 msgid "Username"
-msgstr ""
+msgstr "Όνομα χρήστη"
 
 msgid "Password"
-msgstr ""
+msgstr "Κωδικός"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "Συμπίεση και Κρυπτογράφηση PPP"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Αυτόματο"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "Απαίτηση MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "Ομάδα PPP Multilink (ίδια σε κάθε ζεύξη)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "Πρωτεύων διακομιστής DNS PPP"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "Δευτερεύων διακομιστής DNS PPP"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "Κατευθυντική διαπραγμάτευση CCP"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Αμφίδρομη"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Μόνο αποστολή"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Μόνο λήψη"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Προτίμηση ασύμμετρης"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "Επανάκληση PPP (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Προσφερόμενη (με δυνατότητα απόρριψης)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Απαιτείται (ο καλών πρέπει να την αποδεχτεί)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "Διάστημα διατήρησης σύνδεσης PPP (δευτερόλεπτα, 0 = ανενεργό)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Αναφορά ληφθέντων σημάτων DTMF στον κεντρικό υπολογιστή (<DLE>ψηφίο)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Ανενεργό (μόνο με +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
+"Αναγνώριση κλήσης μεταξύ διεργασιών εξομοιωτή (ενεργοποίηση και στις δύο)"
 
-msgid "Caller ID sent when dialling (number,name)"
-msgstr ""
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "Αναγνώριση κλήσης που αποστέλλεται κατά την κλήση (αριθμός,όνομα)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Όριο ουράς από το δίκτυο προς τον επισκέπτη (back-pressure)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Απεριόριστο (παλαιού τύπου)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 ms χρόνου γραμμής"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 ms χρόνου γραμμής"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 s χρόνου γραμμής"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 s χρόνου γραμμής"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "Χρονικό όριο αποστολής TCP"
 
 msgid "Card:"
-msgstr ""
+msgstr "Κάρτα:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Διανομέας:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Μαζική αποθήκευση:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"Οι μονάδες δίσκου του είναι σκληροί δίσκοι, μονάδες CD-ROM και άλλες "
+"αφαιρούμενες συσκευές που ρυθμίζονται στις δικές τους σελίδες, στον δίαυλο "
+"SCSI, στα κανάλια με την ονομασία \"USB Mass Storage\". Κάθε μονάδα δίσκου "
+"αντιστοιχεί σε μία λογική μονάδα, με τη σειρά των καναλιών."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Σκληροί Δίσκοι…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Οδηγοί CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Άλλες αφαιρούμενες συσκευές…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "Διανομέας USB 1.1 4 θυρών"
 
 msgid "USB Mass Storage"
+msgstr "Μαζική αποθήκευση USB"
+
+msgid "Mount folder as a temporary floppy"
+msgstr "Προσάρτηση φακέλου ως προσωρινή δισκέτα"
+
+msgid "The selected drive does not support folder mounting."
+msgstr "Η επιλεγμένη μονάδα δίσκου δεν υποστηρίζει προσάρτηση φακέλου."
+
+msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
+"Τα περιεχόμενα υπερβαίνουν τη χωρητικότητα της ρυθμισμένης μονάδας δισκέτας."
+
+msgid "Mount folder as a temporary removable disk"
+msgstr "Προσάρτηση φακέλου ως προσωρινός αφαιρούμενος δίσκος"
+
+msgid "Unable to mount folder or archive"
+msgstr "Αδυναμία προσάρτησης φακέλου ή συμπιεσμένου αρχείου"
+
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
+"Τα περιεχόμενα δεν χωρούν σε κανένα μέσο που δέχεται η μονάδα δίσκου, ή "
+"κάποιο αρχείο είναι 4 GB ή μεγαλύτερο."
+
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr ""
+"Υπάρχουν πάρα πολλά αρχεία στον ανώτατο φάκελο για τον ριζικό κατάλογο του "
+"μέσου."
+
+msgid "The temporary image could not be written."
+msgstr "Δεν ήταν δυνατή η εγγραφή του προσωρινού αρχείου εικόνας."
+
+msgid "There is not enough memory to build the image."
+msgstr "Δεν υπάρχει αρκετή μνήμη για τη δημιουργία του αρχείου εικόνας."
+
+msgid "The folder or archive could not be read."
+msgstr "Δεν ήταν δυνατή η ανάγνωση του φακέλου ή του συμπιεσμένου αρχείου."
+
+msgid "Archives"
+msgstr "Συμπιεσμένα αρχεία"
+
+msgid "New USB flash drive"
+msgstr "Νέα μονάδα flash USB"
+
+msgid "&New USB flash drive…"
+msgstr "&Νέα μονάδα flash USB…"
+
+msgid "unplugged"
+msgstr "Αποσυνδεδεμένη"
+
+msgid "&Unplug"
+msgstr "&Αποσύνδεση"
+
+msgid "&Unplug %1"
+msgstr "&Αποσύνδεση %1"
+
+msgid "Plug in %1 (%2)"
+msgstr "Σύνδεση %1 (%2)"
+
+msgid "&Move %1 to"
+msgstr "&Μετακίνηση %1 σε"
+
+msgid "Size:"
+msgstr "Μέγεθος:"
+
+msgid "Custom size:"
+msgstr "Προσαρμοσμένο μέγεθος:"
+
+msgid "None (blank)"
+msgstr "Κανένα (κενό)"
+
+msgid "FAT16"
+msgstr "FAT16"
+
+msgid "FAT32"
+msgstr "FAT32"
+
+msgid "Format:"
+msgstr "Μορφοποίηση:"
+
+msgid "Could not create %1."
+msgstr "Δεν ήταν δυνατή η δημιουργία του %1."
+
+msgid "%1 already exists. Replace it?"
+msgstr "Το %1 υπάρχει ήδη. Να αντικατασταθεί;"
+
+msgid "USB port %1 (%2)"
+msgstr "Θύρα USB %1 (%2)"
+
+msgid "USB port"
+msgstr "Θύρα USB"
+
+msgid "%1 (write-protected)"
+msgstr "%1 (προστασία εγγραφής)"
+
+msgid "USB flash drive"
+msgstr "Μονάδα USB flash"
+
+msgid "%1 is not a disk image."
+msgstr "%1 δεν είναι εικόνα δίσκου."
+
+msgid "Flash drive images"
+msgstr "Εικόνες μονάδων flash"
+
+msgid "PCI card"
+msgstr "Κάρτα PCI"
+
+msgid "hub"
+msgstr "διανομέας"
+
+msgid "board"
+msgstr "πλακέτα"
+
+msgid "now in port %1"
+msgstr "τώρα στη θύρα %1"

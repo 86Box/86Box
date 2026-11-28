@@ -205,6 +205,14 @@ typedef struct _mem_mapping_ {
     /* There is never a needed to pass a pointer to the mapping itself, it is much preferable to
        prepare a structure with the requires data (usually, the base address and mask) instead. */
     void *priv; /* backpointer to device */
+
+    /* Optional: n dword writes at addr, addr + 4, ... of the values at src, in that order, in one
+       call. It must do exactly what n calls of write_l would do, and return how many of them it
+       did (a prefix, 0 to n); the caller does the rest one by one. It takes only addresses whose
+       write_l leaves the CPU state, the cycle count, the lookup tables and the mappings alone and
+       raises no SMI, interrupt or abort; for any other it returns 0. Set with
+       mem_mapping_set_write_l_run(); setting the mapping or its handlers clears it. */
+    uint32_t (*write_l_run)(uint32_t addr, const uint32_t *src, uint32_t n, void *priv);
 } mem_mapping_t;
 
 /* For the memory viewer, on a video card's memory: where the byte the
@@ -229,6 +237,15 @@ typedef struct page_t {
 
     uint8_t *mem;
 
+    /*The chunks of store_fast_mask whose bytes are all dirty: any store there
+      changes no mask. Right after mem, so both load as a pair.*/
+    uint64_t store_full_mask;
+
+    /*Chunks that hold no code and whose dirty bit is set, of a page that owns
+      its byte masks: a store there whose bytes are already dirty changes no
+      mask. Cleared whenever a chunk gets code or the dirty bits are cleared.*/
+    uint64_t store_fast_mask;
+
     uint32_t block, block_2;
 
     /*Head of codeblock tree associated with this page*/
@@ -239,6 +256,10 @@ typedef struct page_t {
 
     uint32_t evict_prev;
     uint32_t evict_next;
+
+    /*byte_dirty_mask and byte_code_present_mask are this page's own, not
+      those of another page it aliases*/
+    uint8_t byte_masks_own;
 
     uint64_t *byte_dirty_mask;
     uint64_t *byte_code_present_mask;
@@ -284,6 +305,78 @@ extern page_t  *pages;
 extern page_t *page_lookup[1048576];
 extern uintptr_t readlookup2[2097152];
 extern uintptr_t writelookup2[1048576];
+
+/* The entries the string instructions' translate steps found (386_common.h)
+   and their virtual pages. A flush, or an eviction of that page, on the CPU
+   thread drops them; one from another thread does not. */
+extern uintptr_t mmut_hit_r;
+extern uintptr_t mmut_hit_r2;
+extern uintptr_t mmut_hit_w;
+extern uint32_t  mmut_hit_r_page;
+extern uint32_t  mmut_hit_r2_page;
+extern uint32_t  mmut_hit_w_page;
+
+/* What a translate step that walked nothing (its page was in a lookup table,
+   or held) leaves as the operand's first walked address, with paging on. The
+   _no_mmut accesses walk then, if the entry is gone by the access. A walked
+   address equal to it costs a second walk with the same result. */
+#define MMUT_UNWALKED 0xffffffff
+
+/* The lookup entries held out of the tables while the CPU is in ring 3
+   (mem.c): how many, what the tables would hold for an access they are held
+   for, and their move into the tables; whether a write to the page would
+   look at an entry held, with nothing moved. */
+extern int       mem_held_num;
+extern int       mem_held_write_listed(uint32_t page);
+extern uintptr_t mem_held_read(uint32_t addr);
+extern page_t   *mem_held_write_page(uint32_t page);
+extern void      mem_held_promote(void);
+
+/* The access functions for a segment base of FFFFFFFFh (386_common.h). */
+extern uint8_t  readmembl_nh(uint32_t addr);
+extern uint16_t readmemwl_nh(uint32_t addr);
+extern uint32_t readmemll_nh(uint32_t addr);
+extern uint64_t readmemql_nh(uint32_t addr);
+extern uint8_t  readmembl_no_mmut_nh(uint32_t addr, uint32_t a64);
+extern uint16_t readmemwl_no_mmut_nh(uint32_t addr, uint32_t *a64);
+extern uint32_t readmemll_no_mmut_nh(uint32_t addr, uint32_t *a64);
+extern void     writemembl_nh(uint32_t addr, uint8_t val);
+extern void     writememwl_nh(uint32_t addr, uint16_t val);
+extern void     writememll_nh(uint32_t addr, uint32_t val);
+extern void     writememql_nh(uint32_t addr, uint64_t val);
+extern void     writemembl_no_mmut_nh(uint32_t addr, uint32_t a64, uint8_t val);
+extern void     writememwl_no_mmut_nh(uint32_t addr, uint32_t *a64, uint16_t val);
+extern void     writememll_no_mmut_nh(uint32_t addr, uint32_t *a64, uint32_t val);
+extern void     do_mmutranslate_nh(uint32_t addr, uint32_t *a64, int num, int write);
+extern void     do_mmutranslate_set2(uint32_t addr, uint32_t *a64, int num, int write);
+
+/* For a caller that would have used an operand pointer (fetch_ea's eal_r
+   and eal_w, the recompiler's routines with that rule) had the lookup
+   entry been there; _eam: past page offset FFCh the memory macro's rule. */
+extern uint8_t  readmembl_eam(uint32_t addr);
+extern uint16_t readmemwl_eam(uint32_t addr);
+extern uint32_t readmemll_eam(uint32_t addr);
+extern void     writemembl_eam(uint32_t addr, uint8_t val);
+extern void     writememwl_eam(uint32_t addr, uint16_t val);
+extern void     writememll_eam(uint32_t addr, uint32_t val);
+
+/* page_lookup, or what an entry held would have put there. */
+static __inline page_t *
+mem_page_lookup(uint32_t page)
+{
+    page_t *p = page_lookup[page];
+
+    if (!p && mem_held_num)
+        p = mem_held_write_page(page);
+    return p;
+}
+
+/* After every change of CPL that can take the CPU out of ring 3. */
+#define mem_held_release()                   \
+    do {                                     \
+        if (mem_held_num && (CPL != 3))      \
+            mem_held_promote();              \
+    } while (0)
 
 extern uint32_t get_phys_virt;
 extern uint32_t get_phys_phys;
@@ -361,6 +454,10 @@ extern int      cpu_fetch_device;
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
 extern void     addreadlookup(uint32_t virt, uint32_t phys);
+extern uint64_t mem_fetch_lookup(uint32_t addr);
+extern void     mem_fetch_walked(uint32_t addr, uint64_t phys);
+extern void     addreadlookup_quiet(uint32_t virt, uint32_t phys);
+extern void     mmu_walk_forget(void);
 extern void     addwritelookup(uint32_t virt, uint32_t phys);
 extern void     addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr);
 
@@ -403,6 +500,9 @@ extern void mem_mapping_set_write_handler(mem_mapping_t *,
                                           void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
+
+extern void mem_mapping_set_write_l_run(mem_mapping_t *,
+                                        uint32_t (*write_l_run)(uint32_t addr, const uint32_t *src, uint32_t n, void *priv));
 /* Let the memory viewer at the video memory behind any mapping whose byte
    read handler is read_b, through debug_ptr; and write it where the write
    handler is write_b. Cards register their handlers once, at init. */
@@ -470,6 +570,7 @@ extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
 extern int  mem_phys_has_code(uint32_t addr, uint32_t len);
 extern void mem_phys_written(uint32_t addr, uint32_t len);
+extern void mem_set_page_byte_masks(page_t *page, uint32_t mask_page);
 extern void mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set);
 
 extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
@@ -517,7 +618,8 @@ extern mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];
 static __inline uint32_t
 get_phys(uint32_t addr)
 {
-    uint64_t pa64;
+    uint64_t  pa64;
+    uintptr_t held;
 
     /*A page-unaligned get_phys_phys is codegen_flush()'s tag: no entry*/
     if (!((addr ^ get_phys_virt) & ~0xfff) && !(get_phys_phys & 0xfff))
@@ -532,6 +634,8 @@ get_phys(uint32_t addr)
 
     if (((int) (readlookup2[addr >> 12])) != -1)
         get_phys_phys = ((uintptr_t) readlookup2[addr >> 12] + (addr & ~0xfff)) - (uintptr_t) ram;
+    else if (mem_held_num && ((held = mem_held_read(addr)) != (uintptr_t) -1))
+        get_phys_phys = (held + (addr & ~0xfff)) - (uintptr_t) ram;
     else {
         pa64 = mmutranslatereal(addr, 0);
         if (pa64 > 0xffffffffULL)
@@ -549,19 +653,22 @@ get_phys(uint32_t addr)
 static __inline uint32_t
 get_phys_noabrt(uint32_t addr)
 {
-    uint64_t phys_addr;
-    uint32_t phys_addr32;
+    uint64_t  phys_addr;
+    uint32_t  phys_addr32;
+    uintptr_t held;
 
     if (!(cr0 >> 31))
         return addr & rammask;
 
     if (((int) (readlookup2[addr >> 12])) != -1)
         return ((uintptr_t) readlookup2[addr >> 12] + addr) - (uintptr_t) ram;
+    if (mem_held_num && ((held = mem_held_read(addr)) != (uintptr_t) -1))
+        return (held + addr) - (uintptr_t) ram;
 
     phys_addr   = mmutranslate_noabrt(addr, 0);
     phys_addr32 = (uint32_t) phys_addr;
     if ((phys_addr != 0xffffffffffffffffULL) && (phys_addr <= 0xffffffffULL) && mem_addr_is_ram(phys_addr32 & rammask))
-        addreadlookup(addr, phys_addr32 & rammask);
+        addreadlookup_quiet(addr, phys_addr32 & rammask);
 
     if (phys_addr > 0xffffffffULL)
         phys_addr32 = 0xffffffff;

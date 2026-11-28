@@ -88,6 +88,7 @@ typedef struct net_slirp_t {
     netpkt_t       pkt_tx_v[SLIRP_PKT_BATCH];
     int            during_tx;
     int            recv_on_tx;
+    bool           use_8023_rx;
 #ifdef ENABLE_VSERVER
     vserver_eth_t *vserver;    /* the virtual server, for network cards */
     void          *vserver_log;
@@ -441,6 +442,59 @@ net_slirp_notify(void *opaque)
     (void) opaque;
 }
 
+enum { ETHER_HEADER_LEN = 14, ETHER_MIN_FRAME_LEN = 60, SNAP_HEADER_LEN = 8, SNAP_MTU = 1500 - SNAP_HEADER_LEN };
+static const uint8_t rfc1042_header[] = { 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00 };
+
+/* Convert IPv4 and Ethernet ARP to RFC 1042 before delivery to the guest. */
+static size_t
+net_slirp_encapsulate_frame(uint8_t *pkt, size_t pkt_len)
+{
+    if (pkt_len < ETHER_HEADER_LEN)
+        return pkt_len;
+
+    const int ether_type = (pkt[12] << 8) | pkt[13];
+    const uint8_t *payload = pkt + ETHER_HEADER_LEN;
+    size_t payload_len;
+    switch (ether_type) {
+        case 0x0800:
+            if (pkt_len < ETHER_HEADER_LEN + 20)
+                return pkt_len;
+            payload_len = (payload[2] << 8) | payload[3];
+            if (payload_len < 20)
+                return pkt_len;
+            break;
+        case 0x0806:
+            if ((pkt_len < ETHER_HEADER_LEN + 28) || (payload[0] != 0) || (payload[1] != 1)
+                || (payload[4] != 6) || (payload[5] != 4))
+                return pkt_len;
+            payload_len = 28;
+            break;
+        default:
+            return pkt_len;
+    }
+
+    if ((payload_len > SNAP_MTU) || (payload_len > pkt_len - ETHER_HEADER_LEN))
+        return pkt_len;
+
+    const size_t data_len = payload_len + SNAP_HEADER_LEN;
+    uint8_t *snap = pkt + ETHER_HEADER_LEN;
+    memmove(snap + SNAP_HEADER_LEN, snap, payload_len);
+    memcpy(snap, rfc1042_header, sizeof(rfc1042_header));
+    snap[6] = pkt[12];
+    snap[7] = pkt[13];
+    pkt[12] = (uint8_t) (data_len >> 8);
+    pkt[13] = (uint8_t) data_len;
+    if (ether_type == 0x0806)
+        snap[SNAP_HEADER_LEN + 1] = 6;
+
+    const size_t frame_len = ETHER_HEADER_LEN + data_len;
+    if (frame_len < ETHER_MIN_FRAME_LEN) {
+        memset(pkt + frame_len, 0, ETHER_MIN_FRAME_LEN - frame_len);
+        return ETHER_MIN_FRAME_LEN;
+    }
+    return frame_len;
+}
+
 #if SLIRP_CHECK_VERSION(4, 8, 0)
 slirp_ssize_t
 #else
@@ -470,6 +524,8 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 #    endif
 #endif
     slirp_log_packet_summary("from SLiRP", slirp->pkt.data, frame_len);
+    if (slirp->use_8023_rx)
+        frame_len = net_slirp_encapsulate_frame(slirp->pkt.data, frame_len);
     slirp->pkt.len = frame_len;
 
     if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
@@ -644,12 +700,48 @@ static const SlirpCb slirp_cb = {
     .notify             = net_slirp_notify
 };
 
+/* Convert RFC 1042 IPv4 and ARP frames to Ethernet II for SLiRP. */
+static int
+net_slirp_normalize_frame(uint8_t *pkt, int pkt_len)
+{
+    if (pkt_len < ETHER_HEADER_LEN + SNAP_HEADER_LEN)
+        return pkt_len;
+
+    const int data_len = (pkt[12] << 8) | pkt[13];
+    if ((data_len < SNAP_HEADER_LEN) || (data_len > 1500) || (data_len > pkt_len - ETHER_HEADER_LEN))
+        return pkt_len;
+
+    if (memcmp(pkt + ETHER_HEADER_LEN, rfc1042_header, sizeof(rfc1042_header)) != 0)
+        return pkt_len;
+
+    const int ether_type = (pkt[20] << 8) | pkt[21];
+    if ((ether_type != 0x0800) && (ether_type != 0x0806))
+        return pkt_len;
+
+    const int payload_len = data_len - SNAP_HEADER_LEN;
+    if (payload_len < ((ether_type == 0x0800) ? 20 : 28))
+        return pkt_len;
+
+    pkt[12] = pkt[20];
+    pkt[13] = pkt[21];
+    /* The 802.3 length excludes any Ethernet padding after the payload. */
+    memmove(pkt + ETHER_HEADER_LEN, pkt + ETHER_HEADER_LEN + SNAP_HEADER_LEN, payload_len);
+
+    /* RFC 1042 uses ARP hardware type 6 for IEEE 802. */
+    if ((ether_type == 0x0806) && (pkt[14] == 0) && (pkt[15] == 6))
+        pkt[15] = 1;
+
+    return ETHER_HEADER_LEN + payload_len;
+}
+
 /* Send a packet to the SLiRP interface. */
 static void
 net_slirp_in(net_slirp_t *slirp, uint8_t *pkt, int pkt_len)
 {
     if (!slirp)
         return;
+
+    pkt_len = net_slirp_normalize_frame(pkt, pkt_len);
 
 #ifdef ENABLE_VSERVER_RARP
     {
@@ -869,6 +961,9 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     net_slirp_t *slirp = calloc(1, sizeof(net_slirp_t));
     memcpy(slirp->mac_addr, mac_addr, sizeof(slirp->mac_addr));
     slirp->card = (netcard_t *) card;
+    const char *nic_name = network_card_get_internal_name(net_cards_conf[card->card_num].device_num);
+    slirp->use_8023_rx = net_cards_conf[card->card_num].slirp_8023_rx && !card->internal_modem
+                      && nic_name && strcmp(nic_name, "modem") && strcmp(nic_name, "plip");
 
     slirp->pfd_size = 16;
     slirp->pfd      = calloc(slirp->pfd_size, sizeof(*slirp->pfd));
@@ -907,8 +1002,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
        libslirp then answers router solicitations with a router advertisement for this
        prefix, so the guest can configure an address on its own. Other cards stay IPv4-only. */
 #ifdef ENABLE_MODEM_IPV6
-    const char *v6_nic_name = network_card_get_internal_name(net_cards_conf[net_card_current].device_num);
-    const int   modem_v6    = card->internal_modem || (v6_nic_name && !strcmp(v6_nic_name, "modem"));
+    const int modem_v6 = card->internal_modem || (nic_name && !strcmp(nic_name, "modem"));
 #else
     const int   modem_v6    = 0;
 #endif
@@ -946,7 +1040,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
         .vnameserver6          = dns6,
         .vdnssearch            = NULL,
         .vdomainname           = NULL,
-        .if_mtu                = 0,
+        .if_mtu                = slirp->use_8023_rx ? SNAP_MTU : 0,
         .if_mru                = 0,
         .disable_host_loopback = 0,
         .enable_emu            = 0,
@@ -1022,7 +1116,6 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     slirp->sock_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
 
-    const char *nic_name = network_card_get_internal_name(net_cards_conf[net_card_current].device_num);
     if (!strcmp(nic_name, "modem") || !strcmp(nic_name, "plip")) {
         /* Send a gratuitous ARP here to make SLiRP work properly with SLIP/PLIP connections. */
         struct arphdr_local arphdr;

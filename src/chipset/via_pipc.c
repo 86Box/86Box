@@ -664,6 +664,7 @@ pipc_reset_hard(void *priv)
 
         dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_586) ? 0x00 : 0x50;
         acpi_set_irq_line(dev->acpi, 0x00);
+        acpi_set_via_pri_irq(dev->acpi, 0x0000);
 
         dev->power_regs[0x48] = 0x01;
 
@@ -1259,11 +1260,12 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
 static void
 nvr_update_io_mapping(pipc_t *dev)
 {
-    if (dev->nvr_enabled)
-        nvr_at_handler(0, 0x0074, dev->nvr);
+    const int enabled = !!((dev->pci_isa_regs[0x5b] & 0x02) || (dev->pci_isa_regs[0x48] & 0x08));
 
-    if ((dev->pci_isa_regs[0x5b] & 0x02) || (dev->pci_isa_regs[0x48] & 0x08))
-        nvr_at_handler(1, 0x0074, dev->nvr);
+    if (enabled != dev->nvr_enabled) {
+        nvr_at_handler(enabled, 0x0074, dev->nvr);
+        dev->nvr_enabled = enabled;
+    }
 }
 
 static void
@@ -1819,6 +1821,15 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->power_regs[addr] = (dev->power_regs[addr] & 0xf0) | (val & 0x0f);
                 acpi_set_irq_line(dev->acpi, dev->power_regs[addr] & 0x0f);
                 pipc_apic_irq_update(dev);
+                break;
+
+            case 0x44:
+            case 0x45:
+                /* Primary Interrupt Channel: the IRQs that set PIRSM_STS
+                   (acpi_irq_resume()); IRQ 2 is reserved (VT82C596B p. 60 /
+                   PDF 66). */
+                dev->power_regs[addr] = (addr == 0x44) ? (val & 0xfb) : val;
+                acpi_set_via_pri_irq(dev->acpi, dev->power_regs[0x44] | (dev->power_regs[0x45] << 8));
                 break;
 
             case 0x50:

@@ -17,12 +17,14 @@
 
 class MediaMenu;
 class RendererStack;
+class QActionGroup;
 
 namespace Ui {
 class MainWindow;
 }
 
 class MachineStatus;
+class MidiLcdWindow;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -131,6 +133,7 @@ private slots:
     void on_actionHide_status_bar_triggered();
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
+    void on_actionShow_USB_activity_triggered();
     void on_actionTake_screenshot_triggered();
     void on_actionTake_raw_screenshot_triggered();
     void on_actionCopy_screenshot_triggered();
@@ -169,6 +172,7 @@ private slots:
     void on_actionCursor_Puck_triggered();
 
     void on_actionACPI_Shutdown_triggered();
+    void on_actionPower_off_triggered();
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();
@@ -185,10 +189,17 @@ private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
-    QMenu                         *dynarecMenu = nullptr;
+    QMenu                         *dynarecMenu  = nullptr;
+    QActionGroup                  *midiOutGroup = nullptr;
+    MidiLcdWindow                 *midiLcd      = nullptr;
+    class PcCardMenu              *pcCardMenu   = nullptr;
 
     bool hasKanaLock();
+    void refreshMidiOutMenu();
+    void switchMidiOut(int device, int port = -1);
+    void showMidiLcd(bool show);
     void updateShortcuts();
+    void updateMenuKeyboardState();
     void updatePowerOffAction();
     void refreshDisplayRatioActions();
     bool isMainWindowOrRendererActive() const;
@@ -203,6 +214,9 @@ private:
     bool shownonce           = false;
     bool resizableonce       = false;
     bool vnc_enabled         = false;
+
+    /* -1 until the menu keyboard state has been initialized. */
+    int menu_keyboard_state = -1;
 
     /* Full screen ON and OFF signals */
     bool fs_on_signal  = false;

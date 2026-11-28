@@ -14,6 +14,7 @@
  */
 #include <QDir>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QStringBuilder>
 #include <QStringList>
 #include <QWidget>
@@ -28,6 +29,12 @@
 #    include <QDesktopWidget>
 #endif
 #include <QUuid>
+#include <QDebug>
+#include <QPalette>
+#include <QProxyStyle>
+#include <QStyle>
+#include <QStyleFactory>
+#include "qt_styleoverride.hpp"
 #include "qt_util.hpp"
 
 #ifdef Q_OS_WINDOWS
@@ -81,46 +88,15 @@ logicalSizeForPixels(int pixels, qreal dpr)
     return size;
 }
 
-#ifdef Q_OS_WINDOWS
-
-bool
-isWindowsLightTheme(void)
+void
+setupFormLayout(QFormLayout *layout)
 {
-#    ifndef USE_QDARKSTYLE
-    /* Go by the palette in use, as the windowsvista style stays light even in dark mode */
-    const QPalette palette = QApplication::palette();
-    return palette.window().color().value() > palette.windowText().color().value();
-#    else
-    if (color_scheme != 0) {
-        return (color_scheme == 1);
-    }
-
-    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
-
-    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
-    auto buffer = std::vector<char>(4);
-    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
-    auto res    = RegGetValueW(
-        HKEY_CURRENT_USER,
-        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-        L"AppsUseLightTheme",
-        RRF_RT_REG_DWORD, // expected value type
-        nullptr,
-        buffer.data(),
-        &cbData);
-
-    if (res != ERROR_SUCCESS) {
-        return 1;
-    }
-
-    // convert bytes written to our buffer to an int, assuming little-endian
-    auto i = int(buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
-
-    return i == 1;
-#    endif
+    layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    layout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
+    layout->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 }
 
-#    ifndef USE_QDARKSTYLE
+#ifdef HAS_COLOR_SCHEME_HINT
 void
 applyColorScheme(void)
 {
@@ -137,7 +113,130 @@ applyColorScheme(void)
             break;
     }
 }
-#    endif
+#endif
+
+bool
+selectionUsesHighlightedText(const QStyle *style)
+{
+    const auto *proxy = qobject_cast<const QProxyStyle *>(style);
+    if (proxy != nullptr)
+        style = proxy->baseStyle();
+    if (style == nullptr)
+        return true;
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 1, 0)
+    const QString name = style->name();
+#else
+    const QString name = style->objectName();
+#endif
+    /* The native Windows styles draw a light selection behind the regular text color */
+    return name.compare("windowsvista", Qt::CaseInsensitive) && name.compare("windows11", Qt::CaseInsensitive);
+}
+
+#ifdef NEUTRAL_DARK_ACCENT
+bool
+neutralDarkAccent(const QStyle *style)
+{
+    if ((style == nullptr) || (QGuiApplication::styleHints()->colorScheme() != Qt::ColorScheme::Dark))
+        return false;
+
+    const QString name = style->name();
+    return !name.compare("fusion", Qt::CaseInsensitive) || !name.compare("windows", Qt::CaseInsensitive);
+}
+
+/* Replaces the accent color of alternating rows with a neutral one where needed */
+static void
+applyPaletteOverrides(void)
+{
+    static bool overridden = false;
+
+    const auto  *proxy = qobject_cast<QProxyStyle *>(qApp->style());
+    const QStyle *base = (proxy != nullptr) ? proxy->baseStyle() : qApp->style();
+
+    if (neutralDarkAccent(base)) {
+        /* Only the roles set here are overridden, the rest keeps following the system */
+        QPalette palette;
+        palette.setColor(QPalette::AlternateBase, qApp->palette().color(QPalette::Base).lighter(115));
+        qApp->setPalette(palette);
+        overridden = true;
+    } else if (overridden) {
+        /* An empty palette brings back the system one */
+        qApp->setPalette(QPalette());
+        overridden = false;
+    }
+}
+#endif
+
+/* Returns the style to use, empty for the default one of the platform */
+static QString
+effectiveStyleName(const QString &defaultName)
+{
+    const QString name = QString::fromUtf8(ui_style);
+
+#if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
+    /* The windowsvista style can't draw dark controls, so default to Fusion in dark mode */
+    if (name.isEmpty() && !defaultName.compare("windowsvista", Qt::CaseInsensitive)
+        && (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark))
+        return QStringLiteral("fusion");
+#else
+    Q_UNUSED(defaultName);
+#endif
+
+    return name;
+}
+
+void
+applyStyle(void)
+{
+    static bool    applied = false;
+    static QString defaultName;
+    static QString appliedName;
+
+    if (!applied) {
+#if defined(Q_OS_WINDOWS) && defined(HAS_COLOR_SCHEME_HINT)
+        /* Remember the default style of the platform before it gets replaced */
+        defaultName = qApp->style()->name();
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        /* The default style and the palette may depend on the color scheme, and the
+           palette still is the old one when the change is signaled */
+        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, qApp,
+                         [] { applyStyle(); }, Qt::QueuedConnection);
+#endif
+    }
+
+    const QString name = effectiveStyleName(defaultName);
+
+    /* Changing the style repolishes every widget, so only do it when needed */
+    if (!applied || name.compare(appliedName, Qt::CaseInsensitive)) {
+        QStyle *base = nullptr;
+        if (!name.isEmpty()) {
+            base = QStyleFactory::create(name);
+            if (base == nullptr)
+                qWarning() << "Qt style" << name << "is not available, using the default one";
+        }
+
+        /* Without a base style, the override goes over the default style of the platform */
+        qApp->setStyle(new StyleOverride(base));
+
+        applied     = true;
+        appliedName = name;
+    }
+
+#ifdef NEUTRAL_DARK_ACCENT
+    applyPaletteOverrides();
+#endif
+}
+
+#ifdef Q_OS_WINDOWS
+
+bool
+isWindowsLightTheme(void)
+{
+    /* Go by the palette in use, as the windowsvista style stays light even in dark mode */
+    const QPalette palette = QApplication::palette();
+    return palette.window().color().value() > palette.windowText().color().value();
+}
 
 void
 setWin11RoundedCorners(WId hwnd, bool enable)

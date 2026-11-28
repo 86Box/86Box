@@ -52,6 +52,8 @@ extern void     gxm_video_set_dotclock(void *priv, double clock);
 extern void     gxm_video_set_display(void *priv, uint32_t display_cfg, const uint32_t *gamma);
 extern void     gxm_video_set_overlay(void *priv, int reg, uint32_t val);
 
+#define GXM_KEEP_MEMORY_ON_CPU_RESET 0x01
+
 extern const device_t cyrix_gxm_device;
 extern const device_t cyrix_gxm_video_device;
 extern const device_t cs5530_device;

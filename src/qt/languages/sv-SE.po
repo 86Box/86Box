@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 18:59+0000\n"
+"PO-Revision-Date: 2026-11-23 11:20+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -48,10 +48,13 @@ msgstr "&Fönster"
 msgid "&Hide status bar"
 msgstr "&Dölj statusfältet"
 
+msgid "Show US&B activity"
+msgstr "Visa US&B-aktivitet"
+
 msgid "Hide &toolbar"
 msgstr "Dölj &verktygsfältet"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Ändringsbar fönsterstorlek"
 
 msgid "R&emember size && position"
@@ -80,6 +83,9 @@ msgstr "Ange &mått…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Tvinga &4:3 bildförhållande"
+
+msgid "Force &machine display ratio"
+msgstr "Tvinga &maskinens bildformat"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Tvinga &%1:%2 bildförhållande"
@@ -246,6 +252,42 @@ msgstr "&Preferenser…"
 msgid "Sound &gain…"
 msgstr "Ljud&förstärkning…"
 
+msgid "M&IDI output device"
+msgstr "M&IDI utmatningsenhet"
+
+msgid "Restart &device"
+msgstr "Starta om &enhet"
+
+msgid "Send MIDI &command"
+msgstr "Skicka MIDI-&kommando"
+
+msgid "&GM System On"
+msgstr "&GM System på"
+
+msgid "G&S Reset"
+msgstr "G&S Återställ"
+
+msgid "&XG System On"
+msgstr "&XG System på"
+
+msgid "&MT-32 Reset"
+msgstr "&MT-32 Återställ"
+
+msgid "All &notes off"
+msgstr ""
+
+msgid "Show MIDI &LCD"
+msgstr ""
+
+msgid "MIDI LCD"
+msgstr ""
+
+msgid "Always on &top"
+msgstr ""
+
+msgid "&Close"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Börja spårning"
 
@@ -300,8 +342,8 @@ msgstr "T&om"
 msgid "Reload previous image"
 msgstr "Ladda om föregående avbildning"
 
-msgid "&Folder…"
-msgstr "&Mapp…"
+msgid "Mount &folder…"
+msgstr "Montera &mapp…"
 
 msgid "Preferences"
 msgstr "Preferenser"
@@ -311,6 +353,12 @@ msgstr "Ljudförstärkning"
 
 msgid "New Image"
 msgstr "Ny avbildning"
+
+msgid "Removable disk type:"
+msgstr ""
+
+msgid "MO type:"
+msgstr ""
 
 msgid "Settings"
 msgstr "Inställningar"
@@ -405,6 +453,19 @@ msgstr "%1 MHz"
 msgid "FPU:"
 msgstr "Flyttalsprocessor:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr ""
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+"Minneskartlagd flyttalsprocessor på C0000000h för kompatibel 486-mjukvara."
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr "Weitek WTL 4167 flyttalsprocessor"
+
 msgid "Internal"
 msgstr "Integrerad"
 
@@ -413,6 +474,15 @@ msgstr "Väntelägen:"
 
 msgid "MB"
 msgstr "MB"
+
+msgid "GB"
+msgstr "Storbritannien"
+
+msgid "%1 MB"
+msgstr "%1 MB"
+
+msgid "%1 GB"
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Minne:"
@@ -452,6 +522,12 @@ msgstr "Använd 486-programtolk för 286- och 386-processorer"
 
 msgid "Dynamic recompiler"
 msgstr "Dynamisk omkompilator"
+
+msgid "Dynamic recompiler is active"
+msgstr "Dynamisk omkompilator är aktiv"
+
+msgid "Dynamic recompiler is inactive"
+msgstr "Dynamisk omkompilator är inaktiv"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
@@ -689,6 +765,32 @@ msgstr "Buss:"
 msgid "Channel:"
 msgstr "Kanal:"
 
+msgid "%1 (Onboard)"
+msgstr "%1 (Integrerad)"
+
+msgid "(none)"
+msgstr "(ingen)"
+
+msgid "Onboard"
+msgstr "Integrerad"
+
+msgid "%1: no free channels"
+msgstr "%1: inga fria kanaler"
+
+msgid "%1: channels %2 in use"
+msgstr "%1: kanaler %2 används"
+
+msgid "IDE Conflict"
+msgstr "IDE-konflikt"
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+"Dessa IDE-styrenheter behöver kanaler som en annan enhet redan använder, och "
+"kommer inte att fungera:"
+
+msgid "Do you want to save the configuration anyway?"
+msgstr "Vill du spara konfigurationen ändå?"
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -767,6 +869,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "MO-enheter"
 
+msgid "MD DATA drives"
+msgstr "MD DATA-enheter"
+
 msgid "MO:"
 msgstr "MO:"
 
@@ -785,8 +890,8 @@ msgstr "Bandenhet:"
 msgid "ISA RTC:"
 msgstr "ISA realtidsklocka:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA minnesexpansion"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA minnesexpansion"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM-kort"
@@ -805,6 +910,29 @@ msgstr "Kort 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "Allmänt ISA ROM-kort"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+"Inga enheter hittades. Säkerställ att VT-d eller IOMMU är aktiverat på ditt "
+"system."
+
+msgid "Custom ROM:"
+msgstr "Egen ROM:"
+
+msgid "Group"
+msgstr "Grupp"
+
+msgid "Location"
+msgstr "Plats"
+
+msgid "Name"
+msgstr "Namn"
+
+msgid "ROM images"
+msgstr "ROM-avbildningar"
+
+msgid "Unknown device"
+msgstr "Okänd enhet"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Allmän dubbel ISA ROM-kort"
@@ -857,6 +985,9 @@ msgstr "%1 kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a
 msgid "(empty)"
 msgstr "(tom)"
 
+msgid "(not available)"
+msgstr "(ej tillgänglig)"
+
 msgid "All files"
 msgstr "Alla filer"
 
@@ -902,8 +1033,17 @@ msgstr "Inmatnings&enhet"
 msgid "Sound"
 msgstr "Ljud"
 
+msgid "%1 (not detected)"
+msgstr "%1 (ej upptäckt)"
+
+msgid "%1 Hz (host will resample)"
+msgstr "%1 Hz (värd kommer att omsampla)"
+
 msgid "Network"
 msgstr "Nätverk"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr "Ta emot IPv4 och ARP som 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portar (COM & LPT)"
@@ -973,6 +1113,57 @@ msgstr "Andra flyttbara enheter"
 
 msgid "Other peripherals"
 msgstr "Andra tillbehör"
+
+msgid "empty"
+msgstr "tom"
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr "CompactFlash: %1 (skrivskyddad)"
+
+msgid "CompactFlash: %1"
+msgstr "CompactFlash: %1"
+
+msgid "Empty (take the card out)"
+msgstr "Tom (avlägsna kortet)"
+
+msgid "CompactFlash"
+msgstr "CompactFlash"
+
+msgid "&New CompactFlash card…"
+msgstr "&Nytt CompactFlash-kort…"
+
+msgid "New CompactFlash card"
+msgstr "Nytt CompactFlash-kort"
+
+msgid "Insert CompactFlash card"
+msgstr "Mata in CompactFlash-kort"
+
+msgid "&Remove CompactFlash card"
+msgstr "&Ta ut CompactFlash-kort"
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr "Kunde inte använda %1 som en CompactFlash-avbildning."
+
+msgid "PCMCIA"
+msgstr "PCMCIA"
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr "PC Card-styrenhet (Cirrus Logic CL-PD6722, ISA, portar 3E0h-3E1h)"
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+"En Intel 82365SL-kompatibel styrenhet för PC Card (PCMCIA) med två socklar, "
+"likt de som finns i bärbara datorer och på PC Card-adapterkort.\n"
+"DOS-kort och sockeltjänster, Windows 95/98 och Linux (i82365) hittar den."
+
+msgid "Network:"
+msgstr "Nätverk:"
+
+msgid "Socket %1"
+msgstr "Sockel %1"
+
+msgid "Socket %1: %2"
+msgstr "Sockel %1: %2"
 
 msgid "Other devices"
 msgstr "Andra enheter"
@@ -1141,11 +1332,23 @@ msgstr "&MO %1 (%2): %3"
 msgid "MO images"
 msgstr "MO-avbildningar"
 
+msgid "MD DATA images"
+msgstr "MD DATA-avbildningar"
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr "&MD DATA %1 (%2): %3"
+
+msgid "MD DATA %1 (%2): %3"
+msgstr "MD DATA %1 (%2): %3"
+
 msgid "Welcome to 86Box!"
 msgstr "Välkommen till 86Box!"
 
 msgid "Internal device"
 msgstr "Intern enhet"
+
+msgid "External"
+msgstr "Extern"
 
 msgid "&File"
 msgstr "&Fil"
@@ -1167,6 +1370,106 @@ msgstr "Avsluta"
 
 msgid "No ROMs found"
 msgstr "Inga ROM-avbildningar hittades"
+
+msgid "Unsupported Hardware"
+msgstr "Maskinvara som inte stöds"
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr "Maskinvara i denna maskinprofil stöds inte av denna version av 86Box."
+
+msgid "(and %i others)"
+msgstr "(och %i andra)"
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+"Inläsning av konfigurationen ändå kommer att ersätta maskinen och skriva "
+"över den befintliga konfigurationen."
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+"Inläsning av konfigurationen ändå kommer att ta bort dessa komponenter och "
+"skriva över den befintliga konfigurationen."
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+"Inläsning av konfigurationen ändå kommer att ersätta maskinen, ta bort de "
+"andra komponenterna och skriva över den befintliga konfigurationen."
+
+msgid "Do you want to continue?"
+msgstr "Vill du fortsätta?"
+
+msgid "Machine type \"%s\""
+msgstr "Maskintyp \"%s\""
+
+msgid "Video card \"%s\""
+msgstr "Bildskärmskort \"%s\""
+
+msgid "Keyboard \"%s\""
+msgstr "Tangentbord \"%s\""
+
+msgid "Mouse \"%s\""
+msgstr "Mus \"%s\""
+
+msgid "Tablet \"%s\""
+msgstr "Platta \"%s\""
+
+msgid "Joystick \"%s\""
+msgstr "Styrspak \"%s\""
+
+msgid "Sound card \"%s\""
+msgstr "Ljudkort \"%s\""
+
+msgid "MIDI output device \"%s\""
+msgstr "MIDI-utmatningsenhet \"%s\""
+
+msgid "MIDI input device \"%s\""
+msgstr "MIDI-inmatningsenhet \"%s\""
+
+msgid "Network card \"%s\""
+msgstr "Nätverkskort \"%s\""
+
+msgid "Serial port device \"%s\""
+msgstr "Serieportsenhet \"%s\""
+
+msgid "Parallel port device \"%s\""
+msgstr "Parallellportsenhet \"%s\""
+
+msgid "Game port \"%s\""
+msgstr "Spelport \"%s\""
+
+msgid "SCSI card \"%s\""
+msgstr "SCSI-kort \"%s\""
+
+msgid "Floppy controller \"%s\""
+msgstr "Diskettstyrenhet \"%s\""
+
+msgid "Disk controller \"%s\""
+msgstr "Diskstyrenhet \"%s\""
+
+msgid "CD-ROM interface \"%s\""
+msgstr "CD-ROM-gränssnitt \"%s\""
+
+msgid "Memory expansion card \"%s\""
+msgstr "Minnesexpansionskort \"%s\""
+
+msgid "ROM expansion card \"%s\""
+msgstr "ROM-expansionskort \"%s\""
+
+msgid "RTC card \"%s\""
+msgstr "RTC-kort \"%s\""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+"Avbildningen \"%s\" överskrider den maximala kapaciteten av denna enhet och "
+"kommer att frånses."
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr "%s anslöts inte: alla USB-portar på denna maskin används."
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
+"%s anslöts inte: denna maskin har ingen USB-styrenhet som kan ta emot "
+"enheter."
 
 msgid "Do you want to save the settings?"
 msgstr "Vill du spara inställningarna?"
@@ -1191,6 +1494,24 @@ msgstr "Visa inte detta meddelande igen"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM-avbildningar"
+
+msgid "&New CD-R image…"
+msgstr "&Ny CD-R-avbildning…"
+
+msgid "New CD-R&W image…"
+msgstr "Ny CD-R&W-avbildning…"
+
+msgid "CD-RW image"
+msgstr "CD-RW-avbildning"
+
+msgid "CD-R image"
+msgstr "CD-R-avbildning"
+
+msgid "Aaru images"
+msgstr "Aaru-avbildningar"
+
+msgid "Unable to create image"
+msgstr "Avbildning kunde inte skapas"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Enhetskonfiguration"
@@ -1573,17 +1894,20 @@ msgstr "Ljud:"
 msgid "ACPI shutdown"
 msgstr "ACPI-avstängning"
 
-msgid "ACP&I shutdown"
-msgstr "ACP&I-avstängning"
+msgid "&ACPI shutdown"
+msgstr "&ACPI-avstängning"
 
 msgid "Power off"
 msgstr "Stäng av"
 
-msgid "Power &off…"
-msgstr "Stäng &av…"
-
 msgid "Power &off"
 msgstr "Stäng &av"
+
+msgid "Suspen&d"
+msgstr ""
+
+msgid "Suspend"
+msgstr ""
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
@@ -2063,6 +2387,9 @@ msgstr "PS/2-tangentbord"
 msgid "PS/55 Keyboard"
 msgstr "PS/55-tangentbord"
 
+msgid "USB Keyboard"
+msgstr "USB-tangentbord"
+
 msgid "Keys"
 msgstr "Tangenter"
 
@@ -2093,8 +2420,14 @@ msgstr "PS/2-mus"
 msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort-mus"
 
+msgid "USB Mouse"
+msgstr "USB-mus"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serie)"
+
+msgid "USB Tablet"
+msgstr "USB-platta"
 
 msgid "Default Baud rate"
 msgstr "Standard Baudhastighet"
@@ -2119,6 +2452,9 @@ msgstr "OPL4-ML dotterkort"
 
 msgid "System MIDI"
 msgstr "System-MIDI"
+
+msgid "USB Speaker"
+msgstr "USB-högtalare"
 
 msgid "MIDI Input Device"
 msgstr "Indataenhet för MIDI"
@@ -2554,6 +2890,9 @@ msgstr "SLI"
 
 msgid "Start Address"
 msgstr "Startadress"
+
+msgid "Allow RAM up to the system ROM"
+msgstr "Tillåt RAM upp till systemets ROM"
 
 msgid "Contiguous Size"
 msgstr "Angränsande storlek"
@@ -3406,6 +3745,18 @@ msgstr "Ljus"
 msgid "Dark"
 msgstr "Mörk"
 
+msgid "Style:"
+msgstr "Stil:"
+
+msgid "Windows 11"
+msgstr "Windows 11"
+
+msgid "Windows Native"
+msgstr "Windows inbyggd"
+
+msgid "Windows Classic"
+msgstr "Windows klassisk"
+
 msgid "Force interpretation"
 msgstr "Tvinga tolkning"
 
@@ -3780,8 +4131,8 @@ msgstr "Det finns inget kartlagt minne i det efterfrågade spannet."
 msgid "The search is limited to %1 bytes."
 msgstr "Sökningen är begränsad till %1 byte."
 
-msgid "Searching memory..."
-msgstr "Genomsöker minne..."
+msgid "Searching memory…"
+msgstr "Genomsöker minne…"
 
 msgid "The search was cancelled. The selection did not move."
 msgstr "Sökningen avbröts. Urvalet flyttades inte."
@@ -3793,265 +4144,292 @@ msgid "Not found. The selection did not move."
 msgstr "Hittades ej. Urvalet flyttades inte."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Fyll urval"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Fyll %1 byte från %2 med (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Ange en hex-byte från 00 till FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Fyllde %1 av %2 byte med %3 (%4 var inte skrivbar till RAM eller videominne)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Vald: %1 byte (%2 hoppades över)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Redigera byte"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Kopiera urval (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Kopiera urval (ASCII)"
 
-msgid "Fill selection..."
-msgstr ""
+msgid "Fill selection…"
+msgstr "Fyll urval…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopiera adress"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Disassemblera här"
 
-msgid "Dump memory from here..."
-msgstr ""
+msgid "Dump memory from here…"
+msgstr "Dumpa minne från här…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Minnesvy"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pausa / Återuppta"
 
 msgid "Step"
-msgstr ""
+msgstr "Steppa"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Kör det givna antalet intruktioner (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Intruktioner per steppning"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fysisk"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Adress, register eller seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "Kör"
 
 msgid "Live update"
-msgstr ""
+msgstr "Liveuppdatering"
 
-msgid "Dump..."
-msgstr ""
+msgid "Dump…"
+msgstr "Dumpa…"
 
 msgid "Commands"
-msgstr ""
+msgstr "Kommandon"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Visa eller dölj felsökningskommandon (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Hex-byte"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII-text"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Värde, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Värde, ord"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Värde, dubbelord"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Att leta efter: råa hex-byte, text, eller ett hex-värde lagrat i little-"
+"endian, som i hex-vyn."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Minnessökning"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
+"Ctrl+F sätter denna ruta i fokus, Enter eller F3 hittar nästa matchning, "
+"Shift+F3 den föregående."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Hitta föregående"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Leta uppåt från utvalet (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Hitta nästa"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Leta nedåt från utvalet (F3)"
 
-msgid "Range..."
-msgstr ""
+msgid "Range…"
+msgstr "Spann…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Leta inom ett adresspann istället för i allt minne"
 
 msgid "From"
-msgstr ""
+msgstr "Från"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Där sökningen börjar (hex, register eller seg:off, tom innebär den första "
+"karlagda byten, . innebär början av urvalet)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Till (inklusive)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Där sökningen slutar, inklusive den adressen (hex, register eller seg:off, "
+"tom innebär den senaste karlagda byten, . innebär slutet av urvalet)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Spann från"
 
 msgid "to"
-msgstr ""
+msgstr "till"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Kartlagt, inte RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "okartlagt"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Otillgänglig"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Otillgänglig: endast enhetshanterare svarar där (läsning skulle få "
+"biverkningar), eller så är linjär tabell inte närvarande."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Linjär adress, register eller seg:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Följ CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Byte"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Instruktion"
 
 msgid "Note"
-msgstr ""
+msgstr "Anteckning"
 
 msgid "Double-click a line to set or clear a breakpoint there"
-msgstr ""
+msgstr "Dubbelklicka en rad för att ange eller rensa en brytpunkt där"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Disassemblator"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Disassemblator (ej tillgänglig i denna version)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "Vy-meddelande"
 
 msgid "Selected range"
-msgstr ""
+msgstr "Valt spann"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Felsökningskommandon"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Utmatning från felsökningskommando"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Felsökningskommando"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "hjälp — kommandon, Upp/Ner — historik, . — vald adress"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Kommandon delar minnesvyns adressrymd och urval. Skriv hjälp för kommandon."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Låt processorn köra (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Stoppa processorn vid nästa instruktion (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "För många brytpunkter."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Stoppad: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "Emulatorn är upptagen, vyn uppdaterades inte."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Stoppad vid en brytpunkt."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Stoppad efter stegning."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Stoppad."
 
-msgid "Stepping..."
-msgstr ""
+msgid "Stepping…"
+msgstr "Stegar…"
 
 msgid "Running."
-msgstr ""
+msgstr "Körs."
 
 msgid "The emulator is paused; resume it to run or step."
-msgstr ""
+msgstr "Emulatorn är pausad, återuppta den för att köra eller stega."
 
 msgid "The dynamic recompiler is off while this window is open."
-msgstr ""
+msgstr "Den dynamiska omkompilatorn är avstängd medans detta fönster är öppet."
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Ange en adress."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "Väljaren kan inte slås upp."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Okänt segment \"%1\"."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Okänd offset \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Den linjära adressen är inte kartlagd till fysiskt minne."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" är inte en adress eller ett register."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Användning: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
+"Urvalet är fysiskt, använd en linjär adress eller växla till linjär rymd."
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
+"r name [hex-value]: läs eller redigera ett register som stöds av den "
+"nuvarande processorn.\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH "
+"DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (dolt deskriptorcache)"
+"\n"
+"Väljare laddar deskriptorer utan att köra gästintruktioner; cachefält är "
+"bokstavliga redigeringar.\n"
+"Skrivningar kräver avbrott vid en hel instruktionsgräns. "
+"Registerredigeringar i NEC 8080-läge är ej tillgängligt."
 
 msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
 msgstr ""
 
 msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
 msgstr ""
+"Register otillgängligt, värde ogiltigt, eller processor ej pausad vid en hel "
+"instruktionsgräns."
 
 msgid "Pause the processor before side-effecting memory access."
 msgstr ""
@@ -4080,8 +4458,10 @@ msgstr ""
 msgid "cleared"
 msgstr ""
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr ""
@@ -4090,9 +4470,6 @@ msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
 
 msgid "Dump memory"
-msgstr ""
-
-msgid "Browse..."
 msgstr ""
 
 msgid "Start (hex, register or seg:off):"
@@ -4113,7 +4490,7 @@ msgstr ""
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
 
-msgid "Binary files (*.bin);;All files (*)"
+msgid "Binary files"
 msgstr ""
 
 msgid "The length must be a hex number above 0."
@@ -4125,7 +4502,7 @@ msgstr ""
 msgid "Could not open %1 for writing."
 msgstr ""
 
-msgid "Dumping memory..."
+msgid "Dumping memory…"
 msgstr ""
 
 msgid "Could not write to %1."
@@ -4263,7 +4640,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"
@@ -4312,4 +4689,112 @@ msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
+msgstr ""
+
+msgid "Mount folder as a temporary floppy"
+msgstr ""
+
+msgid "The selected drive does not support folder mounting."
+msgstr ""
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr ""
+
+msgid "Mount folder as a temporary removable disk"
+msgstr ""
+
+msgid "Unable to mount folder or archive"
+msgstr ""
+
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
+
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr ""
+
+msgid "The temporary image could not be written."
+msgstr ""
+
+msgid "There is not enough memory to build the image."
+msgstr ""
+
+msgid "The folder or archive could not be read."
+msgstr ""
+
+msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr ""
+
+msgid "&New USB flash drive…"
+msgstr ""
+
+msgid "unplugged"
+msgstr ""
+
+msgid "&Unplug"
+msgstr ""
+
+msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+msgid "Custom size:"
+msgstr ""
+
+msgid "None (blank)"
+msgstr ""
+
+msgid "FAT16"
+msgstr ""
+
+msgid "FAT32"
+msgstr ""
+
+msgid "Format:"
+msgstr ""
+
+msgid "Could not create %1."
+msgstr ""
+
+msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "%1 (write-protected)"
+msgstr ""
+
+msgid "USB flash drive"
+msgstr ""
+
+msgid "%1 is not a disk image."
+msgstr ""
+
+msgid "Flash drive images"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""

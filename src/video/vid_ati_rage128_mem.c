@@ -321,17 +321,120 @@ r128_span_stage_acquire_tiled(rage128_t *dev, struct rage128_span_stage *st,
     return 1;
 }
 
-/* Write a staged surface back to guest memory. The real chip has no
-   staged copy: the engine writes memory directly, so a CPU store to a
-   byte the engine does not draw stays in memory. To keep such stores,
-   only bytes that differ from the acquire-time baseline in st->shadow
-   are written, as runs of changed bytes; writing the whole extent would
-   replace them with the stale staged values. A byte the engine rewrote
-   with its baseline value looks unchanged and is not written. With no
-   baseline (shadow_ok 0 after an OOM) the whole extent is written. A
-   second call with nothing staged does nothing.
+/* Whether a write-back of st can reach the AGP half of card space, the
+   part that lands in guest system memory. A linear staging covers card
+   bytes [vm, vm+len). A tiled one covers the whole tile rows that hold
+   rows y0 to y1 of its linear image, the bound the tile transform keeps
+   to (r128_tile_row_start64). Bit 25 selects the half per address, so a
+   range shorter than 32 MB reaches the AGP half only if one of its ends
+   is there. Erring toward 1 only costs a hand-off that was not needed. */
+static int
+r128_span_stage_agp(const struct rage128_span_stage *st)
+{
+    uint64_t lo = st->vm;
+    uint64_t hi = (uint64_t) st->vm + st->len;
 
-   A run's write can fail on the bus: bus mastering turned off, AGP_BASE
+    if (st->tiled && st->tpitch) {
+        uint32_t off = st->vm - st->tbase;
+
+        lo = (uint64_t) st->tbase + r128_tile_row_start64(off / st->tpitch, st->tpitch);
+        hi = (uint64_t) st->tbase
+            + r128_tile_rows_bytes64((uint32_t) (((uint64_t) off + st->len - 1u) / st->tpitch),
+                                     st->tpitch);
+    }
+    if (hi <= lo)
+        return 0;
+    return (hi - lo >= R128_CARD_AGP_HALF) || r128_card_is_agp((uint32_t) lo)
+        || r128_card_is_agp((uint32_t) (hi - 1u));
+}
+
+/* Write a staged surface back to guest memory and release it. The color
+   and depth arenas may be imported into the optional GPU backend, whose
+   queued or running work can still be writing them, so that work is
+   retired first, on this thread, which submits it. A staging that can
+   reach guest system memory and is written back by the packet thread is
+   handed to the CPU thread (rage128_pm4_wb_handoff, which explains why),
+   which stores its changed runs and lets this thread go on
+   (rage128_pm4_wb_service); any other is pushed here. A second call with nothing staged does nothing.
+   Submit thread only. */
+void
+r128_span_stage_writeback(rage128_t *dev, struct rage128_span_stage *st)
+{
+    if (!st->active)
+        return;
+    if (st == &dev->c_stage || st == &dev->z_stage)
+        rage128_gpu_czstage_quiesce(dev);
+    if (rage128_on_cce_thread && r128_span_stage_agp(st)) {
+        if (!rage128_pm4_wb_handoff(dev, st)) {
+            /* The thread is closing: the bytes exist only in the arena. */
+            pclog("[r128 mem] staged write-back lost: vm=%08x len=%u (engine closed)\n",
+                  st->vm, st->len);
+            st->active = 0;
+            st->tiled  = 0;
+        }
+        return;
+    }
+    r128_span_stage_push(dev, st);
+}
+
+/* The runs a write-back stores. The real chip has no staged copy: the
+   engine writes memory directly, so a CPU store to a byte the engine
+   does not draw stays in memory. To keep such stores, only bytes that
+   differ from the acquire-time baseline in st->shadow are written, as
+   runs of changed bytes; writing the whole extent would replace them
+   with the stale staged values. A byte the engine rewrote with its
+   baseline value looks unchanged and is not written. With no baseline
+   (shadow_ok 0 after an OOM) the whole extent is one run. Each call
+   gives the next run, arena bytes [*s, *pos), and returns 0 after the
+   last; *pos starts at 0. */
+static int
+r128_stage_next_run(const struct rage128_span_stage *st, uint32_t *pos, uint32_t *s)
+{
+    const uint8_t *a   = st->arena;
+    const uint8_t *b   = st->shadow;
+    uint32_t       len = st->len;
+    uint32_t       i   = *pos;
+
+    if (!st->arena || i >= len)
+        return 0;
+    if (!st->shadow_ok) {
+        *s   = i;
+        *pos = len;
+        return 1;
+    }
+    while (i < len) {
+        uint32_t blk = len - i > 64u ? 64u : len - i;
+
+        if (!memcmp(a + i, b + i, blk)) {
+            i += blk;
+            continue;
+        }
+        /* This block holds a changed byte, so the scan stops inside it. */
+        while (a[i] == b[i])
+            i++;
+        *s = i;
+        while (i < len && a[i] != b[i])
+            i++;
+        *pos = i;
+        return 1;
+    }
+    *pos = len;
+    return 0;
+}
+
+/* Store one run, n bytes for arena offset s, at its card address. For a
+   tiled staging, arena byte 0 is byte vm - tbase of the surface's linear
+   image. */
+static int
+r128_stage_write_run(rage128_t *dev, uint32_t vm, int tiled, uint32_t tbase, uint32_t tpitch,
+                     uint32_t s, const uint8_t *src, uint32_t n)
+{
+    if (tiled)
+        return r128_card_copy_tiled(dev, tbase, tpitch, (vm - tbase) + s, (uint8_t *) src, n, 1);
+    return r128_card_write_block(dev, vm + s, src, n);
+}
+
+/* A run's write can fail on the bus: bus mastering turned off, AGP_BASE
    cleared or a page-table entry that cannot be read after the acquire
    went through. Real memory would simply hold what the engine wrote;
    here the bytes exist only in the arena, so a failed run loses them.
@@ -339,61 +442,116 @@ r128_span_stage_acquire_tiled(rage128_t *dev, struct rage128_span_stage *st,
    leaves the other pages reachable), the loss is announced once per
    write-back, and the staging is released either way: a retry against
    a dead bus gains nothing, and a batch that keeps the arena would
-   write the stale bytes over later guest stores. Submit thread only. */
-void
-r128_span_stage_writeback(rage128_t *dev, struct rage128_span_stage *st)
+   write the stale bytes over later guest stores. */
+static void
+r128_stage_lost(uint32_t vm, uint32_t len)
 {
-    int ok = 1;
+    pclog("[r128 mem] staged write-back lost: vm=%08x len=%u (bus off, AGP_BASE 0 or unreadable page entry)\n",
+          vm, len);
+}
+
+/* The write-back itself, made in place from the arena. Runs on the
+   thread that owns the staging. */
+void
+r128_span_stage_push(rage128_t *dev, struct rage128_span_stage *st)
+{
+    uint32_t pos = 0;
+    uint32_t s;
+    int      ok = 1;
 
     if (!st->active)
         return;
-    /* The color and depth arenas may be imported into the optional GPU
-       backend, whose queued or running work can still be writing them.
-       Retire that work first so the push carries the final bytes. */
-    if (st == &dev->c_stage || st == &dev->z_stage)
-        rage128_gpu_czstage_quiesce(dev);
-    if (st->arena && st->len) {
-        const uint8_t *a   = st->arena;
-        const uint8_t *b   = st->shadow;
-        uint32_t       len = st->len;
-        uint32_t       i   = 0;
-
-        while (i < len) {
-            uint32_t s;
-
-            if (st->shadow_ok) {
-                uint32_t blk = len - i > 64u ? 64u : len - i;
-
-                if (!memcmp(a + i, b + i, blk)) {
-                    i += blk;
-                    continue;
-                }
-                /* This block holds a changed byte, so the scan stops
-                   inside it. */
-                while (a[i] == b[i])
-                    i++;
-                s = i;
-                while (i < len && a[i] != b[i])
-                    i++;
-            } else {
-                s = 0;
-                i = len;
-            }
-            /* For a tiled staging, arena byte 0 is byte st->vm - st->tbase
-               of the surface's linear image. */
-            if (st->tiled)
-                ok &= r128_card_copy_tiled(dev, st->tbase, st->tpitch,
-                                           (st->vm - st->tbase) + s,
-                                           st->arena + s, i - s, 1);
-            else
-                ok &= r128_card_write_block(dev, st->vm + s, st->arena + s, i - s);
-        }
-    }
+    while (r128_stage_next_run(st, &pos, &s))
+        ok &= r128_stage_write_run(dev, st->vm, st->tiled, st->tbase, st->tpitch, s,
+                                   st->arena + s, pos - s);
     if (!ok)
-        pclog("[r128 mem] staged write-back lost: vm=%08x len=%u (bus off, AGP_BASE 0 or unreadable page entry)\n",
-              st->vm, st->len);
+        r128_stage_lost(st->vm, st->len);
     st->active = 0;
     st->tiled  = 0;
+}
+
+/* Copy the runs a write-back of st stores into job and release st, so
+   its owner may reuse the staging while the CPU thread is still storing
+   the copy (rage128_pm4_wb_service). Without memory for the copy the
+   write-back is dropped: st is released, the loss is announced and 0 is
+   returned. The staging is not written in place instead, because its
+   owner waits for the write-back, and a write that reaches a handler
+   which waits for the owner, such as a table entry pointing at this
+   card's registers, would then wait forever; the copy is what lets the
+   owner go early (rage128_pm4_wb_release_early). */
+#ifdef REG_HARNESS
+/* Register-harness probe point: nonzero makes the copy's allocation
+   fail. Zero outside the vectors that use it. */
+atomic_int rage128_harness_take_nomem;
+#endif
+
+int
+r128_span_stage_take(struct rage128_span_stage *st, r128_stage_job_t *job)
+{
+    uint32_t pos = 0;
+    uint32_t s;
+    uint32_t nruns = 0;
+    uint32_t bytes = 0;
+    int      nomem = 0;
+
+    memset(job, 0, sizeof(*job));
+    while (r128_stage_next_run(st, &pos, &s)) {
+        nruns++;
+        bytes += pos - s;
+    }
+    job->run  = (uint32_t *) malloc(((size_t) nruns + 1) * 2 * sizeof(uint32_t));
+    job->data = (uint8_t *) malloc((size_t) bytes + 1);
+#ifdef REG_HARNESS
+    nomem = atomic_load(&rage128_harness_take_nomem);
+#endif
+    if (!job->run || !job->data || nomem) {
+        free(job->run);
+        free(job->data);
+        memset(job, 0, sizeof(*job));
+        pclog("[r128 mem] staged write-back lost: vm=%08x len=%u (no memory for the copy)\n",
+              st->vm, st->len);
+        st->active = 0;
+        st->tiled  = 0;
+        return 0;
+    }
+    job->vm     = st->vm;
+    job->len    = st->len;
+    job->tiled  = st->tiled;
+    job->tbase  = st->tbase;
+    job->tpitch = st->tpitch;
+    pos         = 0;
+    bytes       = 0;
+    while (r128_stage_next_run(st, &pos, &s)) {
+        job->run[job->nruns * 2]     = s;
+        job->run[job->nruns * 2 + 1] = pos - s;
+        memcpy(job->data + bytes, st->arena + s, pos - s);
+        bytes += pos - s;
+        job->nruns++;
+    }
+    st->active = 0;
+    st->tiled  = 0;
+    return 1;
+}
+
+/* Store the runs r128_span_stage_take copied, in order, and free them. */
+void
+r128_stage_job_write(rage128_t *dev, r128_stage_job_t *job)
+{
+    const uint8_t *p  = job->data;
+    int            ok = 1;
+
+    for (uint32_t r = 0; r < job->nruns; r++) {
+        uint32_t s = job->run[r * 2];
+        uint32_t n = job->run[r * 2 + 1];
+
+        ok &= r128_stage_write_run(dev, job->vm, job->tiled, job->tbase, job->tpitch, s, p, n);
+        p += n;
+    }
+    if (!ok)
+        r128_stage_lost(job->vm, job->len);
+    free(job->run);
+    free(job->data);
+    memset(job, 0, sizeof(*job));
 }
 
 /* Resolve a window over card bytes [lo, lo+len) for one 2D operation

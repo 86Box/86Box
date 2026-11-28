@@ -482,6 +482,159 @@ sb_finish_dma(sb_dsp_t *dsp)
         sb_stop_dma(dsp);
 }
 
+/* ESS Audio 1 FIFO and Extended mode programmed I/O (ES1869 data sheet, "Extended Mode
+   Programmed I/O Operation"): with Audio_Base+Fh accesses in place of DMA cycles, the program
+   leaves the DRQ off (B2h bit 6) and enables the FIFO half-empty interrupt (B1h bit 5). The
+   half-empty flag means 0-127 bytes loaded for the DAC and 128-256 for the ADC; its rising edge
+   raises the interrupt. */
+static int
+sb_ess_fifo_adc(const sb_dsp_t *dsp)
+{
+    return !!(ESSreg(0xB8) & 0x08);
+}
+
+static void
+sb_ess_fifo_update(sb_dsp_t *dsp)
+{
+    const uint8_t he = sb_ess_fifo_adc(dsp) ? (dsp->ess_fifo_count >= 128) : (dsp->ess_fifo_count < 128);
+
+    if (he && !dsp->ess_fifo_he && dsp->ess_pio && ((ESSreg(0xB1) & 0x30) == 0x30)) {
+        dsp->ess_irq_fifohe = 1;
+        if (!dsp->sb_irq8 && !dsp->sb_irq16) {
+            dsp->sb_irq8 = 1;
+            if (!dsp->sb_irqm8)
+                dsp->irq_update(dsp->irq_priv, 1);
+        }
+    }
+    dsp->ess_fifo_he = he;
+}
+
+static void
+sb_ess_fifo_reset(sb_dsp_t *dsp)
+{
+    dsp->ess_fifo_rp = dsp->ess_fifo_wp = 0;
+    dsp->ess_fifo_count                 = 0;
+    dsp->ess_fifo_he                    = !sb_ess_fifo_adc(dsp);
+}
+
+static int
+sb_ess_fifo_put(sb_dsp_t *dsp, const uint8_t val)
+{
+    if (dsp->ess_fifo_count >= 256)
+        return 0;
+
+    dsp->ess_fifo[dsp->ess_fifo_wp++] = val;
+    dsp->ess_fifo_count++;
+    sb_ess_fifo_update(dsp);
+    return 1;
+}
+
+static int
+sb_ess_fifo_get(sb_dsp_t *dsp)
+{
+    if (dsp->ess_fifo_count == 0)
+        return DMA_NODATA;
+
+    const uint8_t ret = dsp->ess_fifo[dsp->ess_fifo_rp++];
+    dsp->ess_fifo_count--;
+    sb_ess_fifo_update(dsp);
+    return ret;
+}
+
+/* While programmed I/O runs, the DSP's DMA hooks read and write the FIFO. */
+static int
+sb_ess_pio_readb(void *priv)
+{
+    return sb_ess_fifo_get((sb_dsp_t *) priv);
+}
+
+static int
+sb_ess_pio_readw(void *priv)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    if (dsp->ess_fifo_count < 2)
+        return DMA_NODATA;
+
+    const int lo = sb_ess_fifo_get(dsp);
+    const int hi = sb_ess_fifo_get(dsp);
+    return lo | (hi << 8);
+}
+
+static int
+sb_ess_pio_writeb(void *priv, const uint8_t val)
+{
+    return !sb_ess_fifo_put((sb_dsp_t *) priv, val);
+}
+
+static int
+sb_ess_pio_writew(void *priv, const uint16_t val)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    if (dsp->ess_fifo_count > 254)
+        return DMA_NODATA;
+
+    sb_ess_fifo_put(dsp, val & 0xff);
+    sb_ess_fifo_put(dsp, val >> 8);
+    return 0;
+}
+
+static int
+sb_ess_pio_wanted(const sb_dsp_t *dsp)
+{
+    return IS_ESS(dsp) && dsp->ess_extended_mode && (ESSreg(0xB8) & 0x01) &&
+           !(ESSreg(0xB2) & 0x40) && (ESSreg(0xB1) & 0x20);
+}
+
+static void
+sb_ess_set_pio(sb_dsp_t *dsp, const int pio)
+{
+    if (pio == dsp->ess_pio)
+        return;
+
+    if (pio) {
+        dsp->ess_pio_saved_readb  = dsp->dma_readb;
+        dsp->ess_pio_saved_readw  = dsp->dma_readw;
+        dsp->ess_pio_saved_writeb = dsp->dma_writeb;
+        dsp->ess_pio_saved_writew = dsp->dma_writew;
+        dsp->ess_pio_saved_priv   = dsp->dma_priv;
+        dsp->dma_readb            = sb_ess_pio_readb;
+        dsp->dma_readw            = sb_ess_pio_readw;
+        dsp->dma_writeb           = sb_ess_pio_writeb;
+        dsp->dma_writew           = sb_ess_pio_writew;
+        dsp->dma_priv             = dsp;
+    } else {
+        dsp->dma_readb  = dsp->ess_pio_saved_readb;
+        dsp->dma_readw  = dsp->ess_pio_saved_readw;
+        dsp->dma_writeb = dsp->ess_pio_saved_writeb;
+        dsp->dma_writew = dsp->ess_pio_saved_writew;
+        dsp->dma_priv   = dsp->ess_pio_saved_priv;
+    }
+    dsp->ess_pio = pio;
+}
+
+/* Status bits 5:3 of Audio_Base+Ch. Under DMA the transfer is instant here, so a running DAC
+   transfer counts as a full FIFO and a running ADC one as an empty FIFO; when idle it is empty. */
+static uint8_t
+sb_ess_fifo_status(const sb_dsp_t *dsp)
+{
+    uint16_t count = dsp->ess_fifo_count;
+    int      adc   = sb_ess_fifo_adc(dsp);
+
+    if (!dsp->ess_pio) {
+        const int running = dsp->sb_8_enable || dsp->sb_16_enable;
+        const int output  = dsp->sb_8_enable ? dsp->sb_8_output : dsp->sb_16_output;
+
+        if (!dsp->ess_playback_mode)
+            adc = running && !output;
+        count = (running && !adc) ? 256 : 0;
+    }
+
+    return ((count >= 256) ? 0x20 : 0x00) | ((count == 0) ? 0x10 : 0x00) |
+           ((adc ? (count >= 128) : (count < 128)) ? 0x08 : 0x00);
+}
+
 void
 sb_dsp_reset(sb_dsp_t *dsp)
 {
@@ -496,6 +649,9 @@ sb_dsp_reset(sb_dsp_t *dsp)
         dsp->sb_16_enable = 0;
         sb_finish_dma(dsp);
     }
+
+    sb_ess_set_pio(dsp, 0);
+    dsp->ess_irq_fifohe = 0;
 
     timer_disable(&dsp->output_timer);
     timer_disable(&dsp->input_timer);
@@ -751,8 +907,9 @@ sb_start_dma_ess(sb_dsp_t *dsp)
     else
         sb_start_dma(dsp, !(ESSreg(0xB7) & 4), (ESSreg(0xB8) >> 2) & 1, real_format, (int) len);
     dsp->ess_playback_mode = 1;
-    dma_set_drq(dsp->sb_8_dmanum, 1);
-    dma_set_drq(dsp->sb_16_8_dmanum, 1);
+    /* programmed I/O moves the data through Audio_Base+Fh, with no DRQ. */
+    dma_set_drq(dsp->sb_8_dmanum, !dsp->ess_pio);
+    dma_set_drq(dsp->sb_16_8_dmanum, !dsp->ess_pio);
 }
 
 void
@@ -766,11 +923,19 @@ sb_stop_dma_ess(sb_dsp_t *dsp)
 static void
 sb_ess_update_dma_status(sb_dsp_t *dsp)
 {
-    bool dma_en = (ESSreg(0xB8) & 1) ? true : false;
+    bool      dma_en = (ESSreg(0xB8) & 1) ? true : false;
+    const int pio    = sb_ess_pio_wanted(dsp);
 
-    /* If the DRQ is disabled, do not start. */
-    if (!(ESSreg(0xB2) & 0x40))
+    /* If the DRQ is disabled, do not start (unless it is programmed I/O). */
+    if (!(ESSreg(0xB2) & 0x40) && !pio)
         dma_en = false;
+
+    if (pio != dsp->ess_pio) {
+        /* Switching between DMA and programmed I/O: restart on the other source. */
+        if (dsp->sb_8_enable || dsp->sb_16_enable)
+            sb_stop_dma_ess(dsp);
+        sb_ess_set_pio(dsp, pio);
+    }
 
     if (dma_en) {
         if (!dsp->sb_8_enable && !dsp->sb_16_enable)
@@ -1170,6 +1335,9 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
             }
             sb_dsp_log("Legacy Audio IRQ control=%d.\n", dsp->sb_irqnum);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
+            /* bit 5 (FIFO half-empty interrupt) selects programmed I/O. */
+            if (sb_ess_pio_wanted(dsp) != dsp->ess_pio)
+                sb_ess_update_dma_status(dsp);
             break;
         case 0xB2: /* DRQ Control */
             chg         = ESSreg(reg) ^ data;
@@ -2314,7 +2482,7 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xE)))
+    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xF)))
         addr &= 0xfffe;
 
     sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, addr, val);
@@ -2326,6 +2494,9 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
             if (!(val & 2) && (dsp->espcm_fifo_reset & 2)) {
                 fifo_reset(dsp->espcm_fifo);
             }
+            /* bit 1 clears the Audio 1 FIFO (ES1869 data sheet). */
+            if (IS_ESS(dsp) && (val & 2))
+                sb_ess_fifo_reset(dsp);
             dsp->espcm_fifo_reset = val;
             dsp->uart_midi        = 0;
             dsp->uart_irq         = 0;
@@ -2410,6 +2581,11 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
+        case 0xF: /* ESS programmed I/O access to the FIFO (DAC data) */
+            if (IS_ESS(dsp) && dsp->ess_extended_mode)
+                sb_ess_fifo_put(dsp, val);
+            break;
+
         default:
             break;
     }
@@ -2422,7 +2598,7 @@ sb_read(uint16_t addr, void *priv)
     uint8_t   ret = 0x00;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xE)))
+    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xF)))
         /* Exception: ESS AudioDrive does not alias port base+0xf */
             addr &= 0xfffe;
 
@@ -2476,14 +2652,13 @@ sb_read(uint16_t addr, void *priv)
 
                     const uint8_t busy_flag   = (dsp->wb_full || (dsp->busy_count & 2)) ? 0x80 : 0x00;
                     const uint8_t data_rdy    = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x40;
-                    const uint8_t fifo_full   = 0; /* Unimplemented */
-                    const uint8_t fifo_empty  = 0; /* (this is for the 256-byte extended mode FIFO, */
-                    const uint8_t fifo_half   = 0; /* not the standard 64-byte FIFO) */
+                    /* FIFO full/empty/half-empty (bits 5:3) and the half-empty interrupt. */
+                    const uint8_t fifo_flags  = sb_ess_fifo_status(dsp);
                     const uint8_t irq_generic = dsp->ess_irq_generic ? 0x04 : 0x00;
-                    const uint8_t irq_fifohe  = 0; /* Unimplemented (ditto) */
+                    const uint8_t irq_fifohe  = dsp->ess_irq_fifohe ? 0x02 : 0x00;
                     const uint8_t irq_dmactr  = dsp->ess_irq_dmactr ? 0x01 : 0x00;
 
-                    ret = busy_flag | data_rdy | fifo_full | fifo_empty | fifo_half | irq_generic | irq_fifohe | irq_dmactr;
+                    ret = busy_flag | data_rdy | fifo_flags | irq_generic | irq_fifohe | irq_dmactr;
                 } else if (dsp->wb_full || (dsp->busy_count & 2)) {
                     dsp->wb_full = timer_is_enabled(&dsp->wb_timer);
                     if (IS_AZTECH(dsp)) {
@@ -2515,6 +2690,7 @@ sb_read(uint16_t addr, void *priv)
             dsp->irq_update(dsp->irq_priv, 0);
             dsp->sb_irq8 = dsp->sb_irq16 = 0;
             dsp->ess_irq_generic = dsp->ess_irq_dmactr = false;
+            dsp->ess_irq_fifohe  = 0;
             /*
                Only bit 7 is defined but aztech diagnostics fail if the others are set.
                Keep the original behavior to not interfere with what's already working.
@@ -2541,8 +2717,12 @@ sb_read(uint16_t addr, void *priv)
                 if (!dsp->sb_irq8)
                     dsp->irq_update(dsp->irq_priv, 0);
                 sb_dsp_log("SB 16-bit ACK read 0xFF\n");
-            }
-            ret = 0xff;
+                ret = 0xff;
+            } else if (dsp->ess_extended_mode && dsp->ess_fifo_count) {
+                /* ESS programmed I/O access to the FIFO (ADC data) */
+                ret = (uint8_t) sb_ess_fifo_get(dsp);
+            } else
+                ret = 0xff;
             break;
 
         default:

@@ -24,21 +24,28 @@ add_library(snd OBJECT
     snd_opl_ymfm.cpp
     snd_resid.cpp
     midi.c
+    midi_lcd.c
+    midi_lcd_mt32.c
+    midi_lcd_sc55.c
     snd_speaker.c
     snd_lpt_adlipt.c
     snd_lpt_cms.c
     snd_lpt_dac.c
     snd_lpt_dss.c
+    snd_lpt_msound.c
     snd_lpt_tndlpt.c
     snd_pssj.c
     snd_ac97_codec.c
     snd_ac97_via.c
     snd_ps1.c
+    snd_acpa.c
     snd_adlib.c
     snd_adlibgold.c
     snd_ad1816.c
     snd_ad1848.c
     snd_audiopci.c
+    snd_vortex2.c
+    snd_vortex2_core.c
     snd_azt2316a.c
     snd_azt2320.c
     snd_cms.c
@@ -47,11 +54,13 @@ add_library(snd OBJECT
     snd_solo1.c
     snd_covox.c
     snd_cs423x.c
+    snd_ibm_speech.c
     snd_imfc.cpp
     snd_gus.c
     snd_sb.c
     snd_sb_dsp.c
     snd_emu8k.c
+    snd_emu8008.c
     snd_mmb.c
     snd_mozart.c
     snd_mpu401.c
@@ -59,9 +68,18 @@ add_library(snd OBJECT
     snd_jazz16.c
     snd_saaym.c
     snd_sn76489.c
+    snd_sscape.c
+    snd_es5506.c
+    musashi/m68kcpu.c
+    musashi/m68kops.c
+    musashi/softfloat/softfloat.c
     snd_ssi2001.c
+    snd_tms320c25.c
+    snd_tms5220.c
+    snd_cvsd.c
     snd_wss.c
     snd_ym7128.c
+    snd_ymz263b.c
     snd_optimc.c
     snd_opl_esfm.c
     snd_ps1_midi.c
@@ -74,6 +92,14 @@ add_library(snd OBJECT
     snd_pc98_26k.c
     snd_pc98_86.c
     snd_pc98_spb.c
+)
+
+# Vendored Musashi 68000 core (Ensoniq Soundscape on-board processor)
+set_source_files_properties(
+    musashi/m68kcpu.c
+    musashi/m68kops.c
+    musashi/softfloat/softfloat.c
+    PROPERTIES COMPILE_OPTIONS "$<IF:$<C_COMPILER_ID:MSVC>,/w,-w>"
 )
 
 # TODO: Should platform-specific audio driver be here?
@@ -167,16 +193,27 @@ if(RTMIDI)
 endif()
 
 if(FLUIDSYNTH)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(FLUIDSYNTH REQUIRED IMPORTED_TARGET fluidsynth)
-    target_link_libraries(86Box PkgConfig::FLUIDSYNTH)
-    if(STATIC_BUILD)
-        target_link_libraries(86Box -static ${FLUIDSYNTH_STATIC_LIBRARIES} -fopenmp)
-        if(WIN32)
-            add_compile_definitions(FLUIDSYNTH_NOT_A_DLL)
+    if(NOT STATIC_BUILD)
+        # Shared libraries do not need the private dependencies queried by pkg-config.
+        find_package(FluidSynth CONFIG QUIET)
+    endif()
 
-            if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
-                target_link_libraries(86Box psapi)
+    if(NOT STATIC_BUILD AND TARGET FluidSynth::libfluidsynth)
+        target_link_libraries(86Box FluidSynth::libfluidsynth)
+        target_link_libraries(snd PRIVATE FluidSynth::libfluidsynth)
+    else()
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(FLUIDSYNTH REQUIRED IMPORTED_TARGET fluidsynth)
+        target_link_libraries(86Box PkgConfig::FLUIDSYNTH)
+        target_link_libraries(snd PRIVATE PkgConfig::FLUIDSYNTH)
+        if(STATIC_BUILD)
+            target_link_libraries(86Box -static ${FLUIDSYNTH_STATIC_LIBRARIES} -fopenmp)
+            if(WIN32)
+                add_compile_definitions(FLUIDSYNTH_NOT_A_DLL)
+
+                if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+                    target_link_libraries(86Box psapi)
+                endif()
             endif()
         endif()
     endif()
@@ -211,10 +248,7 @@ target_link_libraries(86Box esfmu)
 add_subdirectory(ymfm)
 target_link_libraries(86Box ymfm)
 
-if(OPL4ML)
-    target_compile_definitions(snd PRIVATE USE_OPL4ML)
-    target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
-endif()
+target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 
 if(SOUNDCANVAS)
     target_compile_definitions(snd PRIVATE USE_SOUNDCANVAS)
@@ -226,6 +260,10 @@ if(SOUNDCANVAS)
     if(NOT WIN32)
         target_link_libraries(86Box dl)
     endif()
+endif()
+
+if(ENABLE_VORTEX2_LOG)
+    target_compile_definitions(snd PRIVATE ENABLE_VORTEX2_LOG)
 endif()
 
 if(SOFTMODEM)

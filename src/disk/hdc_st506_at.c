@@ -182,6 +182,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
 {
     const drive_t *drive = &mfm->drives[mfm->drvsel];
     int            multi = (mfm->secount != 1);
+    int            head  = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
 
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
@@ -190,7 +191,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    if (mfm->head > drive_hpc(drive, multi)) {
+    if (head > drive_hpc(drive, multi)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
                      mfm->drvsel);
         return 1;
@@ -203,7 +204,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
     }
 
     /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
-    if (mfm->head > drive->hpc) {
+    if (head > drive->hpc) {
         st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
         return 1;
     }
@@ -213,7 +214,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    *addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, multi)) + mfm->head) * drive_spt(drive, multi)) + (mfm->sector - 1);
+    *addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, multi)) + head) * drive_spt(drive, multi)) + (mfm->sector - 1);
 
     return 0;
 }
@@ -223,6 +224,8 @@ get_sector_format(mfm_t *mfm, off64_t *addr)
 {
     const drive_t *drive = &mfm->drives[mfm->drvsel];
 
+    int            head  = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
+
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
     if (drive->curcyl != mfm->cylinder) {
@@ -230,19 +233,19 @@ get_sector_format(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    if (mfm->head > drive_hpc(drive, 0)) {
+    if (head > drive_hpc(drive, 0)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
                      mfm->drvsel);
         return 1;
     }
 
     /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
-    if (mfm->head > drive->hpc) {
+    if (head > drive->hpc) {
         st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
         return 1;
     }
 
-    *addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, 0)) + mfm->head) * drive_spt(drive, 0));
+    *addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, 0)) + head) * drive_spt(drive, 0));
 
     return 0;
 }
@@ -253,15 +256,20 @@ next_sector(mfm_t *mfm)
 {
     drive_t *drive = &mfm->drives[mfm->drvsel];
 
+    int      head  = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
+
     if (++mfm->sector == (drive_spt(drive, 1) + 1)) {
         mfm->sector = 1;
-        if (++mfm->head == drive_hpc(drive, 1)) {
-            mfm->head = 0;
+        if (++head == drive_hpc(drive, 1)) {
+            head = 0;
             mfm->cylinder++;
             if (drive->curcyl < drive->tracks)
                 drive->curcyl++;
         }
     }
+
+    int old_b3 = mfm->head & 0x08;
+    mfm->head = head | (mfm->hs3en ? 0x00 : old_b3);
 }
 
 static void
@@ -313,7 +321,8 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
                     mfm->status = STAT_BUSY;
                     {
                         /* Calculate seek time based on CHS position */
-                        off64_t seek_addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, mfm->secount != 1)) + mfm->head) * drive_spt(drive, mfm->secount != 1)) + (mfm->sector - 1);
+                        int     head      = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
+                        off64_t seek_addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, mfm->secount != 1)) + head) * drive_spt(drive, mfm->secount != 1)) + (mfm->sector - 1);
                         double  seek_us   = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) seek_addr, HDD_OP_READ, 0, 0.0);
                         uint64_t delay    = (seek_us > (200.0 * MFM_TIME / (double) TIMER_USEC))
                                             ? (uint64_t)(seek_us * TIMER_USEC) : 200 * MFM_TIME;
@@ -372,7 +381,8 @@ mfm_write_data_done(mfm_t *mfm)
     mfm->status = STAT_BUSY;
     {
         drive_t *wr_drive = &mfm->drives[mfm->drvsel];
-        off64_t  wr_addr  = ((((off64_t) mfm->cylinder * drive_hpc(wr_drive, mfm->secount != 1)) + mfm->head) * drive_spt(wr_drive, mfm->secount != 1)) + (mfm->sector - 1);
+        int      head     = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
+        off64_t  wr_addr  = ((((off64_t) mfm->cylinder * drive_hpc(wr_drive, mfm->secount != 1)) + head) * drive_spt(wr_drive, mfm->secount != 1)) + (mfm->sector - 1);
         double   seek_us  = hdd_seek_get_time(&hdd[wr_drive->hdd_num], (uint32_t) wr_addr, HDD_OP_WRITE, 1, 0.0);
         uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
                             ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
@@ -450,7 +460,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x01f6: /* drive/head */
             /* SDH bit 3 only reaches the drive when 3F6 bit 3 enables it. */
-            mfm->head   = mfm->hs3en ? (val & 0x0f) : (val & 0x07);
+            mfm->head   = val & 0x0f;
             mfm->drvsel = !!(val & 0x10);
             if (mfm->drives[mfm->drvsel].present)
                 mfm->status = STAT_READY | STAT_DSC;
@@ -498,7 +508,8 @@ mfm_read_data_done(mfm_t *mfm)
             mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
             {
                 drive_t *rd_drive = &mfm->drives[mfm->drvsel];
-                off64_t  rd_addr  = ((((off64_t) mfm->cylinder * drive_hpc(rd_drive, 1)) + mfm->head) * drive_spt(rd_drive, 1)) + (mfm->sector - 1);
+                int      head     = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
+                off64_t  rd_addr  = ((((off64_t) mfm->cylinder * drive_hpc(rd_drive, 1)) + head) * drive_spt(rd_drive, 1)) + (mfm->sector - 1);
                 double   seek_us  = hdd_seek_get_time(&hdd[rd_drive->hdd_num], (uint32_t) rd_addr, HDD_OP_READ, 1, 0.0);
                 uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
                                     ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
@@ -581,8 +592,9 @@ mfm_read(uint16_t port, void *priv)
             ret = (uint8_t) ((mfm->cylinder >> 8) & 0x03);
             break;
 
-        case 0x01f6: /* drive/head */
-            ret = (uint8_t) (0xa0 | mfm->head | (mfm->drvsel ? 0x10 : 0));
+        case 0x01f6:
+            /* drive/head */
+            ret      = (uint8_t) (0xa0 | mfm->head | (mfm->drvsel ? 0x10 : 0));
             break;
 
         case 0x01f7: /* Status */
@@ -663,14 +675,17 @@ do_callback(void *priv)
             irq_raise(mfm);
             break;
 
-        case CMD_READ:
+        case CMD_READ: {
+#ifdef ENABLE_ST506_AT_LOG
+            int head = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
             st506_at_log("WD1003(%d) read(%d,%d,%d)\n",
-                         mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
+                         mfm->drvsel, mfm->cylinder, head, mfm->sector);
+#endif
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
-read_error:
-                mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
+                read_error:
+                                mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
@@ -686,15 +701,18 @@ read_error:
             irq_raise(mfm);
             ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
             break;
-
-        case CMD_WRITE:
+        }
+        case CMD_WRITE: {
+#ifdef ENABLE_ST506_AT_LOG
+            int head = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
             st506_at_log("WD1003(%d) write(%d,%d,%d)\n",
-                         mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
+                         mfm->drvsel, mfm->cylinder, head, mfm->sector);
+#endif
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
-write_error:
-                mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
+                write_error:
+                                mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
@@ -716,20 +734,26 @@ write_error:
             } else
                 ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
             break;
-
-        case CMD_VERIFY:
+        }
+        case CMD_VERIFY: {
+#ifdef ENABLE_ST506_AT_LOG
+            int head = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
             st506_at_log("WD1003(%d) verify(%d,%d,%d)\n",
-                         mfm->drvsel, mfm->cylinder, mfm->head, mfm->sector);
+                         mfm->drvsel, mfm->cylinder, head, mfm->sector);
+#endif
             do_seek(mfm);
             mfm->pos    = 0;
             mfm->status = STAT_READY | STAT_DSC;
             irq_raise(mfm);
             ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
             break;
-
-        case CMD_FORMAT:
+        }
+        case CMD_FORMAT: {
+#ifdef ENABLE_ST506_AT_LOG
+            int head = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
             st506_at_log("WD1003(%d) format(%d,%d)\n",
-                         mfm->drvsel, mfm->cylinder, mfm->head);
+                         mfm->drvsel, mfm->cylinder, head);
+#endif
             do_seek(mfm);
             if (get_sector_format(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
@@ -744,7 +768,7 @@ write_error:
             irq_raise(mfm);
             ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
             break;
-
+        }
         case CMD_DIAGNOSE:
             st506_at_log("WD1003(%d) diag\n", mfm->drvsel);
 

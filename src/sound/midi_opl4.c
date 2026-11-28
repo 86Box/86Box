@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -14,7 +13,7 @@
 #include <86box/mem.h>
 #include <86box/midi.h>
 #include <86box/plat.h>
-#include <86box/thread.h>
+#include <86box/timer.h>
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
@@ -31,220 +30,240 @@
 typedef struct
 {
     uint8_t instrument;
-    uint8_t panpot;
+    int8_t  panpot;
     uint8_t vibrato;
+    uint8_t volume;
+    uint8_t expression;
+    uint8_t rpn_msb;
+    uint8_t rpn_lsb;
+    uint8_t bend_semitones;
+    uint8_t bend_cents;
+    int16_t pitch_bend;
+    int16_t fine_tuning;
+    int8_t  coarse_tuning;
+    bool    sustain;
+    bool    reverb;
     bool    drum_channel;
 } MIDI_CHANNEL_DATA;
 
 typedef struct
 {
     bool     is_active;
+    bool     held;
+    bool     key_on_pending;
+    bool     key_off_pending;
+    uint64_t key_change_frame;
     uint64_t activated;
+    uint64_t released_frame;
+    bool     has_release_tail;
+    uint8_t  release_rate;
+    uint8_t  attenuation;
 
     uint8_t                 number;
     MIDI_CHANNEL_DATA      *midi_channel;
     uint8_t                 note;
     uint8_t                 velocity;
     const YRW801_WAVE_DATA *wave_data;
-    uint8_t                 level_direct;
+    const YRW801_WAVE_DATA *pending_wave;
+    int8_t                  panpot;
     uint8_t                 reg_f_number;
     uint8_t                 reg_misc;
     uint8_t                 reg_lfo_vibrato;
 } VOICE_DATA;
 
 static const int16_t g_wave_pitch_map[0x600] = {
-    0x000, 0x000, 0x001, 0x001, 0x002, 0x002, 0x003, 0x003,
-    0x004, 0x004, 0x005, 0x005, 0x006, 0x006, 0x006, 0x007,
-    0x007, 0x008, 0x008, 0x009, 0x009, 0x00a, 0x00a, 0x00b,
-    0x00b, 0x00c, 0x00c, 0x00d, 0x00d, 0x00d, 0x00e, 0x00e,
-    0x00f, 0x00f, 0x010, 0x010, 0x011, 0x011, 0x012, 0x012,
-    0x013, 0x013, 0x014, 0x014, 0x015, 0x015, 0x015, 0x016,
-    0x016, 0x017, 0x017, 0x018, 0x018, 0x019, 0x019, 0x01a,
-    0x01a, 0x01b, 0x01b, 0x01c, 0x01c, 0x01d, 0x01d, 0x01e,
-    0x01e, 0x01e, 0x01f, 0x01f, 0x020, 0x020, 0x021, 0x021,
-    0x022, 0x022, 0x023, 0x023, 0x024, 0x024, 0x025, 0x025,
-    0x026, 0x026, 0x027, 0x027, 0x028, 0x028, 0x029, 0x029,
-    0x029, 0x02a, 0x02a, 0x02b, 0x02b, 0x02c, 0x02c, 0x02d,
-    0x02d, 0x02e, 0x02e, 0x02f, 0x02f, 0x030, 0x030, 0x031,
-    0x031, 0x032, 0x032, 0x033, 0x033, 0x034, 0x034, 0x035,
-    0x035, 0x036, 0x036, 0x037, 0x037, 0x038, 0x038, 0x038,
-    0x039, 0x039, 0x03a, 0x03a, 0x03b, 0x03b, 0x03c, 0x03c,
-    0x03d, 0x03d, 0x03e, 0x03e, 0x03f, 0x03f, 0x040, 0x040,
-    0x041, 0x041, 0x042, 0x042, 0x043, 0x043, 0x044, 0x044,
-    0x045, 0x045, 0x046, 0x046, 0x047, 0x047, 0x048, 0x048,
-    0x049, 0x049, 0x04a, 0x04a, 0x04b, 0x04b, 0x04c, 0x04c,
-    0x04d, 0x04d, 0x04e, 0x04e, 0x04f, 0x04f, 0x050, 0x050,
-    0x051, 0x051, 0x052, 0x052, 0x053, 0x053, 0x054, 0x054,
-    0x055, 0x055, 0x056, 0x056, 0x057, 0x057, 0x058, 0x058,
-    0x059, 0x059, 0x05a, 0x05a, 0x05b, 0x05b, 0x05c, 0x05c,
-    0x05d, 0x05d, 0x05e, 0x05e, 0x05f, 0x05f, 0x060, 0x060,
-    0x061, 0x061, 0x062, 0x062, 0x063, 0x063, 0x064, 0x064,
-    0x065, 0x065, 0x066, 0x066, 0x067, 0x067, 0x068, 0x068,
-    0x069, 0x069, 0x06a, 0x06a, 0x06b, 0x06b, 0x06c, 0x06c,
-    0x06d, 0x06d, 0x06e, 0x06e, 0x06f, 0x06f, 0x070, 0x071,
-    0x071, 0x072, 0x072, 0x073, 0x073, 0x074, 0x074, 0x075,
-    0x075, 0x076, 0x076, 0x077, 0x077, 0x078, 0x078, 0x079,
-    0x079, 0x07a, 0x07a, 0x07b, 0x07b, 0x07c, 0x07c, 0x07d,
-    0x07d, 0x07e, 0x07e, 0x07f, 0x07f, 0x080, 0x081, 0x081,
-    0x082, 0x082, 0x083, 0x083, 0x084, 0x084, 0x085, 0x085,
-    0x086, 0x086, 0x087, 0x087, 0x088, 0x088, 0x089, 0x089,
-    0x08a, 0x08a, 0x08b, 0x08b, 0x08c, 0x08d, 0x08d, 0x08e,
-    0x08e, 0x08f, 0x08f, 0x090, 0x090, 0x091, 0x091, 0x092,
-    0x092, 0x093, 0x093, 0x094, 0x094, 0x095, 0x096, 0x096,
-    0x097, 0x097, 0x098, 0x098, 0x099, 0x099, 0x09a, 0x09a,
-    0x09b, 0x09b, 0x09c, 0x09c, 0x09d, 0x09d, 0x09e, 0x09f,
-    0x09f, 0x0a0, 0x0a0, 0x0a1, 0x0a1, 0x0a2, 0x0a2, 0x0a3,
-    0x0a3, 0x0a4, 0x0a4, 0x0a5, 0x0a6, 0x0a6, 0x0a7, 0x0a7,
-    0x0a8, 0x0a8, 0x0a9, 0x0a9, 0x0aa, 0x0aa, 0x0ab, 0x0ab,
-    0x0ac, 0x0ad, 0x0ad, 0x0ae, 0x0ae, 0x0af, 0x0af, 0x0b0,
-    0x0b0, 0x0b1, 0x0b1, 0x0b2, 0x0b2, 0x0b3, 0x0b4, 0x0b4,
-    0x0b5, 0x0b5, 0x0b6, 0x0b6, 0x0b7, 0x0b7, 0x0b8, 0x0b8,
-    0x0b9, 0x0ba, 0x0ba, 0x0bb, 0x0bb, 0x0bc, 0x0bc, 0x0bd,
-    0x0bd, 0x0be, 0x0be, 0x0bf, 0x0c0, 0x0c0, 0x0c1, 0x0c1,
-    0x0c2, 0x0c2, 0x0c3, 0x0c3, 0x0c4, 0x0c4, 0x0c5, 0x0c6,
-    0x0c6, 0x0c7, 0x0c7, 0x0c8, 0x0c8, 0x0c9, 0x0c9, 0x0ca,
-    0x0cb, 0x0cb, 0x0cc, 0x0cc, 0x0cd, 0x0cd, 0x0ce, 0x0ce,
-    0x0cf, 0x0d0, 0x0d0, 0x0d1, 0x0d1, 0x0d2, 0x0d2, 0x0d3,
-    0x0d3, 0x0d4, 0x0d5, 0x0d5, 0x0d6, 0x0d6, 0x0d7, 0x0d7,
-    0x0d8, 0x0d8, 0x0d9, 0x0da, 0x0da, 0x0db, 0x0db, 0x0dc,
-    0x0dc, 0x0dd, 0x0de, 0x0de, 0x0df, 0x0df, 0x0e0, 0x0e0,
-    0x0e1, 0x0e1, 0x0e2, 0x0e3, 0x0e3, 0x0e4, 0x0e4, 0x0e5,
-    0x0e5, 0x0e6, 0x0e7, 0x0e7, 0x0e8, 0x0e8, 0x0e9, 0x0e9,
-    0x0ea, 0x0eb, 0x0eb, 0x0ec, 0x0ec, 0x0ed, 0x0ed, 0x0ee,
-    0x0ef, 0x0ef, 0x0f0, 0x0f0, 0x0f1, 0x0f1, 0x0f2, 0x0f3,
-    0x0f3, 0x0f4, 0x0f4, 0x0f5, 0x0f5, 0x0f6, 0x0f7, 0x0f7,
-    0x0f8, 0x0f8, 0x0f9, 0x0f9, 0x0fa, 0x0fb, 0x0fb, 0x0fc,
-    0x0fc, 0x0fd, 0x0fd, 0x0fe, 0x0ff, 0x0ff, 0x100, 0x100,
-    0x101, 0x101, 0x102, 0x103, 0x103, 0x104, 0x104, 0x105,
-    0x106, 0x106, 0x107, 0x107, 0x108, 0x108, 0x109, 0x10a,
-    0x10a, 0x10b, 0x10b, 0x10c, 0x10c, 0x10d, 0x10e, 0x10e,
-    0x10f, 0x10f, 0x110, 0x111, 0x111, 0x112, 0x112, 0x113,
-    0x114, 0x114, 0x115, 0x115, 0x116, 0x116, 0x117, 0x118,
-    0x118, 0x119, 0x119, 0x11a, 0x11b, 0x11b, 0x11c, 0x11c,
-    0x11d, 0x11e, 0x11e, 0x11f, 0x11f, 0x120, 0x120, 0x121,
-    0x122, 0x122, 0x123, 0x123, 0x124, 0x125, 0x125, 0x126,
-    0x126, 0x127, 0x128, 0x128, 0x129, 0x129, 0x12a, 0x12b,
-    0x12b, 0x12c, 0x12c, 0x12d, 0x12e, 0x12e, 0x12f, 0x12f,
-    0x130, 0x131, 0x131, 0x132, 0x132, 0x133, 0x134, 0x134,
-    0x135, 0x135, 0x136, 0x137, 0x137, 0x138, 0x138, 0x139,
-    0x13a, 0x13a, 0x13b, 0x13b, 0x13c, 0x13d, 0x13d, 0x13e,
-    0x13e, 0x13f, 0x140, 0x140, 0x141, 0x141, 0x142, 0x143,
-    0x143, 0x144, 0x144, 0x145, 0x146, 0x146, 0x147, 0x148,
-    0x148, 0x149, 0x149, 0x14a, 0x14b, 0x14b, 0x14c, 0x14c,
-    0x14d, 0x14e, 0x14e, 0x14f, 0x14f, 0x150, 0x151, 0x151,
-    0x152, 0x153, 0x153, 0x154, 0x154, 0x155, 0x156, 0x156,
-    0x157, 0x157, 0x158, 0x159, 0x159, 0x15a, 0x15b, 0x15b,
-    0x15c, 0x15c, 0x15d, 0x15e, 0x15e, 0x15f, 0x160, 0x160,
-    0x161, 0x161, 0x162, 0x163, 0x163, 0x164, 0x165, 0x165,
-    0x166, 0x166, 0x167, 0x168, 0x168, 0x169, 0x16a, 0x16a,
-    0x16b, 0x16b, 0x16c, 0x16d, 0x16d, 0x16e, 0x16f, 0x16f,
-    0x170, 0x170, 0x171, 0x172, 0x172, 0x173, 0x174, 0x174,
-    0x175, 0x175, 0x176, 0x177, 0x177, 0x178, 0x179, 0x179,
-    0x17a, 0x17a, 0x17b, 0x17c, 0x17c, 0x17d, 0x17e, 0x17e,
-    0x17f, 0x180, 0x180, 0x181, 0x181, 0x182, 0x183, 0x183,
-    0x184, 0x185, 0x185, 0x186, 0x187, 0x187, 0x188, 0x188,
-    0x189, 0x18a, 0x18a, 0x18b, 0x18c, 0x18c, 0x18d, 0x18e,
-    0x18e, 0x18f, 0x190, 0x190, 0x191, 0x191, 0x192, 0x193,
-    0x193, 0x194, 0x195, 0x195, 0x196, 0x197, 0x197, 0x198,
-    0x199, 0x199, 0x19a, 0x19a, 0x19b, 0x19c, 0x19c, 0x19d,
-    0x19e, 0x19e, 0x19f, 0x1a0, 0x1a0, 0x1a1, 0x1a2, 0x1a2,
-    0x1a3, 0x1a4, 0x1a4, 0x1a5, 0x1a6, 0x1a6, 0x1a7, 0x1a8,
-    0x1a8, 0x1a9, 0x1a9, 0x1aa, 0x1ab, 0x1ab, 0x1ac, 0x1ad,
-    0x1ad, 0x1ae, 0x1af, 0x1af, 0x1b0, 0x1b1, 0x1b1, 0x1b2,
-    0x1b3, 0x1b3, 0x1b4, 0x1b5, 0x1b5, 0x1b6, 0x1b7, 0x1b7,
-    0x1b8, 0x1b9, 0x1b9, 0x1ba, 0x1bb, 0x1bb, 0x1bc, 0x1bd,
-    0x1bd, 0x1be, 0x1bf, 0x1bf, 0x1c0, 0x1c1, 0x1c1, 0x1c2,
-    0x1c3, 0x1c3, 0x1c4, 0x1c5, 0x1c5, 0x1c6, 0x1c7, 0x1c7,
-    0x1c8, 0x1c9, 0x1c9, 0x1ca, 0x1cb, 0x1cb, 0x1cc, 0x1cd,
-    0x1cd, 0x1ce, 0x1cf, 0x1cf, 0x1d0, 0x1d1, 0x1d1, 0x1d2,
-    0x1d3, 0x1d3, 0x1d4, 0x1d5, 0x1d5, 0x1d6, 0x1d7, 0x1d7,
-    0x1d8, 0x1d9, 0x1d9, 0x1da, 0x1db, 0x1db, 0x1dc, 0x1dd,
-    0x1dd, 0x1de, 0x1df, 0x1df, 0x1e0, 0x1e1, 0x1e1, 0x1e2,
-    0x1e3, 0x1e4, 0x1e4, 0x1e5, 0x1e6, 0x1e6, 0x1e7, 0x1e8,
-    0x1e8, 0x1e9, 0x1ea, 0x1ea, 0x1eb, 0x1ec, 0x1ec, 0x1ed,
-    0x1ee, 0x1ee, 0x1ef, 0x1f0, 0x1f0, 0x1f1, 0x1f2, 0x1f3,
-    0x1f3, 0x1f4, 0x1f5, 0x1f5, 0x1f6, 0x1f7, 0x1f7, 0x1f8,
-    0x1f9, 0x1f9, 0x1fa, 0x1fb, 0x1fb, 0x1fc, 0x1fd, 0x1fe,
-    0x1fe, 0x1ff, 0x200, 0x200, 0x201, 0x202, 0x202, 0x203,
-    0x204, 0x205, 0x205, 0x206, 0x207, 0x207, 0x208, 0x209,
-    0x209, 0x20a, 0x20b, 0x20b, 0x20c, 0x20d, 0x20e, 0x20e,
-    0x20f, 0x210, 0x210, 0x211, 0x212, 0x212, 0x213, 0x214,
-    0x215, 0x215, 0x216, 0x217, 0x217, 0x218, 0x219, 0x21a,
-    0x21a, 0x21b, 0x21c, 0x21c, 0x21d, 0x21e, 0x21e, 0x21f,
-    0x220, 0x221, 0x221, 0x222, 0x223, 0x223, 0x224, 0x225,
-    0x226, 0x226, 0x227, 0x228, 0x228, 0x229, 0x22a, 0x22b,
-    0x22b, 0x22c, 0x22d, 0x22d, 0x22e, 0x22f, 0x230, 0x230,
-    0x231, 0x232, 0x232, 0x233, 0x234, 0x235, 0x235, 0x236,
-    0x237, 0x237, 0x238, 0x239, 0x23a, 0x23a, 0x23b, 0x23c,
-    0x23c, 0x23d, 0x23e, 0x23f, 0x23f, 0x240, 0x241, 0x241,
-    0x242, 0x243, 0x244, 0x244, 0x245, 0x246, 0x247, 0x247,
-    0x248, 0x249, 0x249, 0x24a, 0x24b, 0x24c, 0x24c, 0x24d,
-    0x24e, 0x24f, 0x24f, 0x250, 0x251, 0x251, 0x252, 0x253,
-    0x254, 0x254, 0x255, 0x256, 0x257, 0x257, 0x258, 0x259,
-    0x259, 0x25a, 0x25b, 0x25c, 0x25c, 0x25d, 0x25e, 0x25f,
-    0x25f, 0x260, 0x261, 0x262, 0x262, 0x263, 0x264, 0x265,
-    0x265, 0x266, 0x267, 0x267, 0x268, 0x269, 0x26a, 0x26a,
-    0x26b, 0x26c, 0x26d, 0x26d, 0x26e, 0x26f, 0x270, 0x270,
-    0x271, 0x272, 0x273, 0x273, 0x274, 0x275, 0x276, 0x276,
-    0x277, 0x278, 0x279, 0x279, 0x27a, 0x27b, 0x27c, 0x27c,
-    0x27d, 0x27e, 0x27f, 0x27f, 0x280, 0x281, 0x282, 0x282,
-    0x283, 0x284, 0x285, 0x285, 0x286, 0x287, 0x288, 0x288,
-    0x289, 0x28a, 0x28b, 0x28b, 0x28c, 0x28d, 0x28e, 0x28e,
-    0x28f, 0x290, 0x291, 0x291, 0x292, 0x293, 0x294, 0x294,
-    0x295, 0x296, 0x297, 0x298, 0x298, 0x299, 0x29a, 0x29b,
-    0x29b, 0x29c, 0x29d, 0x29e, 0x29e, 0x29f, 0x2a0, 0x2a1,
-    0x2a1, 0x2a2, 0x2a3, 0x2a4, 0x2a5, 0x2a5, 0x2a6, 0x2a7,
-    0x2a8, 0x2a8, 0x2a9, 0x2aa, 0x2ab, 0x2ab, 0x2ac, 0x2ad,
-    0x2ae, 0x2af, 0x2af, 0x2b0, 0x2b1, 0x2b2, 0x2b2, 0x2b3,
-    0x2b4, 0x2b5, 0x2b5, 0x2b6, 0x2b7, 0x2b8, 0x2b9, 0x2b9,
-    0x2ba, 0x2bb, 0x2bc, 0x2bc, 0x2bd, 0x2be, 0x2bf, 0x2c0,
-    0x2c0, 0x2c1, 0x2c2, 0x2c3, 0x2c4, 0x2c4, 0x2c5, 0x2c6,
-    0x2c7, 0x2c7, 0x2c8, 0x2c9, 0x2ca, 0x2cb, 0x2cb, 0x2cc,
-    0x2cd, 0x2ce, 0x2ce, 0x2cf, 0x2d0, 0x2d1, 0x2d2, 0x2d2,
-    0x2d3, 0x2d4, 0x2d5, 0x2d6, 0x2d6, 0x2d7, 0x2d8, 0x2d9,
-    0x2da, 0x2da, 0x2db, 0x2dc, 0x2dd, 0x2dd, 0x2de, 0x2df,
-    0x2e0, 0x2e1, 0x2e1, 0x2e2, 0x2e3, 0x2e4, 0x2e5, 0x2e5,
-    0x2e6, 0x2e7, 0x2e8, 0x2e9, 0x2e9, 0x2ea, 0x2eb, 0x2ec,
-    0x2ed, 0x2ed, 0x2ee, 0x2ef, 0x2f0, 0x2f1, 0x2f1, 0x2f2,
-    0x2f3, 0x2f4, 0x2f5, 0x2f5, 0x2f6, 0x2f7, 0x2f8, 0x2f9,
-    0x2f9, 0x2fa, 0x2fb, 0x2fc, 0x2fd, 0x2fd, 0x2fe, 0x2ff,
-    0x300, 0x301, 0x302, 0x302, 0x303, 0x304, 0x305, 0x306,
-    0x306, 0x307, 0x308, 0x309, 0x30a, 0x30a, 0x30b, 0x30c,
-    0x30d, 0x30e, 0x30f, 0x30f, 0x310, 0x311, 0x312, 0x313,
-    0x313, 0x314, 0x315, 0x316, 0x317, 0x318, 0x318, 0x319,
-    0x31a, 0x31b, 0x31c, 0x31c, 0x31d, 0x31e, 0x31f, 0x320,
-    0x321, 0x321, 0x322, 0x323, 0x324, 0x325, 0x326, 0x326,
-    0x327, 0x328, 0x329, 0x32a, 0x32a, 0x32b, 0x32c, 0x32d,
-    0x32e, 0x32f, 0x32f, 0x330, 0x331, 0x332, 0x333, 0x334,
-    0x334, 0x335, 0x336, 0x337, 0x338, 0x339, 0x339, 0x33a,
-    0x33b, 0x33c, 0x33d, 0x33e, 0x33e, 0x33f, 0x340, 0x341,
-    0x342, 0x343, 0x343, 0x344, 0x345, 0x346, 0x347, 0x348,
-    0x349, 0x349, 0x34a, 0x34b, 0x34c, 0x34d, 0x34e, 0x34e,
-    0x34f, 0x350, 0x351, 0x352, 0x353, 0x353, 0x354, 0x355,
-    0x356, 0x357, 0x358, 0x359, 0x359, 0x35a, 0x35b, 0x35c,
-    0x35d, 0x35e, 0x35f, 0x35f, 0x360, 0x361, 0x362, 0x363,
-    0x364, 0x364, 0x365, 0x366, 0x367, 0x368, 0x369, 0x36a,
-    0x36a, 0x36b, 0x36c, 0x36d, 0x36e, 0x36f, 0x370, 0x370,
-    0x371, 0x372, 0x373, 0x374, 0x375, 0x376, 0x377, 0x377,
-    0x378, 0x379, 0x37a, 0x37b, 0x37c, 0x37d, 0x37d, 0x37e,
-    0x37f, 0x380, 0x381, 0x382, 0x383, 0x383, 0x384, 0x385,
-    0x386, 0x387, 0x388, 0x389, 0x38a, 0x38a, 0x38b, 0x38c,
-    0x38d, 0x38e, 0x38f, 0x390, 0x391, 0x391, 0x392, 0x393,
-    0x394, 0x395, 0x396, 0x397, 0x398, 0x398, 0x399, 0x39a,
-    0x39b, 0x39c, 0x39d, 0x39e, 0x39f, 0x39f, 0x3a0, 0x3a1,
-    0x3a2, 0x3a3, 0x3a4, 0x3a5, 0x3a6, 0x3a7, 0x3a7, 0x3a8,
-    0x3a9, 0x3aa, 0x3ab, 0x3ac, 0x3ad, 0x3ae, 0x3ae, 0x3af,
-    0x3b0, 0x3b1, 0x3b2, 0x3b3, 0x3b4, 0x3b5, 0x3b6, 0x3b6,
-    0x3b7, 0x3b8, 0x3b9, 0x3ba, 0x3bb, 0x3bc, 0x3bd, 0x3be,
-    0x3bf, 0x3bf, 0x3c0, 0x3c1, 0x3c2, 0x3c3, 0x3c4, 0x3c5,
-    0x3c6, 0x3c7, 0x3c7, 0x3c8, 0x3c9, 0x3ca, 0x3cb, 0x3cc,
-    0x3cd, 0x3ce, 0x3cf, 0x3d0, 0x3d1, 0x3d1, 0x3d2, 0x3d3,
-    0x3d4, 0x3d5, 0x3d6, 0x3d7, 0x3d8, 0x3d9, 0x3da, 0x3da,
-    0x3db, 0x3dc, 0x3dd, 0x3de, 0x3df, 0x3e0, 0x3e1, 0x3e2,
-    0x3e3, 0x3e4, 0x3e4, 0x3e5, 0x3e6, 0x3e7, 0x3e8, 0x3e9,
-    0x3ea, 0x3eb, 0x3ec, 0x3ed, 0x3ee, 0x3ef, 0x3ef, 0x3f0,
-    0x3f1, 0x3f2, 0x3f3, 0x3f4, 0x3f5, 0x3f6, 0x3f7, 0x3f8,
-    0x3f9, 0x3fa, 0x3fa, 0x3fb, 0x3fc, 0x3fd, 0x3fe, 0x3ff
+    0x000, 0x000, 0x000, 0x001, 0x001, 0x002, 0x002, 0x003,
+    0x003, 0x004, 0x004, 0x005, 0x005, 0x006, 0x006, 0x006,
+    0x007, 0x007, 0x008, 0x008, 0x009, 0x009, 0x00a, 0x00a,
+    0x00b, 0x00b, 0x00c, 0x00c, 0x00d, 0x00d, 0x00d, 0x00e,
+    0x00e, 0x00f, 0x00f, 0x010, 0x010, 0x011, 0x011, 0x012,
+    0x012, 0x013, 0x013, 0x014, 0x014, 0x015, 0x015, 0x015,
+    0x016, 0x016, 0x017, 0x017, 0x018, 0x018, 0x019, 0x019,
+    0x01a, 0x01a, 0x01b, 0x01b, 0x01c, 0x01c, 0x01d, 0x01d,
+    0x01e, 0x01e, 0x01e, 0x01f, 0x01f, 0x020, 0x020, 0x021,
+    0x021, 0x022, 0x022, 0x023, 0x023, 0x024, 0x024, 0x025,
+    0x025, 0x026, 0x026, 0x027, 0x027, 0x028, 0x028, 0x029,
+    0x029, 0x029, 0x02a, 0x02a, 0x02b, 0x02b, 0x02c, 0x02c,
+    0x02d, 0x02d, 0x02e, 0x02e, 0x02f, 0x02f, 0x030, 0x030,
+    0x031, 0x031, 0x032, 0x032, 0x033, 0x033, 0x034, 0x034,
+    0x035, 0x035, 0x036, 0x036, 0x037, 0x037, 0x038, 0x038,
+    0x038, 0x039, 0x039, 0x03a, 0x03a, 0x03b, 0x03b, 0x03c,
+    0x03c, 0x03d, 0x03d, 0x03e, 0x03e, 0x03f, 0x03f, 0x040,
+    0x040, 0x041, 0x041, 0x042, 0x042, 0x043, 0x043, 0x044,
+    0x044, 0x045, 0x045, 0x046, 0x046, 0x047, 0x047, 0x048,
+    0x048, 0x049, 0x049, 0x04a, 0x04a, 0x04b, 0x04b, 0x04c,
+    0x04c, 0x04d, 0x04d, 0x04e, 0x04e, 0x04f, 0x04f, 0x050,
+    0x050, 0x051, 0x051, 0x052, 0x052, 0x053, 0x053, 0x054,
+    0x054, 0x055, 0x055, 0x056, 0x056, 0x057, 0x057, 0x058,
+    0x058, 0x059, 0x059, 0x05a, 0x05a, 0x05b, 0x05b, 0x05c,
+    0x05c, 0x05d, 0x05d, 0x05e, 0x05e, 0x05f, 0x05f, 0x060,
+    0x060, 0x061, 0x061, 0x062, 0x062, 0x063, 0x063, 0x064,
+    0x064, 0x065, 0x065, 0x066, 0x066, 0x067, 0x067, 0x068,
+    0x068, 0x069, 0x069, 0x06a, 0x06a, 0x06b, 0x06b, 0x06c,
+    0x06c, 0x06d, 0x06d, 0x06e, 0x06e, 0x06f, 0x06f, 0x070,
+    0x071, 0x071, 0x072, 0x072, 0x073, 0x073, 0x074, 0x074,
+    0x075, 0x075, 0x076, 0x076, 0x077, 0x077, 0x078, 0x078,
+    0x079, 0x079, 0x07a, 0x07a, 0x07b, 0x07b, 0x07c, 0x07c,
+    0x07d, 0x07d, 0x07e, 0x07e, 0x07f, 0x07f, 0x080, 0x081,
+    0x081, 0x082, 0x082, 0x083, 0x083, 0x084, 0x084, 0x085,
+    0x085, 0x086, 0x086, 0x087, 0x087, 0x088, 0x088, 0x089,
+    0x089, 0x08a, 0x08a, 0x08b, 0x08c, 0x08c, 0x08d, 0x08d,
+    0x08e, 0x08e, 0x08f, 0x08f, 0x090, 0x090, 0x091, 0x091,
+    0x092, 0x092, 0x093, 0x093, 0x094, 0x094, 0x095, 0x096,
+    0x096, 0x097, 0x097, 0x098, 0x098, 0x099, 0x099, 0x09a,
+    0x09a, 0x09b, 0x09b, 0x09c, 0x09c, 0x09d, 0x09e, 0x09e,
+    0x09f, 0x09f, 0x0a0, 0x0a0, 0x0a1, 0x0a1, 0x0a2, 0x0a2,
+    0x0a3, 0x0a3, 0x0a4, 0x0a4, 0x0a5, 0x0a6, 0x0a6, 0x0a7,
+    0x0a7, 0x0a8, 0x0a8, 0x0a9, 0x0a9, 0x0aa, 0x0aa, 0x0ab,
+    0x0ab, 0x0ac, 0x0ad, 0x0ad, 0x0ae, 0x0ae, 0x0af, 0x0af,
+    0x0b0, 0x0b0, 0x0b1, 0x0b1, 0x0b2, 0x0b3, 0x0b3, 0x0b4,
+    0x0b4, 0x0b5, 0x0b5, 0x0b6, 0x0b6, 0x0b7, 0x0b7, 0x0b8,
+    0x0b8, 0x0b9, 0x0ba, 0x0ba, 0x0bb, 0x0bb, 0x0bc, 0x0bc,
+    0x0bd, 0x0bd, 0x0be, 0x0bf, 0x0bf, 0x0c0, 0x0c0, 0x0c1,
+    0x0c1, 0x0c2, 0x0c2, 0x0c3, 0x0c3, 0x0c4, 0x0c5, 0x0c5,
+    0x0c6, 0x0c6, 0x0c7, 0x0c7, 0x0c8, 0x0c8, 0x0c9, 0x0ca,
+    0x0ca, 0x0cb, 0x0cb, 0x0cc, 0x0cc, 0x0cd, 0x0cd, 0x0ce,
+    0x0cf, 0x0cf, 0x0d0, 0x0d0, 0x0d1, 0x0d1, 0x0d2, 0x0d2,
+    0x0d3, 0x0d4, 0x0d4, 0x0d5, 0x0d5, 0x0d6, 0x0d6, 0x0d7,
+    0x0d7, 0x0d8, 0x0d9, 0x0d9, 0x0da, 0x0da, 0x0db, 0x0db,
+    0x0dc, 0x0dc, 0x0dd, 0x0de, 0x0de, 0x0df, 0x0df, 0x0e0,
+    0x0e0, 0x0e1, 0x0e2, 0x0e2, 0x0e3, 0x0e3, 0x0e4, 0x0e4,
+    0x0e5, 0x0e5, 0x0e6, 0x0e7, 0x0e7, 0x0e8, 0x0e8, 0x0e9,
+    0x0e9, 0x0ea, 0x0eb, 0x0eb, 0x0ec, 0x0ec, 0x0ed, 0x0ed,
+    0x0ee, 0x0ef, 0x0ef, 0x0f0, 0x0f0, 0x0f1, 0x0f1, 0x0f2,
+    0x0f3, 0x0f3, 0x0f4, 0x0f4, 0x0f5, 0x0f5, 0x0f6, 0x0f7,
+    0x0f7, 0x0f8, 0x0f8, 0x0f9, 0x0f9, 0x0fa, 0x0fb, 0x0fb,
+    0x0fc, 0x0fc, 0x0fd, 0x0fd, 0x0fe, 0x0ff, 0x0ff, 0x100,
+    0x100, 0x101, 0x102, 0x102, 0x103, 0x103, 0x104, 0x104,
+    0x105, 0x106, 0x106, 0x107, 0x107, 0x108, 0x108, 0x109,
+    0x10a, 0x10a, 0x10b, 0x10b, 0x10c, 0x10d, 0x10d, 0x10e,
+    0x10e, 0x10f, 0x10f, 0x110, 0x111, 0x111, 0x112, 0x112,
+    0x113, 0x114, 0x114, 0x115, 0x115, 0x116, 0x117, 0x117,
+    0x118, 0x118, 0x119, 0x119, 0x11a, 0x11b, 0x11b, 0x11c,
+    0x11c, 0x11d, 0x11e, 0x11e, 0x11f, 0x11f, 0x120, 0x121,
+    0x121, 0x122, 0x122, 0x123, 0x124, 0x124, 0x125, 0x125,
+    0x126, 0x127, 0x127, 0x128, 0x128, 0x129, 0x129, 0x12a,
+    0x12b, 0x12b, 0x12c, 0x12c, 0x12d, 0x12e, 0x12e, 0x12f,
+    0x12f, 0x130, 0x131, 0x131, 0x132, 0x132, 0x133, 0x134,
+    0x134, 0x135, 0x135, 0x136, 0x137, 0x137, 0x138, 0x138,
+    0x139, 0x13a, 0x13a, 0x13b, 0x13c, 0x13c, 0x13d, 0x13d,
+    0x13e, 0x13f, 0x13f, 0x140, 0x140, 0x141, 0x142, 0x142,
+    0x143, 0x143, 0x144, 0x145, 0x145, 0x146, 0x146, 0x147,
+    0x148, 0x148, 0x149, 0x149, 0x14a, 0x14b, 0x14b, 0x14c,
+    0x14d, 0x14d, 0x14e, 0x14e, 0x14f, 0x150, 0x150, 0x151,
+    0x151, 0x152, 0x153, 0x153, 0x154, 0x155, 0x155, 0x156,
+    0x156, 0x157, 0x158, 0x158, 0x159, 0x159, 0x15a, 0x15b,
+    0x15b, 0x15c, 0x15d, 0x15d, 0x15e, 0x15e, 0x15f, 0x160,
+    0x160, 0x161, 0x162, 0x162, 0x163, 0x163, 0x164, 0x165,
+    0x165, 0x166, 0x167, 0x167, 0x168, 0x168, 0x169, 0x16a,
+    0x16a, 0x16b, 0x16c, 0x16c, 0x16d, 0x16d, 0x16e, 0x16f,
+    0x16f, 0x170, 0x171, 0x171, 0x172, 0x172, 0x173, 0x174,
+    0x174, 0x175, 0x176, 0x176, 0x177, 0x177, 0x178, 0x179,
+    0x179, 0x17a, 0x17b, 0x17b, 0x17c, 0x17d, 0x17d, 0x17e,
+    0x17e, 0x17f, 0x180, 0x180, 0x181, 0x182, 0x182, 0x183,
+    0x184, 0x184, 0x185, 0x185, 0x186, 0x187, 0x187, 0x188,
+    0x189, 0x189, 0x18a, 0x18b, 0x18b, 0x18c, 0x18c, 0x18d,
+    0x18e, 0x18e, 0x18f, 0x190, 0x190, 0x191, 0x192, 0x192,
+    0x193, 0x194, 0x194, 0x195, 0x195, 0x196, 0x197, 0x197,
+    0x198, 0x199, 0x199, 0x19a, 0x19b, 0x19b, 0x19c, 0x19d,
+    0x19d, 0x19e, 0x19f, 0x19f, 0x1a0, 0x1a0, 0x1a1, 0x1a2,
+    0x1a2, 0x1a3, 0x1a4, 0x1a4, 0x1a5, 0x1a6, 0x1a6, 0x1a7,
+    0x1a8, 0x1a8, 0x1a9, 0x1aa, 0x1aa, 0x1ab, 0x1ac, 0x1ac,
+    0x1ad, 0x1ae, 0x1ae, 0x1af, 0x1b0, 0x1b0, 0x1b1, 0x1b1,
+    0x1b2, 0x1b3, 0x1b3, 0x1b4, 0x1b5, 0x1b5, 0x1b6, 0x1b7,
+    0x1b7, 0x1b8, 0x1b9, 0x1b9, 0x1ba, 0x1bb, 0x1bb, 0x1bc,
+    0x1bd, 0x1bd, 0x1be, 0x1bf, 0x1bf, 0x1c0, 0x1c1, 0x1c1,
+    0x1c2, 0x1c3, 0x1c3, 0x1c4, 0x1c5, 0x1c5, 0x1c6, 0x1c7,
+    0x1c7, 0x1c8, 0x1c9, 0x1c9, 0x1ca, 0x1cb, 0x1cb, 0x1cc,
+    0x1cd, 0x1cd, 0x1ce, 0x1cf, 0x1cf, 0x1d0, 0x1d1, 0x1d1,
+    0x1d2, 0x1d3, 0x1d3, 0x1d4, 0x1d5, 0x1d5, 0x1d6, 0x1d7,
+    0x1d7, 0x1d8, 0x1d9, 0x1da, 0x1da, 0x1db, 0x1dc, 0x1dc,
+    0x1dd, 0x1de, 0x1de, 0x1df, 0x1e0, 0x1e0, 0x1e1, 0x1e2,
+    0x1e2, 0x1e3, 0x1e4, 0x1e4, 0x1e5, 0x1e6, 0x1e6, 0x1e7,
+    0x1e8, 0x1e8, 0x1e9, 0x1ea, 0x1eb, 0x1eb, 0x1ec, 0x1ed,
+    0x1ed, 0x1ee, 0x1ef, 0x1ef, 0x1f0, 0x1f1, 0x1f1, 0x1f2,
+    0x1f3, 0x1f3, 0x1f4, 0x1f5, 0x1f5, 0x1f6, 0x1f7, 0x1f8,
+    0x1f8, 0x1f9, 0x1fa, 0x1fa, 0x1fb, 0x1fc, 0x1fc, 0x1fd,
+    0x1fe, 0x1fe, 0x1ff, 0x200, 0x201, 0x201, 0x202, 0x203,
+    0x203, 0x204, 0x205, 0x205, 0x206, 0x207, 0x207, 0x208,
+    0x209, 0x20a, 0x20a, 0x20b, 0x20c, 0x20c, 0x20d, 0x20e,
+    0x20e, 0x20f, 0x210, 0x211, 0x211, 0x212, 0x213, 0x213,
+    0x214, 0x215, 0x215, 0x216, 0x217, 0x218, 0x218, 0x219,
+    0x21a, 0x21a, 0x21b, 0x21c, 0x21d, 0x21d, 0x21e, 0x21f,
+    0x21f, 0x220, 0x221, 0x221, 0x222, 0x223, 0x224, 0x224,
+    0x225, 0x226, 0x226, 0x227, 0x228, 0x229, 0x229, 0x22a,
+    0x22b, 0x22b, 0x22c, 0x22d, 0x22e, 0x22e, 0x22f, 0x230,
+    0x230, 0x231, 0x232, 0x233, 0x233, 0x234, 0x235, 0x235,
+    0x236, 0x237, 0x238, 0x238, 0x239, 0x23a, 0x23a, 0x23b,
+    0x23c, 0x23d, 0x23d, 0x23e, 0x23f, 0x240, 0x240, 0x241,
+    0x242, 0x242, 0x243, 0x244, 0x245, 0x245, 0x246, 0x247,
+    0x247, 0x248, 0x249, 0x24a, 0x24a, 0x24b, 0x24c, 0x24d,
+    0x24d, 0x24e, 0x24f, 0x24f, 0x250, 0x251, 0x252, 0x252,
+    0x253, 0x254, 0x255, 0x255, 0x256, 0x257, 0x258, 0x258,
+    0x259, 0x25a, 0x25a, 0x25b, 0x25c, 0x25d, 0x25d, 0x25e,
+    0x25f, 0x260, 0x260, 0x261, 0x262, 0x263, 0x263, 0x264,
+    0x265, 0x266, 0x266, 0x267, 0x268, 0x268, 0x269, 0x26a,
+    0x26b, 0x26b, 0x26c, 0x26d, 0x26e, 0x26e, 0x26f, 0x270,
+    0x271, 0x271, 0x272, 0x273, 0x274, 0x274, 0x275, 0x276,
+    0x277, 0x277, 0x278, 0x279, 0x27a, 0x27a, 0x27b, 0x27c,
+    0x27d, 0x27d, 0x27e, 0x27f, 0x280, 0x280, 0x281, 0x282,
+    0x283, 0x283, 0x284, 0x285, 0x286, 0x286, 0x287, 0x288,
+    0x289, 0x289, 0x28a, 0x28b, 0x28c, 0x28c, 0x28d, 0x28e,
+    0x28f, 0x28f, 0x290, 0x291, 0x292, 0x292, 0x293, 0x294,
+    0x295, 0x296, 0x296, 0x297, 0x298, 0x299, 0x299, 0x29a,
+    0x29b, 0x29c, 0x29c, 0x29d, 0x29e, 0x29f, 0x29f, 0x2a0,
+    0x2a1, 0x2a2, 0x2a2, 0x2a3, 0x2a4, 0x2a5, 0x2a6, 0x2a6,
+    0x2a7, 0x2a8, 0x2a9, 0x2a9, 0x2aa, 0x2ab, 0x2ac, 0x2ac,
+    0x2ad, 0x2ae, 0x2af, 0x2b0, 0x2b0, 0x2b1, 0x2b2, 0x2b3,
+    0x2b3, 0x2b4, 0x2b5, 0x2b6, 0x2b7, 0x2b7, 0x2b8, 0x2b9,
+    0x2ba, 0x2ba, 0x2bb, 0x2bc, 0x2bd, 0x2be, 0x2be, 0x2bf,
+    0x2c0, 0x2c1, 0x2c1, 0x2c2, 0x2c3, 0x2c4, 0x2c5, 0x2c5,
+    0x2c6, 0x2c7, 0x2c8, 0x2c8, 0x2c9, 0x2ca, 0x2cb, 0x2cc,
+    0x2cc, 0x2cd, 0x2ce, 0x2cf, 0x2d0, 0x2d0, 0x2d1, 0x2d2,
+    0x2d3, 0x2d3, 0x2d4, 0x2d5, 0x2d6, 0x2d7, 0x2d7, 0x2d8,
+    0x2d9, 0x2da, 0x2db, 0x2db, 0x2dc, 0x2dd, 0x2de, 0x2df,
+    0x2df, 0x2e0, 0x2e1, 0x2e2, 0x2e3, 0x2e3, 0x2e4, 0x2e5,
+    0x2e6, 0x2e7, 0x2e7, 0x2e8, 0x2e9, 0x2ea, 0x2eb, 0x2eb,
+    0x2ec, 0x2ed, 0x2ee, 0x2ef, 0x2ef, 0x2f0, 0x2f1, 0x2f2,
+    0x2f3, 0x2f3, 0x2f4, 0x2f5, 0x2f6, 0x2f7, 0x2f7, 0x2f8,
+    0x2f9, 0x2fa, 0x2fb, 0x2fb, 0x2fc, 0x2fd, 0x2fe, 0x2ff,
+    0x2ff, 0x300, 0x301, 0x302, 0x303, 0x303, 0x304, 0x305,
+    0x306, 0x307, 0x308, 0x308, 0x309, 0x30a, 0x30b, 0x30c,
+    0x30c, 0x30d, 0x30e, 0x30f, 0x310, 0x310, 0x311, 0x312,
+    0x313, 0x314, 0x315, 0x315, 0x316, 0x317, 0x318, 0x319,
+    0x319, 0x31a, 0x31b, 0x31c, 0x31d, 0x31e, 0x31e, 0x31f,
+    0x320, 0x321, 0x322, 0x323, 0x323, 0x324, 0x325, 0x326,
+    0x327, 0x327, 0x328, 0x329, 0x32a, 0x32b, 0x32c, 0x32c,
+    0x32d, 0x32e, 0x32f, 0x330, 0x331, 0x331, 0x332, 0x333,
+    0x334, 0x335, 0x336, 0x336, 0x337, 0x338, 0x339, 0x33a,
+    0x33b, 0x33b, 0x33c, 0x33d, 0x33e, 0x33f, 0x340, 0x340,
+    0x341, 0x342, 0x343, 0x344, 0x345, 0x345, 0x346, 0x347,
+    0x348, 0x349, 0x34a, 0x34b, 0x34b, 0x34c, 0x34d, 0x34e,
+    0x34f, 0x350, 0x350, 0x351, 0x352, 0x353, 0x354, 0x355,
+    0x356, 0x356, 0x357, 0x358, 0x359, 0x35a, 0x35b, 0x35b,
+    0x35c, 0x35d, 0x35e, 0x35f, 0x360, 0x361, 0x361, 0x362,
+    0x363, 0x364, 0x365, 0x366, 0x367, 0x367, 0x368, 0x369,
+    0x36a, 0x36b, 0x36c, 0x36d, 0x36d, 0x36e, 0x36f, 0x370,
+    0x371, 0x372, 0x373, 0x373, 0x374, 0x375, 0x376, 0x377,
+    0x378, 0x379, 0x379, 0x37a, 0x37b, 0x37c, 0x37d, 0x37e,
+    0x37f, 0x380, 0x380, 0x381, 0x382, 0x383, 0x384, 0x385,
+    0x386, 0x386, 0x387, 0x388, 0x389, 0x38a, 0x38b, 0x38c,
+    0x38d, 0x38d, 0x38e, 0x38f, 0x390, 0x391, 0x392, 0x393,
+    0x394, 0x394, 0x395, 0x396, 0x397, 0x398, 0x399, 0x39a,
+    0x39b, 0x39b, 0x39c, 0x39d, 0x39e, 0x39f, 0x3a0, 0x3a1,
+    0x3a2, 0x3a2, 0x3a3, 0x3a4, 0x3a5, 0x3a6, 0x3a7, 0x3a8,
+    0x3a9, 0x3aa, 0x3aa, 0x3ab, 0x3ac, 0x3ad, 0x3ae, 0x3af,
+    0x3b0, 0x3b1, 0x3b2, 0x3b2, 0x3b3, 0x3b4, 0x3b5, 0x3b6,
+    0x3b7, 0x3b8, 0x3b9, 0x3ba, 0x3ba, 0x3bb, 0x3bc, 0x3bd,
+    0x3be, 0x3bf, 0x3c0, 0x3c1, 0x3c2, 0x3c3, 0x3c3, 0x3c4,
+    0x3c5, 0x3c6, 0x3c7, 0x3c8, 0x3c9, 0x3ca, 0x3cb, 0x3cb,
+    0x3cc, 0x3cd, 0x3ce, 0x3cf, 0x3d0, 0x3d1, 0x3d2, 0x3d3,
+    0x3d4, 0x3d5, 0x3d5, 0x3d6, 0x3d7, 0x3d8, 0x3d9, 0x3da,
+    0x3db, 0x3dc, 0x3dd, 0x3de, 0x3de, 0x3df, 0x3e0, 0x3e1,
+    0x3e2, 0x3e3, 0x3e4, 0x3e5, 0x3e6, 0x3e7, 0x3e8, 0x3e9,
+    0x3e9, 0x3ea, 0x3eb, 0x3ec, 0x3ed, 0x3ee, 0x3ef, 0x3f0,
+    0x3f1, 0x3f2, 0x3f3, 0x3f4, 0x3f4, 0x3f5, 0x3f6, 0x3f7,
+    0x3f8, 0x3f9, 0x3fa, 0x3fb, 0x3fc, 0x3fd, 0x3fe, 0x3ff,
 };
 
 /*
@@ -270,19 +289,38 @@ static const uint8_t g_volume_table[128] = {
     2, 2, 2, 1, 1, 0, 0, 0
 };
 
-#define BUFFER_SEGMENTS 10
-#define RENDER_RATE     100
+/* PLAYMIDI channel-volume attenuation, indexed by CC 7. */
+static const uint8_t channel_attenuation[128] = {
+    127, 127, 127, 127, 127, 127, 127, 127, 127, 122, 117, 113, 109, 105, 102,  98,
+     95,  93,  90,  88,  85,  83,  81,  79,  77,  75,  73,  71,  70,  68,  66,  65,
+     63,  62,  61,  59,  58,  57,  55,  54,  53,  52,  51,  50,  49,  48,  47,  46,
+     45,  44,  43,  42,  41,  40,  39,  38,  37,  37,  36,  35,  34,  33,  33,  32,
+     31,  31,  30,  29,  28,  28,  27,  26,  26,  25,  25,  24,  23,  23,  22,  21,
+     21,  20,  20,  19,  19,  18,  18,  17,  16,  16,  15,  15,  14,  14,  13,  13,
+     12,  12,  12,  11,  11,  10,  10,   9,   9,   8,   8,   7,   7,   7,   6,   6,
+      5,   5,   5,   4,   4,   3,   3,   3,   2,   2,   1,   1,   1,   0,   0,   0,
+};
+
+#define POLL_INTERVAL_US 1000
+#define BUFFER_SEGMENTS  20 /* Queue 20 ms at a time for host playback. */
+#define RENDER_FRAMES    (FREQ_48000 * POLL_INTERVAL_US / 1000000)
+#define BUFFER_SAMPLES   (RENDER_FRAMES * 2 * BUFFER_SEGMENTS)
+#define KEY_OFF_FRAMES   3
+#define PAN_MUTE         0x08
 
 typedef struct opl4_midi {
     fm_drv_t          opl4;
     MIDI_CHANNEL_DATA midi_channel_data[16];
     VOICE_DATA        voice_data[24];
-    int16_t           buffer[(48000 / 100) * 2 * BUFFER_SEGMENTS];
-    float             buffer_float[(48000 / 100) * 2 * BUFFER_SEGMENTS];
-    bool              on;
-    atomic_bool       gen_in_progress;
-    thread_t         *thread;
-    event_t          *wait_event;
+    int16_t           buffer[BUFFER_SAMPLES];
+    float             buffer_float[BUFFER_SAMPLES];
+    pc_timer_t        poll_timer;
+    uint32_t          buffer_pos;
+    uint32_t          block_frames;
+    uint64_t          rendered_frames;
+    uint64_t          note_sequence;
+    uint8_t           master_attenuation;
+    int16_t           master_tuning; /* 1/128 semitone, retained across MIDI resets. */
 } opl4_midi_t;
 
 static opl4_midi_t *opl4_midi_cur;
@@ -294,377 +332,637 @@ opl4_write_wave_register(const uint8_t reg, const uint8_t value, opl4_midi_t *op
     opl4_midi->opl4.write(0x381, value, opl4_midi->opl4.priv);
 }
 
-VOICE_DATA *
-get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi)
+static uint32_t
+release_attenuation(const VOICE_DATA *voice, uint64_t rendered_frames)
 {
-    VOICE_DATA *free_voice   = &opl4_midi->voice_data[0];
-    VOICE_DATA *oldest_voice = &opl4_midi->voice_data[0];
-    for (uint8_t voice = 0; voice < 24; voice++) {
-        if (opl4_midi_cur->voice_data[voice].is_active) {
-            if (opl4_midi_cur->voice_data[voice].activated < oldest_voice->activated)
-                oldest_voice = &opl4_midi_cur->voice_data[voice];
-        } else {
-            if (opl4_midi_cur->voice_data[voice].wave_data == wave_data) {
-                free_voice = &opl4_midi_cur->voice_data[voice];
-                break;
-            }
+    if (!voice->has_release_tail)
+        return 0x200;
 
-            if (opl4_midi_cur->voice_data[voice].activated < free_voice->activated) {
-                free_voice = &opl4_midi_cur->voice_data[voice];
-                break;
-            }
+    /* Estimate the tail from the programmed level and time since key-off,
+       assuming the envelope started at full level. */
+    uint32_t attenuation = voice->attenuation * 4;
+    if (voice->release_rate >= 2) {
+        const unsigned int rate_group = voice->release_rate / 4;
+        const unsigned int shift = rate_group < 11 ? 11 - rate_group : 0;
+        const unsigned int step = rate_group > 12 ? 1U << (rate_group - 12) : 1;
+        const uint64_t elapsed = rendered_frames - voice->released_frame;
+        /* Convert output frames to native envelope clocks (one per two chip ticks). */
+        const uint64_t clocks = elapsed * FREQ_44100 / (FREQ_48000 * 2);
+        const uint64_t decay = (clocks >> shift) * step;
+        attenuation += decay > 0x200 ? 0x200 : (uint32_t) decay;
+    }
+    return attenuation;
+}
+
+static VOICE_DATA *
+get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi, uint32_t reserved)
+{
+    VOICE_DATA *silent = NULL;
+    VOICE_DATA *quietest = NULL;
+    VOICE_DATA *waiting = NULL;
+    VOICE_DATA *oldest = NULL;
+    uint32_t    quietest_attenuation = 0;
+
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        if (reserved & (1U << i))
+            continue;
+
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->is_active) {
+            if (!oldest || voice->activated < oldest->activated)
+                oldest = voice;
+            continue;
+        }
+
+        if (voice->key_change_frame > opl4_midi->rendered_frames) {
+            if (!waiting || voice->key_change_frame < waiting->key_change_frame)
+                waiting = voice;
+            continue;
+        }
+
+        const uint32_t attenuation = release_attenuation(voice, opl4_midi->rendered_frames);
+        if (attenuation >= 0x200) {
+            if (voice->wave_data == wave_data)
+                return voice;
+            if (!silent)
+                silent = voice;
+        } else if (!quietest || attenuation > quietest_attenuation) {
+            quietest = voice;
+            quietest_attenuation = attenuation;
         }
     }
 
-    /* If no free voice is found, look for one with the same instrument */
-    if (free_voice->is_active) {
-        for (uint8_t voice = 0; voice < 24; voice++) {
-            if (opl4_midi_cur->voice_data[voice].is_active
-            && opl4_midi_cur->voice_data[voice].wave_data == wave_data) {
-                free_voice            = &opl4_midi_cur->voice_data[voice];
-                free_voice->is_active = 0;
-                free_voice->activated = 0;
+    if (silent)
+        return silent;
+    if (quietest)
+        return quietest;
+    if (waiting)
+        return waiting;
+    return oldest;
+}
 
-                free_voice->reg_misc &= ~OPL4_KEY_ON_BIT;
-                opl4_write_wave_register(OPL4_REG_MISC + free_voice->number, free_voice->reg_misc, opl4_midi);
-                return free_voice;
-            }
-        }
-    }
-
-    /* If still no free voice found, deactivate the 'oldest' */
-    if (free_voice->is_active) {
-        free_voice            = oldest_voice;
-        free_voice->is_active = 0;
-        free_voice->activated = 0;
-
-        free_voice->reg_misc &= ~OPL4_KEY_ON_BIT;
-        opl4_write_wave_register(OPL4_REG_MISC + free_voice->number, free_voice->reg_misc, opl4_midi);
-    }
-
-    return free_voice;
+static bool
+voice_is_muted(const VOICE_DATA *voice, const opl4_midi_t *opl4_midi)
+{
+    return !voice->midi_channel->volume || !voice->midi_channel->expression || opl4_midi->master_attenuation == UINT8_MAX;
 }
 
 static void
 update_pan(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    int8_t pan = voice->wave_data->panpot;
-
-    if (!voice->midi_channel->drum_channel)
-        pan += voice->midi_channel->panpot;
-    if (pan < -7)
-        pan = -7;
-    else if (pan > 7)
-        pan = 7;
-
-    voice->reg_misc = (voice->reg_misc & ~OPL4_PAN_POT_MASK) | (pan & OPL4_PAN_POT_MASK);
+    const uint8_t pan_code = voice_is_muted(voice, opl4_midi) ? PAN_MUTE : voice->panpot & OPL4_PAN_POT_MASK;
+    voice->reg_misc = (voice->reg_misc & ~OPL4_PAN_POT_MASK) | pan_code;
     opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
 }
 
-void
-update_pitch(VOICE_DATA *voice, uint16_t pitch_bend, opl4_midi_t *opl4_midi)
+static void
+update_pitch(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    int32_t pitch = voice->midi_channel->drum_channel ? 0 : (voice->note - 60) * 128;
+    const MIDI_CHANNEL_DATA *channel = voice->midi_channel;
+    const int note = channel->drum_channel ? 60 : voice->note;
+    const int key_center = 60 + voice->wave_data->key_center_offset;
+    int32_t pitch = (note - key_center) * 128;
     pitch         = pitch * (int) voice->wave_data->key_scaling / 100;
     pitch         = pitch + 7680;
     pitch += voice->wave_data->pitch_offset;
-    pitch += pitch_bend * 256 / 0x2000;
-    if (pitch < 0)
-        pitch = 0;
+    if (!channel->drum_channel) {
+        const int range = channel->bend_semitones * 100 + channel->bend_cents;
+        pitch += (int64_t) channel->pitch_bend * range / (64 * 100);
+        pitch += channel->fine_tuning * 128 / 8192 + channel->coarse_tuning * 128;
+        pitch += opl4_midi->master_tuning;
+    }
+    /* Yamaha reserves octave code 8. The lowest playable octave is -7. */
+    if (pitch < 0x600)
+        pitch = 0x600;
     else if (pitch > 0x5FFF)
         pitch = 0x5FFF;
 
     int8_t   octave  = pitch / 0x600 - 8;
     uint16_t fnumber = g_wave_pitch_map[pitch % 0x600];
 
-    opl4_write_wave_register(OPL4_REG_OCTAVE + voice->number, (octave << 4) | ((fnumber >> 7) & 0x07), opl4_midi);
+    const uint8_t release = voice->wave_data->reg_release_correction & 0x0F;
+    const uint8_t correction = voice->wave_data->reg_release_correction >> 4;
+    int rate = release * 4;
+    if (release == 15)
+        rate = 63;
+    else if (release && correction != 15)
+        rate += (octave + correction) * 2 + (fnumber >> 9);
+    voice->release_rate = rate < 0 ? 0 : (rate > 63 ? 63 : rate);
+
+    const uint8_t reverb = channel->reverb ? OPL4_PSEUDO_REVERB_BIT : 0;
+    opl4_write_wave_register(OPL4_REG_OCTAVE + voice->number, ((octave & 0x0F) << 4) | reverb | (fnumber >> 7), opl4_midi);
     voice->reg_f_number = (voice->reg_f_number & OPL4_TONE_NUMBER_BIT8) | ((fnumber << 1) & OPL4_F_NUMBER_LOW_MASK);
     opl4_write_wave_register(OPL4_REG_F_NUMBER + voice->number, voice->reg_f_number, opl4_midi);
 }
 
-void
-update_volume(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+static int
+key_level_adjustment(const YRW801_WAVE_DATA *wave, uint8_t note)
 {
-    int16_t att = voice->wave_data->tone_attenuate;
+    const uint8_t *curve = snd_yrw801_key_level_curves[wave->key_level_curve];
 
-    att += g_volume_table[voice->velocity];
-    att = 0x7F - (0x7F - att) * (voice->wave_data->volume_factor) / 0xFE;
-    att -= 16;
-    if (att < 0)
-        att = 0;
-    else if (att > 0x7E)
-        att = 0x7E;
+    if (note < curve[0])
+        return curve[4] - 128;
 
-    opl4_write_wave_register(OPL4_REG_LEVEL + voice->number, (att << 1) | voice->level_direct, opl4_midi);
-    voice->level_direct = 0;
+    for (int segment = 0; segment < 3; segment++) {
+        if (note < curve[segment + 1]) {
+            const int width = curve[segment + 1] - curve[segment];
+            const int rise = curve[segment + 5] - curve[segment + 4];
+            return curve[segment + 4] - 128 + (note - curve[segment]) * rise / width;
+        }
+    }
+    return curve[7] - 128;
 }
 
-void
-note_off(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
+static void
+update_volume(VOICE_DATA *voice, opl4_midi_t *opl4_midi, bool direct)
 {
-    /* Velocity not used */
-    (void) velocity;
+    const MIDI_CHANNEL_DATA *channel = voice->midi_channel;
+    const YRW801_WAVE_DATA *wave = voice->wave_data;
+    int velocity_attenuation = snd_yrw801_velocity_curves[wave->velocity_curve][voice->velocity];
+    int gain = wave->volume_factor / 2;
+    if (!channel->drum_channel) {
+        velocity_attenuation += wave->tone_attenuate;
+        gain += key_level_adjustment(wave, voice->note);
+    }
+    gain = MAX(1, MIN(127, gain));
+    int level = (127 - MIN(126, velocity_attenuation)) * gain / 127;
+    level = level * (127 - channel_attenuation[channel->volume]) / 127;
 
-    while (opl4_midi->gen_in_progress) { }
-    for (uint8_t i = 0; i < 24; i++) {
+    int att = 127 - level + (channel->drum_channel ? 18 : 0);
+    att = MIN(126, att);
+    att += g_volume_table[channel->expression] + opl4_midi->master_attenuation;
+    att = MIN(0x7F, att);
+
+    opl4_write_wave_register(OPL4_REG_LEVEL + voice->number, (att << 1) | (direct ? OPL4_LEVEL_DIRECT_BIT : 0), opl4_midi);
+    voice->attenuation = att;
+
+    /* Even maximum total-level attenuation remains audible. */
+    if (((voice->reg_misc & OPL4_PAN_POT_MASK) == PAN_MUTE) != voice_is_muted(voice, opl4_midi))
+        update_pan(voice, opl4_midi);
+}
+
+static void
+release_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+{
+    voice->is_active = false;
+    voice->held = false;
+    voice->has_release_tail = true;
+    voice->released_frame = opl4_midi->rendered_frames;
+    voice->key_off_pending = false;
+    voice->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
+    voice->reg_misc &= ~OPL4_KEY_ON_BIT;
+    opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+}
+
+static void
+queue_key_off(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+{
+    if (voice->key_on_pending || voice->key_change_frame > opl4_midi->rendered_frames)
+        voice->key_off_pending = true;
+    else
+        release_voice(voice, opl4_midi);
+}
+
+static void
+note_off(uint8_t note, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
+{
+    uint64_t oldest = UINT64_MAX;
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
         VOICE_DATA *voice = &opl4_midi->voice_data[i];
-        if (voice->is_active && voice->midi_channel == midi_channel && voice->note == note) {
-            voice->is_active = false;
-            voice->activated = 0;
-
-            voice->reg_misc &= ~OPL4_KEY_ON_BIT;
-            opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+        if (voice->held && voice->midi_channel == midi_channel && voice->note == note)
+            oldest = MIN(oldest, voice->activated);
+    }
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->held && voice->activated == oldest) {
+            voice->held = false;
+            if (!midi_channel->sustain)
+                queue_key_off(voice, opl4_midi);
         }
     }
 }
 
-void
+static void
 update_vibrato_depth(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    uint16_t depth;
+    uint16_t depth = voice->reg_lfo_vibrato & OPL4_VIBRATO_DEPTH_MASK;
 
-    depth = (7 - voice->wave_data->vibrato) * (voice->midi_channel->vibrato & 0x7F);
-    depth = (depth >> 7) + voice->wave_data->vibrato;
+    if (!voice->midi_channel->drum_channel) {
+        depth = voice->wave_data->reg_lfo_vibrato & OPL4_VIBRATO_DEPTH_MASK;
+        depth += (7 - depth) * voice->midi_channel->vibrato / 127;
+    }
     voice->reg_lfo_vibrato &= ~OPL4_VIBRATO_DEPTH_MASK;
     voice->reg_lfo_vibrato |= depth & OPL4_VIBRATO_DEPTH_MASK;
     opl4_write_wave_register(OPL4_REG_LFO_VIBRATO + voice->number, voice->reg_lfo_vibrato, opl4_midi);
 }
 
-void
+static void start_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi);
+
+static void
 note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
 {
-    const YRW801_REGION_DATA_PTR *region_ptr = &snd_yrw801_regions[0];
+    const YRW801_REGION_DATA_PTR *instrument = &snd_yrw801_regions[midi_channel->drum_channel ? 0x80 : midi_channel->instrument];
     const YRW801_WAVE_DATA       *wave_data[2];
     VOICE_DATA                   *voice[2];
     int                           i      = 0;
     uint8_t                       voices = 0;
 
-    while (opl4_midi->gen_in_progress) { }
-
-    if (midi_channel->drum_channel)
-        wave_data[voices++] = &region_ptr[0x80].regions[note - 0x1A].wave_data;
-    else {
-        /* Determine the number of voices and voice parameters */
-        const YRW801_REGION_DATA *region = region_ptr[midi_channel->instrument & 0x7F].regions;
-
-        while (i < region_ptr[midi_channel->instrument & 0x7F].count) {
-            if (note >= region[i].key_min && note <= region[i].key_max) {
-                wave_data[voices] = &region[i].wave_data;
-                if (++voices >= 2)
-                    break;
-            }
-            i++;
+    /* The percussion table also uses key ranges, with gaps for unmapped notes. */
+    for (i = 0; i < instrument->count; i++) {
+        const YRW801_REGION_DATA *region = &instrument->regions[i];
+        if (note >= region->key_min && note <= region->key_max) {
+            wave_data[voices++] = &region->wave_data;
+            if (voices == 2)
+                break;
         }
     }
 
-    /* Allocate and initialize needed voices */
+    uint32_t reserved = 0;
+    const uint64_t sequence = ++opl4_midi->note_sequence;
     for (i = 0; i < voices; i++) {
-        voice[i]            = get_voice(wave_data[i], opl4_midi);
-        voice[i]->is_active = true;
-        voice[i]->activated = plat_get_ticks();
-
-        voice[i]->midi_channel = midi_channel;
-        voice[i]->note         = note;
-        voice[i]->velocity     = velocity & 0x7F;
+        voice[i] = get_voice(wave_data[i], opl4_midi, reserved);
+        reserved |= 1U << voice[i]->number;
     }
 
     for (i = 0; i < voices; i++) {
-        voice[i]->reg_f_number = (wave_data[i]->tone >> 8) & OPL4_TONE_NUMBER_BIT8;
-        opl4_write_wave_register(OPL4_REG_F_NUMBER + voice[i]->number, voice[i]->reg_f_number, opl4_midi);
+        VOICE_DATA *slot = voice[i];
+        if (slot->is_active && !slot->key_on_pending)
+            release_voice(slot, opl4_midi);
 
-        bool new_wave = (voice[i]->wave_data != wave_data[i]);
-        /* Set tone number (triggers header loading) */
-        if (new_wave) {
-            opl4_write_wave_register(OPL4_REG_TONE_NUMBER + voice[i]->number, wave_data[i]->tone & 0xFF, opl4_midi);
-            voice[i]->wave_data = wave_data[i];
-        }
+        slot->is_active = true;
+        slot->held = true;
+        slot->activated = sequence;
+        slot->key_off_pending = false;
+        slot->pending_wave = wave_data[i];
+        slot->midi_channel = midi_channel;
+        slot->note = note;
+        slot->velocity = velocity & 0x7F;
 
-        voice[i]->reg_misc = OPL4_LFO_RESET_BIT;
-        update_pan(voice[i], opl4_midi);
-        update_pitch(voice[i], 0, opl4_midi);
-        voice[i]->level_direct = OPL4_LEVEL_DIRECT_BIT;
-        update_volume(voice[i], opl4_midi);
-        if (new_wave) {
-            /* Set remaining parameters */
-            opl4_write_wave_register(OPL4_REG_ATTACK_DECAY1 + voice[i]->number, voice[i]->wave_data->reg_attack_decay1, opl4_midi);
-            opl4_write_wave_register(OPL4_REG_LEVEL_DECAY2 + voice[i]->number, voice[i]->wave_data->reg_level_decay2, opl4_midi);
-            opl4_write_wave_register(OPL4_REG_RELEASE_CORRECTION + voice[i]->number, voice[i]->wave_data->reg_release_correction, opl4_midi);
-            opl4_write_wave_register(OPL4_REG_TREMOLO + voice[i]->number, voice[i]->wave_data->reg_tremolo, opl4_midi);
-
-            voice[i]->reg_lfo_vibrato = voice[i]->wave_data->reg_lfo_vibrato;
-
-            if (!midi_channel->drum_channel)
-                update_vibrato_depth(voice[i], opl4_midi);
-        }
-    }
-
-    /* Finally, switch on all voices */
-    for (i = 0; i < voices; i++) {
-        voice[i]->reg_misc = (voice[i]->reg_misc & 0x1F) | OPL4_KEY_ON_BIT;
-        opl4_write_wave_register(OPL4_REG_MISC + voice[i]->number, voice[i]->reg_misc, opl4_midi);
+        /* A recent key-off must reach the chip before reusing this slot. */
+        if (slot->key_change_frame > opl4_midi->rendered_frames)
+            slot->key_on_pending = true;
+        else
+            start_voice(slot, opl4_midi);
     }
 }
 
-void
-control_change(uint8_t midi_channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
+static void
+program_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+{
+    const YRW801_WAVE_DATA *wave = voice->pending_wave;
+    const bool new_wave = voice->wave_data != wave;
+
+    voice->reg_f_number = (wave->tone >> 8) & OPL4_TONE_NUMBER_BIT8;
+    opl4_write_wave_register(OPL4_REG_F_NUMBER + voice->number, voice->reg_f_number, opl4_midi);
+    if (new_wave)
+        opl4_write_wave_register(OPL4_REG_TONE_NUMBER + voice->number, wave->tone & 0xFF, opl4_midi);
+
+    voice->wave_data = wave;
+    voice->reg_misc = OPL4_LFO_RESET_BIT;
+    voice->panpot = wave->panpot;
+    if (!voice->panpot && !voice->midi_channel->drum_channel)
+        voice->panpot = voice->midi_channel->panpot;
+    update_pan(voice, opl4_midi);
+    update_pitch(voice, opl4_midi);
+    update_volume(voice, opl4_midi, true);
+
+    if (new_wave) {
+        opl4_write_wave_register(OPL4_REG_ATTACK_DECAY1 + voice->number, wave->reg_attack_decay1, opl4_midi);
+        opl4_write_wave_register(OPL4_REG_LEVEL_DECAY2 + voice->number, wave->reg_level_decay2, opl4_midi);
+        opl4_write_wave_register(OPL4_REG_RELEASE_CORRECTION + voice->number, wave->reg_release_correction, opl4_midi);
+        opl4_write_wave_register(OPL4_REG_TREMOLO + voice->number, wave->reg_tremolo, opl4_midi);
+    }
+    voice->reg_lfo_vibrato = wave->reg_lfo_vibrato;
+    update_vibrato_depth(voice, opl4_midi);
+}
+
+static void
+start_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+{
+    program_voice(voice, opl4_midi);
+    voice->key_on_pending = false;
+    voice->has_release_tail = false;
+    voice->reg_misc = (voice->reg_misc & ~OPL4_LFO_RESET_BIT) | OPL4_KEY_ON_BIT;
+    opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+    /* Let the chip clock the key-on before applying an early key-off. */
+    voice->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
+}
+
+static void
+silence_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+{
+    if (voice->reg_misc & OPL4_KEY_ON_BIT)
+        voice->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
+    voice->is_active = false;
+    voice->held = false;
+    voice->key_on_pending = false;
+    voice->key_off_pending = false;
+    voice->has_release_tail = false;
+    voice->reg_misc = OPL4_DAMP_BIT | PAN_MUTE;
+    opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+}
+
+static void
+update_channel_pitch(MIDI_CHANNEL_DATA *channel, opl4_midi_t *opl4_midi)
+{
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->is_active && !voice->key_on_pending && voice->midi_channel == channel)
+            update_pitch(voice, opl4_midi);
+    }
+}
+
+static void
+data_entry(MIDI_CHANNEL_DATA *channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
+{
+    if (channel->rpn_msb != 0)
+        return;
+
+    switch (channel->rpn_lsb) {
+        case 0: /* Pitch bend sensitivity */
+            if (id == 6)
+                channel->bend_semitones = value;
+            else
+                channel->bend_cents = MIN(value, 99);
+            break;
+        case 1: { /* Channel fine tuning */
+            int tuning = channel->fine_tuning + 8192;
+            tuning = id == 6 ? (value << 7) | (tuning & 0x7f) : (tuning & 0x3f80) | value;
+            channel->fine_tuning = tuning - 8192;
+            break;
+        }
+        case 2: /* Channel coarse tuning */
+            if (id == 6)
+                channel->coarse_tuning = value - 64;
+            break;
+        default:
+            return;
+    }
+    update_channel_pitch(channel, opl4_midi);
+}
+
+static void
+control_change(MIDI_CHANNEL_DATA *channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
 {
     switch (id) {
+        case 1:
+            channel->vibrato = value;
+            break;
+        case 6:
+        case 38:
+            data_entry(channel, id, value, opl4_midi);
+            return;
+        case 7:
+            channel->volume = value;
+            break;
         case 10:
-            /* Change stereo panning */
-            if (midi_channel != DRUM_CHANNEL) {
-                opl4_midi->midi_channel_data[midi_channel].panpot = (value - 0x40) >> 3;
-                for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
-                    if (opl4_midi->voice_data[i].is_active && opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
-                        update_pan(&opl4_midi->voice_data[i], opl4_midi);
-                    }
-                }
-            }
+            if (channel->drum_channel)
+                return;
+            channel->panpot = (value >> 3) - 8;
+            if (channel->panpot < 0)
+                channel->panpot++;
             break;
-    }
-}
-
-void
-pitch_wheel(uint8_t midi_channel, uint16_t value, opl4_midi_t *opl4_midi)
-{
-    for (uint8_t i = 0; i < 24; i++) {
-        if (opl4_midi->voice_data[i].is_active && opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
-            update_pitch(&opl4_midi->voice_data[i], value, opl4_midi);
-        }
-    }
-}
-
-void
-channel_pressure(uint8_t midi_channel, uint8_t pressure)
-{
-    (void) midi_channel;
-    (void) pressure;
-}
-
-void
-key_pressure(uint8_t midi_channel, uint8_t note, uint8_t pressure)
-{
-    (void) midi_channel;
-    (void) note;
-    (void) pressure;
-}
-
-void
-program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
-{
-    opl4_midi->midi_channel_data[midi_channel].instrument = program;
-}
-
-static void
-opl4_midi_thread(UNUSED(void *arg))
-{
-    opl4_midi_t *opl4_midi         = opl4_midi_cur;
-    uint32_t     i                 = 0;
-    uint32_t     buf_size          = RENDER_RATE * 2;
-    uint32_t     buf_size_segments = buf_size * BUFFER_SEGMENTS;
-    uint32_t     buf_pos           = 0;
-
-    int32_t buffer[RENDER_RATE * 2];
-
-    while (opl4_midi->on) {
-        thread_wait_event(opl4_midi->wait_event, -1);
-        thread_reset_event(opl4_midi->wait_event);
-        if (!opl4_midi->on)
+        case 11:
+            channel->expression = value;
             break;
-        atomic_store(&opl4_midi->gen_in_progress, true);
-        opl4_midi->opl4.generate(opl4_midi->opl4.priv, buffer, RENDER_RATE);
-        atomic_store(&opl4_midi->gen_in_progress, false);
-        if (sound_is_float) {
-            for (i = 0; i < (buf_size / 2); i++) {
-                opl4_midi->buffer_float[(i + buf_pos) * 2]       = buffer[i * 2] / 32768.0;
-                opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] / 32768.0;
+        case 64:
+            channel->sustain = value >= 64;
+            break;
+        case 91:
+            channel->reverb = value >= 64;
+            update_channel_pitch(channel, opl4_midi);
+            return;
+        case 98:
+        case 99: /* NRPN selection cancels the RPN selection. */
+            channel->rpn_msb = channel->rpn_lsb = 127;
+            return;
+        case 100:
+            channel->rpn_lsb = value;
+            return;
+        case 101:
+            channel->rpn_msb = value;
+            return;
+        case 121:
+            channel->sustain = false;
+            channel->vibrato = 0;
+            channel->expression = 127;
+            channel->pitch_bend = 0;
+            channel->rpn_msb = channel->rpn_lsb = 127;
+            break;
+        case 120:
+        case 123:
+        case 124:
+        case 125:
+        case 126:
+        case 127:
+            break;
+        default:
+            return;
+    }
 
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    double dl = (double) opl4_midi->buffer_float[(i + buf_pos) * 2];
-                    double dr = (double) opl4_midi->buffer_float[((i + buf_pos) * 2) + 1];
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    opl4_midi->buffer_float[(i + buf_pos) * 2] = (float) dl;
-                    opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = (float) dr;
-                }
-            }
-            buf_pos += buf_size / 2;
-            if (buf_pos >= (buf_size_segments / 2)) {
-                givealbuffer_midi(opl4_midi->buffer_float, buf_size_segments);
-                buf_pos = 0;
-            }
-        } else {
-            for (i = 0; i < (buf_size / 2); i++) {
-                opl4_midi->buffer[(i + buf_pos) * 2]       = buffer[i * 2] & 0xFFFF;       /* Outputs are clamped beforehand. */
-                opl4_midi->buffer[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] & 0xFFFF; /* Outputs are clamped beforehand. */
-
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    double dl = (double) opl4_midi->buffer[(i + buf_pos) * 2];
-                    double dr = (double) opl4_midi->buffer[((i + buf_pos) * 2) + 1];
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    opl4_midi->buffer[(i + buf_pos) * 2] = (int16_t) round(dl);
-                    opl4_midi->buffer[((i + buf_pos) * 2) + 1] = (int16_t) round(dr);
-                }
-            }
-            buf_pos += buf_size / 2;
-            if (buf_pos >= (buf_size_segments / 2)) {
-                givealbuffer_midi(opl4_midi->buffer, buf_size_segments);
-                buf_pos = 0;
-            }
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->midi_channel != channel)
+            continue;
+        if (id == 120 && (voice->is_active || voice->has_release_tail)) {
+            silence_voice(voice, opl4_midi);
+            continue;
         }
+        if (!voice->is_active) {
+            if (voice->has_release_tail && (id == 7 || id == 11 || id == 121))
+                update_volume(voice, opl4_midi, id == 7);
+            continue;
+        }
+        if (id >= 123)
+            voice->held = false;
+        if (id >= 121 || id == 64) {
+            if (!voice->held && !channel->sustain && !voice->key_off_pending)
+                queue_key_off(voice, opl4_midi);
+        }
+        if (voice->key_on_pending)
+            continue;
+        if (id == 1 || id == 121)
+            update_vibrato_depth(voice, opl4_midi);
+        if (id == 7 || id == 11 || id == 121)
+            update_volume(voice, opl4_midi, id == 7);
+        if (id == 10) {
+            voice->panpot = channel->panpot;
+            update_pan(voice, opl4_midi);
+        }
+        if (id == 121)
+            update_pitch(voice, opl4_midi);
     }
 }
 
 static void
-opl4_midi_poll(void)
+opl4_render(opl4_midi_t *opl4_midi, uint32_t target)
 {
-    opl4_midi_t *opl4_midi = opl4_midi_cur;
+    int32_t buffer[RENDER_FRAMES * 2];
 
-    thread_set_event(opl4_midi->wait_event);
+    while (opl4_midi->block_frames < target) {
+        const uint64_t now = opl4_midi->rendered_frames;
+        uint64_t next = now + target - opl4_midi->block_frames;
+
+        for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+            VOICE_DATA *voice = &opl4_midi->voice_data[i];
+            if (voice->key_on_pending && voice->key_change_frame <= now)
+                start_voice(voice, opl4_midi);
+            else if (voice->key_off_pending && voice->key_change_frame <= now)
+                release_voice(voice, opl4_midi);
+            if ((voice->key_on_pending || voice->key_off_pending) && voice->key_change_frame < next)
+                next = voice->key_change_frame;
+        }
+
+        const uint32_t frames = next - now;
+        opl4_midi->opl4.generate(opl4_midi->opl4.priv, buffer, frames);
+        for (uint32_t i = 0; i < frames * 2; i++) {
+            double sample = buffer[i];
+            if (sound_is_float)
+                sample /= 32768.0;
+            if (filter_midi != NULL)
+                filter_midi(i & 1, &sample, filter_midi_p);
+
+            const uint32_t pos = opl4_midi->buffer_pos + i;
+            if (sound_is_float)
+                opl4_midi->buffer_float[pos] = (float) sample;
+            else
+                opl4_midi->buffer[pos] = (int16_t) round(sample);
+        }
+
+        opl4_midi->block_frames += frames;
+        opl4_midi->rendered_frames = next;
+        opl4_midi->buffer_pos += frames * 2;
+    }
 }
 
-void
+static void
+opl4_midi_poll(void *priv)
+{
+    opl4_midi_t *opl4_midi = priv;
+
+    timer_on_auto(&opl4_midi->poll_timer, POLL_INTERVAL_US);
+    opl4_render(opl4_midi, RENDER_FRAMES);
+    opl4_midi->block_frames = 0;
+    if (opl4_midi->buffer_pos == BUFFER_SAMPLES) {
+        givealbuffer_midi(sound_is_float ? (const void *) opl4_midi->buffer_float : opl4_midi->buffer,
+                          BUFFER_SAMPLES);
+        opl4_midi->buffer_pos = 0;
+    }
+}
+
+static void
+render_elapsed(opl4_midi_t *opl4_midi)
+{
+    const uint64_t remaining = timer_get_remaining_us(&opl4_midi->poll_timer);
+    if (remaining < POLL_INTERVAL_US)
+        opl4_render(opl4_midi, (POLL_INTERVAL_US - remaining) * RENDER_FRAMES / POLL_INTERVAL_US);
+}
+
+static void
+reset_channels(opl4_midi_t *opl4_midi)
+{
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->is_active || voice->has_release_tail)
+            silence_voice(voice, opl4_midi);
+    }
+    for (uint8_t i = 0; i < NR_OF_MIDI_CHANNELS; i++) {
+        opl4_midi->midi_channel_data[i] = (MIDI_CHANNEL_DATA) {
+            .volume = 100,
+            .expression = 127,
+            .rpn_msb = 127,
+            .rpn_lsb = 127,
+            .bend_semitones = 2,
+            .drum_channel = i == DRUM_CHANNEL
+        };
+    }
+    opl4_midi->master_attenuation = 0;
+}
+
+static void
 opl4_midi_msg(uint8_t *val)
 {
     opl4_midi_t *opl4_midi = opl4_midi_cur;
+    const uint8_t midi_command = val[0] >> 4;
 
-    uint32_t msg         = *(uint32_t *) (val);
-    uint8_t  data_byte_1 = msg & 0xFF;
-    uint8_t  data_byte_2 = (msg >> 8) & 0xFF;
-    uint8_t  data_byte_3 = (msg >> 16) & 0xFF;
+    if (val[0] == 0xff) {
+        render_elapsed(opl4_midi);
+        reset_channels(opl4_midi);
+        return;
+    }
 
-    uint8_t midi_channel = data_byte_1 & 0x0F;
-    uint8_t midi_command = data_byte_1 >> 4;
+    if (midi_command < 0x8 || midi_command > 0xE || midi_command == 0xA || midi_command == 0xD)
+        return;
+
+    MIDI_CHANNEL_DATA *channel = &opl4_midi->midi_channel_data[val[0] & 0x0f];
+    const uint8_t data_byte_2 = val[1] & 0x7f;
+    /* Finish the elapsed part of this block before changing chip registers. */
+    render_elapsed(opl4_midi);
 
     switch (midi_command) {
         case 0x8: // Note OFF
-            note_off(data_byte_2 & 0x7F, data_byte_3, &opl4_midi->midi_channel_data[midi_channel], opl4_midi);
+            note_off(data_byte_2, channel, opl4_midi);
             break;
         case 0x9: // Note ON
-            note_on(data_byte_2 & 0x7F, data_byte_3, &opl4_midi->midi_channel_data[midi_channel], opl4_midi);
-            break;
-        case 0xA: // Key after-touch
+            if (val[2] & 0x7f)
+                note_on(data_byte_2, val[2] & 0x7f, channel, opl4_midi);
+            else
+                note_off(data_byte_2, channel, opl4_midi);
             break;
         case 0xB: // Control change
-            control_change(midi_channel, data_byte_2, data_byte_3, opl4_midi);
+            control_change(channel, data_byte_2, val[2] & 0x7f, opl4_midi);
             break;
         case 0xC: // Program change
-            program_change(midi_channel, data_byte_2 & 0x7F, opl4_midi);
-            break;
-        case 0xD: // Channel after-touch
+            channel->instrument = data_byte_2;
             break;
         case 0xE: // Pitch wheel
-            pitch_wheel(midi_channel, ((data_byte_3 <<= 7) | data_byte_2), opl4_midi);
+            channel->pitch_bend = (((val[2] & 0x7f) << 7) | data_byte_2) - 8192;
+            update_channel_pitch(channel, opl4_midi);
             break;
     }
 }
 
-void
-opl4_midi_sysex(UNUSED(uint8_t *data), UNUSED(unsigned int len))
+static void
+opl4_midi_sysex(uint8_t *data, unsigned int len)
 {
-    //
+    opl4_midi_t *opl4_midi = opl4_midi_cur;
+    static const uint8_t xg_system_on[] = { 0x4c, 0x00, 0x00, 0x7e, 0x00 };
+    static const uint8_t master_tuning_address[] = { 0x27, 0x30, 0x00, 0x00 };
+
+    if (len < 6 || len > 11 || data[0] != 0xf0 || data[len - 1] != 0xf7)
+        return;
+    for (unsigned int i = 1; i < len - 1; i++) {
+        if (data[i] & 0x80)
+            return;
+    }
+
+    const bool yamaha_parameter_change = data[1] == 0x43 && (data[2] & 0xf0) == 0x10;
+    if ((len == 6 && data[1] == 0x7e && data[3] == 0x09 && data[4] == 0x01) ||
+        (len == 9 && yamaha_parameter_change && !memcmp(data + 3, xg_system_on, sizeof(xg_system_on)))) {
+        render_elapsed(opl4_midi);
+        reset_channels(opl4_midi);
+    } else if (len == 8 && data[1] == 0x7f && data[3] == 0x04 && data[4] == 0x01) {
+        render_elapsed(opl4_midi);
+        /* The YMF721 uses only the most significant byte. */
+        const unsigned int level = data[6];
+        /* Convert the master level to the chip's 0.375 dB steps. */
+        opl4_midi->master_attenuation = level ? MIN(127, lround(-40.0 * log10(level / 127.0) / 0.375)) : UINT8_MAX;
+        for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+            VOICE_DATA *voice = &opl4_midi->voice_data[i];
+            if ((voice->is_active || voice->has_release_tail) && !voice->key_on_pending)
+                update_volume(voice, opl4_midi, false);
+        }
+    } else if (len == 11 && yamaha_parameter_change && !memcmp(data + 3, master_tuning_address, sizeof(master_tuning_address))) {
+        render_elapsed(opl4_midi);
+        /* The low nibble of each byte carries tuning data. The trailing data byte is ignored. */
+        const int cents = (((data[7] & 0x0f) << 4) | (data[8] & 0x0f)) - 128;
+        opl4_midi->master_tuning = lround(cents * 128.0 / 100.0);
+        for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+            VOICE_DATA *voice = &opl4_midi->voice_data[i];
+            if ((voice->is_active || voice->has_release_tail) && !voice->key_on_pending && !voice->midi_channel->drum_channel)
+                update_pitch(voice, opl4_midi);
+        }
+    }
 }
 
 void *
@@ -677,21 +975,17 @@ opl4_init(UNUSED(const device_t *info))
 
     dev->play_msg   = opl4_midi_msg;
     dev->play_sysex = opl4_midi_sysex;
-    dev->poll       = opl4_midi_poll;
 
-    al_set_midi(48000, 4800);
+    al_set_midi(FREQ_48000, BUFFER_SAMPLES);
 
     opl4_midi_cur = calloc(1, sizeof(opl4_midi_t));
 
-    fm_driver_get_cs(FM_YMF278B, &opl4_midi_cur->opl4);
+    fm_driver_get_ex(FM_YMF278B, &opl4_midi_cur->opl4, 3);
 
     opl4_midi_cur->opl4.write(0x38A, 0x05, opl4_midi_cur->opl4.priv);
     opl4_midi_cur->opl4.write(0x389, 0x3, opl4_midi_cur->opl4.priv);
-    midi_out_init(dev);
 
-    opl4_midi_cur->on                                = true;
-    opl4_midi_cur->midi_channel_data[9].drum_channel = true;
-    atomic_init(&opl4_midi_cur->gen_in_progress, 0);
+    reset_channels(opl4_midi_cur);
 
     for (uint8_t voice = 0; voice < NR_OF_WAVE_CHANNELS; voice++) {
         opl4_midi_cur->voice_data[voice].number          = voice;
@@ -701,13 +995,13 @@ opl4_init(UNUSED(const device_t *info))
         opl4_midi_cur->voice_data[voice].note            = 0;
         opl4_midi_cur->voice_data[voice].velocity        = 0;
         opl4_midi_cur->voice_data[voice].wave_data       = NULL;
-        opl4_midi_cur->voice_data[voice].level_direct    = 0;
         opl4_midi_cur->voice_data[voice].reg_f_number    = 0;
         opl4_midi_cur->voice_data[voice].reg_misc        = 0;
         opl4_midi_cur->voice_data[voice].reg_lfo_vibrato = 0;
     }
-    opl4_midi_cur->wait_event = thread_create_event();
-    opl4_midi_cur->thread     = thread_create(opl4_midi_thread, NULL);
+    timer_add(&opl4_midi_cur->poll_timer, opl4_midi_poll, opl4_midi_cur, 0);
+    timer_on_auto(&opl4_midi_cur->poll_timer, POLL_INTERVAL_US);
+    midi_out_init(dev);
     return dev;
 }
 
@@ -717,9 +1011,7 @@ opl4_close(void *p)
     if (!p)
         return;
 
-    opl4_midi_cur->on = false;
-    thread_set_event(opl4_midi_cur->wait_event);
-    thread_wait(opl4_midi_cur->thread);
+    timer_stop(&opl4_midi_cur->poll_timer);
     free(opl4_midi_cur);
     opl4_midi_cur = NULL;
 }

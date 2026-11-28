@@ -56,14 +56,15 @@ public:
     QMap<VMManagerSystem::ProcessStatus, int> getProcessStats();
     int                                       getActiveMachineCount();
     void                                      refreshConfigs();
-    void                                      sendGlobalConfigurationChanged();
+    void                                      sendGlobalConfigurationChanged(const VMManagerSystem *except = nullptr);
     void                                      loadFromCache(const QString &selectName = {});
     void                                      startBackgroundDiscovery();
 
 signals:
     void systemDataChanged();
     void selectionRestored(const QModelIndex &index);
-    void globalConfigurationChanged();
+    /* A running machine changed the global configuration */
+    void globalConfigurationChanged(VMManagerSystem *sender);
 
 private:
     QVector<VMManagerSystem *> machines;

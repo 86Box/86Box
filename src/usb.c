@@ -765,6 +765,26 @@ enum {
     TD_HALT       /* process error: Run/Stop cleared */
 };
 
+/* The status bar's USB activity light. A controller sets a bit when a
+   packet carrying data completes, and the GUI takes and clears the bits on
+   its own timer, so the emulation thread only ever sets them. The load
+   first keeps a bulk transfer from writing the shared word on every
+   packet. */
+static atomic_int usb_activity_bits;
+
+static void
+usb_activity_mark(int bit)
+{
+    if (!(atomic_load_explicit(&usb_activity_bits, memory_order_relaxed) & bit))
+        atomic_fetch_or_explicit(&usb_activity_bits, bit, memory_order_relaxed);
+}
+
+int
+usb_activity_take(void)
+{
+    return atomic_exchange_explicit(&usb_activity_bits, 0, memory_order_relaxed);
+}
+
 /* A CRC/timeout error counts down C_ERR; a TD set up with C_ERR 0 is
    retried without limit (UHCI 1.1 s3.2.2, p. 22 / PDF 28). */
 static int
@@ -1015,6 +1035,10 @@ uhci_exec_td(uhci_t *dev, uint32_t addr, int in_queue, double *left, uint32_t *l
                     dma_bm_write(td[3], buf, p.actual, 1);
                 len = p.actual;
             }
+            /* An isochronous OUT reads as ACK with no device at the
+               address too; only a device that took the data counts. */
+            if ((len > 0) && (usb != NULL))
+                usb_activity_mark((pid == USB_PID_IN) ? USB_ACTIVITY_IN : USB_ACTIVITY_OUT);
             ctrl   = (ctrl & ~(UHCI_TD_ACTIVE | UHCI_TD_ACTLEN)) | ((len - 1) & UHCI_TD_ACTLEN);
             result = TD_ADVANCE;
             if ((pid == USB_PID_IN) && in_queue && (ctrl & UHCI_TD_SPD) && (p.actual < p.len)) {
@@ -1332,9 +1356,12 @@ uhci_schedule_detect(uhci_t *dev)
     }
 }
 
-/* Power-on state. A chip reset and GRESET both land here: they differ only
-   in that GRESET also signals reset on the bus (UHCI 1.1 s2.1.1 bit 2,
-   p. 12 / PDF 18). */
+/* Power-on state. A chip reset and GRESET both land here: they differ in
+   that GRESET also signals reset on the bus (UHCI 1.1 s2.1.1 bit 2, p. 12
+   / PDF 18). FLBASEADD has no reset value in the PIIX4 data sheet (6.2.5),
+   and the SGI Visual Workstation firmware relies on that: it programs the
+   base once, then issues GRESET in the same init sequence before starting
+   controller, and never reloads it, so reset path shouldn't clear it. */
 static void
 uhci_power_on_reset(uhci_t *dev)
 {
@@ -1347,7 +1374,6 @@ uhci_power_on_reset(uhci_t *dev)
     dev->sts          = 0x0000;
     dev->intr         = 0x0000;
     dev->frnum        = 0x0000;
-    dev->flbaseadd    = 0x00000000;
     dev->sofmod       = 0x40;
     dev->int_ioc      = 0;
     dev->int_spd      = 0;
@@ -1365,11 +1391,11 @@ uhci_power_on_reset(uhci_t *dev)
     uhci_update_irq(dev);
 }
 
-/* HCRESET resets timers, counters and state machines (UHCI 1.1 s2.1.1
-   bit 1, p. 12 / PDF 18) and SOFMOD (s2.1.6, p. 15 / PDF 21); USBINTR and
-   FLBASEADD keep their values. Resetting each port's connect state machine
-   is a virtual disconnect: CCS, PE and LSDA clear, CSC and PEDC are set
-   where they changed, and the device is detected again shortly after. */
+/* HCRESET resets the timers, counters and state machines (PIIX4 6.2.7)
+   and SOFMOD (6.2.6), and touches bits 8 and 3:0 of PORTSC; USBINTR is
+   not among them. A port's connect state machine restarting is a virtual
+   disconnect: CCS, PE and LSDA clear, CSC and PEDC are set where they
+   changed, and the device is detected again shortly after. */
 static void
 uhci_hc_reset(uhci_t *dev)
 {
@@ -3598,6 +3624,10 @@ ohci_service_gtd(ohci_t *dev, uint32_t ed_addr, uint32_t *ed)
                 bytes = p.actual;
                 ohci_td_data(td[1], td[3], buf, bytes, 1);
             }
+            /* An IN counts what the device sent, which on an overrun is
+               more than the buffer kept. */
+            if (((dir == 2) ? p.bus_len : bytes) > 0)
+                usb_activity_mark((dir == 2) ? USB_ACTIVITY_IN : USB_ACTIVITY_OUT);
             ec    = 0;
             td[0] = (td[0] & ~OHCI_TD_T) | 0x02000000 | ((toggle ^ 1) << 24);
             if (ret == USB_RET_OVERRUN) {
@@ -3847,9 +3877,11 @@ ohci_service_itd(ohci_t *dev, uint32_t ed_addr, uint32_t *ed)
        PDF 42-45): an OUT has no handshake, so it ends without error; an IN
        reports what arrived, up to the size of the buffer. NAK or STALL on
        an IN reads as STALL with size 0. */
-    if (dir == 1)
+    if (dir == 1) {
         cc = OHCI_CC_NOERROR;
-    else if ((ret == USB_RET_ACK) || (ret == USB_RET_OVERRUN)) {
+        if ((size > 0) && (usb != NULL))
+            usb_activity_mark(USB_ACTIVITY_OUT);
+    } else if ((ret == USB_RET_ACK) || (ret == USB_RET_OVERRUN)) {
         len = p.actual;
         if (len > size) {
             len = size;
@@ -3857,6 +3889,8 @@ ohci_service_itd(ohci_t *dev, uint32_t ed_addr, uint32_t *ed)
         } else
             cc = (len < size) ? OHCI_CC_DATAUNDERRUN : OHCI_CC_NOERROR;
         ohci_td_data(start, end, buf, len, 1);
+        if (p.bus_len > 0)
+            usb_activity_mark(USB_ACTIVITY_IN);
     } else if ((ret == USB_RET_NAK) || (ret == USB_RET_STALL))
         cc = OHCI_CC_STALL;
     else

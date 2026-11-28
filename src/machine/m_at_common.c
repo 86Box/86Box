@@ -60,15 +60,18 @@
 #include <86box/port_6x.h>
 #include <86box/machine.h>
 
+/* An AT's system devices, but for those flags says this one doesn't have (MACHINE_NONSTANDARD_*). */
 void
-machine_at_common_init(const machine_t *model)
+machine_at_common_init_ex(const machine_t *model, uint32_t flags)
 {
-    machine_common_init(model);
+    machine_common_init_ex(model, flags);
 
     refresh_at_enable = 1;
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_at);
+    if (!(flags & MACHINE_NONSTANDARD_PIT))
+        pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_at);
     pic2_init();
-    dma16_init();
+    if (!(flags & MACHINE_NONSTANDARD_DMA))
+        dma16_init();
 
     if (model->init != machine_at_m290_init)
         device_add(&port_6x_device);
@@ -77,11 +80,34 @@ machine_at_common_init(const machine_t *model)
 }
 
 void
+machine_at_common_init(const machine_t *model)
+{
+    machine_at_common_init_ex(model, 0);
+}
+
+void
+machine_at_add_kbc(const machine_t *model)
+{
+    const device_t *kbc = machine_get_kbc_device(machine);
+    uintptr_t       params = model->kbc_params;
+
+    if (kbc == &kbc_at_upi42_device) {
+        if (!kbc_at_upi42_available(model->kbc_fwvers)) {
+            pclog("KBC: UPI-42 firmware image not found, falling back to default AT keyboard controller\n");
+            kbc = &kbc_at_device;
+        } else
+            params = (uintptr_t) model->kbc_fwvers;
+    }
+
+    device_add_params(kbc, (void *) params);
+}
+
+void
 machine_at_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    machine_at_add_kbc(model);
 }
 
 void
@@ -89,7 +115,7 @@ machine_at_ps2_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    machine_at_add_kbc(model);
 }
 
 void

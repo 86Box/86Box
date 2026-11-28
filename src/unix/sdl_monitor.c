@@ -205,11 +205,23 @@ monitor_execute_line(char *line)
             endblit();
             device_force_redraw();
         } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
-            runctl_pause_user_toggle();
-            printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
+            run_status_t st;
+            runctl_status(&st);
+            if (!runctl_can_toggle_pause(&st))
+                printf("Pause is controlled by automation or the debugger.\n");
+            else {
+                runctl_toggle_pause();
+                printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
+            }
         } else if (strncasecmp(xargv[0], "fastfwd", 7) == 0) {
-            runctl_fast_forward_toggle();
-            printf("%s", (runctl_mode() == RUN_MODE_FAST) ? "Fast forward on.\n" : "Fast forward off.\n");
+            run_status_t st;
+            runctl_status(&st);
+            if (!runctl_can_toggle_fast_forward(&st))
+                printf("Fast forward is controlled by automation.\n");
+            else {
+                runctl_toggle_fast_forward();
+                printf("%s", (runctl_mode() == RUN_MODE_FAST) ? "Fast forward on.\n" : "Fast forward off.\n");
+            }
         } else if (strncasecmp(xargv[0], "hardreset", 9) == 0) {
             pc_reset_hard();
         } else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3) {

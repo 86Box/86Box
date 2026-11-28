@@ -980,6 +980,8 @@ ht216_recalctimings(svga_t *svga)
         if (ht216->id == 0x7140) {
             if ((ht216->clk_sel == 1) && (extendedhigh256col || svga->interlace))
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / 48540000.0; /*DOC-70 from the Video 7 VGA 1024i board*/
+            else if ((ht216->clk_sel == 1) && !(ht216->ht_regs[0xf8] & 0x01))
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
             else
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
         } else if (ht216->id == 0x7152) {

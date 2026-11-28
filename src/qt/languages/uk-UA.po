@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 18:59+0000\n"
+"PO-Revision-Date: 2026-11-28 07:57+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -50,10 +50,13 @@ msgstr "&Вигляд"
 msgid "&Hide status bar"
 msgstr "&Приховати рядок стану"
 
+msgid "Show US&B activity"
+msgstr "Показати активність &USB"
+
 msgid "Hide &toolbar"
 msgstr "&Приховати панель інструментів"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Змінний розмір вікна"
 
 msgid "R&emember size && position"
@@ -82,6 +85,9 @@ msgstr "&Вказати розміри…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Встановити відношення сторін &4:3"
+
+msgid "Force &machine display ratio"
+msgstr "Примусити співвідношення сторін дисплея"
 
 msgid "Force &%1:%2 display ratio"
 msgstr "Встановити відношення сторін &%1:%2"
@@ -248,6 +254,46 @@ msgstr "&Параметри…"
 msgid "Sound &gain…"
 msgstr "&Посилення звуку…"
 
+msgid "M&IDI output device"
+msgstr "Пристрій виводу M&IDI"
+
+msgid "Restart &device"
+msgstr "Перезавантажити пр&истрій"
+
+msgid "Send MIDI &command"
+msgstr "Відправити &команду MIDI"
+
+#, fuzzy
+msgid "&GM System On"
+msgstr "Вмикнути систему &GM"
+
+#, fuzzy
+msgid "G&S Reset"
+msgstr "Перезавантажити G&S"
+
+#, fuzzy
+msgid "&XG System On"
+msgstr "Вмикнути систему &XG"
+
+#, fuzzy
+msgid "&MT-32 Reset"
+msgstr "Перезавантажити &MT-32"
+
+msgid "All &notes off"
+msgstr "&Вимкнути усі ноти"
+
+msgid "Show MIDI &LCD"
+msgstr "Показати &LCD-екран MIDI"
+
+msgid "MIDI LCD"
+msgstr "LCD-екран MIDI"
+
+msgid "Always on &top"
+msgstr "Завжди з&верху"
+
+msgid "&Close"
+msgstr "З&акрити"
+
 msgid "Begin trace"
 msgstr "Почати трасування"
 
@@ -302,8 +348,8 @@ msgstr "&Пустий"
 msgid "Reload previous image"
 msgstr "Знову завантажити попередній образ"
 
-msgid "&Folder…"
-msgstr "&Тека…"
+msgid "Mount &folder…"
+msgstr "Змонтувати &теку…"
 
 msgid "Preferences"
 msgstr "Параметри"
@@ -313,6 +359,12 @@ msgstr "Посилення звуку"
 
 msgid "New Image"
 msgstr "Новий образ"
+
+msgid "Removable disk type:"
+msgstr "Тип знімного диска:"
+
+msgid "MO type:"
+msgstr "Тип магнитооптичного диска:"
 
 msgid "Settings"
 msgstr "Налаштування"
@@ -407,6 +459,23 @@ msgstr "%1 МГц"
 msgid "FPU:"
 msgstr "FPU:"
 
+msgid "Memory-mapped floating-point coprocessor at C0000000h. Compatible programs can use it alongside or in place of a 387."
+msgstr ""
+"Прив'язаний до пам'яті у C0000000h співпроцесор для операцій із плаваючою "
+"комою. Сумісні програми можуть використати його разом з або замість співп. "
+"387."
+
+msgid "Weitek WTL 3167 coprocessor"
+msgstr "Співпроцесор Weitek WTL 3167"
+
+msgid "Memory-mapped floating-point coprocessor at C0000000h for compatible 486 software."
+msgstr ""
+"Прив'язаний до пам'яті у C0000000h співпроцесор для операцій із плаваючою "
+"комою для програмного обладнання, сумісного з процесорами 486."
+
+msgid "Weitek WTL 4167 coprocessor"
+msgstr "Співпроцесор Weitek WTL 4167"
+
 msgid "Internal"
 msgstr "Вбудований"
 
@@ -415,6 +484,15 @@ msgstr "Цикли очікування:"
 
 msgid "MB"
 msgstr "МБ"
+
+msgid "GB"
+msgstr "ГБ"
+
+msgid "%1 MB"
+msgstr "%1 МБ"
+
+msgid "%1 GB"
+msgstr "%1 ГБ"
 
 msgid "Memory:"
 msgstr "Пам'ять:"
@@ -454,6 +532,12 @@ msgstr "Використовувати інтерпретатор 486 для п�
 
 msgid "Dynamic recompiler"
 msgstr "Динамічний рекомпілятор"
+
+msgid "Dynamic recompiler is active"
+msgstr "Динамічний рекомпілятор активний"
+
+msgid "Dynamic recompiler is inactive"
+msgstr "Динамічний рекомпілятор неактивний"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точне середовище FPU у динамічному рекомпіляторі"
@@ -691,6 +775,32 @@ msgstr "Шина:"
 msgid "Channel:"
 msgstr "Канал:"
 
+msgid "%1 (Onboard)"
+msgstr "%1 (на платі)"
+
+msgid "(none)"
+msgstr "(немає)"
+
+msgid "Onboard"
+msgstr "На платі"
+
+msgid "%1: no free channels"
+msgstr "%1: нема вільних каналів"
+
+msgid "%1: channels %2 in use"
+msgstr "%1: використані канали %2"
+
+msgid "IDE Conflict"
+msgstr "Конфлікт IDE"
+
+msgid "These IDE controllers need channels that another device already has, and will not work:"
+msgstr ""
+"Даним контролерам IDE потрібні канали, які вже зайняті іншим пристроєм, тому "
+"вони не працюватимуть:"
+
+msgid "Do you want to save the configuration anyway?"
+msgstr "Ви все одно хочете зберегти конфігурацію?"
+
 msgid "ID:"
 msgstr "ID:"
 
@@ -769,6 +879,9 @@ msgstr "CD-ROM:"
 msgid "MO drives"
 msgstr "Магнітооптичні дисководи"
 
+msgid "MD DATA drives"
+msgstr "Дисководи MD DATA"
+
 msgid "MO:"
 msgstr "Дисководи MO:"
 
@@ -787,8 +900,8 @@ msgstr "Стрічкові накопичувачі:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Карта розширення пам'яті (ISA)"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Карта розширення пам'яті (ISA/MCA)"
 
 msgid "ISA ROM Cards"
 msgstr "Карти ПЗП ISA"
@@ -807,6 +920,29 @@ msgstr "Карта 4:"
 
 msgid "Generic ISA ROM Board"
 msgstr "Стандартна плата ПЗП ISA"
+
+msgid "No devices found. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+"Пристроїв не знайдено. Переконайтеся, що VT-d або IOMMU увімкнено на вашій "
+"системі."
+
+msgid "Custom ROM:"
+msgstr "Власний ПЗП:"
+
+msgid "Group"
+msgstr "Група"
+
+msgid "Location"
+msgstr "Місцезнаходження"
+
+msgid "Name"
+msgstr "Назва"
+
+msgid "ROM images"
+msgstr "Образи ПЗП"
+
+msgid "Unknown device"
+msgstr "Невідомий пристрій"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Стандартна плата на 2 ПЗП ISA"
@@ -827,7 +963,7 @@ msgid "Fatal error"
 msgstr "Непереробна помилка"
 
 msgid " - PAUSED"
-msgstr " - ПРИЗУПИНЕННЯ"
+msgstr " - ЗУПИНЕНО"
 
 msgid "Speed"
 msgstr "Швидкість"
@@ -862,6 +998,9 @@ msgstr ""
 
 msgid "(empty)"
 msgstr "(порожньо)"
+
+msgid "(not available)"
+msgstr "(недоступно)"
 
 msgid "All files"
 msgstr "Всі файли"
@@ -914,8 +1053,17 @@ msgstr "Пристрій &введення"
 msgid "Sound"
 msgstr "Звук"
 
+msgid "%1 (not detected)"
+msgstr "%1 (не виявлено)"
+
+msgid "%1 Hz (host will resample)"
+msgstr "%1 Гц (основна система зробить передискретизацію)"
+
 msgid "Network"
 msgstr "Мережа"
+
+msgid "Receive IPv4 and ARP as 802.3 LLC/SNAP"
+msgstr "Отримувати IPv4 й ARP як 802.3 LLC/SNAP"
 
 msgid "Ports (COM & LPT)"
 msgstr "Порти (COM и LPT)"
@@ -985,6 +1133,60 @@ msgstr "Інші знімні при-ої"
 
 msgid "Other peripherals"
 msgstr "Інша периферія"
+
+msgid "empty"
+msgstr "порожьно"
+
+msgid "CompactFlash: %1 (write-protected)"
+msgstr "CompactFlash: %1 (захищений від запису)"
+
+msgid "CompactFlash: %1"
+msgstr "CompactFlash: %1"
+
+msgid "Empty (take the card out)"
+msgstr "Спорожнити (вийняти картку)"
+
+msgid "CompactFlash"
+msgstr "CompactFlash"
+
+msgid "&New CompactFlash card…"
+msgstr "&Нова карта CompactFlash…"
+
+msgid "New CompactFlash card"
+msgstr "Нова картка CompactFlash"
+
+msgid "Insert CompactFlash card"
+msgstr "Вставити картку CompactFlash"
+
+msgid "&Remove CompactFlash card"
+msgstr "&Вийняти картку CompactFlash"
+
+msgid "Could not use %1 as a CompactFlash image."
+msgstr "Не вдалося використати %1 як образ картки CompactFlash."
+
+msgid "PCMCIA"
+msgstr "PCMCIA"
+
+msgid "PC Card controller (Cirrus Logic CL-PD6722, ISA, ports 3E0h-3E1h)"
+msgstr "Контролер PC Card (Cirrus Logic CL-PD6722, ISA, порти 3E0h-3E1h)"
+
+msgid "An Intel 82365SL-compatible PC Card (PCMCIA) controller with two sockets, as found in laptops and on PC Card adapter cards.\nDOS card and socket services, Windows 95/98 and Linux (i82365) find it."
+msgstr ""
+"Контролер PC Card (PCMCIA), сумісний з Intel 82365SL і оснащений двома "
+"слотами; зустрічаються в ноутбуках, а також на адаптерах PC Card.\n"
+"Він розпізнається службами роботи з картами та слотами в DOS, а також у "
+"Windows 95/98 і Linux (драйвер i82365)."
+
+msgid "Network:"
+msgstr "Мережа:"
+
+#, fuzzy
+msgid "Socket %1"
+msgstr "Слот %1"
+
+#, fuzzy
+msgid "Socket %1: %2"
+msgstr "Слот %1: %2"
 
 msgid "Other devices"
 msgstr "Інші пристрої"
@@ -1154,11 +1356,23 @@ msgstr "&Магнітооптичний %1 (%2): %3"
 msgid "MO images"
 msgstr "Образи магнітооптичних дисків"
 
+msgid "MD DATA images"
+msgstr "Образи дисків MD DATA"
+
+msgid "&MD DATA %1 (%2): %3"
+msgstr "&MD DATA %1 (%2): %3"
+
+msgid "MD DATA %1 (%2): %3"
+msgstr "MD DATA %1 (%2): %3"
+
 msgid "Welcome to 86Box!"
-msgstr "Ласкаво просимо в 86Box!"
+msgstr "Ласкаво просимо до 86Box!"
 
 msgid "Internal device"
 msgstr "Вбудований пристрій"
+
+msgid "External"
+msgstr "Зовнішній пристрій"
 
 msgid "&File"
 msgstr "&Файл"
@@ -1180,6 +1394,108 @@ msgstr "Вихід"
 
 msgid "No ROMs found"
 msgstr "ПЗП не знайдені"
+
+msgid "Unsupported Hardware"
+msgstr "Непідтримуване апаратне обладнання"
+
+msgid "Hardware in this machine profile is not supported by this current build of 86Box."
+msgstr ""
+"Апаратне обладнання у профілі цієї машини не підтримується поточною збіркою "
+"86Box."
+
+msgid "(and %i others)"
+msgstr "(та %i ін.)"
+
+msgid "Loading the configuration anyway will replace the machine and overwrite the existing configuration."
+msgstr ""
+"Завантаження конфігурації в будь-якому разі призведе до заміни машини та "
+"перезапису наявної конфігурації."
+
+msgid "Loading the configuration anyway will remove these components and overwrite the existing configuration."
+msgstr ""
+"Завантаження конфігурації в будь-якому разі призведе до видалення цих "
+"компонентів і перезапису наявної конфігурації."
+
+msgid "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration."
+msgstr ""
+"Завантаження конфігурації в будь-якому разі призведе до заміни машини, "
+"видалення інших компонентів і перезапису наявної конфігурації."
+
+msgid "Do you want to continue?"
+msgstr "Чи ви бажаєте продовжити?"
+
+msgid "Machine type \"%s\""
+msgstr "Тип машини \"%s\""
+
+msgid "Video card \"%s\""
+msgstr "Відеокарта \"%s\""
+
+msgid "Keyboard \"%s\""
+msgstr "Клавіатура \"%s\""
+
+msgid "Mouse \"%s\""
+msgstr "Миша \"%s\""
+
+msgid "Tablet \"%s\""
+msgstr "Планшет \"%s\""
+
+msgid "Joystick \"%s\""
+msgstr "Джойстик \"%s\""
+
+msgid "Sound card \"%s\""
+msgstr "Звукова карта \"%s\""
+
+msgid "MIDI output device \"%s\""
+msgstr "Пристрій виведення MIDI \"%s\""
+
+msgid "MIDI input device \"%s\""
+msgstr "Пристрій введення MIDI \"%s\""
+
+msgid "Network card \"%s\""
+msgstr "Мережева карта \"%s\""
+
+msgid "Serial port device \"%s\""
+msgstr "Пристрій послідовного порту \"%s\""
+
+msgid "Parallel port device \"%s\""
+msgstr "Пристрій паралельного порту \"%s\""
+
+msgid "Game port \"%s\""
+msgstr "Ігровий порт \"%s\""
+
+msgid "SCSI card \"%s\""
+msgstr "Карта SCSI \"%s\""
+
+msgid "Floppy controller \"%s\""
+msgstr "Контролер гнучких дисків \"%s\""
+
+msgid "Disk controller \"%s\""
+msgstr "Дисковий контролер \"%s\""
+
+msgid "CD-ROM interface \"%s\""
+msgstr "Інтерфейс CD-ROM \"%s\""
+
+msgid "Memory expansion card \"%s\""
+msgstr "Карта розширення пам'яті \"%s\""
+
+msgid "ROM expansion card \"%s\""
+msgstr "Карта розширення ПЗП \"%s\""
+
+msgid "RTC card \"%s\""
+msgstr "Карта RTC \"%s\""
+
+msgid "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored."
+msgstr ""
+"Образ \"%s\" перевищує максимальну ємність цього диска, тому його буде "
+"проігноровано."
+
+msgid "%s was not connected: every USB port of this machine is in use."
+msgstr "%s не було підключено, бо кожний USB-порт цієї машини вже зайнятий."
+
+msgid "%s was not connected: this machine has no USB controller that can take devices."
+msgstr ""
+"%s не було підключено, бо у цієї машини немає USB-контролера, що може "
+"приймати пристрої."
 
 msgid "Do you want to save the settings?"
 msgstr "Чи бажаєте ви зберегти налаштування?"
@@ -1216,6 +1532,24 @@ msgstr "Більше не показувати це повідомлення"
 
 msgid "CD-ROM images"
 msgstr "Образи CD-ROM"
+
+msgid "&New CD-R image…"
+msgstr "Новий образ &CD-R…"
+
+msgid "New CD-R&W image…"
+msgstr "Новий образ CD-&RW…"
+
+msgid "CD-RW image"
+msgstr "Образ CD-RW"
+
+msgid "CD-R image"
+msgstr "Образ CD-R"
+
+msgid "Aaru images"
+msgstr "Образи формату Aaru"
+
+msgid "Unable to create image"
+msgstr "Не вдалося створити образ"
 
 msgid "%1 Device Configuration"
 msgstr "Конфігурація пристрою %1"
@@ -1375,7 +1709,9 @@ msgstr[2] "%n машин активні"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (ще +%n)"
+msgstr[1] " (ще +%n)"
+msgstr[2] " (ще +%n)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1593,17 +1929,20 @@ msgstr "Аудіо:"
 msgid "ACPI shutdown"
 msgstr "Сигнал завершення ACPI"
 
-msgid "ACP&I shutdown"
-msgstr "Сигнал завершення ACP&I"
+msgid "&ACPI shutdown"
+msgstr "Сигнал завершення &ACPI"
 
 msgid "Power off"
 msgstr "Вимкнути живлення"
 
-msgid "Power &off…"
-msgstr "Вимкнути &живлення…"
-
 msgid "Power &off"
 msgstr "Вимкнути &живлення"
+
+msgid "Suspen&d"
+msgstr "Режим о&чікування"
+
+msgid "Suspend"
+msgstr "Режим очікування"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr "Вимкнення емульованої машини може призвести до втрати даних. Ви впевнені, що хочете продовжити?"
@@ -1612,10 +1951,10 @@ msgid "Hard disk (%1)"
 msgstr "Жорсткий диск (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "Світлодіод плати"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "Світлодіод плати (%1)"
 
 msgid "Custom…"
 msgstr "Задати вручну…"
@@ -2082,6 +2421,9 @@ msgstr "Клавіатура PS/2"
 msgid "PS/55 Keyboard"
 msgstr "Клавіатура PS/55"
 
+msgid "USB Keyboard"
+msgstr "Клавіатура USB"
+
 msgid "Keys"
 msgstr "Клавіші"
 
@@ -2112,8 +2454,14 @@ msgstr "Миша PS/2"
 msgid "PS/2 QuickPort Mouse"
 msgstr "Миша PS/2 QuickPort"
 
+msgid "USB Mouse"
+msgstr "Миша USB"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (послідовна)"
+
+msgid "USB Tablet"
+msgstr "Планшет USB"
 
 msgid "Default Baud rate"
 msgstr "Швидкість передачі даних за замовчуванням"
@@ -2138,6 +2486,9 @@ msgstr "Дочірня плата OPL4-ML"
 
 msgid "System MIDI"
 msgstr "Системний MIDI"
+
+msgid "USB Speaker"
+msgstr "Динамік USB"
 
 msgid "MIDI Input Device"
 msgstr "Пристрій введення MIDI"
@@ -2512,7 +2863,7 @@ msgid "Snow emulation"
 msgstr "Емуляція снігу"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "Плата покращення зображення GO329"
 
 msgid "Monitor type"
 msgstr "Тип монітора"
@@ -2573,6 +2924,9 @@ msgstr "SLI"
 
 msgid "Start Address"
 msgstr "Початкова адреса"
+
+msgid "Allow RAM up to the system ROM"
+msgstr "Дозволити ОЗП до системного ПЗП"
 
 msgid "Contiguous Size"
 msgstr "Суміжний розмір"
@@ -3370,7 +3724,7 @@ msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exi
 msgstr "Процес віртуальної машини «%1» несподівано завершився з кодом завершення %2."
 
 msgid "The system will not be added."
-msgstr "Система не буде додана."
+msgstr "Систему не буде додано."
 
 msgid "&Update mouse every CPU frame"
 msgstr "&Оновлювати мишу при кожному кадрі ЦП"
@@ -3406,7 +3760,7 @@ msgid "Export EDID"
 msgstr "Експорт EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr "Файл EDID «%s» є недійсним."
+msgstr "Файл EDID «%s» недійсний."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Файл EDID «%s» занадто великий."
@@ -3426,6 +3780,18 @@ msgstr "Світлий"
 msgid "Dark"
 msgstr "Темний"
 
+msgid "Style:"
+msgstr "Стиль:"
+
+msgid "Windows 11"
+msgstr "Windows 11"
+
+msgid "Windows Native"
+msgstr "Windows (нативний)"
+
+msgid "Windows Classic"
+msgstr "Windows (класичний)"
+
 msgid "Force interpretation"
 msgstr "Примусове тлумачення"
 
@@ -3439,10 +3805,10 @@ msgid "&Allow recompilation"
 msgstr "&Дозволити рекомпіляцію"
 
 msgid "&Fast forward"
-msgstr "&Перемотай вперед"
+msgstr "&Перемотування вперед"
 
 msgid "Fast forward"
-msgstr "Перемотай вперед"
+msgstr "Перемотування вперед"
 
 msgid "&Non-maskable interrupt"
 msgstr "&Переривання, яке не можна заблокувати"
@@ -3760,10 +4126,10 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Пристрій програмного вимкнення живлення (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "Перег&лядач пам'яті"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "Емулятор зайнятий. Перегляд пам'яті не було оновлено."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
@@ -3795,7 +4161,7 @@ msgstr ""
 msgid "The search is limited to %1 bytes."
 msgstr ""
 
-msgid "Searching memory..."
+msgid "Searching memory…"
 msgstr ""
 
 msgid "The search was cancelled. The selection did not move."
@@ -3831,7 +4197,7 @@ msgstr ""
 msgid "Copy selection (ASCII)"
 msgstr ""
 
-msgid "Fill selection..."
+msgid "Fill selection…"
 msgstr ""
 
 msgid "Copy address"
@@ -3840,7 +4206,7 @@ msgstr ""
 msgid "Disassemble here"
 msgstr ""
 
-msgid "Dump memory from here..."
+msgid "Dump memory from here…"
 msgstr ""
 
 msgid "Memory viewer"
@@ -3870,7 +4236,7 @@ msgstr ""
 msgid "Live update"
 msgstr ""
 
-msgid "Dump..."
+msgid "Dump…"
 msgstr ""
 
 msgid "Commands"
@@ -3915,7 +4281,7 @@ msgstr ""
 msgid "Search downwards from the selection (F3)"
 msgstr ""
 
-msgid "Range..."
+msgid "Range…"
 msgstr ""
 
 msgid "Search within an address range instead of all memory"
@@ -4000,10 +4366,10 @@ msgid "Commands share the memory viewer's address space and selection. Type help
 msgstr ""
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Запустити процесор (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Зупинити процесор на наступній інструкції (F5)"
 
 msgid "Too many breakpoints."
 msgstr ""
@@ -4023,7 +4389,7 @@ msgstr ""
 msgid "Stopped."
 msgstr ""
 
-msgid "Stepping..."
+msgid "Stepping…"
 msgstr ""
 
 msgid "Running."
@@ -4036,28 +4402,30 @@ msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Введіть адресу."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "Не вдалося знайти селектор."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Невідомий сегмент \"%1\"."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Невідомий зсув \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Лінійна адреса не відображається на фізичну пам'ять."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" не є адресою або регістром."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Використання: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
+"Вибір є фізичним; використовуйте лінійну адресу або перейдіть до лінійного "
+"простору."
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
@@ -4095,8 +4463,11 @@ msgstr ""
 msgid "cleared"
 msgstr ""
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr ""
@@ -4105,9 +4476,6 @@ msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
 
 msgid "Dump memory"
-msgstr ""
-
-msgid "Browse..."
 msgstr ""
 
 msgid "Start (hex, register or seg:off):"
@@ -4123,13 +4491,13 @@ msgid "Fill byte for memory that cannot be read:"
 msgstr ""
 
 msgid "File:"
-msgstr ""
+msgstr "Файл:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
 
-msgid "Binary files (*.bin);;All files (*)"
-msgstr ""
+msgid "Binary files"
+msgstr "Бінарні файли"
 
 msgid "The length must be a hex number above 0."
 msgstr ""
@@ -4140,7 +4508,7 @@ msgstr ""
 msgid "Could not open %1 for writing."
 msgstr ""
 
-msgid "Dumping memory..."
+msgid "Dumping memory…"
 msgstr ""
 
 msgid "Could not write to %1."
@@ -4156,7 +4524,7 @@ msgid "\"%1\" is not made of hex bytes."
 msgstr ""
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Введіть Hex-значення від 0 до %1."
 
 msgid "The value is too large for %1 bytes."
 msgstr ""
@@ -4168,163 +4536,277 @@ msgid "The range ends before it starts."
 msgstr ""
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Послідовний Plug and Play"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Звичайний модем 9600 біт/с (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Звичайний модем 14400 біт/с (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Звичайний модем 28800 біт/с (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Звичайний модем (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Покращений модем 9600 біт/с (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Покращений модем 14400 біт/с (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Покращений модем 28800 біт/с (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Покращений модем (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Регіон сигналів телефону"
 
 msgid "North America"
-msgstr ""
+msgstr "Півн. Америка"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Велика Британія"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Конт. Європа"
 
 msgid "Japan"
-msgstr ""
+msgstr "Японія"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Стандарт модемного квитування"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Автоматично (від швидкості DTE)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Тип підключення"
 
 msgid "Username"
-msgstr ""
+msgstr "Ім'я користувача"
 
 msgid "Password"
-msgstr ""
+msgstr "Пароль"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "Стиснення та шифрування PPP"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Автоматично"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "Вимагати MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "Группа мульти-зв'язку PPP (однакова в одному зв'язку)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "Первинний DNS-сервер PPP"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "Вторинний DNS-сервер PPP"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "Узгодження напрямку CCP"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Двостороннє"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Тільки передача"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Тільки прийом"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Бажано асиметричне"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "Зворотний виклик PPP (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Запропонований (абонент може відхилити)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Потрібний (абонент повинен прийняти)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "Інтервал підтримання з'єднання PPP (у секундах, 0 = вимк.)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Повідомляти основній системі про отриманий DTMF-сигнал (<DLE>цифра)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Вимкнено (тільки коли +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
-msgstr ""
+msgstr "ID абонента між вікнами емулятора (увімкнути на обох)"
 
-msgid "Caller ID sent when dialling (number,name)"
-msgstr ""
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "ID абонента, відправлений при набору номера (номер,ім'я)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Ліміт черги мережі до гостя (стримування навантаження)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Необмежений (застаріле)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 мс"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 мс"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 с"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 с"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "Таймаут відправлення TCP"
 
 msgid "Card:"
-msgstr ""
+msgstr "Карта:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Хаб:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Накопичувач:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"Його дисками є жорсткі диски, дисководи CD-ROM та інших з'ємних пристроїв, "
+"налаштованих на своїх сторінках, через шину SCSI, в каналі під назвою "
+"\"USB Mass Storage\". Кожний диск є однією логічною одиницею, впорядковані "
+"до послідовності каналів."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Жорсткі диски…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Дисководи CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Інші з'ємні пристрої…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "Чотирьохпортовий хаб USB 1.1"
 
 msgid "USB Mass Storage"
+msgstr "USB-накопичувач"
+
+msgid "Mount folder as a temporary floppy"
+msgstr "Підключити теку як тимчасовий гнучкий диск"
+
+msgid "The selected drive does not support folder mounting."
+msgstr "Вибраний диск не підтримує підключення тек."
+
+msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
+"Обсяг даних перевищує підтриману ємність налаштованого дисковода гнучких "
+"дисків."
+
+msgid "Mount folder as a temporary removable disk"
+msgstr "Підключити теку як тимчасовий з'ємний диск"
+
+msgid "Unable to mount folder or archive"
+msgstr "Не вдалося прикріпити теку або архів"
+
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
+
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr ""
+
+msgid "The temporary image could not be written."
+msgstr ""
+
+msgid "There is not enough memory to build the image."
+msgstr ""
+
+msgid "The folder or archive could not be read."
+msgstr ""
+
+msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr "Новий флеш-накопичувач USB"
+
+msgid "&New USB flash drive…"
+msgstr "&Новий флеш-накопичувач USB…"
+
+msgid "unplugged"
+msgstr "від'єднано"
+
+msgid "&Unplug"
+msgstr "&Від'єднати"
+
+msgid "&Unplug %1"
+msgstr "&Від'єднати %1"
+
+msgid "Plug in %1 (%2)"
+msgstr "Приєднати в %1 (%2)"
+
+msgid "&Move %1 to"
+msgstr "&Перемістити %1 в"
+
+msgid "Size:"
+msgstr "Розмір:"
+
+msgid "Custom size:"
+msgstr "Власний розмір:"
+
+msgid "None (blank)"
+msgstr "Немає (порожній)"
+
+msgid "FAT16"
+msgstr "FAT16"
+
+msgid "FAT32"
+msgstr "FAT32"
+
+msgid "Format:"
+msgstr "Формат:"
+
+msgid "Could not create %1."
+msgstr "Не вдалося створити %1."
+
+msgid "%1 already exists. Replace it?"
+msgstr "%1 вже існує. Замінити його?"
+
+msgid "USB port %1 (%2)"
+msgstr "USB-порт %1 (%2)"
+
+msgid "USB port"
+msgstr "USB-порт"
+
+msgid "%1 (write-protected)"
+msgstr "%1 (захист від запису)"
+
+msgid "USB flash drive"
+msgstr "Флеш-накопичувач USB"
+
+msgid "%1 is not a disk image."
+msgstr "%1 не є образом диска."
+
+msgid "Flash drive images"
+msgstr "Образи флеш-накопичувачів"
+
+msgid "PCI card"
+msgstr "PCI-карта"
+
+msgid "hub"
+msgstr "хаб"
+
+msgid "board"
+msgstr "плата"
+
+msgid "now in port %1"
+msgstr "наразі в порту %1"

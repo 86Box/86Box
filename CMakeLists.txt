@@ -109,6 +109,19 @@ if(NOT NO_STATIC_OPTION)
     endif()
 endif()
 
+# zlib 1.4+ ships a CMake config package in which ZLIB::ZLIB is the shared
+# library and ZLIB::ZLIBSTATIC the static one. With config mode preferred,
+# every find_package(ZLIB) (ours and the ones inside FindPNG etc.) would
+# then link libz-1.dll. Define ZLIB::ZLIB up front as the static library;
+# the zlib config and FindZLIB both leave an existing ZLIB::ZLIB alone.
+if(STATIC_BUILD AND MINGW)
+    find_package(ZLIB COMPONENTS static QUIET)
+    if(TARGET ZLIB::ZLIBSTATIC AND NOT TARGET ZLIB::ZLIB)
+        add_library(ZLIB::ZLIB INTERFACE IMPORTED)
+        target_link_libraries(ZLIB::ZLIB INTERFACE ZLIB::ZLIBSTATIC)
+    endif()
+endif()
+
 if(HAIKU)
     set(OPENAL ON)
 endif()
@@ -163,6 +176,8 @@ option(BUILD_BENCHMARKS "Build performance benchmarks"                          
 if(DEV_BRANCH)
     add_compile_definitions(PC98_EXPERIMENTAL)
 endif()
+option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" OFF)
+option(ENABLE_VORTEX2_LOG "Enable Aureal Vortex 2 logging"                  OFF)
 
 if(BUILD_TESTING)
     enable_testing()
@@ -219,20 +234,18 @@ endif()
 #
 #                      Option         Description                                Def.  Condition     Otherwise
 #                      ------         -----------                                ----  ------------  ---------
+cmake_dependent_option(AIC7890        "Adaptec AIC-7890"                         ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(AMD_K5         "AMD K5"                                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(G100           "Matrox Productiva G100"                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                              ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                        ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                               ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                    ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"               ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(WACOM          "Wacom Input Devices"                      ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(VFIO           "Virtual Function I/O"                     ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(SOFTMODEM      "AC'97 Softmodem"                          ON    "DEV_BRANCH"  OFF)
 
 # Defaults to DEV_BRANCH like the options above, but can also be enabled on its own
 option(RAGE128_MAXX "ATI Rage Fury MAXX" ${DEV_BRANCH})
-option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" OFF)
 
 # Ditto but for Qt
 if(QT)

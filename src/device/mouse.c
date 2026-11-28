@@ -133,15 +133,14 @@ static mouse_t mouse_devices[] = {
 static mouse_t tablet_devices[] = {
     { &mouse_none_device                },
     { &tablet_internal_device           },
-#ifdef USE_WACOM
     { &mouse_wacom_tablet_device        },
     { &mouse_wacom_artpad_tablet_device },
-#endif
     { &mouse_mtouch_device              },
     { &mouse_ibm7690_touch_device        },
     { &mouse_cga_lightpen_device        },
     { &mouse_pxl_380_device             },
     { &tablet_usb_device                },
+    { &mouse_elo_device                 },
     { NULL                              }
 };
 
@@ -369,12 +368,12 @@ mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs)
     if (o_y != NULL)
         *o_y = 1;
 
-    ds_y = mouse_scale_coord_x(real_y, 1);
+    ds_y = mouse_scale_coord_y(real_y, 1);
 
     if (ds_y >= 0.0)
-        scaled_y = (int) floor(mouse_scale_coord_x(real_y, 1));
+        scaled_y = (int) floor(mouse_scale_coord_y(real_y, 1));
     else
-        scaled_y = (int) ceil(mouse_scale_coord_x(real_y, 1));
+        scaled_y = (int) ceil(mouse_scale_coord_y(real_y, 1));
 
     if (real_y > smax_y) {
         if (abs) {

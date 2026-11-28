@@ -132,6 +132,7 @@ typedef struct fdc_t {
     uint8_t format_state;
     uint8_t format_n;
     uint8_t step;
+    uint8_t ras_b;
     uint8_t noprec;
     uint8_t data_ready;
     uint16_t xfer_count;
@@ -161,6 +162,8 @@ typedef struct fdc_t {
 
     uint8_t media_id;
     uint8_t bus;
+
+    uint8_t find_index;
 
     uint8_t params[15];
     uint8_t specify[2];
@@ -282,6 +285,7 @@ extern void fdc_sector_finishread(fdc_t *fdc);
 extern void fdc_track_finishread(fdc_t *fdc, int condition);
 extern int  fdc_is_verify(fdc_t *fdc);
 
+extern void fdc_index_pulse(fdc_t *fdc);
 extern void fdc_overrun(fdc_t *fdc);
 extern void fdc_set_base(fdc_t *fdc, int base);
 extern void fdc_set_irq(fdc_t *fdc, int irq);

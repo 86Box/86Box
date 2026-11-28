@@ -134,6 +134,7 @@ jobs:
           libserialport
           vulkan-headers
           zstd
+          libarchive
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -152,6 +153,7 @@ jobs:
           -D Qt6LinguistTools_ROOT=$(brew --prefix qt)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
           -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
+          -D LibArchive_ROOT=$(brew --prefix libarchive)
 
       - name: Build
         run: cmake --build build

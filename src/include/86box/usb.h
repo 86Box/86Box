@@ -87,6 +87,13 @@ extern int usb_ports_get(usb_port_info_t *ports, int max);
    returns 0 when there is none. */
 extern int usb_port_flash_image(const char *label, char *fn, int n);
 
+/* Data moved on any USB bus since the status bar last looked, for its
+   activity light: USB_ACTIVITY_IN for data from a device, USB_ACTIVITY_OUT
+   for data to one. usb_activity_take() returns the bits and clears them. */
+#define USB_ACTIVITY_IN  1
+#define USB_ACTIVITY_OUT 2
+extern int usb_activity_take(void);
+
 /* USB flash drives: a stick with a raw image, plugged into a port. The
    user plugs, swaps and unplugs them from the GUI by port; the config
    keeps which image is in which port, and the sticks go back there on the
@@ -122,6 +129,9 @@ extern void usb_flash_hard_reset(void);
    USB_FLASH_MAX_SIZE): partitioned and formatted with fs, or all zeros for
    USB_FLASH_FS_BLANK. Returns 1 on success. */
 extern int  usb_flash_create(const char *fn, uint64_t bytes, int fs);
+/* Builds the stick for a folder or an archive about to be plugged in and returns a fat_image_result_t;
+   if left_out isn't NULL, it gets the FAT_IMAGE_LEFT_OUT_* flags of what didn't fit. */
+extern int  usb_flash_prepare_folder(const char *fn, int *left_out);
 /* Whether a volume of that many bytes can be formatted with fs. */
 extern int  usb_flash_fs_ok(uint64_t bytes, int fs);
 extern int  usb_flash_fs_default(uint64_t bytes);
