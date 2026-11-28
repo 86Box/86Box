@@ -28,6 +28,7 @@ extern "C" {
 #include "qt_models_common.hpp"
 
 #include <vector>
+#include <QSignalBlocker>
 #include "qt_deviceconfig.hpp"
 
 #include "qt_defs.hpp"
@@ -41,8 +42,6 @@ void
 SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
 {
     for (int i = 0; i < NET_CARD_MAX; ++i) {
-        net_card_cfg_changed[i] = 0;
-
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
 
@@ -203,8 +202,8 @@ SettingsNetwork::SettingsNetwork(QWidget *parent)
         scDevice[i]                     = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1)), nullptr);
     }
 
+    initializeHostOptions();
     onCurrentMachineChanged(machine);
-    enableElements(ui);
     for (int i = 0; i < NET_CARD_MAX; i++) {
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
@@ -358,19 +357,19 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
     this->machineId = machineId;
 
     int c           = 0;
-    int selectedRow = 0;
-
     // Network Card
     QComboBox          *cbox_[NET_CARD_MAX]        = { 0 };
     QAbstractItemModel *models[NET_CARD_MAX]       = { 0 };
     int                 removeRows_[NET_CARD_MAX]  = { 0 };
     int                 selectedRows[NET_CARD_MAX] = { 0 };
+    int                 preferredCards[NET_CARD_MAX];
     int                 m_has_net                  = (!!machine_has_flags_64(machineId, MACHINE_NIC_PRI)) | ((!!machine_has_flags_64(machineId, MACHINE_NIC_SEC)) << 1);
 
     for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
         sc[i]->removeRows();
-        scDevice[i]->removeRows();
         cbox_[i]       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+        const QVariant current = cbox_[i]->currentData();
+        preferredCards[i] = current.isValid() ? current.toInt() : net_cards_conf[i].device_num;
         models[i]      = cbox_[i]->model();
         removeRows_[i] = models[i]->rowCount();
     }
@@ -389,7 +388,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
                     int row = rows[i].add(name, c);
                     sc[i]->addDevice(card.dev, name);
 
-                    if (c == net_cards_conf[i].device_num)
+                    if (c == preferredCards[i])
                         selectedRows[i] = row - removeRows_[i];
                 }
             }
@@ -397,15 +396,22 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
     }
 
     for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        const QSignalBlocker blocker(cbox_[i]);
         rows[i].commit();
         models[i]->removeRows(0, removeRows_[i]);
         cbox_[i]->setEnabled(models[i]->rowCount() > 1);
-        cbox_[i]->setCurrentIndex(-1);
         cbox_[i]->setCurrentIndex(selectedRows[i]);
+    }
 
+    enableElements(ui);
+}
+
+void
+SettingsNetwork::initializeHostOptions()
+{
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         auto model      = cbox->model();
-        auto removeRows = model->rowCount();
         Models::Batch typeRows(model);
         typeRows.add(tr("Null Driver"), NET_TYPE_NONE);
         typeRows.add("SLiRP", NET_TYPE_SLIRP);
@@ -429,16 +435,14 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 #endif /* ENABLE_NET_NRSWITCH */
         typeRows.commit();
 
-        model->removeRows(0, removeRows);
         cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
 
-        selectedRow = 0;
+        int selectedRow = 0;
 
         if (network_ndev > 0) {
             QString currentPcapDevice = net_cards_conf[i].host_dev_name;
             cbox                      = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
             model                     = cbox->model();
-            removeRows                = model->rowCount();
             Models::Batch intfRows(model);
             for (int c = 0; c < network_ndev; c++) {
                 intfRows.add(tr(network_devs[c].description), c);
@@ -448,7 +452,6 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
                 }
             }
             intfRows.commit();
-            model->removeRows(0, removeRows);
             cbox->setCurrentIndex(selectedRow);
         }
 
@@ -500,11 +503,11 @@ SettingsNetwork::on_pushButtonConf1_clicked()
     if (netCard == NET_INTERNAL) {
         device = machine_get_net_device(machineId);
         if (!machine_has_flags_64(machineId, MACHINE_NIC_SEC)) {
-            net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device);
+            net_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
             return;
         }
     }
-    net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
+    net_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -514,7 +517,7 @@ SettingsNetwork::on_pushButtonConf2_clicked()
     auto *device  = network_card_getdevice(netCard);
     if (netCard == NET_INTERNAL)
         device = machine_get_net_device(machineId);
-    net_card_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 2);
+    net_card_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
@@ -522,7 +525,7 @@ SettingsNetwork::on_pushButtonConf3_clicked()
 {
     int   netCard = ui->comboBoxNIC3->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    net_card_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 3);
+    net_card_cfg_changed[2] |= DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
@@ -530,5 +533,5 @@ SettingsNetwork::on_pushButtonConf4_clicked()
 {
     int   netCard = ui->comboBoxNIC4->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    net_card_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 4);
+    net_card_cfg_changed[3] |= DeviceConfig::ConfigureDevice(device, 4);
 }

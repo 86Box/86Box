@@ -2,6 +2,7 @@
 #define QT_SETTINGSFLOPPYCDROM_HPP
 
 #include <QWidget>
+#include <QVector>
 #include <QStandardItemModel>
 
 namespace Ui {
@@ -57,6 +58,15 @@ private:
     void                     setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type);
     void                     setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type, uint8_t channel);
     void                     enableCurrentlySelectedChannel();
+
+    struct FloppySettings {
+        int type;
+        bool turbo;
+        quint64 audioProfile;
+    };
+    enum class FloppyLayout { Configurable, Convertible, NoDrives };
+    FloppyLayout floppyLayout = FloppyLayout::Configurable;
+    QVector<FloppySettings> pendingFloppies;
 
     QIcon floppy_disabled_icon;
     QIcon floppy_525_icon;
