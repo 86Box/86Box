@@ -523,6 +523,11 @@ enum {
 };
 
 extern void            machine_common_init(const machine_t *);
+extern int             machine_pc9801vx_init(const machine_t *);
+extern int             machine_pc9801bx4_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t pc9801vx_device;
+#endif
 extern void            machine_common_init_ex(const machine_t *, uint32_t flags);
 extern int             machine_ibm5140_init(const machine_t *);
 #ifdef EMU_DEVICE_H

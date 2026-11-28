@@ -1847,6 +1847,14 @@ nuked_opl3_timer_2(void *priv)
 }
 
 static void
+nuked_opl3_drv_set_clock(void *priv, const int *clock)
+{
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
+
+    dev->clock = clock;
+}
+
+static void
 nuked_opl3_drv_set_do_cycles(void *priv, int8_t do_cycles)
 {
     nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
@@ -1861,15 +1869,16 @@ static int32_t *
 nuked_opl3_drv_update(void *priv)
 {
     nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
+    const int clk = (dev->clock != NULL) ? *dev->clock : music_pos_global;
 
-    if (dev->pos >= music_pos_global)
+    if (dev->pos >= clk)
         return dev->buffer;
 
     OPL3_GenerateStream(&dev->opl,
                         &dev->buffer[dev->pos * 2],
-                        music_pos_global - dev->pos);
+                        clk - dev->pos);
 
-    for (; dev->pos < music_pos_global; dev->pos++) {
+    for (; dev->pos < clk; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }
@@ -1881,15 +1890,16 @@ static int32_t *
 nuked_opl3_drv_update_48k(void *priv)
 {
     nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
+    const int clk = (dev->clock != NULL) ? *dev->clock : sound_pos_global;
 
-    if (dev->pos >= sound_pos_global)
+    if (dev->pos >= clk)
         return dev->buffer;
 
     OPL3_GenerateResampledStream(&dev->opl,
                                  &dev->buffer[dev->pos * 2],
-                                 sound_pos_global - dev->pos);
+                                 clk - dev->pos);
 
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < clk; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }
@@ -2060,6 +2070,7 @@ const fm_drv_t nuked_opl3_drv = {
     .update        = &nuked_opl3_drv_update,
     .reset_buffer  = &nuked_opl3_drv_reset_buffer,
     .set_do_cycles = &nuked_opl3_drv_set_do_cycles,
+    .set_clock     = &nuked_opl3_drv_set_clock,
     .priv          = NULL,
     .generate      = NULL,
 };
@@ -2070,6 +2081,7 @@ const fm_drv_t nuked_opl3_drv_48k = {
     .update        = &nuked_opl3_drv_update_48k,
     .reset_buffer  = &nuked_opl3_drv_reset_buffer,
     .set_do_cycles = &nuked_opl3_drv_set_do_cycles,
+    .set_clock     = &nuked_opl3_drv_set_clock,
     .priv          = NULL,
     .generate      = NULL,
 };

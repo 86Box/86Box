@@ -1515,6 +1515,14 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
     if (skip)
         return;
 
+    /* The PC-98 has its own serial keyboard and scan-code set. Pass the host
+     * scan through unchanged so Print Screen/Pause and keypad keys reach the
+     * PC-98 translator instead of the IBM keyboard-sequence emulation below. */
+    if (machine_has_bus(machine, MACHINE_PC98) > 0) {
+        keyboard_input(down, keycode);
+        return;
+    }
+
     /* Apply special cases. */
     switch (keycode) {
         default:

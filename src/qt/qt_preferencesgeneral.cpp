@@ -29,6 +29,7 @@ extern "C" {
 #include <86box/86box.h>
 }
 
+
 PreferencesGeneral::PreferencesGeneral(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::PreferencesGeneral)

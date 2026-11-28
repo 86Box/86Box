@@ -127,6 +127,7 @@ extern const device_t pc87310_device;
 #define PCX730X_CHIP_ID      0x000ff
 
 #define PCX730X_AMI          0x00200    /* AMI '5' Megakey KBC firmware. */
+#define PCX730X_AMI_ROM           0x00900    /* ROM-backed AMI 8042, configured ROM. */
 #define PCX730X_PHOENIX_42   0x00500    /* Phoenix Multikey/42 1.37 KBC firmware. */
 #define PCX730X_PHOENIX_42I  0x00700    /* Phoenix Multikey/42i 4.16 KBC firmware. */
 #define PCX730X_KBC          0x00f00

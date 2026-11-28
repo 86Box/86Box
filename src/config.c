@@ -208,6 +208,23 @@ load_global_emulator(void)
 }
 
 static void
+load_global_sound(void)
+{
+    ini_section_t cat = ini_find_section(global, "Sound");
+    char         *p;
+
+    p = ini_section_get_string(cat, "sound_backend", "");
+    if (p[0] == '\0')
+        sound_backend_current = sound_backend_get_default();
+    else
+        sound_backend_current = sound_backend_get_from_internal_name(p);
+
+    p = ini_section_get_string(cat, "sound_output_device", "");
+    strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
+    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
+}
+
+static void
 load_global_input(void)
 {
     ini_section_t cat = ini_find_section(global, "Input");
@@ -327,6 +344,7 @@ load_global(void)
     load_global_general();
     load_global_emulator();
     load_global_input();
+    load_global_sound();
 
     load_global_keybinds();            /* Load shortcut keybinds */
 
@@ -714,6 +732,11 @@ load_machine(void)
 
     if (mem_size > machine_get_max_ram(machine))
         mem_size = machine_get_max_ram(machine);
+
+    /* PC-98 factory RAM includes 640 KiB conventional memory.  In particular
+       the RA must not inherit the generic 64 KiB default from an empty INI. */
+    if (IS_ARCH(machine, MACHINE_PC98) && mem_size < machine_get_min_ram(machine))
+        mem_size = machine_get_min_ram(machine);
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
@@ -1128,16 +1151,7 @@ load_sound(void)
     }
 
 
-    memset(temp, '\0', sizeof(temp));
-    p = ini_section_get_string(cat, "sound_type", "float");
-    if (strlen(p) > 511)
-        fatal("Configuration: Length of sound_type is more than 511\n");
-    else
-        strncpy(temp, p, 511);
-    if (!strcmp(temp, "float") || !strcmp(temp, "1"))
-        sound_is_float = 1;
-    else
-        sound_is_float = 0;
+    ini_section_delete_var(cat, "sound_type");
 
     p = ini_section_get_string(cat, "fm_driver", "nuked");
     if (!strcmp(p, "ymfm")) {
@@ -1155,13 +1169,9 @@ load_sound(void)
 
     sound_input_enabled = !!ini_section_get_int(cat, "sound_input_enabled", 0);
 
-    p = ini_section_get_string(cat, "sound_output_device", "");
-    strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
-    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
-
-    sound_sample_rate = ini_section_get_int(cat, "sound_sample_rate", FREQ_48000);
-    if (sound_sample_rate != FREQ_44100 && sound_sample_rate != FREQ_48000)
-        sound_sample_rate = FREQ_48000;
+    /* The host rate follows the guest, this is only the rate sources start at and the most they run at. */
+    sound_sample_rate = FREQ_48000;
+    ini_section_delete_var(cat, "sound_sample_rate");
 
     sb_input_rate = ini_section_get_int(cat, "sound_input_rate", FREQ_44100);
     if (sb_input_rate != FREQ_44100 && sb_input_rate != FREQ_48000)
@@ -1875,6 +1885,14 @@ load_hard_disks(void)
                 max_tracks = 2047;
                 break;
 
+            case HDD_BUS_SASI:
+                /* Host-image CHS only.  The PC-9801-27 wrapper
+                 * supplies the guest-visible SASI geometry. */
+                max_spt    = 255;
+                max_hpc    = 255;
+                max_tracks = 266305;
+                break;
+
             case HDD_BUS_XTA:
                 max_spt    = 63;
                 max_hpc    = 16;
@@ -1941,6 +1959,13 @@ load_hard_disks(void)
         sprintf(temp, "hdd_%02i_xta_channel", c + 1);
         if (hdd[c].bus_type == HDD_BUS_XTA)
             hdd[c].xta_channel = !!ini_section_get_int(cat, temp, c & 1);
+        else
+            ini_section_delete_var(cat, temp);
+
+        /* SASI */
+        sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_SASI)
+            hdd[c].sasi_channel = !!ini_section_get_int(cat, temp, c & 1);
         else
             ini_section_delete_var(cat, temp);
 
@@ -2050,6 +2075,9 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_xta_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_esdi_channel", c + 1);
@@ -3495,6 +3523,22 @@ save_global_emulator(void)
 }
 
 static void
+save_global_sound(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Sound");
+
+    if (sound_backend_current == sound_backend_get_default())
+        ini_section_delete_var(cat, "sound_backend");
+    else
+        ini_section_set_string(cat, "sound_backend", sound_backend_get_internal_name(sound_backend_current));
+
+    if (sound_output_device[0] == '\0')
+        ini_section_delete_var(cat, "sound_output_device");
+    else
+        ini_section_set_string(cat, "sound_output_device", sound_output_device);
+}
+
+static void
 save_global_input(void)
 {
     ini_section_t cat = ini_find_or_create_section(global, "Input");
@@ -3572,6 +3616,7 @@ save_global(void)
     save_global_general();
     save_global_emulator();
     save_global_input();
+    save_global_sound();
 
     save_global_keybinds();
 
@@ -4156,20 +4201,16 @@ save_sound(void)
             ini_section_delete_var(cat, legacy_cards[i][0]);
     }
 
-    if (sound_is_float == 1)
-        ini_section_delete_var(cat, "sound_type");
-    else
-        ini_section_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
+    ini_section_delete_var(cat, "sound_type");
 
     if (fm_driver == FM_DRV_NUKED)
         ini_section_delete_var(cat, "fm_driver");
     else
         ini_section_set_string(cat, "fm_driver", "ymfm");
 
-    if (sound_output_device[0] == '\0')
-        ini_section_delete_var(cat, "sound_output_device");
-    else
-        ini_section_set_string(cat, "sound_output_device", sound_output_device);
+    /* These were moved to the global configuration. */
+    ini_section_delete_var(cat, "sound_backend");
+    ini_section_delete_var(cat, "sound_output_device");
 
     if (sound_input_dev_name[0] == '\0')
         ini_section_delete_var(cat, "sound_input_dev_name");
@@ -4181,10 +4222,7 @@ save_sound(void)
     else
         ini_section_delete_var(cat, "sound_input_enabled");
 
-    if (sound_sample_rate == FREQ_48000)
-        ini_section_delete_var(cat, "sound_sample_rate");
-    else
-        ini_section_set_int(cat, "sound_sample_rate", sound_sample_rate);
+    ini_section_delete_var(cat, "sound_sample_rate");
 
     if (sb_input_rate == FREQ_44100)
         ini_section_delete_var(cat, "sound_input_rate");
@@ -4917,6 +4955,12 @@ save_hard_disks(void)
         sprintf(temp, "hdd_%02i_xta_channel", c + 1);
         if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_XTA))
             ini_section_set_int(cat, temp, hdd[c].xta_channel);
+        else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
+        if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_SASI))
+            ini_section_set_int(cat, temp, hdd[c].sasi_channel);
         else
             ini_section_delete_var(cat, temp);
 

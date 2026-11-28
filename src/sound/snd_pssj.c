@@ -55,6 +55,9 @@ typedef struct pssj_t {
 
     int16_t buffer[SOUNDBUFLEN];
     int     pos;
+
+    void      *source;
+    const int *clock;
 } pssj_t;
 
 static void
@@ -154,7 +157,7 @@ pssj_read(uint16_t port, void *priv)
 static void
 pssj_update(pssj_t *pssj)
 {
-    for (; pssj->pos < sound_pos_global; pssj->pos++)
+    for (; pssj->pos < SOUND_CLOCK(pssj->clock, sound_pos_global); pssj->pos++)
         pssj->buffer[pssj->pos] = (((int8_t) (pssj->dac_val ^ 0x80) * 0x20) * pssj->amplitude) / 15;
 }
 
@@ -227,6 +230,10 @@ pssj_callback(void *priv)
     if ((pssj->ctrl & 3) == 2)
         record = 1;
 
+    /* Let the host source run at the output rate the guest programmed. */
+    if (!record && ((pssj->ctrl & 3) == 3 || (!(pssj->ctrl & 2) && pssj->amplitude)))
+        sound_source_set_rate(pssj->source, 3579545.0 / (double) (pssj->freq ? pssj->freq : 0x400));
+
     timer_advance_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double) (pssj->freq ? pssj->freq : 0x400)) * (record ? 10 : 1) );
 }
 
@@ -277,7 +284,7 @@ pssj_put_buffer(int16_t *buffer, int len, void *priv)
         record = 1;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = 3579545.0 / (record ? pssj->freq * 10 : pssj->freq);
 
@@ -402,7 +409,10 @@ pssj_init(UNUSED(const device_t *info))
 
     io_sethandler(0x00C4, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
-    sound_add_handler(pssj_get_buffer, pssj);
+    pssj->source = sound_source_add_stream(I_NORMAL, pssj_get_buffer, pssj);
+    pssj->clock  = sound_source_get_pos_ptr(pssj->source);
+    sound_source_set_label(pssj->source, "PCM");
+    sound_source_set_label(pssj->sn76489.source, "PSG");
     sound_in_add_handler(pssj_put_buffer, pssj);
     sound_in_start_input();
 
@@ -418,7 +428,10 @@ pssj_1e0_init(UNUSED(const device_t *info))
 
     io_sethandler(0x01E4, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
-    sound_add_handler(pssj_get_buffer, pssj);
+    pssj->source = sound_source_add_stream(I_NORMAL, pssj_get_buffer, pssj);
+    pssj->clock  = sound_source_get_pos_ptr(pssj->source);
+    sound_source_set_label(pssj->source, "PCM");
+    sound_source_set_label(pssj->sn76489.source, "PSG");
     sound_in_add_handler(pssj_put_buffer, pssj);
     sound_in_start_input();
 
@@ -436,7 +449,10 @@ pssj_isa_init(UNUSED(const device_t *info))
 
     io_sethandler(addr + 0x04, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
-    sound_add_handler(pssj_get_buffer, pssj);
+    pssj->source = sound_source_add_stream(I_NORMAL, pssj_get_buffer, pssj);
+    pssj->clock  = sound_source_get_pos_ptr(pssj->source);
+    sound_source_set_label(pssj->source, "PCM");
+    sound_source_set_label(pssj->sn76489.source, "PSG");
     sound_in_add_handler(pssj_put_buffer, pssj);
     sound_in_start_input();
 
@@ -448,6 +464,8 @@ pssj_close(void *priv)
 {
     pssj_t *pssj = (pssj_t *) priv;
 
+    sound_source_remove(pssj->source);
+    sn76489_close(&pssj->sn76489);
     free(pssj);
 }
 

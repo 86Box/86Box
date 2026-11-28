@@ -86,6 +86,8 @@ typedef struct azt2320_t {
 
     sb_t *sb;
 
+    void *src_wss;
+
     void                   *pnp_card;
     uint8_t                pnp_rom[378];
     isapnp_device_config_t *azt2320_pnp_config;
@@ -166,7 +168,7 @@ azt2320_put_buffer(int16_t *buffer, int len, void *priv)
     azt2320_t *azt2320 = (azt2320_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     int rate = 0;
     if (azt2320->ad1848.regs[9] & 0x02)
@@ -288,6 +290,8 @@ static void
 azt2320_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     azt2320_t *azt2320 = (azt2320_t *) priv;
+
+    sound_source_set_rate(azt2320->src_wss, (azt2320->ad1848.enable && azt2320->ad1848.freq > 0) ? (double) azt2320->ad1848.freq : 0.0);
 
     /* wss part */
     ad1848_update(&azt2320->ad1848);
@@ -459,13 +463,19 @@ azt2320_init(UNUSED(const device_t *info))
 
     io_sethandler(azt2320->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2320->sb);
 
-    sound_add_handler(azt2320_get_buffer, azt2320);
-    sound_add_handler(azt2320_get_sbpro_buffer, azt2320);
+    azt2320->src_wss        = sound_source_add_stream(I_NORMAL, azt2320_get_buffer, azt2320);
+    sound_source_set_label(azt2320->src_wss, "WSS");
+    azt2320->ad1848.clock   = sound_source_get_pos_ptr(azt2320->src_wss);
+    azt2320->sb->src_snd    = sound_source_add_stream(I_NORMAL, azt2320_get_sbpro_buffer, azt2320);
+    sound_source_set_label(azt2320->sb->src_snd, "Sound Blaster");
+    azt2320->sb->dsp.clock  = sound_source_get_pos_ptr(azt2320->sb->src_snd);
     sound_in_add_handler(azt2320_put_buffer, azt2320);
     sound_in_start_input();
 
     if (azt2320->sb->opl_enabled) {
-        music_add_handler(sb_get_music_buffer_sbpro, azt2320->sb);
+        azt2320->sb->src_music = sound_source_add_stream(I_MUSIC, sb_get_music_buffer_sbpro, azt2320->sb);
+        if (azt2320->sb->opl.set_clock != NULL)
+            azt2320->sb->opl.set_clock(azt2320->sb->opl.priv, sound_source_get_pos_ptr(azt2320->sb->src_music));
     }
 
     sound_set_cd_audio_filter(NULL, NULL);
@@ -535,6 +545,7 @@ azt2320_close(void *priv)
 {
     azt2320_t *azt2320 = (azt2320_t *) priv;
 
+    sound_source_remove(azt2320->src_wss);
     sb_close(azt2320->sb);
 
     free(azt2320->mpu);

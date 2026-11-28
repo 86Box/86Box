@@ -124,7 +124,9 @@ adlib_init(UNUSED(const device_t *info))
                   adlib->opl.read, NULL, NULL,
                   adlib->opl.write, NULL, NULL,
                   adlib->opl.priv);
-    music_add_handler(adlib_get_buffer, adlib);
+    adlib->src = sound_source_add_stream(I_MUSIC, adlib_get_buffer, adlib);
+    if (adlib->opl.set_clock != NULL)
+        adlib->opl.set_clock(adlib->opl.priv, sound_source_get_pos_ptr(adlib->src));
     return adlib;
 }
 
@@ -154,6 +156,8 @@ adlib_close(void *priv)
     adlib_t *const adlib = (adlib_t *) priv;
 
     adlib_log("adlib_close\n");
+
+    sound_source_remove(adlib->src);
 
     free(adlib);
 }

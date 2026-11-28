@@ -298,6 +298,7 @@ readmembl_2386(uint32_t addr)
     addr = (uint32_t) (addr64 & rammask);
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 1);
     if (map && map->read_b)
         return map->read_b(addr, map->priv);
 
@@ -329,6 +330,7 @@ writemembl_2386(uint32_t addr, uint8_t val)
     addr = (uint32_t) (addr64 & rammask);
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 1);
     if (map && map->write_b)
         map->write_b(addr, val, map->priv);
 }
@@ -353,6 +355,7 @@ readmembl_no_mmut_2386(uint32_t addr, uint32_t a64)
         addr &= rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 1);
     if (map && map->read_b)
         return map->read_b(addr, map->priv);
 
@@ -379,6 +382,7 @@ writemembl_no_mmut_2386(uint32_t addr, uint32_t a64, uint8_t val)
         addr &= rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 1);
     if (map && map->write_b)
         map->write_b(addr, val, map->priv);
 }
@@ -431,6 +435,7 @@ readmemwl_2386(uint32_t addr)
     addr = addr64a[0] & rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 2);
 
     if (map && map->read_w)
         return map->read_w(addr, map->priv);
@@ -496,6 +501,7 @@ writememwl_2386(uint32_t addr, uint16_t val)
     addr = addr64a[0] & rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 2);
 
     if (map && map->write_w) {
         map->write_w(addr, val, map->priv);
@@ -543,6 +549,7 @@ readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
         addr &= rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 2);
 
     if (map && map->read_w)
         return map->read_w(addr, map->priv);
@@ -589,6 +596,7 @@ writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val)
         addr &= rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 2);
 
     if (map && map->write_w) {
         map->write_w(addr, val, map->priv);
@@ -664,6 +672,7 @@ readmemll_2386(uint32_t addr)
     addr = addr64a[0] & rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 4);
 
     if (map && map->read_l)
         return map->read_l(addr, map->priv);
@@ -744,6 +753,7 @@ writememll_2386(uint32_t addr, uint32_t val)
     addr = addr64a[0] & rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 4);
 
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);
@@ -797,6 +807,7 @@ readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
         addr &= rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 4);
 
     if (map && map->read_l)
         return map->read_l(addr, map->priv);
@@ -845,6 +856,7 @@ writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
         addr &= rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 4);
 
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);
@@ -925,6 +937,7 @@ readmemql_2386(uint32_t addr)
     addr = addr64a[0] & rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 8);
 
     if (map && map->read_l)
         return map->read_l(addr, map->priv) |
@@ -1013,6 +1026,7 @@ writememql_2386(uint32_t addr, uint64_t val)
     addr = addr64a[0] & rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    cpu_pc98_memory_wait(addr, 8);
 
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);

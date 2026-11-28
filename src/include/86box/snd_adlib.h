@@ -22,6 +22,7 @@
 typedef struct adlib_s {
     fm_drv_t opl;
     uint8_t  pos_regs[8];
+    void    *src;
 } adlib_t;
 
 extern void adlib_get_buffer(int32_t *buffer, const uint16_t len, void *priv);

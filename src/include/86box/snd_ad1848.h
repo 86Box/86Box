@@ -118,6 +118,8 @@ typedef struct ad1848_t {
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
+    const int *clock; /* NULL: the shared stream clock */
+
     void   *cram_priv;
     void   (*cram_write)(uint16_t addr, uint8_t val, void *priv);
     uint8_t (*cram_read)(uint16_t addr, void *priv);

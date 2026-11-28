@@ -990,235 +990,118 @@ fdd_audio_callback(int16_t *buffer, const int length)
     if (!any_audio_active)
         return;
 
-    float   *float_buffer      = (float *) buffer;
     int16_t *int16_buffer      = (int16_t *) buffer;
     int      samples_in_buffer = length / 2;
 
     /* Process audio for all drives */
-    if (sound_is_float) {
-        for (int drive = 0; drive < FDD_NUM; drive++) {
-            drv = &(drives[drive]);
+    for (int drive = 0; drive < FDD_NUM; drive++) {
+        drv = &drives[drive];
+        drive_audio_samples_t *samples = get_drive_samples(drv);
+        if (!samples)
+            continue;
 
-            drive_audio_samples_t *samples = get_drive_samples(drv);
-            if (!samples)
-                continue;
+        for (int i = 0; i < samples_in_buffer; i++) {
+            int16_t left_sample  = 0;
+            int16_t right_sample = 0;
 
-            for (int i = 0; i < samples_in_buffer; i++) {
-                float left_sample  = 0.0f;
-                float right_sample = 0.0f;
+            /* Process motor audio */
+            if (drv->spindlemotor_state != MOTOR_STATE_STOPPED) {
+                switch (drv->spindlemotor_state) {
+                    case MOTOR_STATE_STARTING:
+                        if (samples->spindlemotor_start.buffer && drv->spindlemotor_pos < samples->spindlemotor_start.samples) {
+                            left_sample  = (int16_t) ((float) samples->spindlemotor_start.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_start.volume);
+                            right_sample = (int16_t) ((float) samples->spindlemotor_start.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_start.volume);
+                            drv->spindlemotor_pos++;
+                        } else {
+                            drv->spindlemotor_state = MOTOR_STATE_RUNNING;
+                            drv->spindlemotor_pos   = 0;
+                        }
+                        break;
 
-                /* Process motor audio (unchanged) */
-                if (drv->spindlemotor_state != MOTOR_STATE_STOPPED) {
-                    switch (drv->spindlemotor_state) {
-                        case MOTOR_STATE_STARTING:
-                            if (samples->spindlemotor_start.buffer && drv->spindlemotor_pos < samples->spindlemotor_start.samples) {
-                                left_sample  = (float) samples->spindlemotor_start.buffer[drv->spindlemotor_pos * 2] / 131072.0f * samples->spindlemotor_start.volume;
-                                right_sample = (float) samples->spindlemotor_start.buffer[drv->spindlemotor_pos * 2 + 1] / 131072.0f * samples->spindlemotor_start.volume;
-                                drv->spindlemotor_pos++;
-                            } else {
-                                drv->spindlemotor_state = MOTOR_STATE_RUNNING;
-                                drv->spindlemotor_pos   = 0;
-                            }
-                            break;
+                    case MOTOR_STATE_RUNNING:
+                        if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
+                            left_sample  = (int16_t) ((float) samples->spindlemotor_loop.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_loop.volume);
+                            right_sample = (int16_t) ((float) samples->spindlemotor_loop.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume);
+                            drv->spindlemotor_pos++;
 
-                        case MOTOR_STATE_RUNNING:
+                            if (drv->spindlemotor_pos >= samples->spindlemotor_loop.samples)
+                                drv->spindlemotor_pos = 0;
+                        }
+                        break;
+
+                    case MOTOR_STATE_STOPPING:
+                        if (drv->spindlemotor_fade_samples_remaining > 0) {
+                            float loop_volume = drv->spindlemotor_fade_volume;
+                            float stop_volume = 1.0f - loop_volume;
+
+                            int16_t loop_left = 0, loop_right = 0;
+                            int16_t stop_left = 0, stop_right = 0;
+
                             if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                                left_sample  = (float) samples->spindlemotor_loop.buffer[drv->spindlemotor_pos * 2] / 131072.0f * samples->spindlemotor_loop.volume;
-                                right_sample = (float) samples->spindlemotor_loop.buffer[drv->spindlemotor_pos * 2 + 1] / 131072.0f * samples->spindlemotor_loop.volume;
-                                drv->spindlemotor_pos++;
-
-                                if (drv->spindlemotor_pos >= samples->spindlemotor_loop.samples) {
-                                    drv->spindlemotor_pos = 0;
-                                }
+                                int loop_pos = drv->spindlemotor_pos % samples->spindlemotor_loop.samples;
+                                loop_left    = (int16_t) ((float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 4.0f * samples->spindlemotor_loop.volume);
+                                loop_right   = (int16_t) ((float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume);
                             }
-                            break;
 
-                        case MOTOR_STATE_STOPPING:
-                            if (drv->spindlemotor_fade_samples_remaining > 0) {
-                                float loop_volume = drv->spindlemotor_fade_volume;
-                                float stop_volume = 1.0f - loop_volume;
+                            if (samples->spindlemotor_stop.buffer && drv->spindlemotor_pos < samples->spindlemotor_stop.samples) {
+                                stop_left  = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_stop.volume);
+                                stop_right = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume);
+                            }
 
-                                float loop_left = 0.0f, loop_right = 0.0f;
-                                float stop_left = 0.0f, stop_right = 0.0f;
+                            left_sample  = (int16_t) ((float) loop_left * loop_volume + (float) stop_left * stop_volume);
+                            right_sample = (int16_t) ((float) loop_right * loop_volume + (float) stop_right * stop_volume);
 
-                                if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                                    int loop_pos = drv->spindlemotor_pos % samples->spindlemotor_loop.samples;
-                                    loop_left    = (float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 131072.0f * samples->spindlemotor_loop.volume;
-                                    loop_right   = (float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 131072.0f * samples->spindlemotor_loop.volume;
-                                }
+                            drv->spindlemotor_pos++;
+                            drv->spindlemotor_fade_samples_remaining--;
 
-                                if (samples->spindlemotor_stop.buffer && drv->spindlemotor_pos < samples->spindlemotor_stop.samples) {
-                                    stop_left  = (float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2] / 131072.0f * samples->spindlemotor_stop.volume;
-                                    stop_right = (float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2 + 1] / 131072.0f * samples->spindlemotor_stop.volume;
-                                }
-
-                                left_sample  = loop_left * loop_volume + stop_left * stop_volume;
-                                right_sample = loop_right * loop_volume + stop_right * stop_volume;
-
+                            drv->spindlemotor_fade_volume = (float) (drv->spindlemotor_fade_samples_remaining / FADE_SAMPLES);
+                        } else {
+                            if (samples->spindlemotor_stop.buffer && drv->spindlemotor_pos < samples->spindlemotor_stop.samples) {
+                                left_sample  = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_stop.volume);
+                                right_sample = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume);
                                 drv->spindlemotor_pos++;
-                                drv->spindlemotor_fade_samples_remaining--;
-
-                                drv->spindlemotor_fade_volume = (float) (drv->spindlemotor_fade_samples_remaining / FADE_SAMPLES);
                             } else {
-                                if (samples->spindlemotor_stop.buffer && drv->spindlemotor_pos < samples->spindlemotor_stop.samples) {
-                                    left_sample  = (float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2] / 131072.0f * samples->spindlemotor_stop.volume;
-                                    right_sample = (float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2 + 1] / 131072.0f * samples->spindlemotor_stop.volume;
-                                    drv->spindlemotor_pos++;
-                                } else {
-                                    drv->spindlemotor_state = MOTOR_STATE_STOPPED;
-                                }
+                                drv->spindlemotor_state = MOTOR_STATE_STOPPED;
                             }
-                            break;
+                        }
+                        break;
 
-                        default:
-                            break;
-                    }
+                    default:
+                        break;
                 }
-
-                /* Process all concurrent seek audio slots */
-                for (int slot = 0; slot < MAX_CONCURRENT_SEEKS; slot++) {
-                    if (!drv->seek_state[slot].active)
-                        continue;
-
-                    audio_sample_t *seek_sample = drv->seek_state[slot].sample_to_play;
-
-                    if (seek_sample && seek_sample->buffer && drv->seek_state[slot].position < seek_sample->samples) {
-                        /* Mix seek sound with existing audio */
-                        float seek_left  = (float) seek_sample->buffer[drv->seek_state[slot].position * 2] / 131072.0f * seek_sample->volume;
-                        float seek_right = (float) seek_sample->buffer[drv->seek_state[slot].position * 2 + 1] / 131072.0f * seek_sample->volume;
-
-                        left_sample += seek_left;
-                        right_sample += seek_right;
-
-                        drv->seek_state[slot].position++;
-                    } else {
-                        /* Seek sound finished */
-                        drv->seek_state[slot].active           = 0;
-                        drv->seek_state[slot].position         = 0;
-                        drv->seek_state[slot].duration_samples = 0;
-                        drv->seek_state[slot].from_track       = -1;
-                        drv->seek_state[slot].to_track         = -1;
-                        drv->seek_state[slot].track_diff       = 0;
-                        drv->seek_state[slot].sample_to_play   = NULL;
-                    }
-                }
-
-                /* Mix this drive's audio into the buffer */
-                float_buffer[i * 2] += left_sample;
-                float_buffer[i * 2 + 1] += right_sample;
             }
-        }
-    } else {
-        /* int16 version - similar changes */
-        for (int drive = 0; drive < FDD_NUM; drive++) {
-            drv = &drives[drive];
-            drive_audio_samples_t *samples = get_drive_samples(drv);
-            if (!samples)
-                continue;
 
-            for (int i = 0; i < samples_in_buffer; i++) {
-                int16_t left_sample  = 0;
-                int16_t right_sample = 0;
+            /* Process all concurrent seek audio slots */
+            for (int slot = 0; slot < MAX_CONCURRENT_SEEKS; slot++) {
+                if (!drv->seek_state[slot].active)
+                    continue;
 
-                /* Process motor audio (same as float version but with int16) */
-                if (drv->spindlemotor_state != MOTOR_STATE_STOPPED) {
-                    switch (drv->spindlemotor_state) {
-                        case MOTOR_STATE_STARTING:
-                            if (samples->spindlemotor_start.buffer && drv->spindlemotor_pos < samples->spindlemotor_start.samples) {
-                                left_sample  = (int16_t) ((float) samples->spindlemotor_start.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_start.volume);
-                                right_sample = (int16_t) ((float) samples->spindlemotor_start.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_start.volume);
-                                drv->spindlemotor_pos++;
-                            } else {
-                                drv->spindlemotor_state = MOTOR_STATE_RUNNING;
-                                drv->spindlemotor_pos   = 0;
-                            }
-                            break;
+                audio_sample_t *seek_sample = drv->seek_state[slot].sample_to_play;
 
-                        case MOTOR_STATE_RUNNING:
-                            if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                                left_sample  = (int16_t) ((float) samples->spindlemotor_loop.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_loop.volume);
-                                right_sample = (int16_t) ((float) samples->spindlemotor_loop.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume);
-                                drv->spindlemotor_pos++;
+                if (seek_sample && seek_sample->buffer && drv->seek_state[slot].position < seek_sample->samples) {
+                    /* Mix seek sound with existing audio */
+                    int16_t seek_left  = (int16_t) ((float) seek_sample->buffer[drv->seek_state[slot].position * 2] / 4.0f * seek_sample->volume);
+                    int16_t seek_right = (int16_t) ((float) seek_sample->buffer[drv->seek_state[slot].position * 2 + 1] / 4.0f * seek_sample->volume);
 
-                                if (drv->spindlemotor_pos >= samples->spindlemotor_loop.samples)
-                                    drv->spindlemotor_pos = 0;
-                            }
-                            break;
+                    left_sample = (int16_t) (left_sample + seek_left);
+                    right_sample = (int16_t) (right_sample + seek_right);
 
-                        case MOTOR_STATE_STOPPING:
-                            if (drv->spindlemotor_fade_samples_remaining > 0) {
-                                float loop_volume = drv->spindlemotor_fade_volume;
-                                float stop_volume = 1.0f - loop_volume;
-
-                                int16_t loop_left = 0, loop_right = 0;
-                                int16_t stop_left = 0, stop_right = 0;
-
-                                if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                                    int loop_pos = drv->spindlemotor_pos % samples->spindlemotor_loop.samples;
-                                    loop_left    = (int16_t) ((float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 4.0f * samples->spindlemotor_loop.volume);
-                                    loop_right   = (int16_t) ((float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume);
-                                }
-
-                                if (samples->spindlemotor_stop.buffer && drv->spindlemotor_pos < samples->spindlemotor_stop.samples) {
-                                    stop_left  = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_stop.volume);
-                                    stop_right = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume);
-                                }
-
-                                left_sample  = (int16_t) ((float) loop_left * loop_volume + (float) stop_left * stop_volume);
-                                right_sample = (int16_t) ((float) loop_right * loop_volume + (float) stop_right * stop_volume);
-
-                                drv->spindlemotor_pos++;
-                                drv->spindlemotor_fade_samples_remaining--;
-
-                                drv->spindlemotor_fade_volume = (float) (drv->spindlemotor_fade_samples_remaining / FADE_SAMPLES);
-                            } else {
-                                if (samples->spindlemotor_stop.buffer && drv->spindlemotor_pos < samples->spindlemotor_stop.samples) {
-                                    left_sample  = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2] / 4.0f * samples->spindlemotor_stop.volume);
-                                    right_sample = (int16_t) ((float) samples->spindlemotor_stop.buffer[drv->spindlemotor_pos * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume);
-                                    drv->spindlemotor_pos++;
-                                } else {
-                                    drv->spindlemotor_state = MOTOR_STATE_STOPPED;
-                                }
-                            }
-                            break;
-
-                        default:
-                            break;
-                    }
+                    drv->seek_state[slot].position++;
+                } else {
+                    /* Seek sound finished */
+                    drv->seek_state[slot].active           = 0;
+                    drv->seek_state[slot].position         = 0;
+                    drv->seek_state[slot].duration_samples = 0;
+                    drv->seek_state[slot].from_track       = -1;
+                    drv->seek_state[slot].to_track         = -1;
+                    drv->seek_state[slot].track_diff       = 0;
+                    drv->seek_state[slot].sample_to_play   = NULL;
                 }
-
-                /* Process all concurrent seek audio slots */
-                for (int slot = 0; slot < MAX_CONCURRENT_SEEKS; slot++) {
-                    if (!drv->seek_state[slot].active)
-                        continue;
-
-                    audio_sample_t *seek_sample = drv->seek_state[slot].sample_to_play;
-
-                    if (seek_sample && seek_sample->buffer && drv->seek_state[slot].position < seek_sample->samples) {
-                        /* Mix seek sound with existing audio */
-                        int16_t seek_left  = (int16_t) ((float) seek_sample->buffer[drv->seek_state[slot].position * 2] / 4.0f * seek_sample->volume);
-                        int16_t seek_right = (int16_t) ((float) seek_sample->buffer[drv->seek_state[slot].position * 2 + 1] / 4.0f * seek_sample->volume);
-
-                        left_sample = (int16_t) (left_sample + seek_left);
-                        right_sample = (int16_t) (right_sample + seek_right);
-
-                        drv->seek_state[slot].position++;
-                    } else {
-                        /* Seek sound finished */
-                        drv->seek_state[slot].active           = 0;
-                        drv->seek_state[slot].position         = 0;
-                        drv->seek_state[slot].duration_samples = 0;
-                        drv->seek_state[slot].from_track       = -1;
-                        drv->seek_state[slot].to_track         = -1;
-                        drv->seek_state[slot].track_diff       = 0;
-                        drv->seek_state[slot].sample_to_play   = NULL;
-                    }
-                }
-
-                /* Mix this drive's audio into the buffer */
-                int16_buffer[i * 2]     = (int16_t) (int16_buffer[i * 2] + left_sample);
-                int16_buffer[i * 2 + 1] = (int16_t) (int16_buffer[i * 2 + 1] + right_sample);
             }
+
+            /* Mix this drive's audio into the buffer */
+            int16_buffer[i * 2]     = (int16_t) (int16_buffer[i * 2] + left_sample);
+            int16_buffer[i * 2 + 1] = (int16_t) (int16_buffer[i * 2 + 1] + right_sample);
         }
     }
 }

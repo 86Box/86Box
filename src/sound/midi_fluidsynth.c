@@ -39,7 +39,6 @@ typedef struct fluidsynth {
     event_t  *event;
     event_t  *start_event;
     int       buf_size;
-    float    *buffer;
     int16_t  *buffer_int16;
 
     int on;
@@ -74,54 +73,27 @@ fluidsynth_thread(void *param)
         thread_wait_event(data->event, -1);
         thread_reset_event(data->event);
 
-        if (sound_is_float) {
-            float *buf = (float *) ((uint8_t *) data->buffer + buf_pos);
-            memset(buf, 0, buf_size);
-            if (data->synth) {
-                fluid_synth_write_float(data->synth, buf_size / (2 * sizeof(float)), buf, 0, 2, buf, 1, 2);
+        int16_t *buf = (int16_t *) ((uint8_t *) data->buffer_int16 + buf_pos);
+        memset(buf, 0, buf_size);
+        if (data->synth) {
+            fluid_synth_write_s16(data->synth, buf_size / (2 * sizeof(int16_t)), buf, 0, 2, buf, 1, 2);
 
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    for (int i = 0; i < (buf_size / sizeof(float)); i += 2) {
-                        double dl = (double) buf[i];
-                        double dr = (double) buf[i + 1];
-                        filter_midi(0, &dl, filter_midi_p);
-                        filter_midi(1, &dr, filter_midi_p);
-                        buf[i] = (float) dl;
-                        buf[i + 1] = (float) dr;
-                    }
+            /* Apply sound card MIDI volume and filters */
+            if (filter_midi != NULL) {
+                for (int i = 0; i < (buf_size / sizeof(int16_t)); i += 2) {
+                    double dl = (double) buf[i];
+                    double dr = (double) buf[i + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf[i] = (int16_t) round(dl);
+                    buf[i + 1] = (int16_t) round(dr);
                 }
             }
-
-            buf_pos += buf_size;
-
-            if (buf_pos >= data->buf_size) {
-                givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
-                buf_pos = 0;
-            }
-        } else {
-            int16_t *buf = (int16_t *) ((uint8_t *) data->buffer_int16 + buf_pos);
-            memset(buf, 0, buf_size);
-            if (data->synth) {
-                fluid_synth_write_s16(data->synth, buf_size / (2 * sizeof(int16_t)), buf, 0, 2, buf, 1, 2);
-
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    for (int i = 0; i < (buf_size / sizeof(int16_t)); i += 2) {
-                        double dl = (double) buf[i];
-                        double dr = (double) buf[i + 1];
-                        filter_midi(0, &dl, filter_midi_p);
-                        filter_midi(1, &dr, filter_midi_p);
-                        buf[i] = (int16_t) round(dl);
-                        buf[i + 1] = (int16_t) round(dr);
-                    }
-                }
-            }
-            buf_pos += buf_size;
-            if (buf_pos >= data->buf_size) {
-                givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
-                buf_pos = 0;
-            }
+        }
+        buf_pos += buf_size;
+        if (buf_pos >= data->buf_size) {
+            givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
+            buf_pos = 0;
         }
     }
 }
@@ -292,15 +264,8 @@ fluidsynth_init(UNUSED(const device_t *info))
     double samplerate;
     fluid_settings_getnum(data->settings, "synth.sample-rate", &samplerate);
     data->samplerate = (int) samplerate;
-    if (sound_is_float) {
-        data->buf_size     = (data->samplerate / RENDER_RATE) * 2 * sizeof(float) * BUFFER_SEGMENTS;
-        data->buffer       = calloc(1, data->buf_size);
-        data->buffer_int16 = NULL;
-    } else {
-        data->buf_size     = (data->samplerate / RENDER_RATE) * 2 * sizeof(int16_t) * BUFFER_SEGMENTS;
-        data->buffer       = NULL;
-        data->buffer_int16 = calloc(1, data->buf_size);
-    }
+    data->buf_size     = (data->samplerate / RENDER_RATE) * 2 * sizeof(int16_t) * BUFFER_SEGMENTS;
+    data->buffer_int16 = calloc(1, data->buf_size);
 
     al_set_midi(data->samplerate, data->buf_size);
 
@@ -349,11 +314,6 @@ fluidsynth_close(void *priv)
     if (data->settings) {
         delete_fluid_settings(data->settings);
         data->settings = NULL;
-    }
-
-    if (data->buffer) {
-        free(data->buffer);
-        data->buffer = NULL;
     }
 
     if (data->buffer_int16) {

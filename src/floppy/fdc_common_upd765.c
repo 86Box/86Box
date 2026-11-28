@@ -73,6 +73,7 @@ const uint8_t command_has_drivesel[32] = {
 
 static void fdc_callback(void *priv);
 static void fdc_rate(fdc_t *fdc, int drive);
+void        fdc_error(fdc_t *fdc, int st5, int st6);
 
 /* Interrupt and DMA, through the host of a hosted FDC. */
 static void
@@ -235,6 +236,18 @@ fdc_card_get_from_internal_name(char *s)
 void
 fdc_card_init(void)
 {
+    /* PC-98 machines instantiate their native floppy controller in the
+     * motherboard init path.  The selectable cards below are PC/XT/AT
+     * controllers with IBM port decoders and no PC-98 firmware interface.
+     * Ignore a stale generic-card selection on PC-98; the native controller
+     * owns the first four drive objects. */
+    if (IS_ARCH(machine, MACHINE_PC98)) {
+        if ((fdc_current[0] > FDC_INTERNAL) && fdc_cards[fdc_current[0]].device)
+            pclog("[PC98] ignoring generic FDC card %s; native PC-98 FDC owns the floppy drives\n",
+                  fdc_cards[fdc_current[0]].device->internal_name);
+        return;
+    }
+
     if ((fdc_current[0] > FDC_INTERNAL) && fdc_cards[fdc_current[0]].device)
         device_add_inst(fdc_cards[fdc_current[0]].device, 0);
 }
@@ -271,6 +284,50 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
         fifo_reset(fdc->fifo_p);
         fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
         fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
+    }
+}
+
+/* The PC-98 board owns the external motor, density and IRQ/DMA wiring.
+ * Reset the 765's execution state without changing those board outputs.
+ * A command may address unit 1 while the internal IBM-style DOR selects 0,
+ * so stopping only the DOR-selected decoder is insufficient here. */
+static void
+fdc_pc98_abort(fdc_t *fdc)
+{
+    timer_disable(&fdc->timer);
+    if (fdc->irq != 0xff)
+        picintc(1 << fdc->irq);
+    dma_set_drq(fdc->dma_ch, 0);
+    for (int i = 0; i < 4; i++)
+        fdd_stop(fdc->fdd[i]);
+
+    fdc_ctrl_reset(fdc, 1);
+    fifo_reset(fdc->fifo_p);
+    fdc->stat      = 0;
+    fdc->interrupt = 0;
+    fdc->command = fdc->processed_cmd = 0;
+    fdc->fintr = fdc->data_ready = fdc->paramstogo = 0;
+    fdc->tc = fdc->error = fdc->format_state = fdc->reset_stat = 0;
+}
+
+static int
+fdc_command_uses_media(uint8_t command)
+{
+    switch (command) {
+        case 0x02:
+        case 0x05:
+        case 0x06:
+        case 0x09:
+        case 0x0a:
+        case 0x0c:
+        case 0x0d:
+        case 0x11:
+        case 0x16:
+        case 0x19:
+        case 0x1d:
+            return 1;
+        default:
+            return 0;
     }
 }
 
@@ -1160,9 +1217,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc_irq(fdc, 0);
                     }
                     if (!(val & 4)) {
-                        fdd_stop(fdc->fdd[real_drive(fdc, val & 3)]);
-                        fdc->stat = 0x00;
-                        fdc->pnum = fdc->ptot = 0;
+                        if (fdc->flags & FDC_FLAG_PC98)
+                            fdc_pc98_abort(fdc);
+                        else {
+                            fdd_stop(fdc->fdd[real_drive(fdc, val & 3)]);
+                            fdc->stat = 0x00;
+                            fdc->pnum = fdc->ptot = 0;
+                        }
                     }
                     if ((val & 4) && !(fdc->dor & 4))
                         fdc_soft_reset(fdc);
@@ -1465,7 +1526,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         if (command_has_drivesel[fdc->command & 0x1F]) {
                             if (fdc->flags & FDC_FLAG_PCJR)
                                 fdc->drive = 0;
-                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX | FDC_FLAG_TANDY2K))
+                            /* PC-98 has no IBM DOR drive-select bits; its
+                             * uPD765 command byte is the physical unit select. */
+                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX | FDC_FLAG_TANDY2K | FDC_FLAG_PC98))
                                 fdc->drive = fdc->params[0] & 3;
                             else
                                 fdc->drive = fdc->dor & 3;
@@ -1546,7 +1609,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             }
                             return;
                         }
-                        /* Process the firt phase of the command. */
+                        /* Unlike IBM PC adapters, PC-98 exposes READY. An
+                         * absent mechanism has no poll timer to expire an ID
+                         * search, so reject media access before starting it. */
+                        if ((fdc->flags & FDC_FLAG_PC98) && fdc_command_uses_media(fdc->processed_cmd) && !fdd_is_ready(fdc->fdd[real_drive(fdc, fdc->drive)])) {
+                            fdc->rw_track = fdc->params[1];
+                            fdc->head     = (fdc->params[0] & 4) ? 1 : 0;
+                            fdc->sector   = fdc->params[3];
+                            fdc_error(fdc, 0, 0);
+                            fdc->st0 = fdc->res[4] = 0x48 | (fdc->params[0] & 7);
+                            return;
+                        }
+                        /* Process the first phase of the command. */
                         switch (fdc->processed_cmd) {
                             case 0x02: /* Read a track */
                                 fdc_io_command_phase1(fdc, 0);
@@ -2325,7 +2399,7 @@ fdc_callback(void *priv)
                    a position with no drive has no ready signal to report. */
                 if (fdd_is_double_sided(drv))
                     fdc->res[10] |= 0x08;
-                if (fdd_get_flags(drv))
+                if ((fdc->flags & FDC_FLAG_PC98) ? fdd_is_ready(drv) : fdd_get_flags(drv))
                     fdc->res[10] |= 0x20;
             }
             if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
@@ -2679,6 +2753,23 @@ fdc_overrun(fdc_t *fdc)
 
     fdc_log("FDC error: DMA overrun\n");
     fdc_error(fdc, 0x10, 0);
+}
+
+void
+fdc_media_removed(fdc_t *fdc, int drive)
+{
+    /* PC-98 wires the mechanism's READY input to the 765. IBM PC adapters
+     * tie it active and still detect absent media by searching for IDs. */
+    if (!(fdc->flags & FDC_FLAG_PC98) || real_drive(fdc, fdc->drive) != drive || fdc->pnum != fdc->ptot || !(fdc->stat & 0x10) || (fdc->stat & 0xf0) == 0xd0 || (fdc->stat & 0xf0) == 0x90)
+        return;
+
+    if (fdc_command_uses_media(fdc->processed_cmd)) {
+        fifo_reset(fdc->fifo_p);
+        fdc->data_ready = 0;
+        fdc_error(fdc, 0, 0);
+        /* uPD765 ST0 IC=11: READY changed during execution; NR=1. */
+        fdc->st0 = fdc->res[4] = 0xc8 | (fdc->params[0] & 7);
+    }
 }
 
 int
@@ -3134,6 +3225,9 @@ fdc_reset(void *priv)
 
     fdc_t *fdc = (fdc_t *) priv;
 
+    if (fdc->flags & FDC_FLAG_PC98)
+        fdc_pc98_abort(fdc);
+
     /* Reset boot status to POST on controller reset */
     fdd_boot_status_reset();
 
@@ -3142,10 +3236,10 @@ fdc_reset(void *priv)
     fdc->enable_3f1 = 1;
 
     fdc_update_enh_mode(fdc, 0);
-    if (fdc->flags & FDC_FLAG_DENSEL_INVERT)
-        fdc_update_densel_polarity(fdc, 0);
-    else
-        fdc_update_densel_polarity(fdc, 1);
+    /* PC-98 DENSEL is driven by the motherboard, not a resettable AT CCR.
+     * device_reset_all() visits that board before its nested FDC. */
+    if (!(fdc->flags & FDC_FLAG_PC98))
+        fdc_update_densel_polarity(fdc, !(fdc->flags & FDC_FLAG_DENSEL_INVERT));
     if (fdc->flags & FDC_FLAG_NSC)
         fdc_update_densel_force(fdc, 3);
     else
@@ -3201,13 +3295,18 @@ fdc_reset(void *priv)
     if (fdc->flags & FDC_FLAG_5550)
         fdc->stat = 0x00;
 
-    if (!(fdc->flags & FDC_FLAG_AT))
+    if (!(fdc->flags & (FDC_FLAG_AT | FDC_FLAG_PC98)))
         fdc->rate = 2;
+
+    if (fdc->flags & FDC_FLAG_PC98)
+        fdc_update_rates(fdc);
 
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
+    /* Native motherboard adapters own their port decoders.  A later reset
+     * must not install a second, IBM-style controller at 3F0h on PC-98. */
     /* The JX motherboard owns every programmable decode alias. */
-    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140 | FDC_FLAG_HOSTED))) {
+    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140 | FDC_FLAG_HOSTED | FDC_FLAG_PC98))) {
         if (!(fdc->flags & FDC_FLAG_PNP)) {
             fdc_remove(fdc);
             if (fdc->flags & FDC_FLAG_SEC)
@@ -3234,6 +3333,15 @@ fdc_reset(void *priv)
         fdc->power_down = 0;
 
     fdc->media_id   = 0;
+
+    /* The board may have released RESET before this device's reset callback.
+     * Recreate only the post-reset notification after cancelling old work. */
+    if (fdc->flags & FDC_FLAG_PC98) {
+        if (fdc->dor & 4)
+            fdc_soft_reset(fdc);
+        else
+            fdc->stat = 0;
+    }
 }
 
 static void
@@ -3245,6 +3353,13 @@ fdc_close(void *priv)
     timer_disable(&fdc->watchdog_timer);
     timer_disable(&fdc->timer);
 
+    /* Detaching a native controller must also release its bus outputs. */
+    if (fdc->flags & FDC_FLAG_PC98) {
+        dma_set_drq(fdc->dma_ch, 0);
+        if (fdc->irq != 0xff)
+            picintc(1 << fdc->irq);
+    }
+
     fifo_close(fdc->fifo_p);
 
     fdcinited = 0;
@@ -3252,6 +3367,15 @@ fdc_close(void *priv)
     next_bus = 0;
 
     for (int i = 0; i < 4; i++) {
+        fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[i];
+        /* A drive's decoder and deferred seek still reference this FDC.
+         * Cancel them before detaching the controller, retaining the media. */
+        fdd_stop(drv);
+        fdd_set_motor_enable(drv, 0);
+        timer_disable(&drv->seek_timer);
+        timer_disable(&drv->ready_timer);
+        drv->seek_in_progress = 0;
+        memset(&drv->pending, 0, sizeof(drv->pending));
         drives[fdc->bus + i].ctrl      = NULL;
         drives[fdc->bus + i].ctrl_priv = NULL;
     }
@@ -3311,6 +3435,22 @@ const device_t fdc_xt_device = {
     .internal_name = "fdc_xt",
     .flags         = DEVICE_ISA,
     .local         = 0,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* Native PC-98 on-board uPD765.  The motherboard owns its native decoders;
+ * this device never installs a generic 3F0h decoder. */
+const device_t fdc_pc98_device = {
+    .name          = "NEC PC-98 uPD765 FDC",
+    .internal_name = "fdc_pc98",
+    .flags         = DEVICE_CBUS | DEVICE_ONBOARD,
+    .local         = FDC_FLAG_NEC | FDC_FLAG_PC98,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

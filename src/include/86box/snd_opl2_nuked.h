@@ -167,6 +167,7 @@ typedef struct {
     pc_timer_t timers[2];
 
     int     pos;
+    const int *clock;
     int32_t buffer[MUSICBUFLEN * 2];
 
     int32_t *(*update)(void *priv);

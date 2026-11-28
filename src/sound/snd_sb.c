@@ -263,8 +263,10 @@ recalc_ess_dac2_filter(const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
-    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
+    /* The host rate follows the playback rate, so there is nothing above the cutoff to remove. */
+    const double fC = 0.5;
+
+    (void) playback_freq;
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
@@ -289,9 +291,24 @@ recalc_ess_dac2_filter(const int playback_freq)
 }
 
 /* SB 1, 1.5, MCV, and 2 do not have a mixer, so signal is hardwired. */
+/* The bass/treble filters are designed for the rate the source runs at. */
+static void
+sb_set_filter_rate(const sb_t *sb)
+{
+    const double rate = (double) sound_source_get_rate(sb->src_snd);
+
+    for (int c = 0; c < FILTER_USERS; c++)
+        filters_set_rate(c, rate);
+
+    /* The wavetable (user 4) runs on its own stream, at its own rate. */
+    if (sb->src_wt != NULL)
+        filters_set_rate(4, (double) sound_source_get_rate(sb->src_wt));
+}
+
 static void
 sb_get_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
     double                   out_mono;
@@ -414,6 +431,7 @@ sb2_filter_cd_audio(UNUSED(int channel), double *buffer, void *priv)
 void
 sb_get_buffer_sbpro(int32_t *buffer, const uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
@@ -526,6 +544,7 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 static void
 sb_get_buffer_sb16_awe32(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     double                   bass_treble;
@@ -637,7 +656,7 @@ ess_put_buffer_esx488(int16_t *buffer, int len, void *priv)
     sb_t                    *ess   = (sb_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ess->dsp.sb_freq;
 
@@ -744,7 +763,7 @@ ess_put_buffer(int16_t *buffer, int len, void *priv)
     const ess_mixer_t       *mixer = &ess->mixer_ess;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = ess->dsp.sb_freq;
 
@@ -857,7 +876,7 @@ sb_put_buffer_sb(int16_t *buffer, int len, void *priv)
     sb_t                    *sb    = (sb_t *) priv;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = sb->dsp.sb_freq;
 
@@ -961,7 +980,7 @@ sb_put_buffer_sbpro(int16_t *buffer, int len, void *priv)
     const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = sb->dsp.sb_freq;
 
@@ -1082,7 +1101,7 @@ sb_put_buffer_sb16_awe32(int16_t *buffer, int len, void *priv)
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
 
     /* divisor is rate capture device opened at*/
-    const int cap_rate = al_capture_get_rate();
+    const int cap_rate = sound_backend_input_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
     const int rate     = sb->dsp.sb_freq;
 
@@ -1493,6 +1512,7 @@ void ess_dac2_update(void *priv);
 void
 sb_get_buffer_ess488(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t              *ess   = (sb_t *) priv;
 
     sb_dsp_update(&ess->dsp);
@@ -1538,6 +1558,7 @@ sb_get_music_buffer_ess488(int32_t *buffer, uint16_t len, void *priv)
 void
 sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t              *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
 
@@ -1573,6 +1594,7 @@ sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 void
 sb_get_buffer_ess_dac2(int32_t *buffer, uint16_t len, void *priv)
 {
+    sb_set_filter_rate((sb_t *) priv);
     sb_t              *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
 
@@ -5022,7 +5044,9 @@ ess_dac2_update(void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
-    for (; ess->ess_dac2_pos < sound_pos_global; ess->ess_dac2_pos++) {
+    const int clk = (ess->dac2_clock != NULL) ? *ess->dac2_clock : sound_pos_global;
+
+    for (; ess->ess_dac2_pos < clk; ess->ess_dac2_pos++) {
         ess->ess_dac2_buffer[ess->ess_dac2_pos * 2]     = *(int16_t *) &ess->ess_dac2_datl;
         ess->ess_dac2_buffer[ess->ess_dac2_pos * 2 + 1] = *(int16_t *) &ess->ess_dac2_datr;
     }
@@ -5036,6 +5060,13 @@ ess_dac2_poll(void *priv)
     int32_t temp;
 
     timer_advance_u64(&ess->ess_dac2_timer, (uint64_t) ess->ess_dac2_latcho);
+
+    /* Let the host source run at the rate the guest programmed. */
+    if (ess->ess_dac2_enable && (ess->ess_dac2_latcho != ess->dac2_rate_latch) && (ess->ess_dac2_latcho > 0.0)) {
+        ess->dac2_rate_latch = ess->ess_dac2_latcho;
+        sound_source_set_rate(ess->src_dac2, (1000000.0 * (double) TIMER_USEC) / ess->ess_dac2_latcho);
+    }
+
     if (ess->ess_dac2_enable && !ess->ess_dac2_suspend) {
         uint8_t format = ess->ess_dac2_signed ? 0x01 : 0;
         format |= ess->ess_dac2_stereo ? 0x02 : 0;
@@ -5234,6 +5265,56 @@ ess_calc_input_gains(void)
     }
 }
 
+/* Each card owns its sources: one per stream class, each with its own clock
+   that the DSP, the CMS, the FM chips and the wavetable follow. */
+static void
+sb_add_snd_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
+{
+    sb->src_snd   = sound_source_add_stream(I_NORMAL, get_buffer, sb);
+    sound_source_set_label(sb->src_snd, "Sound Blaster");
+    sb->dsp.clock = sound_source_get_pos_ptr(sb->src_snd);
+}
+
+/* The secondary DAC runs on a source of its own, with its own clock, so it
+   must not take the place of the DSP's. */
+static void
+sb_add_dac2_source(sb_t *sb)
+{
+    sb->src_dac2   = sound_source_add_stream(I_NORMAL, sb_get_buffer_ess_dac2, sb);
+    sound_source_set_label(sb->src_dac2, "DAC2");
+    sb->dac2_clock = sound_source_get_pos_ptr(sb->src_dac2);
+}
+
+static void
+sb_add_cms_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
+{
+    sb->src_cms   = sound_source_add_stream(I_NORMAL, get_buffer, sb);
+    sound_source_set_label(sb->src_cms, "CMS");
+    sb->cms.clock = sound_source_get_pos_ptr(sb->src_cms);
+}
+
+static void
+sb_add_music_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
+{
+    const int *clock = NULL;
+
+    sb->src_music = sound_source_add_stream(I_MUSIC, get_buffer, sb);
+    clock         = sound_source_get_pos_ptr(sb->src_music);
+
+    if (sb->opl.set_clock != NULL)
+        sb->opl.set_clock(sb->opl.priv, clock);
+    if (sb->has_dualopl2 && (sb->opl2.set_clock != NULL))
+        sb->opl2.set_clock(sb->opl2.priv, clock);
+}
+
+static void
+sb_add_wt_source(sb_t *sb, void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv))
+{
+    sb->src_wt     = sound_source_add_stream(I_WT, get_buffer, sb);
+    sb->emu8k.clock = sound_source_get_pos_ptr(sb->src_wt);
+    filters_set_rate(4, (double) sound_source_get_rate(sb->src_wt));
+}
+
 void *
 sb_init(UNUSED(const device_t *info))
 {
@@ -5333,12 +5414,12 @@ sb_init(UNUSED(const device_t *info))
     } else
         sb->mixer_enabled = 0;
 
-    sound_add_handler(sb_get_buffer_sb2, sb);
-    sound_add_handler(sb_get_cms_buffer_sb2, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb2);
+    sb_add_cms_source(sb, sb_get_cms_buffer_sb2);
     sound_in_add_handler(sb_put_buffer_sb, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sb2);
     sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
@@ -5391,11 +5472,11 @@ thunderboard_init(UNUSED(const device_t *info))
 
     sb->cms_enabled   = 0;
     sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb2);
     sound_in_add_handler(sb_put_buffer_sb, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sb2);
     sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
     return sb;
@@ -5420,11 +5501,11 @@ sb_mcv_init(UNUSED(const device_t *info))
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
 
     sb->mixer_enabled = 0;
-    sound_add_handler(sb_get_buffer_sb2, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb2);
     sound_in_add_handler(sb_put_buffer_sb, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb2, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sb2);
     sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
     /* I/O handlers activated in sb_mcv_write */
@@ -5516,11 +5597,11 @@ sb_pro_v1_init(UNUSED(const device_t *info))
                   sb_ct1345_mixer_read, NULL, NULL,
                   sb_ct1345_mixer_write, NULL, NULL,
                   sb);
-    sound_add_handler(sb_get_buffer_sbpro, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sbpro);
     sound_in_add_handler(sb_put_buffer_sbpro, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sbpro, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sbpro);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
@@ -5578,11 +5659,11 @@ sb_pro_v2_init(UNUSED(const device_t *info))
                   sb_ct1345_mixer_read, NULL, NULL,
                   sb_ct1345_mixer_write, NULL, NULL,
                   sb);
-    sound_add_handler(sb_get_buffer_sbpro, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sbpro);
     sound_in_add_handler(sb_put_buffer_sbpro, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sbpro, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sbpro);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
@@ -5614,10 +5695,10 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
-    sound_add_handler(sb_get_buffer_sbpro, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sbpro);
     sound_in_add_handler(sb_put_buffer_sbpro, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sbpro, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sbpro);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     /* I/O handlers activated in sb_pro_mcv_write */
@@ -5652,12 +5733,12 @@ sb_pro_compat_init(UNUSED(const device_t *info))
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
-    sound_add_handler(sb_get_buffer_sbpro, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sbpro);
     /* the DSP records the host's input, as on the SB Pro cards. */
     sound_in_add_handler(sb_put_buffer_sbpro, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sbpro, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sbpro);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, 1);
@@ -5707,11 +5788,11 @@ sb_16_init(UNUSED(const device_t *info))
     sb->mixer_sb16.output_filter = 1;
     io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read, NULL, NULL,
                   sb_ct1745_mixer_write, NULL, NULL, sb);
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -5759,10 +5840,10 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
 
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -5819,10 +5900,10 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -5927,10 +6008,10 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -6027,10 +6108,10 @@ sb_16_compat_init(const device_t *info)
 
     sb->opl_enabled   = 1;
     sb->mixer_enabled = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, (int) (intptr_t) info->local);
@@ -6140,12 +6221,12 @@ sb_awe32_init(UNUSED(const device_t *info))
     sb->mixer_sb16.output_filter = 1;
     io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read, NULL, NULL,
                   sb_ct1745_mixer_write, NULL, NULL, sb);
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
     if (sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
-    wavetable_add_handler(sb_get_wavetable_buffer_sb16_awe32, sb);
+        sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
+    sb_add_wt_source(sb, sb_get_wavetable_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -6179,9 +6260,10 @@ sb_goldfinch_init(const device_t *info)
     goldfinch_t *goldfinch   = calloc(1, sizeof(goldfinch_t));
     int          onboard_ram = device_get_config_int("onboard_ram");
 
-    wavetable_add_handler(sb_get_wavetable_buffer_goldfinch, goldfinch);
-
     emu8k_init(&goldfinch->emu8k, 0, onboard_ram);
+
+    goldfinch->src_wt       = sound_source_add_stream(I_WT, sb_get_wavetable_buffer_goldfinch, goldfinch);
+    goldfinch->emu8k.clock  = sound_source_get_pos_ptr(goldfinch->src_wt);
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {
@@ -6239,11 +6321,11 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
-    wavetable_add_handler(sb_get_wavetable_buffer_sb16_awe32, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
+    sb_add_wt_source(sb, sb_get_wavetable_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -6420,12 +6502,12 @@ ess_x488_init(UNUSED(const device_t *info))
                       ess_mixer_read, NULL, NULL,
                       ess_mixer_write, NULL, NULL,
                       ess);
-        sound_add_handler(sb_get_buffer_ess, ess);
-        music_add_handler(sb_get_music_buffer_ess, ess);
+        sb_add_snd_source(ess, sb_get_buffer_ess);
+        sb_add_music_source(ess, sb_get_music_buffer_ess);
         sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
     } else {
-        sound_add_handler(sb_get_buffer_ess488, ess);
-        music_add_handler(sb_get_music_buffer_ess488, ess);
+        sb_add_snd_source(ess, sb_get_buffer_ess488);
+        sb_add_music_source(ess, sb_get_music_buffer_ess488);
     }
     sound_in_add_handler(ess_put_buffer_esx488, ess);
     sound_in_start_input();
@@ -6535,8 +6617,8 @@ ess_x688_init(UNUSED(const device_t *info))
                   ess_mixer_read, NULL, NULL,
                   ess_mixer_write, NULL, NULL,
                   ess);
-    sound_add_handler(sb_get_buffer_ess, ess);
-    music_add_handler(sb_get_music_buffer_ess, ess);
+    sb_add_snd_source(ess, sb_get_buffer_ess);
+    sb_add_music_source(ess, sb_get_music_buffer_ess);
     sound_in_add_handler(ess_put_buffer, ess);
     sound_in_start_input();
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -6632,8 +6714,8 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     ess->mixer_ess.output_filter = 1;
 
     ess->mixer_enabled = 1;
-    sound_add_handler(sb_get_buffer_ess, ess);
-    music_add_handler(sb_get_music_buffer_ess, ess);
+    sb_add_snd_source(ess, sb_get_buffer_ess);
+    sb_add_music_source(ess, sb_get_music_buffer_ess);
     sound_in_add_handler(ess_put_buffer, ess);
     sound_in_start_input();
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -6745,8 +6827,8 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     ess->mixer_ess.output_filter = 1;
 
     ess->mixer_enabled = 1;
-    sound_add_handler(sb_get_buffer_ess, ess);
-    music_add_handler(sb_get_music_buffer_ess, ess);
+    sb_add_snd_source(ess, sb_get_buffer_ess);
+    sb_add_music_source(ess, sb_get_music_buffer_ess);
     sound_in_add_handler(ess_put_buffer, ess);
     sound_in_start_input();
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -6850,8 +6932,8 @@ ess_1x88_onboard_init(const device_t *info)
 
     ess->mixer_enabled = 1;
     ess->mixer_ess.regs[0x40] = 0x02;
-    sound_add_handler(sb_get_buffer_ess, ess);
-    music_add_handler(sb_get_music_buffer_ess, ess);
+    sb_add_snd_source(ess, sb_get_buffer_ess);
+    sb_add_music_source(ess, sb_get_music_buffer_ess);
     sound_in_add_handler(ess_put_buffer, ess);
     sound_in_start_input();
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -6905,7 +6987,7 @@ ess_1x88_onboard_init(const device_t *info)
     }
     /* ES188x secondary DAC */
     if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888) {
-        sound_add_handler(sb_get_buffer_ess_dac2, ess);
+        sb_add_dac2_source(ess);
         timer_add(&ess->ess_dac2_timer, ess_dac2_poll, ess, 0);
         if ((is_compaq) || (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1887)) { /* 1887 and Compaq 1888 */
             ess->ess_dac2_irq = 0; /* Use shared IRQ */
@@ -6983,8 +7065,8 @@ ess_186x_init(const device_t *info)
     ess->mixer_ess.output_filter = 1;
 
     ess->mixer_enabled = 1;
-    sound_add_handler(sb_get_buffer_ess, ess);
-    music_add_handler(sb_get_music_buffer_ess, ess);
+    sb_add_snd_source(ess, sb_get_buffer_ess);
+    sb_add_music_source(ess, sb_get_music_buffer_ess);
     sound_in_add_handler(ess_put_buffer, ess);
     sound_in_start_input();
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -7050,7 +7132,7 @@ ess_186x_init(const device_t *info)
     if (ess->has_ide)
         ide_remove_handlers(3);
 
-    sound_add_handler(sb_get_buffer_ess_dac2, ess);
+    sb_add_dac2_source(ess);
     timer_add(&ess->ess_dac2_timer, ess_dac2_poll, ess, 0);
     ess->ess_dac2_irq = 0; /* Use shared IRQ */
     ess->ess_dac2_dma = ISAPNP_DMA_DISABLED;
@@ -7181,7 +7263,7 @@ solo1_legacy_dma_writew(void *priv, uint16_t val)
 extern void sb_doreset(sb_dsp_t *dsp);
 
 /* The Solo-1 legacy core's Audio 1 interrupt: on the Solo-1's INTA pin
-   when it is attached there, else on the Sound Blaster ISA IRQ. */
+   when it is attached there, and on the Sound Blaster ISA IRQ. */
 static void
 ess_solo1_legacy_dsp_irq(void *priv, int set)
 {
@@ -7189,7 +7271,9 @@ ess_solo1_legacy_dsp_irq(void *priv, int set)
 
     if (ess->solo1_irq_update != NULL)
         ess->solo1_irq_update(ess->solo1_irq_priv, set);
-    else if (ess->dsp.sb_irqnum) {
+
+    /* Software that uses the Sound Blaster compatible interface (DOS) waits for the ISA IRQ. */
+    if (ess->dsp.sb_irqnum) {
         if (set)
             picint(1 << ess->dsp.sb_irqnum);
         else
@@ -7231,8 +7315,8 @@ ess_solo1_legacy_init(void)
     ess->mixer_ess.output_filter = 1;
     ess->mixer_enabled           = 1;
 
-    sound_add_handler(sb_get_buffer_ess, ess);
-    music_add_handler(sb_get_music_buffer_ess, ess);
+    sb_add_snd_source(ess, sb_get_buffer_ess);
+    sb_add_music_source(ess, sb_get_music_buffer_ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -7567,6 +7651,13 @@ void
 sb_close(void *priv)
 {
     sb_t *sb = (sb_t *) priv;
+
+    sound_source_remove(sb->src_snd);
+    sound_source_remove(sb->src_cms);
+    sound_source_remove(sb->src_music);
+    sound_source_remove(sb->src_wt);
+    sound_source_remove(sb->src_dac2);
+
     sb_dsp_close(&sb->dsp);
 
     free(sb);
@@ -7577,6 +7668,8 @@ sb_goldfinch_close(void *priv)
 {
     goldfinch_t *goldfinch = (goldfinch_t *) priv;
 
+    sound_source_remove(goldfinch->src_wt);
+
     emu8k_close(&goldfinch->emu8k);
 
     free(goldfinch);
@@ -7586,6 +7679,8 @@ static void
 sb_awe32_close(void *priv)
 {
     sb_t *sb = (sb_t *) priv;
+
+    sound_source_remove(sb->src_wt);
 
     emu8k_close(&sb->emu8k);
 
@@ -10433,10 +10528,10 @@ sb_emu8008_legacy_init(UNUSED(const device_t *info))
 
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sb_add_snd_source(sb, sb_get_buffer_sb16_awe32);
     sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
     sound_in_start_input();
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    sb_add_music_source(sb, sb_get_music_buffer_sb16_awe32);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
     sb_dsp_setaddr(&sb->dsp, 0x0220);

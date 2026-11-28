@@ -1000,6 +1000,37 @@ pic_any_pending(void)
     return pic.int_pending || (!cascade && pic2.int_pending);
 }
 
+/* PC-98 exposes the master PIC on even ports 00h-06h and the slave PIC on
+ * even ports 08h-1eh.  A0 of each 8259 is CPU A1; the remaining addresses are
+ * aliases caused by the PC-98 low-I/O decode. */
+static uint8_t
+pic_pc98_read(uint16_t addr, UNUSED(void *priv))
+{
+    pic_t *dev = (addr >= 0x0008) ? &pic2 : &pic;
+    return pic_read((addr >> 1) & 1, dev);
+}
+
+static void
+pic_pc98_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    pic_t *dev = (addr >= 0x0008) ? &pic2 : &pic;
+    pic_write((addr >> 1) & 1, val, dev);
+}
+
+void
+pic_init_pc98(void)
+{
+    for (uint8_t irq = 0; irq < 8; irq++)
+        irq_vector_override[irq] = -1;
+
+    pic_reset_hard();
+    shadow = 0;
+
+    for (uint16_t port = 0x0000; port <= 0x001e; port += 2)
+        io_sethandler(port, 0x0001, pic_pc98_read, NULL, NULL,
+                      pic_pc98_write, NULL, NULL, NULL);
+}
+
 void
 pic_init(void)
 {

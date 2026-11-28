@@ -723,7 +723,9 @@ ad1848_speed_changed(ad1848_t *ad1848)
 void
 ad1848_update(ad1848_t *ad1848)
 {
-    for (; ad1848->pos < sound_pos_global; ad1848->pos++) {
+    const int clk = SOUND_CLOCK(ad1848->clock, sound_pos_global);
+
+    for (; ad1848->pos < clk; ad1848->pos++) {
         ad1848->buffer[ad1848->pos * 2]     = ad1848->out_l;
         ad1848->buffer[ad1848->pos * 2 + 1] = ad1848->out_r;
     }

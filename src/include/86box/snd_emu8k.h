@@ -466,6 +466,8 @@ typedef struct emu8k_t {
     int     pos;
     int32_t buffer[WTBUFLEN * 2];
 
+    const int *clock; /* NULL: the shared wavetable clock */
+
     uint16_t addr;
 } emu8k_t;
 

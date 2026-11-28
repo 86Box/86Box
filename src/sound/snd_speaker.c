@@ -33,6 +33,12 @@ typedef struct speaker_t {
 
     uint8_t mode;
     double  count;
+    uint8_t pin_driven;
+    uint8_t pin_enabled;
+    uint8_t pin_output;
+
+    void      *source;
+    const int *clock;
 } speaker_t;
 
 speaker_t *speaker = NULL;
@@ -47,6 +53,17 @@ speaker_set_count(const uint8_t new_m, const int new_count)
 }
 
 void
+speaker_set_pc98_state(int enabled, int output)
+{
+    if (speaker != NULL && speaker->pin_driven) {
+        /* Preserve the old pin levels up to this emulated instant. */
+        speaker_update();
+        speaker->pin_enabled = !!enabled;
+        speaker->pin_output  = !!output;
+    }
+}
+
+void
 speaker_update(void)
 {
     if (speaker != NULL) {
@@ -55,11 +72,17 @@ speaker_update(void)
         if (amplitude > 5120.0)
             amplitude = 5120.0;
 
-        if (speaker->pos < music_pos_global) {
+        const int clk = SOUND_CLOCK(speaker->clock, music_pos_global);
+
+        if (speaker->pos < clk) {
             int32_t val;
 
-            for (; speaker->pos < music_pos_global; speaker->pos++) {
-                if (speaker_gated && was_speaker_enable) {
+            for (; speaker->pos < clk; speaker->pos++) {
+                if (speaker->pin_driven) {
+                    /* PC-98 drives the speaker from PIT OUT1 and /BUZ.
+                     * The IBM channel-2 count/PWM shortcuts do not apply. */
+                    val = (speaker->pin_enabled && speaker->pin_output) ? 0x1400 : 0;
+                } else if (speaker_gated && was_speaker_enable) {
                     if ((speaker->mode == 0) || (speaker->mode == 4))
                         val = (int32_t) amplitude;
                     else if (speaker->count < 64.0)
@@ -113,6 +136,8 @@ speaker_close(void *priv)
 {
     speaker_t *dev = (speaker_t *) priv;
 
+    sound_source_remove(dev->source);
+
     free(dev);
 
     speaker = NULL;
@@ -123,7 +148,11 @@ speaker_init(const device_t *info)
 {
     speaker_t *dev     = (speaker_t *) calloc(1, sizeof(speaker_t));
 
-    music_add_handler(speaker_get_buffer, dev);
+    if (dev == NULL)
+        return NULL;
+
+    dev->source = sound_source_add_stream(I_MUSIC, speaker_get_buffer, dev);
+    dev->clock  = sound_source_get_pos_ptr(dev->source);
 
     speaker_mute       = 0;
     speaker_gated      = 0;
@@ -131,6 +160,7 @@ speaker_init(const device_t *info)
     was_speaker_enable = 0;
 
     dev->count         = 65535.0;
+    dev->pin_driven    = !!info->local;
 
     speaker            = dev;
 
@@ -142,6 +172,20 @@ const device_t speaker_device = {
     .internal_name = "speaker",
     .flags         = 0,
     .local         = 0,
+    .init          = speaker_init,
+    .close         = speaker_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t speaker_pc98_device = {
+    .name          = "NEC PC-98 System Speaker",
+    .internal_name = "speaker_pc98",
+    .flags         = 0,
+    .local         = 1,
     .init          = speaker_init,
     .close         = speaker_close,
     .reset         = NULL,

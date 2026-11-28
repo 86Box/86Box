@@ -50,6 +50,7 @@ cmslpt_log(void *priv, const char *fmt, ...)
 typedef struct cmslpt_s {
     void  *lpt;
     cms_t *cms;
+    void  *source;
 
     uint8_t control;
     uint8_t data_latch;
@@ -151,7 +152,8 @@ cmslpt_init(UNUSED(const device_t *info))
 
     cmslpt->cms = calloc(1, sizeof(cms_t));
     
-    sound_add_handler(cms_get_buffer, cmslpt->cms);
+    cmslpt->source    = sound_source_add_stream(I_NORMAL, cms_get_buffer, cmslpt->cms);
+    cmslpt->cms->clock = sound_source_get_pos_ptr(cmslpt->source);
 
     cmslpt->status = 0x40;
     memset(&cmslpt->ready_timer, 0x00, sizeof(pc_timer_t));
@@ -168,6 +170,8 @@ cmslpt_close(void *priv)
     cmslpt_log(cms_lpt->log, "Close\n");
     if (cms_lpt->log)
         log_close(cms_lpt->log);
+
+    sound_source_remove(cms_lpt->source);
 
     if (cms_lpt->cms)
         free(cms_lpt->cms);

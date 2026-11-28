@@ -67,6 +67,7 @@
 #define FDC_FLAG_TANDY2K             0x4000000  /* Tandy 2000, no DOR latch on board */
 #define FDC_FLAG_COMPAQ              0x8000000  /* Compaq 386, drive type sense at 3F1 */
 #define FDC_FLAG_IGNORE_DENSEL_FORCE 0x10000000 /* FDC ignores DENSEL on HD media */
+#define FDC_FLAG_PC98                0x20000000 /* PC-98 selects drives in command bytes */
 #define FDC_FLAG_HOSTED              0x40000000 /* Behind another device: no I/O ports,
                                                    DMA and interrupt through its host */
 #define FDC_FLAG_PNP                 0x80000000 /* FDC is PnP */
@@ -304,9 +305,11 @@ extern void    fdc_reset(void *priv);
 extern uint8_t fdc_get_current_drive(void);
 extern void    fdc_seek_complete_interrupt(fdc_t *fdc, int drive);
 extern void    fdc_diskchange_interrupt(fdc_t *fdc, int drive);
+extern void    fdc_media_removed(fdc_t *fdc, int drive);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;
+extern const device_t fdc_pc98_device;
 extern const device_t fdc_xt_sec_device;
 extern const device_t fdc_xt_ter_device;
 extern const device_t fdc_xt_qua_device;

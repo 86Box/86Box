@@ -45,6 +45,7 @@
 #endif
 
 #define HAVE_STDARG_H
+#define PCLOG_IMPLEMENTATION
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/mem.h>
@@ -196,7 +197,6 @@ int      isarom_type[ISAROM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable 
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
 int      gfxcard[GFXCARD_MAX]                   = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
-int      sound_is_float                         = 1;              /* (C) sound uses FP values */
 char     sound_input_dev_name[512]              = { 0 };          /* (C) name of sound input device  */
 int      sound_input_enabled                    = 0;              /* (C) enable sound input  */
 int      sound_sample_rate                      = FREQ_48000;     /* (C) sound output sample rate */
@@ -1940,7 +1940,7 @@ pc_reset_hard_close(void)
 
     scsi_disk_close();
 
-    closeal();
+    sound_output_close();
 
     video_reset_close();
 

@@ -349,6 +349,9 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
         case HDD_BUS_MFM:
             chanIdx = (Harddrives::busTrackClass->next_free_mfm_channel());
             break;
+        case HDD_BUS_SASI:
+            chanIdx = (Harddrives::busTrackClass->next_free_sasi_channel());
+            break;
         case HDD_BUS_XTA:
             chanIdx = (Harddrives::busTrackClass->next_free_xta_channel());
             break;

@@ -141,6 +141,12 @@ typedef struct sensation_t {
 
     int16_t visdac_buffer[SOUNDBUFLEN * 2];
     int visdac_pos;
+    void       *src_snd;
+    const int  *clock;
+    void       *src_mma;
+    const int  *clock_mma;
+    void       *src_visdac;
+    const int  *clock_visdac;
     int visdac_irq_status;
     uint8_t visdac_dma_nodata;
 
@@ -187,7 +193,7 @@ sensation_filter_cd_audio(int channel, double *buffer, void *priv)
 void
 sensation_visdac_update(sensation_t *dev)
 {
-    for (; dev->visdac_pos < sound_pos_global; dev->visdac_pos++) {
+    for (; dev->visdac_pos < SOUND_CLOCK(dev->clock_visdac, sound_pos_global); dev->visdac_pos++) {
         dev->visdac_buffer[dev->visdac_pos * 2]     = dev->visdac_out_l;
         dev->visdac_buffer[dev->visdac_pos * 2 + 1] = dev->visdac_out_r;
     }
@@ -264,6 +270,7 @@ sensation_visdac_updatefreq(sensation_t *dev)
 
     sensation_log(dev->log, "VISDAC frequency set to %i\n", dev->visdac_freq);
     dev->visdac_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) dev->visdac_freq));
+    sound_source_set_rate(dev->src_visdac, dev->visdac_freq);
 }
 
 static void
@@ -1147,7 +1154,7 @@ sensation_mma_read(uint16_t addr, void *priv)
 void
 sensation_mma_update(sensation_t *dev)
 {
-    for (; dev->pos < sound_pos_global; dev->pos++) {
+    for (; dev->pos < SOUND_CLOCK(dev->clock_mma, sound_pos_global); dev->pos++) {
         dev->mma_buffer[0][dev->pos] = dev->mma_buffer[1][dev->pos] = 0;
 
         if (dev->sensation_mma_regs[0][9] & 0x20)
@@ -1307,44 +1314,67 @@ sensation_mma_timer_poll(void *priv)
 }
 
 
+/* The FM synthesizer, the MMA's sample playback and the VISDAC are streams
+   of their own. */
 static void
 sensation_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     sensation_t *dev = (sensation_t *) priv;
-    int16_t *mma_buffer = calloc(len * 2, sizeof(int16_t));
-    if (mma_buffer == NULL)
-        fatal("mma_buffer = NULL");
 
     int32_t *opl_buf = dev->opl.update(dev->opl.priv);
-    sensation_mma_update(dev);
-    sensation_visdac_update(dev);
 
-    for (uint16_t c = 0; c < len * 2; c += 2) {
-        mma_buffer[c] = (dev->mma_buffer[0][c >> 1] * dev->wave_vol_l) / 32768.0;
-        mma_buffer[c + 1] = (dev->mma_buffer[1][c >> 1] * dev->wave_vol_r) / 32768.0;
-
-        if ((dev->sensation_mma_regs[0][9] & 0x60) == 0x40)
-            mma_buffer[c] = mma_buffer[c + 1];
-        if ((dev->sensation_mma_regs[0][9] & 0x60) == 0x20)
-            mma_buffer[c + 1] = mma_buffer[c];
-
-        mma_buffer[c] += (opl_buf[c] * dev->fm_vol_l) / 65536.0;
-        mma_buffer[c + 1] += (opl_buf[c + 1] * dev->fm_vol_r) / 65536.0;
-
-        buffer[c] += mma_buffer[c];
-        buffer[c + 1] += mma_buffer[c + 1];
-
-        if (dev->visdac_mode & 0x10) {
-            buffer[c] += dev->visdac_buffer[c];
-            buffer[c + 1] += dev->visdac_buffer[c + 1];
-        }
+    for (int c = 0; c < len * 2; c += 2) {
+        buffer[c]     += (opl_buf[c] * dev->fm_vol_l) / 65536.0;
+        buffer[c + 1] += (opl_buf[c + 1] * dev->fm_vol_r) / 65536.0;
     }
 
     dev->opl.reset_buffer(dev->opl.priv);
-    dev->pos = 0;
-    dev->visdac_pos = 0;
+}
 
-    free(mma_buffer);
+static void
+sensation_get_mma_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    sensation_t *dev = (sensation_t *) priv;
+
+    sensation_mma_update(dev);
+
+    {
+        const int ch     = (!dev->sensation_mma_enable[0] && dev->sensation_mma_enable[1]) ? 1 : 0;
+        const int period = mma_sample_period(dev->sensation_mma_regs[ch][9]);
+
+        if (period > 0)
+            sound_source_set_rate(dev->src_mma, 1000000.0 / (period * 1.88964));
+    }
+
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        int16_t l = (dev->mma_buffer[0][c >> 1] * dev->wave_vol_l) / 32768.0;
+        int16_t r = (dev->mma_buffer[1][c >> 1] * dev->wave_vol_r) / 32768.0;
+
+        if ((dev->sensation_mma_regs[0][9] & 0x60) == 0x40)
+            l = r;
+        if ((dev->sensation_mma_regs[0][9] & 0x60) == 0x20)
+            r = l;
+
+        buffer[c]     += l;
+        buffer[c + 1] += r;
+    }
+
+    dev->pos = 0;
+}
+
+static void
+sensation_get_visdac_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    sensation_t *dev = (sensation_t *) priv;
+
+    sensation_visdac_update(dev);
+
+    if (dev->visdac_mode & 0x10) {
+        for (int c = 0; c < len * 2; c++)
+            buffer[c] += dev->visdac_buffer[c];
+    }
+
+    dev->visdac_pos = 0;
 }
 
 static void
@@ -1425,7 +1455,18 @@ sensation_init(const device_t *info)
     timer_add(&dev->sensation_mma_timer_count, sensation_mma_timer_poll, dev, 1);
     timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);
 
-    sound_add_handler(sensation_get_buffer, dev);
+    dev->src_snd = sound_source_add_stream(I_NORMAL, sensation_get_buffer, dev);
+    sound_source_set_label(dev->src_snd, "FM");
+    dev->clock   = sound_source_get_pos_ptr(dev->src_snd);
+    dev->src_mma    = sound_source_add_stream(I_NORMAL, sensation_get_mma_buffer, dev);
+    sound_source_set_label(dev->src_mma, "PCM");
+    dev->clock_mma  = sound_source_get_pos_ptr(dev->src_mma);
+    dev->src_visdac   = sound_source_add_stream(I_NORMAL, sensation_get_visdac_buffer, dev);
+    sound_source_set_label(dev->src_visdac, "VISDAC");
+    sound_source_set_rate(dev->src_visdac, dev->visdac_freq);
+    dev->clock_visdac = sound_source_get_pos_ptr(dev->src_visdac);
+    if (dev->opl.set_clock != NULL)
+        dev->opl.set_clock(dev->opl.priv, dev->clock);
     dev->rec.offset8 = 1;
     sound_in_add_handler(mma_rec_put_buffer, &dev->rec);
 
@@ -1486,6 +1527,10 @@ sensation_close(void *priv)
     sensation_t *dev = (sensation_t *) priv;
 
     mma_rec_input(&dev->rec, 0); /* */
+
+    sound_source_remove(dev->src_snd);
+    sound_source_remove(dev->src_mma);
+    sound_source_remove(dev->src_visdac);
 
     if (dev->log != NULL) {
         log_close(dev->log);

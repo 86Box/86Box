@@ -3808,11 +3808,8 @@ d86f_load(void *priv, char *fn)
     dev->fp = plat_fopen(fn, "rb+");
     if (!dev->fp) {
         dev->fp = plat_fopen(fn, "rb");
-        if (!dev->fp) {
-            memset(drv->image_path, 0, sizeof(drv->image_path));
-            free(dev);
-            return;
-        }
+        if (!dev->fp)
+            goto fail;
         drv->writeprot = 1;
     }
 
@@ -3827,20 +3824,13 @@ d86f_load(void *priv, char *fn)
 
     if (len < 16) {
         /* File is WAY too small, abort. */
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        return;
+        goto fail;
     }
 
     if ((magic != 0x46423638) && (magic != 0x66623638)) {
         /* File is not of the valid format, abort. */
         d86f_log("86F: Unrecognized magic bytes: %08X\n", magic);
-        fclose(dev->fp);
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        return;
+        goto fail;
     }
 
     if (fread(&(dev->version), 1, 2, dev->fp) != 2)
@@ -3860,17 +3850,17 @@ d86f_load(void *priv, char *fn)
                      dev->version >> 8, dev->version & 0xff);
         }
 #endif
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        return;
+        goto fail;
     } else {
         d86f_log("86F: Recognized file version: %i.%02i\n",
                  dev->version >> 8, dev->version & 0xff);
     }
 
     (void) !fread(&(dev->disk_flags), 2, 1, dev->fp);
+
+    /* Size/surface helpers must read this native image's flags, rather
+     * than the empty proxy handlers installed by unregister(). */
+    d86f_register_86f(drv);
 
     if (d86f_has_surface_desc(drv)) {
         for (uint8_t i = 0; i < 2; i++)
@@ -3886,31 +3876,19 @@ d86f_load(void *priv, char *fn)
 
     if (len < 51052) {
         /* File too small, abort. */
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        return;
+        goto fail;
     }
 
     if (dev->disk_flags & 0x100) {
         /* Zoned disk. */
         d86f_log("86F: Disk is zoned (Apple or Sony)\n");
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        return;
+        goto fail;
     }
 
     if (dev->disk_flags & 0x600) {
         /* Zone type is not 0 but the disk is fixed-RPM. */
         d86f_log("86F: Disk is fixed-RPM but zone type is not 0\n");
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        return;
+        goto fail;
     }
 
     if (!drv->writeprot)
@@ -3921,6 +3899,8 @@ d86f_load(void *priv, char *fn)
         dev->fp = NULL;
 
         dev->fp = plat_fopen(fn, "rb");
+        if (!dev->fp)
+            goto fail;
     }
 
     /* OK, set the drive data, other code needs it. */
@@ -3933,23 +3913,13 @@ d86f_load(void *priv, char *fn)
     if (!(dev->track_offset[0])) {
         /* File has no track 0 side 0, abort. */
         d86f_log("86F: No Track 0 side 0\n");
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        drv->d86f_priv = NULL;
-        return;
+        goto fail;
     }
 
     if ((d86f_get_sides(drv) == 2) && !(dev->track_offset[1])) {
         /* File is 2-sided but has no track 0 side 1, abort. */
         d86f_log("86F: No Track 0 side 1\n");
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(drv->image_path, 0, sizeof(drv->image_path));
-        free(dev);
-        drv->d86f_priv = NULL;
-        return;
+        goto fail;
     }
 
     /* Load track 0 flags as default. */
@@ -4024,7 +3994,14 @@ d86f_load(void *priv, char *fn)
     fdd_format_set(drv, &ops);
 
     d86f_log("86F: Disk does%s have surface description data\n",
-             d86f_has_surface_desc(drive) ? "" : " not");
+             d86f_has_surface_desc(drv) ? "" : " not");
+    return;
+
+fail:
+    d86f_close(drv);
+    d86f_destroy(drv);
+    memset(drv->image_path, 0, sizeof(drv->image_path));
+    drv->empty = 1;
 }
 
 void
@@ -4052,7 +4029,9 @@ d86f_close(void *priv)
     memcpy(temp_file_name, drv->id ? nvr_path("TEMP$$$1.$$$") :
                                      nvr_path("TEMP$$$0.$$$"), 26);
 
-    if (d86f_has_surface_desc(drv)) {
+    {
+        /* Release owned allocations even if the format handlers have
+         * already been unregistered or loading stopped part way through. */
         for (uint8_t i = 0; i < 2; i++) {
             if (dev->track_surface_data[i]) {
                 free(dev->track_surface_data[i]);
@@ -4105,7 +4084,7 @@ d86f_destroy(void *priv)
     if (dev == NULL)
         return;
 
-    if (d86f_has_surface_desc(drv)) {
+    {
         for (uint8_t i = 0; i < 2; i++) {
             if (dev->track_surface_data[i]) {
                 free(dev->track_surface_data[i]);
@@ -4129,5 +4108,5 @@ d86f_destroy(void *priv)
     free(drv->d86f_priv);
     drv->d86f_priv = NULL;
 
-    drv->d86f_handler.read_data = NULL;
+    memset(&drv->d86f_handler, 0, sizeof(drv->d86f_handler));
 }

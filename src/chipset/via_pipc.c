@@ -154,6 +154,7 @@ typedef struct _pipc_ {
     uint8_t  apic_irq_state; /* Rx58's sources asserted, in its bit order */
     uint32_t apic_irq_pins;  /* the APIC[23:16] inputs they drive */
     sb_t    *sb;
+    void    *src_snd;
     uint16_t midigame_base;
     uint16_t sb_base;
     uint16_t fmnmi_base;
@@ -2156,7 +2157,7 @@ pipc_init(const device_t *info)
         ac97_via_set_irq_hook(dev->ac97, pipc_ac97_irq, dev);
 
         dev->sb = device_add_inst(&sb_pro_compat_device, 2);
-        sound_add_handler(pipc_sb_get_buffer, dev);
+        dev->src_snd = sound_source_add_stream(I_NORMAL, pipc_sb_get_buffer, dev);
 
         dev->gameport = gameport_add(&gameport_sio_device);
 
@@ -2238,6 +2239,7 @@ pipc_close(void *priv)
     io_set_claim(0x60, NULL, NULL);
     io_set_claim(0x64, NULL, NULL);
 
+    sound_source_remove(dev->src_snd);
     free(dev);
 }
 

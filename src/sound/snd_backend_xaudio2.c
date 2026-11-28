@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Interface to the OpenAL sound processing library.
+ *          Interface to the XAudio2 / FAudio sound libraries.
  *
  * Authors: Cacodemon345,
  *          Miran Grca, <mgrca8@gmail.com>
@@ -252,13 +252,8 @@ xaudio2_give_buffer(void *priv, void *src, const void *buf, const int size, UNUS
                                                 XAUDIO2_COMMIT_NOW);
         XAUDIO2_BUFFER buffer = { 0 };
         buffer.Flags          = 0;
-        if (sound_is_float) {
-            buffer.pAudioData = calloc(size, sizeof(float));
-            buffer.AudioBytes = size * sizeof(float);
-        } else {
-            buffer.pAudioData = calloc(size, sizeof(int16_t));
-            buffer.AudioBytes = size * sizeof(int16_t);
-        }
+        buffer.pAudioData = calloc(size, sizeof(int16_t));
+        buffer.AudioBytes = size * sizeof(int16_t);
         if (buffer.pAudioData == NULL) {
             fatal("xaudio2: Out Of Memory!");
         }
@@ -278,13 +273,8 @@ xaudio2_init_source(void *priv, int sample_rate, int buffer_size)
     WAVEFORMATEX fmt;
     fmt.nChannels = 2;
 
-    if (sound_is_float) {
-        fmt.wFormatTag     = WAVE_FORMAT_IEEE_FLOAT;
-        fmt.wBitsPerSample = 32;
-    } else {
-        fmt.wFormatTag     = WAVE_FORMAT_PCM;
-        fmt.wBitsPerSample = 16;
-    }
+    fmt.wFormatTag     = WAVE_FORMAT_PCM;
+    fmt.wBitsPerSample = 16;
 
     source->sample_rate = sample_rate;
 
@@ -339,6 +329,8 @@ xaudio2_close(void *priv)
 
         dev->mastervoice = NULL;
         xaudio2          = NULL;
+
+        free(dev);
     }
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
@@ -347,6 +339,19 @@ xaudio2_close(void *priv)
         xaudio2_handle = NULL;
     }
 #endif
+}
+
+static int
+xaudio2_get_supported_rates(UNUSED(const char *device_name), int *rates_out, const int max_rates)
+{
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    int              count        = 0;
+
+    /* No probing is possible, so every candidate is offered. */
+    for (int i = 0; (i < 2) && (i < max_rates); i++)
+        rates_out[count++] = candidates[i];
+
+    return count;
 }
 
 static void *
@@ -362,11 +367,11 @@ xaudio2_init(void)
         xaudio2_handle = dynld_module("xaudio2_9redist.dll", xaudio2_imports);
 
     if (xaudio2_handle == NULL)
-        return NULL;
+        goto fail;
 #endif
 
     if (XAudio2Create(&xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR))
-        return NULL;
+        goto fail;
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     LPWSTR dev_id = xa2_find_dev_id(sound_output_device);
@@ -376,13 +381,17 @@ xaudio2_init(void)
 #endif
         IXAudio2_Release(xaudio2);
         xaudio2 = NULL;
-        return NULL;
+        goto fail;
     }
 
     return dev;
+
+fail:
+    free(dev);
+    return NULL;
 }
 
-const sound_backend_t sound_backend_openal = {
+const sound_backend_t sound_backend_xaudio2 = {
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     .name               = "XAudio2",
 #else
@@ -394,5 +403,13 @@ const sound_backend_t sound_backend_openal = {
     .close_source       = xaudio2_close_source,
     .get_output_devices = xaudio2_get_output_devices,
     .init               = xaudio2_init,
-    .close              = xaudio2_close
+    .close              = xaudio2_close,
+    .get_input_devices  = NULL,
+    .init_input         = NULL,
+    .close_input        = NULL,
+    .start_input        = NULL,
+    .stop_input         = NULL,
+    .get_input_rate     = NULL,
+    .get_input_data     = NULL,
+    .get_device_supported_rates = xaudio2_get_supported_rates
 };

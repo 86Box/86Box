@@ -188,7 +188,9 @@ adlipt_init(const device_t *info)
         }
     }
 
-    music_add_handler(adlib_get_buffer, adlipt->adlib);
+    adlipt->adlib->src = sound_source_add_stream(I_MUSIC, adlib_get_buffer, adlipt->adlib);
+    if (adlipt->adlib->opl.set_clock != NULL)
+        adlipt->adlib->opl.set_clock(adlipt->adlib->opl.priv, sound_source_get_pos_ptr(adlipt->adlib->src));
 
     /* Initialize OPL chip to clean state */
     adlipt_reset_opl(adlipt);
@@ -211,6 +213,7 @@ adlipt_close(void *priv)
         log_close(adlipt->log);
 
     if (adlipt->adlib) {
+        sound_source_remove(adlipt->adlib->src);
         adlipt_reset_opl(adlipt);
         free(adlipt->adlib);
     }

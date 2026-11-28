@@ -330,6 +330,7 @@ modem_connection_type_name(int type)
 
 typedef struct modem_t {
     void       *log;
+    void       *sound_source;
     modem_profile_t profile;
     uint8_t     mac[6];
     ser_port_t *serial;
@@ -794,7 +795,7 @@ modem_voice_capture_set(modem_t *modem, bool enabled)
     modem->voice_capture_started = enabled;
     if (enabled) {
         sound_in_start_input();
-        int rate = al_capture_get_rate();
+        int rate = sound_backend_input_get_rate();
         if (rate <= 0)
             rate = SOUND_FREQ;
         voice_resampler_init(&modem->voice_capture_resample,
@@ -4753,7 +4754,7 @@ modem_init(UNUSED(const device_t *info))
     modem_sound_set_region(modem->sound, device_get_config_int("sound_region"));
     modem_load_sound_config(modem->sound);
     sound_in_add_handler(modem_voice_capture, modem);
-    sound_add_handler(modem_voice_playback, modem);
+    modem->sound_source = sound_source_add_stream(I_NORMAL, modem_voice_playback, modem);
     modem->listen_port = device_get_config_int("listen_port");
     modem->telnet_mode = device_get_config_int("telnet_mode");
 
@@ -4875,7 +4876,8 @@ modem_close(void *priv)
     modem->listen_port = 0;
     modem_reset(modem);
     sound_in_remove_handler(modem_voice_capture, modem);
-    sound_remove_handler(modem_voice_playback, modem);
+    sound_source_remove(modem->sound_source);
+    modem->sound_source = NULL;
 
 #ifdef ENABLE_VSERVER
     vserver_close(modem->vserver);

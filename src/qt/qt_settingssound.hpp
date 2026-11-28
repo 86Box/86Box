@@ -40,6 +40,7 @@ private slots:
 
 private:
     void updateSoundInputEnabled();
+    void populateAudioDevices(int backend);
 
 private slots:
 
@@ -48,8 +49,6 @@ private slots:
 
     void on_comboBoxMidiIn_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiIn_clicked();
-
-    void on_comboBoxAudioOutputDevice_currentIndexChanged(int index);
 
     void on_checkBoxMPU401_stateChanged(int arg1);
     void on_pushButtonConfigureMPU401_clicked();
