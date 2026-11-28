@@ -15311,6 +15311,55 @@ const machine_t machines[] = {
         .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "Intel Batman's Revenge", "Intel Premiere/PCI Expandable Desktop", "" }
     },
+    /* Likely has Phoenix MultiKey KBC firmware */
+    {
+        .name              = "[i430LX] Micronics M5Pe",
+        .internal_name     = "m5pe",
+        .type              = MACHINE_TYPE_SOCKET4,
+        .chipset           = MACHINE_CHIPSET_INTEL_430LX,
+        .init              = machine_at_m5pe_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET4,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 60000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = MACHINE_MULTIPLIER_FIXED,
+            .max_multi   = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2, /* PS/2 only supported by the IBM OEM BIOS */
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 2048,
+            .max  = 196608,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &m5pe_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .ide_device               = NULL,
+        .aliases                  = { "IBM PC Server 300 (type 8640)", "" }
+    },
     /* The M5Pi appears to have a Phoenix MultiKey KBC firmware according to photos. */
     {
         .name              = "[i430LX] Micronics M5Pi",

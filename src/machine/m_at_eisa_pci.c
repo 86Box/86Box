@@ -397,3 +397,115 @@ machine_at_td3_init(const machine_t *model)
 
     return ret;
 }
+
+static const device_config_t m5pe_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "m5pe",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS for Pentium 1.00 - Revision M5PE-01 (No PS/2 mouse support)",
+                .internal_name = "m5pe_01",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m5pe/M5PE_01.BIN", "" }
+            },
+            {
+                .name          = "PhoenixBIOS for Pentium 1.00 - Revision M5PE-03 (No PS/2 mouse support)",
+                .internal_name = "m5pe_03",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m5pe/M5PE_03.BIN", "" }
+            },
+            {
+                .name          = "PhoenixBIOS for Pentium 1.00 - Revision M5PE-06 (No PS/2 mouse support)",
+                .internal_name = "m5pe",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m5pe/M5PE_06.BIN", "" }
+            },
+            {
+                .name          = "PhoenixBIOS for Pentium 1.00 - Revision M5PE-T53 (IBM)",
+                .internal_name = "m5pe_t53",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m5pe/M5PE_T53.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t m5pe_device = {
+    .name          = "Micronics M5Pe",
+    .internal_name = "m5pe_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = m5pe_config
+};
+
+int
+machine_at_m5pe_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear_inverted(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ide_pci_device);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0f, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    eisa_init(6);
+
+    device_add(&i430lx_device);
+    device_add(&pceb_device);
+    device_add(&esc_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
+    device_add(&intel_flash_bxt_device);
+
+    esc_set_board_id("MIC", 0x0005, 0);
+
+    return ret;
+}
